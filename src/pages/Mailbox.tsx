@@ -84,12 +84,28 @@ const Mailbox = () => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('gmail-auth', {
-        body: { userId: user.id },
-        method: 'GET'
-      });
+      // Call edge function with userId as query parameter for GET request
+      const response = await fetch(
+        `https://lmkpmnndrygjatnipfgd.supabase.co/functions/v1/gmail-auth?userId=${user.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA',
+          }
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get auth URL');
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       // Open OAuth popup
       window.open(data.authUrl, 'gmail-auth', 'width=500,height=600');
@@ -115,6 +131,7 @@ const Mailbox = () => {
 
       window.addEventListener('message', handleMessage);
     } catch (error: any) {
+      console.error('Gmail connection error:', error);
       toast({
         variant: "destructive",
         title: "Error",
