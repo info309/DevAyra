@@ -632,9 +632,9 @@ const Mailbox = () => {
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="flex justify-between gap-3 w-full max-w-full overflow-hidden items-start">
+                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                               {/* Left side content */}
-                              <div className="min-w-0 space-y-1 overflow-hidden flex-1">
+                              <div className="min-w-0 space-y-1 overflow-hidden">
                                 {/* Email address and unread badge */}
                                 <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
@@ -663,7 +663,7 @@ const Mailbox = () => {
                               </div>
                               
                               {/* Right side content */}
-                              <div className="flex flex-col items-end justify-between min-h-16 flex-shrink-0 w-24">
+                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
@@ -705,56 +705,56 @@ const Mailbox = () => {
                             </div>
                           </div>
 
-                          {/* Expanded Thread Emails */}
-                          {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                            <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
-                              <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
-                                {conversation.emails
-                                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                  .map((email, emailIndex) => (
-                                  <div
-                                    key={email.id}
-                                    className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
-                                    onClick={(e) => selectEmailFromThread(email, e)}
-                                  >
-                                    <div className="flex justify-between gap-3 w-full max-w-full overflow-hidden items-start">
-                                      <div className="min-w-0 overflow-hidden flex-1">
-                                        <div className="flex items-center gap-2 mb-1 min-w-0">
-                                          <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                            {email.from.split('<')[0].trim() || email.from}
-                                          </p>
-                                          {email.unread && (
-                                            <Badge variant="default" className="text-xs py-0 px-1 flex-shrink-0">
-                                              New
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground truncate">
-                                          {email.snippet}
+                        {/* Expanded Thread Emails */}
+                        {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
+                          <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
+                            <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
+                              {conversation.emails
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((email, emailIndex) => (
+                                <div
+                                  key={email.id}
+                                  className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
+                                  onClick={(e) => selectEmailFromThread(email, e)}
+                                >
+                                  <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                    <div className="min-w-0 overflow-hidden">
+                                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                                        <p className="text-xs font-medium truncate flex-1 min-w-0">
+                                          {email.from.split('<')[0].trim() || email.from}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {formatDate(email.date)}
-                                        </p>
+                                        {email.unread && (
+                                          <Badge variant="default" className="text-xs py-0 px-1 flex-shrink-0">
+                                            New
+                                          </Badge>
+                                        )}
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          selectEmailFromThread(email, e);
-                                        }}
-                                      >
-                                        <Reply className="w-3 h-3" />
-                                      </Button>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {email.snippet}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatDate(email.date)}
+                                      </p>
                                     </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        selectEmailFromThread(email, e);
+                                      }}
+                                    >
+                                      <Reply className="w-3 h-3" />
+                                    </Button>
                                   </div>
-                                ))}
-                              </div>
+                                </div>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
 
-                          {index < conversations.length - 1 && <Separator />}
+                        {index < conversations.length - 1 && <Separator />}
                         </div>
                       );
                     })}
