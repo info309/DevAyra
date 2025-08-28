@@ -1166,12 +1166,6 @@ const Mailbox: React.FC = () => {
         <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                {currentView === 'inbox' ? 'Inbox' : 'Sent'}
-              </CardTitle>
-            </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[calc(100vh-16rem)] w-full">
                 {emailLoading && filteredConversations.length === 0 ? (
