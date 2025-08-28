@@ -1635,9 +1635,9 @@ const Mailbox: React.FC = () => {
               <DrawerContent className="h-[90vh] max-w-full">
                 <DrawerHeader className="border-b px-4 pb-3">
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between w-full">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <DrawerTitle className="text-left truncate text-base leading-tight">
+                    <div className="flex items-start justify-between w-full min-w-0">
+                      <div className="flex-1 min-w-0 max-w-[calc(100%-1rem)]">
+                        <DrawerTitle className="text-left text-base leading-tight line-clamp-2 break-words">
                           {selectedConversation?.subject || 'Email'}
                         </DrawerTitle>
                         {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
