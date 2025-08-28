@@ -19,6 +19,12 @@ interface GmailRequest {
   threadId?: string;
   replyTo?: string;
   draftId?: string;
+  attachments?: {
+    filename: string;
+    content: string;
+    contentType: string;
+    size: number;
+  }[];
 }
 
 interface ProcessedAttachment {
@@ -68,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const userId = user.id;
-    const { action, messageId, attachmentId, maxResults = 50, pageToken, query, to, subject, content, threadId, replyTo, draftId } = await req.json();
+    const { action, messageId, attachmentId, maxResults = 50, pageToken, query, to, subject, content, threadId, replyTo, draftId, attachments } = await req.json();
     
     if (!userId) {
       throw new Error('User ID not found in authentication context');
@@ -830,24 +836,73 @@ const handler = async (req: Request): Promise<Response> => {
         // Check if this is a reply (has threadId)
         const isReply = threadId && threadId.length > 0;
         
-        // Convert plain text line breaks to HTML for Gmail
-        const htmlContent = content.replace(/\n/g, '<br>');
-        
-        // Create email with proper headers
-        const headers: string[] = [
-          `To: ${to}`,
-          `Subject: ${subject}`,
-          'Content-Type: text/html; charset=utf-8',
-        ];
+        let emailBody: string;
 
-        // Add threading headers if this is a reply
-        if (isReply && replyTo) {
-          headers.push(`In-Reply-To: <${replyTo}@gmail.com>`);
-          headers.push(`References: <${replyTo}@gmail.com>`);
+        if (attachments && attachments.length > 0) {
+          // Create multipart email with attachments
+          const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          const headers: string[] = [
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          ];
+
+          // Add threading headers if this is a reply
+          if (isReply && replyTo) {
+            headers.push(`In-Reply-To: <${replyTo}@gmail.com>`);
+            headers.push(`References: <${replyTo}@gmail.com>`);
+          }
+
+          const parts: string[] = [];
+          
+          // Add email content part
+          const htmlContent = content.replace(/\n/g, '<br>');
+          parts.push([
+            `--${boundary}`,
+            'Content-Type: text/html; charset=utf-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            btoa(htmlContent)
+          ].join('\n'));
+
+          // Add attachment parts
+          for (const attachment of attachments) {
+            parts.push([
+              `--${boundary}`,
+              `Content-Type: ${attachment.contentType}; name="${attachment.filename}"`,
+              'Content-Transfer-Encoding: base64',
+              `Content-Disposition: attachment; filename="${attachment.filename}"`,
+              '',
+              attachment.content
+            ].join('\n'));
+          }
+
+          parts.push(`--${boundary}--`);
+
+          emailBody = [...headers, '', parts.join('\n')].join('\n');
+        } else {
+          // Create simple email without attachments
+          // Convert plain text line breaks to HTML for Gmail
+          const htmlContent = content.replace(/\n/g, '<br>');
+          
+          // Create email with proper headers
+          const headers: string[] = [
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            'Content-Type: text/html; charset=utf-8',
+          ];
+
+          // Add threading headers if this is a reply
+          if (isReply && replyTo) {
+            headers.push(`In-Reply-To: <${replyTo}@gmail.com>`);
+            headers.push(`References: <${replyTo}@gmail.com>`);
+          }
+
+          emailBody = [...headers, '', htmlContent].join('\n');
         }
 
-        const email = [...headers, '', htmlContent].join('\n');
-        const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const encodedEmail = btoa(emailBody).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
         // Prepare request body
         const requestBody: any = {

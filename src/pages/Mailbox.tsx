@@ -10,7 +10,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -52,6 +52,7 @@ interface ComposeFormData {
   content: string;
   replyTo?: string;
   threadId?: string;
+  attachments?: File[];
 }
 
 const Mailbox: React.FC = () => {
@@ -64,11 +65,6 @@ const Mailbox: React.FC = () => {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [emailLoading, setEmailLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Add debugging for searchQuery changes
-  useEffect(() => {
-    console.log('searchQuery changed:', searchQuery, 'Stack:', new Error().stack);
-  }, [searchQuery]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [expandedConversations, setExpandedConversations] = useState<Set<string>>(new Set());
@@ -78,13 +74,9 @@ const Mailbox: React.FC = () => {
   const [composeForm, setComposeForm] = useState<ComposeFormData>({
     to: '',
     subject: '',
-    content: ''
+    content: '',
+    attachments: []
   });
-  
-  // Add debugging for composeForm.to changes
-  useEffect(() => {
-    console.log('composeForm.to changed:', composeForm.to, 'Stack:', new Error().stack);
-  }, [composeForm.to]);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   // Pagination state
@@ -533,6 +525,25 @@ const Mailbox: React.FC = () => {
     try {
       setSendingEmail(true);
       
+      // Convert attachments to base64 for sending
+      const attachmentsData = await Promise.all(
+        (composeForm.attachments || []).map(async (file) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve({
+                filename: file.name,
+                content: base64,
+                contentType: file.type,
+                size: file.size
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
           action: 'sendEmail',
@@ -540,7 +551,8 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           replyTo: composeForm.replyTo,
-          threadId: composeForm.threadId
+          threadId: composeForm.threadId,
+          attachments: attachmentsData
         }
       });
 
@@ -605,7 +617,7 @@ const Mailbox: React.FC = () => {
       }
 
       // Reset form and close dialog
-      setComposeForm({ to: '', subject: '', content: '' });
+      setComposeForm({ to: '', subject: '', content: '', attachments: [] });
       setShowComposeDialog(false);
 
       // Only refresh if it wasn't a reply (for new emails or if we couldn't update locally)
@@ -647,7 +659,8 @@ const Mailbox: React.FC = () => {
       subject: replySubject,
       content: quotedContent,
       replyTo: email.id,
-      threadId: conversation.id
+      threadId: conversation.id,
+      attachments: []
     });
     
     setShowComposeDialog(true);
@@ -821,7 +834,7 @@ const Mailbox: React.FC = () => {
                 <DrawerTrigger asChild>
                   <Button className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '' });
+                    setComposeForm({ to: '', subject: '', content: '', attachments: [] });
                   }} size="sm">
                     <Plus className="w-4 h-4" />
                     Compose
@@ -866,12 +879,79 @@ const Mailbox: React.FC = () => {
                         className="min-h-[300px] resize-none"
                       />
                     </div>
+                    
+                    {/* Attachments Section */}
+                    <div>
+                      <Label>Attachments</Label>
+                      <div className="space-y-3">
+                        {/* File Input */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            multiple
+                            id="attachments"
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setComposeForm(prev => ({
+                                ...prev,
+                                attachments: [...(prev.attachments || []), ...files]
+                              }));
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById('attachments')?.click()}
+                            className="gap-2"
+                          >
+                            <Paperclip className="w-4 h-4" />
+                            Add Attachment
+                          </Button>
+                          <span className="text-xs text-muted-foreground">
+                            Max 25MB per file
+                          </span>
+                        </div>
+
+                        {/* Selected Attachments */}
+                        {composeForm.attachments && composeForm.attachments.length > 0 && (
+                          <div className="space-y-2">
+                            {composeForm.attachments.map((file, index) => (
+                              <div key={index} className="flex items-center gap-3 p-2 bg-secondary rounded-lg">
+                                <Paperclip className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{file.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setComposeForm(prev => ({
+                                      ...prev,
+                                      attachments: prev.attachments?.filter((_, i) => i !== index) || []
+                                    }));
+                                  }}
+                                  className="flex-shrink-0 p-1 h-6 w-6"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <DrawerFooter>
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => {
                         setShowComposeDialog(false);
-                        setComposeForm({ to: '', subject: '', content: '' });
+                        setComposeForm({ to: '', subject: '', content: '', attachments: [] });
                       }}>
                         Cancel
                       </Button>
