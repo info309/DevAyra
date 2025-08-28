@@ -1478,7 +1478,7 @@ const Mailbox: React.FC = () => {
                               className="gap-2"
                             >
                               <Reply className="w-4 h-4" />
-                              Reply
+                              {currentView === 'sent' ? 'Send Again' : 'Reply'}
                             </Button>
                             <Button
                               variant="outline"
@@ -1563,7 +1563,7 @@ const Mailbox: React.FC = () => {
                           className="flex-1 gap-2"
                         >
                           <Reply className="w-4 h-4" />
-                          Reply
+                          {currentView === 'sent' ? 'Send Again' : 'Reply'}
                         </Button>
                         <Button
                           variant="outline"
