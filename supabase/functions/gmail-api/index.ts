@@ -736,19 +736,27 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('Message ID is required');
         }
 
+        console.log(`Attempting to trash message: ${messageId}`);
+
         const response = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
           {
-            method: 'DELETE',
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
             },
           }
         );
 
         if (!response.ok) {
-          throw new Error('Failed to delete email');
+          const errorText = await response.text();
+          console.error('Failed to trash email:', response.status, errorText);
+          throw new Error(`Failed to delete email: ${response.status}`);
         }
+
+        const result = await response.json();
+        console.log('Successfully trashed message:', result.id);
 
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
