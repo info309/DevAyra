@@ -244,6 +244,36 @@ const Mailbox: React.FC = () => {
     return cleaned.trim();
   };
 
+  // Function to gently clean email content for resending (less aggressive than reply cleaning)
+  const cleanEmailContentForResend = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    let cleaned = htmlContent;
+    
+    // Only remove HTML tags and decode basic entities, preserve the actual content
+    cleaned = cleaned.replace(/<[^>]*>/g, ''); // Remove HTML tags
+    
+    // Decode common HTML entities
+    cleaned = cleaned
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'");
+    
+    // Basic whitespace cleanup
+    cleaned = cleaned
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+    
+    return cleaned || htmlContent; // Return original if cleaning results in empty string
+  };
+
   const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
     if (!user) return;
 
@@ -748,11 +778,11 @@ const Mailbox: React.FC = () => {
 
   const handleReplyClick = (email: Email, conversation: Conversation) => {
     if (currentView === 'sent') {
-      // Handle "Send Again" for sent emails
+      // Handle "Send Again" for sent emails - use gentler cleaning
       setComposeForm({
         to: email.to,
         subject: email.subject,
-        content: cleanEmailContentForReply(email.content || ''),
+        content: cleanEmailContentForResend(email.content || ''),
         attachments: [],
         documentAttachments: []
       });
