@@ -641,10 +641,15 @@ const Mailbox = () => {
           <Card className="lg:col-span-1 w-full max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
-              <CardDescription className="flex items-center justify-between">
-                <span>
-                  {showOnlyUnread ? filteredConversations.length : conversations.length} conversations, {emails.length} total emails
-                </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowOnlyUnread(!showOnlyUnread)}
+                  className={`text-sm transition-colors hover:text-primary ${
+                    showOnlyUnread ? 'text-primary font-medium' : 'text-muted-foreground'
+                  }`}
+                >
+                  {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
+                </button>
                 {showOnlyUnread && (
                   <Button
                     variant="ghost"
@@ -655,16 +660,6 @@ const Mailbox = () => {
                     Show All
                   </Button>
                 )}
-              </CardDescription>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-                  className={`text-sm transition-colors hover:text-primary ${
-                    showOnlyUnread ? 'text-primary font-medium' : 'text-muted-foreground'
-                  }`}
-                >
-                  {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
-                </button>
               </div>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
