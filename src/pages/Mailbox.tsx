@@ -319,10 +319,11 @@ const Mailbox = () => {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
     
-    // Load more when 90% scrolled and not already loading
-    if (scrollPercentage > 0.9 && !allEmailsLoaded && !autoLoading && nextPageToken) {
+    // Load more only when scrolled to the very bottom (within 5px tolerance)
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5;
+    
+    if (isAtBottom && !allEmailsLoaded && !autoLoading && nextPageToken) {
       loadMoreEmails();
     }
   };
