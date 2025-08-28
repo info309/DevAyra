@@ -705,6 +705,9 @@ const handler = async (req: Request): Promise<Response> => {
             if (new Date(message.date) > new Date(existing.lastDate)) {
               existing.lastDate = message.date;
             }
+            // Update participants list
+            const allParticipants = [...existing.participants, message.from, message.to].filter(Boolean);
+            existing.participants = [...new Set(allParticipants)]; // Remove duplicates
           } else {
             acc.push({
               id: message.threadId,
@@ -718,6 +721,19 @@ const handler = async (req: Request): Promise<Response> => {
           }
           return acc;
         }, []);
+
+        // Log threading information for debugging
+        console.log('Threading debug info:', {
+          totalMessages: validMessages.length,
+          conversationCount: conversations.length,
+          threadsWithMultipleMessages: conversations.filter(c => c.messageCount > 1).length,
+          sampleConversations: conversations.slice(0, 3).map(c => ({
+            threadId: c.id,
+            subject: c.subject,
+            messageCount: c.messageCount,
+            emailIds: c.emails.map((e: any) => e.id)
+          }))
+        });
 
         return new Response(JSON.stringify({
           conversations: conversations,
