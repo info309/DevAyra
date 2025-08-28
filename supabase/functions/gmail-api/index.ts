@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Gmail API request received');
+    console.log('Gmail API request received - markRead functionality enabled');
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
