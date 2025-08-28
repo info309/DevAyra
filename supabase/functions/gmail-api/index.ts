@@ -473,7 +473,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Generate unique filename with path
       const timestamp = Date.now();
       const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storagePath = `${userId}/${messageId}/${timestamp}_${sanitizedFilename}`;
+      const storagePath = `${userId}/documents/${timestamp}_${sanitizedFilename}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabaseClient.storage

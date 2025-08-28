@@ -664,16 +664,26 @@ const Mailbox: React.FC = () => {
       const documentAttachmentsData = await Promise.all(
         (composeForm.documentAttachments || []).map(async (doc) => {
           try {
+            console.log('Downloading document:', doc.name, 'from path:', doc.file_path);
+            
             const { data, error } = await supabase.storage
               .from('documents')
               .download(doc.file_path);
 
-            if (error) throw error;
+            if (error) {
+              console.error('Storage download error:', error);
+              throw error;
+            }
+
+            if (!data) {
+              throw new Error('No data received from storage');
+            }
 
             return new Promise((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => {
                 const base64 = (reader.result as string).split(',')[1];
+                console.log('Successfully converted document to base64:', doc.name);
                 resolve({
                   filename: doc.name,
                   content: base64,
@@ -681,12 +691,15 @@ const Mailbox: React.FC = () => {
                   size: doc.file_size || 0
                 });
               };
-              reader.onerror = reject;
+              reader.onerror = () => {
+                console.error('FileReader error for document:', doc.name);
+                reject(new Error(`Failed to read file: ${doc.name}`));
+              };
               reader.readAsDataURL(data);
             });
           } catch (error) {
             console.error(`Failed to download document ${doc.name}:`, error);
-            throw new Error(`Failed to attach document: ${doc.name}`);
+            throw new Error(`Failed to attach document: ${doc.name}. Error: ${error.message}`);
           }
         })
       );
