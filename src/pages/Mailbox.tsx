@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
 
@@ -79,7 +79,7 @@ const Mailbox: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const isDrawerView = useIsDrawerView();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -368,8 +368,8 @@ const Mailbox: React.FC = () => {
       markConversationAsRead(conversation);
     }
 
-    // Open drawer on mobile
-    if (isMobile) {
+    // Open drawer on smaller screens
+    if (isDrawerView) {
       setMobileDrawerOpen(true);
     }
   };
@@ -383,8 +383,8 @@ const Mailbox: React.FC = () => {
       markEmailAsRead(email.id, conversation.id);
     }
 
-    // Open drawer on mobile
-    if (isMobile) {
+    // Open drawer on smaller screens
+    if (isDrawerView) {
       setMobileDrawerOpen(true);
     }
   };
@@ -1163,7 +1163,7 @@ const Mailbox: React.FC = () => {
           </div>
         </div>
 
-        <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
+        <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardHeader>
@@ -1365,7 +1365,7 @@ const Mailbox: React.FC = () => {
             </Card>
 
             {/* Email/Thread Content - Desktop Only */}
-            {!isMobile && (
+            {!isDrawerView && (
               <Card className="lg:col-span-2 min-w-0 overflow-hidden">
                 <CardContent className="p-0">
                   {selectedConversation ? (
