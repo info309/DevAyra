@@ -135,6 +135,32 @@ const Mailbox: React.FC = () => {
     }
   };
 
+  // Function to clean email content by removing the HTML wrapper we add for styling
+  const cleanEmailContentForReply = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    // Remove our styled wrapper div
+    let cleaned = htmlContent.replace(
+      /<div style="\s*max-width: 100%;\s*word-wrap: break-word;.*?">\s*/gi,
+      ''
+    );
+    
+    // Remove closing div
+    cleaned = cleaned.replace(/<\/div>\s*$/gi, '').trim();
+    
+    // Convert HTML to plain text for better quoting
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = cleaned;
+    
+    // Get text content and preserve line breaks
+    let textContent = tempDiv.innerText || tempDiv.textContent || '';
+    
+    // Clean up excessive whitespace
+    textContent = textContent.replace(/\n\s*\n/g, '\n\n').trim();
+    
+    return textContent;
+  };
+
   const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
     if (!user || viewLoading[view]) return;
 
@@ -542,8 +568,11 @@ const Mailbox: React.FC = () => {
       email.subject : 
       `Re: ${email.subject}`;
 
+    // Clean the original email content by removing HTML wrapper and converting to plain text
+    const cleanContent = cleanEmailContentForReply(email.content || '');
+
     // Format the original email content for quoting
-    const quotedContent = `\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${email.content}`;
+    const quotedContent = `\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
 
     setComposeForm({
       to: replyToEmail,
