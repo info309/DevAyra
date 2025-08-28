@@ -802,13 +802,6 @@ const Mailbox: React.FC = () => {
 
             {/* Action Controls */}
             <div className="flex gap-2">
-              <Button 
-                variant={showOnlyUnread ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-              >
-                {showOnlyUnread ? 'Show All' : 'Unread Only'}
-              </Button>
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
               </Button>
