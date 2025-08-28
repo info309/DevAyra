@@ -1216,7 +1216,7 @@ const Mailbox: React.FC = () => {
                             <div key={conversation.id}>
                               <div
                                 className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
-                                  isSelected ? 'bg-accent' : 'hover:bg-accent/50'
+                                  isSelected ? 'bg-accent rounded-lg' : 'hover:bg-accent/50'
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
