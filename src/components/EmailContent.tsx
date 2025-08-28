@@ -8,7 +8,7 @@ interface Attachment {
   filename: string;
   mimeType: string;
   size: number;
-  attachmentId: string;
+  attachmentId?: string; // Make optional to match email data
   downloadUrl?: string;
 }
 

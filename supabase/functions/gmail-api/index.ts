@@ -7,12 +7,13 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'download-attachment';
+  action: 'list' | 'get' | 'send' | 'search';
   userId: string;
   messageId?: string;
   attachmentId?: string;
   maxResults?: number;
   pageToken?: string;
+  query?: string; // Gmail search query
   to?: string;
   subject?: string;
   body?: string;
@@ -51,7 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, userId, messageId, attachmentId, maxResults = 10, pageToken, to, subject, body }: GmailRequest = await req.json();
+    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, to, subject, body }: GmailRequest = await req.json();
     
     if (!userId) {
       throw new Error('User ID is required');
@@ -484,8 +485,15 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     switch (action) {
+      case 'search':
       case 'list': {
-        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}`;
+        // Build Gmail search query
+        let searchQuery = '';
+        if (action === 'search' && query) {
+          searchQuery = encodeURIComponent(query);
+        }
+        
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`;
         
         const response = await fetch(url, {
           headers: {
@@ -499,11 +507,11 @@ const handler = async (req: Request): Promise<Response> => {
 
         const messages = await response.json();
         
-        // Get detailed info for each message
+        // Get detailed info for each message including content for search
         const detailedMessages = await Promise.all(
           (messages.messages || []).map(async (message: any) => {
             const messageResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata`,
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`,
               {
                 headers: {
                   'Authorization': `Bearer ${accessToken}`,
@@ -515,23 +523,36 @@ const handler = async (req: Request): Promise<Response> => {
               const messageData = await messageResponse.json();
               const headers = messageData.payload?.headers || [];
               
+              // Process content and attachments for search
+              const { content, attachments } = processEmailContent(messageData.payload);
+              
               return {
                 id: messageData.id,
                 threadId: messageData.threadId,
                 snippet: messageData.snippet,
                 subject: headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject',
                 from: headers.find((h: any) => h.name === 'From')?.value || 'Unknown',
+                to: headers.find((h: any) => h.name === 'To')?.value || '',
                 date: headers.find((h: any) => h.name === 'Date')?.value || '',
                 unread: messageData.labelIds?.includes('UNREAD') || false,
+                content: content,
+                attachments: attachments.map(att => ({
+                  filename: att.filename,
+                  mimeType: att.mimeType,
+                  size: att.size
+                }))
               };
             }
             return null;
           })
         );
 
+        const validMessages = detailedMessages.filter(Boolean);
+
         return new Response(JSON.stringify({
-          messages: detailedMessages.filter(Boolean),
+          messages: validMessages,
           nextPageToken: messages.nextPageToken,
+          totalResults: messages.resultSizeEstimate || validMessages.length
         }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },

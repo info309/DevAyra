@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, List, Users, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -21,6 +21,7 @@ interface Email {
   snippet: string;
   subject: string;
   from: string;
+  to: string;
   date: string;
   unread: boolean;
   content?: string;
@@ -28,9 +29,19 @@ interface Email {
     filename: string;
     mimeType: string;
     size: number;
-    attachmentId: string;
+    attachmentId?: string;
     downloadUrl?: string;
   }>;
+}
+
+interface Conversation {
+  id: string; // threadId or generated conversation ID
+  subject: string;
+  participants: string[];
+  lastDate: string;
+  unreadCount: number;
+  messageCount: number;
+  emails: Email[];
 }
 
 interface GmailConnection {
@@ -46,10 +57,17 @@ const Mailbox = () => {
   
   const [connections, setConnections] = useState<GmailConnection[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'conversations' | 'emails'>('conversations');
+  const [allEmailsLoaded, setAllEmailsLoaded] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   
   // Compose form state
   const [to, setTo] = useState('');
@@ -163,29 +181,136 @@ const Mailbox = () => {
     setLoading(false);
   };
 
-  const fetchEmails = async () => {
+  const fetchEmails = async (searchQuery?: string, loadMore = false) => {
     if (!user || connections.length === 0) return;
     
     setEmailLoading(true);
     try {
+      const action = searchQuery ? 'search' : 'list';
+      const requestBody = {
+        action,
+        userId: user.id,
+        maxResults: 100, // Load more emails at once
+        pageToken: loadMore ? nextPageToken : undefined,
+        query: searchQuery
+      };
+
       const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'list',
-          userId: user.id,
-          maxResults: 20
-        }
+        body: requestBody
       });
 
       if (error) throw error;
-      setEmails(data.messages || []);
+
+      const newEmails = data.messages || [];
+      
+      if (loadMore) {
+        setEmails(prev => [...prev, ...newEmails]);
+      } else {
+        setEmails(newEmails);
+      }
+      
+      setNextPageToken(data.nextPageToken || null);
+      setAllEmailsLoaded(!data.nextPageToken);
+      
+      // Group emails into conversations
+      const allEmails = loadMore ? [...emails, ...newEmails] : newEmails;
+      const conversations = groupEmailsIntoConversations(allEmails);
+      setConversations(conversations);
+      
     } catch (error: any) {
+      console.error('Failed to fetch emails:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to fetch emails"
+        description: `Failed to fetch emails: ${error.message}`
       });
     }
     setEmailLoading(false);
+  };
+
+  const searchEmails = async (query: string) => {
+    if (!query.trim()) {
+      // If empty query, load regular inbox
+      await fetchEmails();
+      return;
+    }
+    
+    setSearchLoading(true);
+    setSearchQuery(query);
+    
+    // Build Gmail search query
+    let gmailQuery = '';
+    
+    // Check if it looks like an email address
+    if (query.includes('@')) {
+      gmailQuery = `from:${query} OR to:${query}`;
+    } else {
+      // Search in subject, body, and attachment names
+      gmailQuery = `subject:${query} OR ${query} OR filename:${query}`;
+    }
+    
+    try {
+      await fetchEmails(gmailQuery);
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        variant: "destructive",
+        title: "Search Error",
+        description: "Failed to search emails"
+      });
+    }
+    
+    setSearchLoading(false);
+  };
+
+  const groupEmailsIntoConversations = (emailList: Email[]): Conversation[] => {
+    const conversationMap = new Map<string, Conversation>();
+    
+    emailList.forEach(email => {
+      // Create conversation key based on thread ID or subject + participants
+      let conversationKey = email.threadId;
+      
+      // If no threadId, create conversation based on subject and participants  
+      if (!conversationKey) {
+        const cleanSubject = email.subject.replace(/^(Re:|Fwd?:)\s*/i, '').trim();
+        const participants = [email.from, email.to].filter(Boolean).sort();
+        conversationKey = `${cleanSubject}-${participants.join('-')}`;
+      }
+      
+      if (conversationMap.has(conversationKey)) {
+        const conversation = conversationMap.get(conversationKey)!;
+        conversation.emails.push(email);
+        conversation.messageCount++;
+        if (email.unread) conversation.unreadCount++;
+        
+        // Update last date if this email is newer
+        if (new Date(email.date) > new Date(conversation.lastDate)) {
+          conversation.lastDate = email.date;
+        }
+      } else {
+        // Create new conversation
+        const participants = [email.from, email.to].filter(Boolean);
+        conversationMap.set(conversationKey, {
+          id: conversationKey,
+          subject: email.subject,
+          participants: [...new Set(participants)],
+          lastDate: email.date,
+          unreadCount: email.unread ? 1 : 0,
+          messageCount: 1,
+          emails: [email]
+        });
+      }
+    });
+    
+    // Sort conversations by last date (newest first)
+    return Array.from(conversationMap.values()).sort((a, b) => 
+      new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+    );
+  };
+
+  const loadMoreEmails = async () => {
+    if (!nextPageToken || allEmailsLoaded) return;
+    await fetchEmails(searchQuery || undefined, true);
   };
 
   const fetchEmailContent = async (emailId: string) => {
@@ -201,13 +326,41 @@ const Mailbox = () => {
       });
 
       if (error) throw error;
-      setSelectedEmail(data);
+
+      const emailWithContent = data as Email;
+      setSelectedEmail(emailWithContent);
+      
+      // Update the email in the list with content
+      setEmails(prev => prev.map(email => 
+        email.id === emailId ? { ...email, ...emailWithContent } : email
+      ));
+      
+      // Update conversations as well
+      setConversations(prev => prev.map(conv => ({
+        ...conv,
+        emails: conv.emails.map(email =>
+          email.id === emailId ? { ...email, ...emailWithContent } : email
+        )
+      })));
+      
     } catch (error: any) {
+      console.error('Failed to fetch email content:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to fetch email content"
+        description: `Failed to fetch email content: ${error.message}`
       });
+    }
+  };
+
+  const selectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    setSelectedEmail(null);
+    
+    // Load content for the latest email in conversation if not already loaded
+    const latestEmail = conversation.emails[0];
+    if (latestEmail && !latestEmail.content) {
+      fetchEmailContent(latestEmail.id);
     }
   };
 
@@ -320,7 +473,7 @@ const Mailbox = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchEmails} disabled={emailLoading}>
+            <Button variant="outline" size="sm" onClick={() => fetchEmails()} disabled={emailLoading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${emailLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -386,61 +539,195 @@ const Mailbox = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-          {/* Email List */}
+        {/* Search and View Controls */}
+        <div className="mb-6 space-y-4">
+          <div className="flex gap-4 items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search emails by address, content, or attachment..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
+              />
+            </div>
+            <Button 
+              onClick={() => searchEmails(searchQuery)} 
+              disabled={searchLoading}
+              variant="outline"
+            >
+              {searchLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+            </Button>
+            {searchQuery && (
+              <Button 
+                onClick={() => {
+                  setSearchQuery('');
+                  fetchEmails();
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant={viewMode === 'conversations' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('conversations')}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Conversations ({conversations.length})
+            </Button>
+            <Button 
+              variant={viewMode === 'emails' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('emails')}
+            >
+              <List className="w-4 h-4 mr-2" />
+              All Emails ({emails.length})
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-20rem)]">
+          {/* Email/Conversation List */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg">Inbox</CardTitle>
+              <CardTitle className="text-lg">
+                {viewMode === 'conversations' ? 'Conversations' : 'All Emails'}
+              </CardTitle>
               <CardDescription>
-                {emails.length} messages
+                {viewMode === 'conversations' 
+                  ? `${conversations.length} conversations` 
+                  : `${emails.length} emails`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-16rem)]">
+              <ScrollArea className="h-[calc(100vh-24rem)]">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading emails...</p>
                   </div>
-                ) : emails.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">No emails found</p>
-                  </div>
-                ) : (
-                  emails.map((email, index) => (
-                    <div key={email.id}>
-                      <div
-                        className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                          selectedEmail?.id === email.id ? 'bg-accent' : ''
-                        }`}
-                        onClick={() => fetchEmailContent(email.id)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {email.from.split('<')[0].trim() || email.from}
+                ) : viewMode === 'conversations' ? (
+                  conversations.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No conversations found</p>
+                    </div>
+                  ) : (
+                    conversations.map((conversation, index) => (
+                      <div key={conversation.id}>
+                        <div
+                          className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                            selectedConversation?.id === conversation.id ? 'bg-accent' : ''
+                          }`}
+                          onClick={() => selectConversation(conversation)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                              </p>
+                              <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
+                                {conversation.subject}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              {conversation.unreadCount > 0 && (
+                                <Badge variant="default" className="text-xs">
+                                  {conversation.unreadCount}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-xs">
+                                {conversation.messageCount}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground truncate flex-1">
+                              {conversation.emails[0]?.snippet}
                             </p>
-                            <p className={`text-sm truncate ${email.unread ? 'font-medium' : 'text-muted-foreground'}`}>
-                              {email.subject}
+                            <p className="text-xs text-muted-foreground ml-2">
+                              {formatDate(conversation.lastDate)}
                             </p>
                           </div>
-                          {email.unread && (
-                            <Badge variant="default" className="ml-2 text-xs">
-                              New
-                            </Badge>
-                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {email.snippet}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDate(email.date)}
-                        </p>
+                        {index < conversations.length - 1 && <Separator />}
                       </div>
-                      {index < emails.length - 1 && <Separator />}
+                    ))
+                  )
+                ) : (
+                  emails.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No emails found</p>
                     </div>
-                  ))
+                  ) : (
+                    <>
+                      {emails.map((email, index) => (
+                        <div key={email.id}>
+                          <div
+                            className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                              selectedEmail?.id === email.id ? 'bg-accent' : ''
+                            }`}
+                            onClick={() => fetchEmailContent(email.id)}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">
+                                  {email.from.split('<')[0].trim() || email.from}
+                                </p>
+                                <p className={`text-sm truncate ${email.unread ? 'font-medium' : 'text-muted-foreground'}`}>
+                                  {email.subject}
+                                </p>
+                              </div>
+                              {email.unread && (
+                                <Badge variant="default" className="ml-2 text-xs">
+                                  New
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {email.snippet}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatDate(email.date)}
+                            </p>
+                          </div>
+                          {index < emails.length - 1 && <Separator />}
+                        </div>
+                      ))}
+                      
+                      {/* Load More Button */}
+                      {!allEmailsLoaded && nextPageToken && (
+                        <div className="p-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={loadMoreEmails}
+                            disabled={emailLoading}
+                          >
+                            {emailLoading ? (
+                              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <Plus className="w-4 h-4 mr-2" />
+                            )}
+                            Load More Emails
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )
                 )}
               </ScrollArea>
             </CardContent>
