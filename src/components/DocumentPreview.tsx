@@ -23,26 +23,36 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
 
   const generatePreview = async () => {
     if (!document.mime_type || !document.file_path) {
+      console.log('No mime type or file path for document:', document.name);
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
+      console.log('Generating preview for:', document.name, 'Type:', document.mime_type);
       
       // For images, generate direct preview
       if (document.mime_type.startsWith('image/')) {
+        console.log('Creating signed URL for image:', document.file_path);
         const { data, error } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600); // 1 hour expiry
         
-        if (!error && data) {
+        if (error) {
+          console.error('Error creating signed URL:', error);
+        } else if (data) {
+          console.log('Signed URL created:', data.signedUrl);
           setPreviewUrl(data.signedUrl);
           
           // Detect orientation
           const img = new Image();
           img.onload = () => {
+            console.log('Image loaded, dimensions:', img.width, 'x', img.height);
             setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
+          };
+          img.onerror = (e) => {
+            console.error('Error loading image:', e);
           };
           img.src = data.signedUrl;
         }
@@ -50,11 +60,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
       
       // For PDFs, create a signed URL for preview
       if (document.mime_type?.includes('pdf')) {
+        console.log('Creating signed URL for PDF:', document.file_path);
         const { data, error } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600);
         
-        if (!error && data) {
+        if (error) {
+          console.error('Error creating PDF signed URL:', error);
+        } else if (data) {
+          console.log('PDF signed URL created:', data.signedUrl);
           setPreviewUrl(data.signedUrl);
         }
       }
@@ -160,6 +174,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
     );
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className={`${className} bg-gray-100 rounded-lg overflow-hidden shadow-sm animate-pulse`}>
+        <div className="w-full h-full bg-gray-200"></div>
+      </div>
+    );
+  }
+
   // If it's an image and we have a preview, show the actual image
   if (document.mime_type?.startsWith('image/') && previewUrl) {
     return (
@@ -168,6 +191,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
           src={previewUrl}
           alt={document.name}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Image failed to load:', previewUrl);
+            setPreviewUrl(null); // Fallback to document preview
+          }}
         />
       </div>
     );
