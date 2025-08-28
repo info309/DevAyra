@@ -59,6 +59,7 @@ const Mailbox = () => {
   const [emails, setEmails] = useState<Email[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -351,6 +352,21 @@ const Mailbox = () => {
     }
   };
 
+  const handleConversationClick = (conversation: Conversation) => {
+    console.log('Selecting conversation:', conversation.id, conversation.subject);
+    setSelectedConversation(conversation);
+    setSelectedEmail(null); // Reset individual email selection
+    
+    // Mark as read logic...
+    // ... keep existing code
+  };
+
+  const handleEmailClick = (email: Email, conversation: Conversation) => {
+    console.log('Selecting individual email:', email.id);
+    setSelectedConversation(conversation);
+    setSelectedEmail(email);
+  };
+
   const selectConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
     
@@ -630,7 +646,7 @@ const Mailbox = () => {
                             className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
-                            onClick={() => selectConversation(conversation)}
+                            onClick={() => handleConversationClick(conversation)}
                           >
                             <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                               {/* Left side content */}
@@ -716,8 +732,8 @@ const Mailbox = () => {
                                 <div
                                   key={email.id}
                                   className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
-                                  onClick={(e) => selectEmailFromThread(email, e)}
-                                >
+                                   onClick={(e) => handleEmailClick(email, conversation)}
+                                 >
                                   <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                                     <div className="min-w-0 overflow-hidden">
                                       <div className="flex items-center gap-2 mb-1 min-w-0">
@@ -739,11 +755,11 @@ const Mailbox = () => {
                                       variant="ghost"
                                       size="sm"
                                       className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        selectEmailFromThread(email, e);
-                                      }}
-                                    >
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleEmailClick(email, conversation);
+                                       }}
+                                     >
                                       <Reply className="w-3 h-3" />
                                     </Button>
                                   </div>
@@ -788,14 +804,24 @@ const Mailbox = () => {
               {selectedConversation ? (
                 <div className="h-[calc(100vh-10rem)]">
                   <div className="p-6 border-b">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-xl font-heading font-semibold">
-                        {selectedConversation.subject}
-                      </h2>
-                      {selectedConversation.messageCount > 1 && (
-                        <Badge variant="outline" className="text-xs">
-                          {selectedConversation.messageCount} messages
-                        </Badge>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
+                        {selectedConversation.messageCount > 1 && (
+                          <Badge variant="secondary" className="text-xs mt-1">
+                            {selectedEmail ? 'Single Email' : `${selectedConversation.messageCount} messages`}
+                          </Badge>
+                        )}
+                      </div>
+                      {selectedEmail && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedEmail(null)}
+                          className="text-xs"
+                        >
+                          View Full Thread
+                        </Button>
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -809,9 +835,20 @@ const Mailbox = () => {
                     </div>
                   </div>
                   <ScrollArea className="h-[calc(100vh-18rem)]">
-                    <EmailContent 
-                      conversation={selectedConversation}
-                    />
+                    {selectedEmail ? (
+                      // Show single selected email
+                      <EmailContent 
+                        conversation={{
+                          ...selectedConversation,
+                          emails: [selectedEmail]
+                        }}
+                      />
+                    ) : (
+                      // Show full conversation thread
+                      <EmailContent 
+                        conversation={selectedConversation}
+                      />
+                    )}
                   </ScrollArea>
                 </div>
               ) : (
