@@ -13,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import EmailRow from '@/components/EmailRow';
 import EmailContent from '@/components/EmailContent';
 
 interface Email {
@@ -316,7 +315,6 @@ const Mailbox = () => {
   const fetchEmailContent = async (emailId: string) => {
     if (!user) return;
     
-    console.log('Fetching content for email:', emailId);
     try {
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: {
@@ -329,7 +327,6 @@ const Mailbox = () => {
       if (error) throw error;
 
       const emailWithContent = data as Email;
-      console.log('Email content received, length:', emailWithContent.content?.length || 0);
       
       // Update the email in the list with content
       setEmails(prev => prev.map(email => 
@@ -355,18 +352,13 @@ const Mailbox = () => {
   };
 
   const selectConversation = async (conversation: Conversation) => {
-    console.log('Selecting conversation:', conversation.id, conversation.subject);
     setSelectedConversation(conversation);
     
     // Load content for all emails in conversation that don't have content yet
     const emailsWithoutContent = conversation.emails.filter(email => !email.content);
-    console.log('Emails without content:', emailsWithoutContent.length);
     
-    // Only fetch content if emails actually need content
-    if (emailsWithoutContent.length > 0) {
-      for (const email of emailsWithoutContent) {
-        await fetchEmailContent(email.id);
-      }
+    for (const email of emailsWithoutContent) {
+      await fetchEmailContent(email.id);
     }
   };
 
@@ -613,16 +605,7 @@ const Mailbox = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
-              <div 
-                style={{
-                  height: 'calc(100vh - 22rem)',
-                  width: '100%',
-                  maxWidth: '100%',
-                  overflow: 'hidden auto',
-                  contain: 'layout style size',
-                  isolation: 'isolate'
-                }}
-              >
+              <ScrollArea className="h-[calc(100vh-22rem)] w-full max-w-full overflow-hidden">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -635,15 +618,92 @@ const Mailbox = () => {
                   </div>
                 ) : (
                   <>
-                    {conversations.map((conversation, index) => (
-                      <React.Fragment key={conversation.id}>
-                        <EmailRow
-                          conversation={conversation}
-                          isSelected={selectedConversation?.id === conversation.id}
-                          isExpanded={expandedConversations.has(conversation.id)}
-                          onSelect={selectConversation}
-                          onToggleExpansion={toggleConversationExpansion}
-                        />
+                    {conversations.map((conversation, index) => {
+                      // Check if conversation has attachments
+                      const hasAttachments = conversation.emails.some(email => 
+                        email.attachments && email.attachments.length > 0
+                      );
+                      
+                      return (
+                        <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
+                          <div
+                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
+                              selectedConversation?.id === conversation.id ? 'bg-accent' : ''
+                            }`}
+                            onClick={() => selectConversation(conversation)}
+                          >
+                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                              {/* Left side content */}
+                              <div className="min-w-0 space-y-1 overflow-hidden">
+                                {/* Email address and unread badge */}
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <p className="font-medium text-sm truncate flex-1 min-w-0">
+                                    {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                  </p>
+                                  {conversation.unreadCount > 0 && (
+                                    <Badge variant="default" className="text-xs px-2 py-0 flex-shrink-0">
+                                      {conversation.unreadCount}
+                                    </Badge>
+                                  )}
+                                </div>
+                                
+                                {/* Subject */}
+                                <div className="w-full overflow-hidden">
+                                  <p className="text-xs text-muted-foreground font-medium truncate">
+                                    {conversation.subject}
+                                  </p>
+                                </div>
+                                
+                                {/* Snippet with proper ellipsis */}
+                                <div className="w-full overflow-hidden">
+                                  <p className="text-xs text-muted-foreground/80 truncate">
+                                    {conversation.emails[0]?.snippet}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* Right side content */}
+                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
+                                {/* Top right: Date */}
+                                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {new Date(conversation.lastDate).toLocaleDateString()}
+                                </p>
+                                
+                                {/* Middle right: Attachment icon */}
+                                <div className="flex items-center gap-1">
+                                  {hasAttachments && (
+                                    <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                  )}
+                                  {conversation.messageCount > 1 && (
+                                    <div className="flex items-center gap-1">
+                                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground">
+                                        {conversation.messageCount}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Bottom right: Dropdown arrow */}
+                                <div className="flex justify-end">
+                                  {conversation.messageCount > 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
+                                      onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                    >
+                                      {expandedConversations.has(conversation.id) ? (
+                                        <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ChevronRight className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
                         {/* Expanded Thread Emails */}
                         {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
@@ -695,8 +755,9 @@ const Mailbox = () => {
                         )}
 
                         {index < conversations.length - 1 && <Separator />}
-                      </React.Fragment>
-                    ))}
+                        </div>
+                      );
+                    })}
                     
                     {/* Load More Button */}
                     {!allEmailsLoaded && nextPageToken && (
@@ -718,7 +779,7 @@ const Mailbox = () => {
                     )}
                   </>
                 )}
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
