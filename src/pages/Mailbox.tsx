@@ -1399,7 +1399,7 @@ const Mailbox: React.FC = () => {
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardContent className="p-0 overflow-hidden rounded-lg">
-              <ScrollArea className="h-[calc(100vh-12rem)] w-full rounded-lg overflow-hidden">
+              <ScrollArea className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] lg:h-[calc(100vh-14rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
@@ -1632,7 +1632,7 @@ const Mailbox: React.FC = () => {
                         </div>
                       </div>
                       
-                      <ScrollArea className="h-[calc(100vh-12rem)]">
+                      <ScrollArea className="h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)] lg:h-[calc(100vh-14rem)]">
                         <div className="px-6 py-4">
                           {selectedEmail ? (
                             // Show only the selected email
