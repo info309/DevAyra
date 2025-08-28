@@ -526,6 +526,24 @@ const handler = async (req: Request): Promise<Response> => {
               // Process content and attachments for search
               const { content, attachments } = processEmailContent(messageData.payload);
               
+              // Process attachments with download URLs
+              const processedAttachments = await Promise.all(
+                attachments.map(async (attachment) => {
+                  try {
+                    const downloadUrl = await downloadAndStoreAttachment(
+                      messageData.id,
+                      attachment.attachmentId,
+                      attachment.filename,
+                      userId
+                    );
+                    return { ...attachment, downloadUrl };
+                  } catch (error) {
+                    console.error(`Failed to process attachment ${attachment.filename}:`, error);
+                    return attachment; // Return without download URL if failed
+                  }
+                })
+              );
+              
               return {
                 id: messageData.id,
                 threadId: messageData.threadId,
@@ -536,11 +554,7 @@ const handler = async (req: Request): Promise<Response> => {
                 date: headers.find((h: any) => h.name === 'Date')?.value || '',
                 unread: messageData.labelIds?.includes('UNREAD') || false,
                 content: content,
-                attachments: attachments.map(att => ({
-                  filename: att.filename,
-                  mimeType: att.mimeType,
-                  size: att.size
-                }))
+                attachments: processedAttachments
               };
             }
             return null;
