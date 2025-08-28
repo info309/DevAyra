@@ -766,124 +766,130 @@ const Mailbox: React.FC = () => {
         </div>
 
         {/* Navigation and Search Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* View Toggle */}
-          <div className="flex rounded-md border border-input bg-background">
-            <Button
-              variant={currentView === 'inbox' ? 'secondary' : 'ghost'}
+        <div className="flex flex-col gap-4 mb-6">
+          {/* View Toggle - Mobile Optimized */}
+          <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit mx-auto sm:mx-0">
+            <button
               onClick={() => setCurrentView('inbox')}
-              size="sm"
-              className="gap-2 rounded-l-md rounded-r-none border-0"
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                currentView === 'inbox' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'hover:bg-background/50'
+              }`}
             >
               <Mail className="w-4 h-4" />
               Inbox
-            </Button>
-            <Button
-              variant={currentView === 'sent' ? 'secondary' : 'ghost'}
+            </button>
+            <button
               onClick={() => setCurrentView('sent')}
-              size="sm"
-              className="gap-2 rounded-r-md rounded-l-none border-0"
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                currentView === 'sent' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'hover:bg-background/50'
+              }`}
             >
               <Send className="w-4 h-4" />
               Sent
-            </Button>
+            </button>
           </div>
 
-          {/* Search Controls */}
-          <div className="flex-1 flex gap-2 max-w-md">
-            <Input 
-              placeholder="Search emails..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-            />
-            <Button 
-              variant="outline" 
-              onClick={handleSearch}
-              disabled={searchLoading}
-              size="sm"
-            >
-              {searchLoading ? 'Searching...' : 'Search'}
-            </Button>
-          </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Controls */}
+            <div className="flex-1 flex gap-2 max-w-md">
+              <Input 
+                placeholder="Search emails..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1"
+              />
+              <Button 
+                variant="outline" 
+                onClick={handleSearch}
+                disabled={searchLoading}
+                size="sm"
+              >
+                {searchLoading ? 'Searching...' : 'Search'}
+              </Button>
+            </div>
 
-          {/* Action Controls */}
-          <div className="flex gap-2">
-            <Button 
-              variant={showOnlyUnread ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-            >
-              {showOnlyUnread ? 'Show All' : 'Unread Only'}
-            </Button>
-            <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
-              <DialogTrigger asChild>
-                <Button className="gap-2" onClick={() => {
-                  // Reset form to empty state for new email
-                  setComposeForm({ to: '', subject: '', content: '' });
-                }} size="sm">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Compose Email</DialogTitle>
-                  <DialogDescription>
-                    Send a new email
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="to">To</Label>
-                    <Input
-                      id="to"
-                      value={composeForm.to}
-                      onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
-                      placeholder="recipient@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={composeForm.subject}
-                      onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
-                      placeholder="Email subject"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="content">Message</Label>
-                    <Textarea
-                      id="content"
-                      value={composeForm.content}
-                      onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
-                      placeholder="Write your message here..."
-                      rows={10}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    setShowComposeDialog(false);
+            {/* Action Controls */}
+            <div className="flex gap-2">
+              <Button 
+                variant={showOnlyUnread ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowOnlyUnread(!showOnlyUnread)}
+              >
+                {showOnlyUnread ? 'Show All' : 'Unread Only'}
+              </Button>
+              <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2" onClick={() => {
+                    // Reset form to empty state for new email
                     setComposeForm({ to: '', subject: '', content: '' });
-                  }}>
-                    Cancel
+                  }} size="sm">
+                    <Plus className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    onClick={sendEmail}
-                    disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                    className="gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {sendingEmail ? 'Sending...' : 'Send'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Compose Email</DialogTitle>
+                    <DialogDescription>
+                      Send a new email
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="to">To</Label>
+                      <Input
+                        id="to"
+                        value={composeForm.to}
+                        onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
+                        placeholder="recipient@example.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input
+                        id="subject"
+                        value={composeForm.subject}
+                        onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
+                        placeholder="Email subject"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="content">Message</Label>
+                      <Textarea
+                        id="content"
+                        value={composeForm.content}
+                        onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Write your message here..."
+                        rows={10}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setShowComposeDialog(false);
+                      setComposeForm({ to: '', subject: '', content: '' });
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={sendEmail}
+                      disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                      className="gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      {sendingEmail ? 'Sending...' : 'Send'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
 
