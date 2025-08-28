@@ -419,7 +419,7 @@ const handler = async (req: Request): Promise<Response> => {
           attrs += ' rel="noopener noreferrer"';
         }
         if (!attrs.includes('style=')) {
-          attrs += ' style="color: hsl(var(--primary)); text-decoration: underline;"';
+          attrs += ' style="color: #2563eb; text-decoration: underline;"';
         }
         return `<a${attrs}>`;
       });
@@ -427,7 +427,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Convert standalone URLs to links (but be careful not to break existing HTML)
       cleaned = cleaned.replace(
         /(?<!href=["']|src=["'])(?<!>)(https?:\/\/[^\s<>"'\)]{10,200})(?![^<]*>)/gi,
-        '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: hsl(var(--primary)); text-decoration: underline;">$1</a>'
+        '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">$1</a>'
       );
       
       // Clean up excessive whitespace and broken formatting
