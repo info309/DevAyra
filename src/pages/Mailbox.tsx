@@ -773,10 +773,6 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      toast({
-        title: "Success",
-        description: "Email sent successfully!"
-      });
 
       // If this was a reply to an existing conversation, add the sent email to the local state
       if (composeForm.threadId && selectedConversation && data?.sentMessage) {
