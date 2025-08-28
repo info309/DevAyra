@@ -691,8 +691,14 @@ const Mailbox: React.FC = () => {
   const editDraft = (draft: Email) => {
     setEditingDraft(draft);
     
-    // Clean the draft content by removing HTML wrapper and converting to plain text
-    const cleanContent = cleanEmailContentForReply(draft.content || '');
+    // Clean the draft content and properly convert HTML line breaks to plain text
+    let cleanContent = draft.content || '';
+    
+    // First convert <br> tags to line breaks
+    cleanContent = cleanContent.replace(/<br\s*\/?>/gi, '\n');
+    
+    // Then clean any remaining HTML
+    cleanContent = cleanEmailContentForReply(cleanContent);
     
     setComposeForm({
       to: draft.to || '',
