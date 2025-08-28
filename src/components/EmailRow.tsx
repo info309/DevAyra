@@ -72,9 +72,9 @@ const EmailRow = React.memo(({
           width: '100%',
           maxWidth: '100%',
           overflow: 'hidden',
-          height: '68px',
-          minHeight: '68px',
-          maxHeight: '68px',
+          height: '76px',
+          minHeight: '76px',
+          maxHeight: '76px',
           padding: '12px',
           display: 'flex',
           contain: 'layout style size',
@@ -90,7 +90,7 @@ const EmailRow = React.memo(({
             width: '100%',
             maxWidth: '100%',
             overflow: 'hidden',
-            height: '44px',
+            height: '52px',
             contain: 'layout style'
           }}
         >
@@ -99,7 +99,7 @@ const EmailRow = React.memo(({
             style={{
               minWidth: '0',
               flex: '1',
-              height: '44px',
+              height: '52px',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -199,7 +199,7 @@ const EmailRow = React.memo(({
               flexDirection: 'column',
               alignItems: 'flex-end',
               justifyContent: 'space-between',
-              height: '44px',
+              height: '52px',
               flexShrink: 0,
               width: '96px',
               contain: 'layout style'

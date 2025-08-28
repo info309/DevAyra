@@ -40,8 +40,10 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
                 color: #1f2937;
                 background: transparent;
                 margin: 16px;
+                padding: 0;
                 overflow-wrap: break-word;
                 word-wrap: break-word;
+                min-height: 100vh;
               }
               
               /* Typography */
@@ -119,6 +121,30 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
         doc.write(isolatedHTML);
         doc.close();
         
+        // Auto-resize iframe to content height
+        const resizeIframe = () => {
+          const body = doc.body;
+          if (body) {
+            const height = Math.max(
+              body.scrollHeight,
+              body.offsetHeight,
+              300 // minimum height
+            );
+            iframe.style.height = `${height + 32}px`; // Add padding
+          }
+        };
+        
+        // Initial resize
+        setTimeout(resizeIframe, 100);
+        
+        // Resize on content changes
+        const observer = new MutationObserver(resizeIframe);
+        observer.observe(doc.body, { 
+          childList: true, 
+          subtree: true, 
+          attributes: true 
+        });
+        
         // Prevent navigation
         iframe.contentWindow?.addEventListener('click', (e) => {
           const target = e.target as HTMLElement;
@@ -130,6 +156,8 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
             }
           }
         });
+        
+        return () => observer.disconnect();
       }
     }
   }, [content]);
