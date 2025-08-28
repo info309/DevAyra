@@ -173,9 +173,10 @@ const handler = async (req: Request): Promise<Response> => {
 
         const message = await response.json();
         
-        // Extract email content and attachments
+        // Extract email content and attachments with proper decoding
         const getEmailParts = (part: any): { content: string; attachments: any[] } => {
-          let content = '';
+          let htmlContent = '';
+          let textContent = '';
           let attachments: any[] = [];
 
           const processPart = (p: any) => {
@@ -188,12 +189,15 @@ const handler = async (req: Request): Promise<Response> => {
                 attachmentId: p.body.attachmentId
               });
             }
-            // Extract text content
-            else if (p.mimeType === 'text/plain' && p.body?.data) {
-              content += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            }
+            // Extract HTML content (preferred)
             else if (p.mimeType === 'text/html' && p.body?.data) {
-              content += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+              const rawContent = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+              htmlContent += decodeQuotedPrintable(rawContent);
+            }
+            // Extract plain text content (fallback)
+            else if (p.mimeType === 'text/plain' && p.body?.data) {
+              const rawContent = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+              textContent += decodeQuotedPrintable(rawContent);
             }
             // Process nested parts
             else if (p.parts) {
@@ -201,8 +205,65 @@ const handler = async (req: Request): Promise<Response> => {
             }
           };
 
+          // Helper function to decode quoted-printable encoding
+          const decodeQuotedPrintable = (str: string): string => {
+            return str
+              // Decode =XX hex sequences
+              .replace(/=([0-9A-F]{2})/gi, (match, hex) => {
+                return String.fromCharCode(parseInt(hex, 16));
+              })
+              // Remove soft line breaks (=\r\n or =\n)
+              .replace(/=\r?\n/g, '')
+              // Decode common UTF-8 sequences
+              .replace(/=C2=A0/g, ' ') // Non-breaking space
+              .replace(/=E2=80=93/g, '–') // En dash
+              .replace(/=E2=80=94/g, '—') // Em dash
+              .replace(/=E2=80=99/g, ''') // Right single quotation mark
+              .replace(/=E2=80=9C/g, '"') // Left double quotation mark
+              .replace(/=E2=80=9D/g, '"') // Right double quotation mark
+              .replace(/=E2=80=A6/g, '…') // Horizontal ellipsis
+              .replace(/=3D/g, '=') // Equals sign
+              .replace(/=20/g, ' '); // Space
+          };
+
           processPart(part);
-          return { content, attachments };
+          
+          // Prefer HTML content, fallback to text, convert text to HTML if needed
+          let finalContent = htmlContent || textContent;
+          
+          if (!htmlContent && textContent) {
+            // Convert plain text to HTML
+            finalContent = textContent
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/\n/g, '<br>');
+          }
+          
+          // Clean up malformed HTML and improve readability
+          if (finalContent) {
+            finalContent = cleanHtmlContent(finalContent);
+          }
+          
+          return { content: finalContent, attachments };
+        };
+
+        // Helper function to clean HTML content
+        const cleanHtmlContent = (html: string): string => {
+          return html
+            // Remove tracking pixels and hidden elements
+            .replace(/<img[^>]*width="1"[^>]*height="1"[^>]*>/gi, '')
+            .replace(/<img[^>]*height="1"[^>]*width="1"[^>]*>/gi, '')
+            // Fix broken image tags
+            .replace(/(<img[^>]*src="[^"]*)"[^>]*>/gi, '$1">')
+            // Remove style attributes that might break layout
+            .replace(/style="[^"]*"/gi, '')
+            // Clean up excessive whitespace
+            .replace(/\s+/g, ' ')
+            .replace(/>\s+</g, '><')
+            // Ensure proper link formatting
+            .replace(/<a([^>]*)>/gi, '<a$1 target="_blank" rel="noopener noreferrer">')
+            .trim();
         };
 
         const headers = message.payload?.headers || [];
