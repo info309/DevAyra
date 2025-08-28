@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search' | 'get-attachment';
+  action: 'list' | 'get' | 'send' | 'search';
   userId: string;
   messageId?: string;
   attachmentId?: string;
@@ -614,34 +614,6 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         return new Response(JSON.stringify(emailData), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      }
-
-      case 'get-attachment': {
-        if (!messageId || !attachmentId) {
-          throw new Error('Message ID and Attachment ID are required');
-        }
-
-        const response = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch attachment');
-        }
-
-        const attachmentData = await response.json();
-
-        return new Response(JSON.stringify({
-          attachmentData: attachmentData.data
-        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });

@@ -353,34 +353,22 @@ const Mailbox = () => {
     }
   };
 
-  const handleConversationClick = async (conversation: Conversation) => {
+  const handleConversationClick = (conversation: Conversation) => {
     console.log('Selecting conversation:', conversation.id, conversation.subject);
     setSelectedConversation(conversation);
     setSelectedEmail(null); // Reset individual email selection
     
     // Mark all emails in conversation as read
     markConversationAsRead(conversation);
-    
-    // Fetch full content for all emails in the conversation that don't have content yet
-    for (const email of conversation.emails) {
-      if (!email.content && !email.attachments) {
-        await fetchEmailContent(email.id);
-      }
-    }
   };
 
-  const handleEmailClick = async (email: Email, conversation: Conversation) => {
+  const handleEmailClick = (email: Email, conversation: Conversation) => {
     console.log('Selecting individual email:', email.id);
     setSelectedConversation(conversation);
     setSelectedEmail(email);
     
     // Mark this specific email as read
     markEmailAsRead(email.id, conversation.id);
-    
-    // Fetch full content for the email if it doesn't have content yet
-    if (!email.content && !email.attachments) {
-      await fetchEmailContent(email.id);
-    }
   };
 
   const markEmailAsRead = (emailId: string, conversationId: string) => {
@@ -898,17 +886,11 @@ const Mailbox = () => {
                           ...selectedConversation,
                           emails: [selectedEmail]
                         }}
-                        conversations={conversations}
-                        setConversations={setConversations}
-                        fetchEmailContent={fetchEmailContent}
                       />
                     ) : (
                       // Show full conversation thread
                       <EmailContent 
                         conversation={selectedConversation}
-                        conversations={conversations}
-                        setConversations={setConversations}
-                        fetchEmailContent={fetchEmailContent}
                       />
                     )}
                   </ScrollArea>
