@@ -7,7 +7,7 @@ interface IsolatedEmailRendererProps {
 
 const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, className = "" }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState(200);
+  const [iframeHeight, setIframeHeight] = useState(400);
 
   useEffect(() => {
     if (!iframeRef.current || !content) return;
@@ -96,7 +96,7 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               
               parent.postMessage({
                 type: 'resize',
-                height: Math.max(height + 20, 100)
+                height: Math.max(height + 40, 300)
               }, '*');
             }
             
@@ -157,7 +157,7 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
         className="w-full border-0 bg-transparent"
         style={{ 
           height: `${iframeHeight}px`,
-          minHeight: '60px',
+          minHeight: '300px',
           overflow: 'hidden',
           display: 'block'
         }}
