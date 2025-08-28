@@ -67,7 +67,7 @@ const Mailbox: React.FC = () => {
   
   // Add debugging for searchQuery changes
   useEffect(() => {
-    console.log('searchQuery changed:', searchQuery);
+    console.log('searchQuery changed:', searchQuery, 'Stack:', new Error().stack);
   }, [searchQuery]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
@@ -83,7 +83,7 @@ const Mailbox: React.FC = () => {
   
   // Add debugging for composeForm.to changes
   useEffect(() => {
-    console.log('composeForm.to changed:', composeForm.to);
+    console.log('composeForm.to changed:', composeForm.to, 'Stack:', new Error().stack);
   }, [composeForm.to]);
   const [sendingEmail, setSendingEmail] = useState(false);
 
