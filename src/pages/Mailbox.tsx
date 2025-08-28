@@ -952,8 +952,8 @@ const Mailbox: React.FC = () => {
               </div>
             </div>
 
-            {/* Action Controls - Right side on all screens - Desktop and Mobile */}
-            <div className="flex gap-2 lg:flex md:hidden">
+            {/* Action Controls - Right side on all screens */}
+            <div className="flex gap-2">
               
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
@@ -1204,76 +1204,6 @@ const Mailbox: React.FC = () => {
                 name="email-search-tablet"
               />
             </div>
-
-            {/* Tablet Action Controls */}
-            <div className="flex gap-2">
-              <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
-                <DrawerTrigger asChild>
-                  <Button className="gap-2" onClick={() => {
-                    // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
-                  }} size="sm">
-                    <Plus className="w-4 h-4" />
-                    Compose
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent className="max-w-none h-[90vh]">
-                  <DrawerHeader>
-                    <DrawerTitle>Compose Email</DrawerTitle>
-                    <DrawerDescription>
-                      Send a new email
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="px-4 pb-4 space-y-4 flex-1 overflow-y-auto">
-                    <div>
-                      <Label htmlFor="to">To</Label>
-                      <Input
-                        id="to"
-                        value={composeForm.to}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
-                        placeholder="recipient@example.com"
-                        autoComplete="email"
-                        name="compose-to"
-                      />
-                    <div>
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        value={composeForm.subject}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
-                        placeholder="Email subject"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="content">Message</Label>
-                      <Textarea
-                        id="content"
-                        value={composeForm.content}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
-                        placeholder="Write your message here..."
-                        rows={15}
-                        className="min-h-[300px] resize-none"
-                      />
-                    </div>
-                  </div>
-                  <DrawerFooter>
-                    <Button 
-                      onClick={sendEmail} 
-                      disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                      className="w-full"
-                    >
-                      {sendingEmail ? 'Sending...' : 'Send Email'}
-                    </Button>
-                    <DrawerClose asChild>
-                      <Button variant="outline" className="w-full">Cancel</Button>
-                    </DrawerClose>
-                  </DrawerFooter>
-                </DrawerContent>
-              </Drawer>
-            </div>
           </div>
 
           {/* View Toggle - Mobile only */}
@@ -1303,7 +1233,6 @@ const Mailbox: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
         </div>
 
         {/* Search Section - Mobile only */}
