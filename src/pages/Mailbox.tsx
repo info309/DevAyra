@@ -182,6 +182,44 @@ const Mailbox = () => {
     setLoading(false);
   };
 
+  const disconnectGmail = async () => {
+    if (!user || connections.length === 0) return;
+    
+    try {
+      setLoading(true);
+      
+      // Deactivate the connection in the database
+      const { error } = await supabase
+        .from('gmail_connections')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      // Clear local state
+      setConnections([]);
+      setEmails([]);
+      setConversations([]);
+      setSelectedConversation(null);
+      setSelectedEmail(null);
+
+      toast({
+        title: "Gmail Disconnected",
+        description: "Your Gmail account has been disconnected. You can reconnect with updated permissions.",
+      });
+
+    } catch (error: any) {
+      console.error('Disconnect error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+    setLoading(false);
+  };
+
   const fetchEmails = async (searchQuery?: string, loadMore = false) => {
     if (!user || connections.length === 0) return;
     
@@ -446,7 +484,6 @@ const Mailbox = () => {
     }));
   };
 
-
   const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedConversations(prev => {
@@ -459,7 +496,6 @@ const Mailbox = () => {
       return newSet;
     });
   };
-
 
   const sendEmail = async (isDraft = false) => {
     if (!user || !to || !subject || !body) {
@@ -536,7 +572,7 @@ const Mailbox = () => {
               <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
               <CardTitle className="text-2xl">Connect Your Gmail</CardTitle>
               <CardDescription>
-                Connect your Gmail account to manage emails directly within Ayra
+                Connect your Gmail account to manage emails directly within Ayra. Click to reconnect with updated permissions.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -579,9 +615,13 @@ const Mailbox = () => {
               <RefreshCw className={`w-4 h-4 mr-2 ${emailLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <Button variant="outline" size="sm" onClick={disconnectGmail} disabled={loading}>
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Reconnect Gmail
+            </Button>
             <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button variant="default">
                   <Plus className="w-4 h-4 mr-2" />
                   Compose
                 </Button>
