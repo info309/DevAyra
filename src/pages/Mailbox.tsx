@@ -910,8 +910,8 @@ const Mailbox: React.FC = () => {
               <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
             </div>
 
-            {/* View Toggle and Search - Desktop */}
-            <div className="hidden lg:flex items-center gap-4">
+            {/* View Toggle - Desktop */}
+            <div className="hidden lg:flex items-center">
               <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
                 <button
                   onClick={() => setCurrentView('inbox')}
@@ -936,9 +936,12 @@ const Mailbox: React.FC = () => {
                   Sent
                 </button>
               </div>
+            </div>
 
-              {/* Desktop Search */}
-              <div className="relative">
+            {/* Action Controls - Right side on all screens */}
+            <div className="flex gap-2">
+              {/* Desktop Search next to refresh button */}
+              <div className="hidden lg:flex relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search emails..." 
@@ -950,10 +953,6 @@ const Mailbox: React.FC = () => {
                   name="email-search"
                 />
               </div>
-            </div>
-
-            {/* Action Controls - Right side on all screens */}
-            <div className="flex gap-2">
               
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
