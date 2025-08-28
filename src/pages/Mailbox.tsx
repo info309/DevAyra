@@ -10,10 +10,11 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
+import DocumentPicker from '@/components/DocumentPicker';
 
 interface Email {
   id: string;
@@ -53,6 +54,24 @@ interface ComposeFormData {
   replyTo?: string;
   threadId?: string;
   attachments?: File[];
+  documentAttachments?: UserDocument[];
+}
+
+interface UserDocument {
+  id: string;
+  name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  source_type: 'upload' | 'email_attachment';
+  source_email_id: string | null;
+  source_email_subject: string | null;
+  category: string | null;
+  tags: string[] | null;
+  description: string | null;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const Mailbox: React.FC = () => {
@@ -75,7 +94,8 @@ const Mailbox: React.FC = () => {
     to: '',
     subject: '',
     content: '',
-    attachments: []
+    attachments: [],
+    documentAttachments: []
   });
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -525,8 +545,8 @@ const Mailbox: React.FC = () => {
     try {
       setSendingEmail(true);
       
-      // Convert attachments to base64 for sending
-      const attachmentsData = await Promise.all(
+      // Convert file attachments to base64 for sending
+      const fileAttachmentsData = await Promise.all(
         (composeForm.attachments || []).map(async (file) => {
           return new Promise((resolve) => {
             const reader = new FileReader();
@@ -543,6 +563,39 @@ const Mailbox: React.FC = () => {
           });
         })
       );
+
+      // Convert document attachments to base64 for sending
+      const documentAttachmentsData = await Promise.all(
+        (composeForm.documentAttachments || []).map(async (doc) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from('documents')
+              .download(doc.file_path);
+
+            if (error) throw error;
+
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve({
+                  filename: doc.name,
+                  content: base64,
+                  contentType: doc.mime_type || 'application/octet-stream',
+                  size: doc.file_size || 0
+                });
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(data);
+            });
+          } catch (error) {
+            console.error(`Failed to download document ${doc.name}:`, error);
+            throw new Error(`Failed to attach document: ${doc.name}`);
+          }
+        })
+      );
+
+      const allAttachments = [...fileAttachmentsData, ...documentAttachmentsData];
       
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
@@ -552,7 +605,7 @@ const Mailbox: React.FC = () => {
           content: composeForm.content,
           replyTo: composeForm.replyTo,
           threadId: composeForm.threadId,
-          attachments: attachmentsData
+          attachments: allAttachments.length > 0 ? allAttachments : undefined
         }
       });
 
@@ -617,7 +670,7 @@ const Mailbox: React.FC = () => {
       }
 
       // Reset form and close dialog
-      setComposeForm({ to: '', subject: '', content: '', attachments: [] });
+      setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
       setShowComposeDialog(false);
 
       // Only refresh if it wasn't a reply (for new emails or if we couldn't update locally)
@@ -660,7 +713,8 @@ const Mailbox: React.FC = () => {
       content: quotedContent,
       replyTo: email.id,
       threadId: conversation.id,
-      attachments: []
+      attachments: [],
+      documentAttachments: []
     });
     
     setShowComposeDialog(true);
@@ -834,7 +888,7 @@ const Mailbox: React.FC = () => {
                 <DrawerTrigger asChild>
                   <Button className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '', attachments: [] });
+                    setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                   }} size="sm">
                     <Plus className="w-4 h-4" />
                     Compose
@@ -884,8 +938,9 @@ const Mailbox: React.FC = () => {
                     <div>
                       <Label>Attachments</Label>
                       <div className="space-y-3">
-                        {/* File Input */}
-                        <div className="flex items-center gap-2">
+                        {/* Attachment Actions */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* File Upload */}
                           <input
                             type="file"
                             multiple
@@ -907,16 +962,40 @@ const Mailbox: React.FC = () => {
                             className="gap-2"
                           >
                             <Paperclip className="w-4 h-4" />
-                            Add Attachment
+                            Add Files
                           </Button>
+                          
+                          {/* Document Picker */}
+                          <DocumentPicker
+                            onDocumentsSelected={(documents) => {
+                              setComposeForm(prev => ({
+                                ...prev,
+                                documentAttachments: documents
+                              }));
+                            }}
+                            selectedDocuments={composeForm.documentAttachments || []}
+                            trigger={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                              >
+                                <FolderOpen className="w-4 h-4" />
+                                From Documents
+                              </Button>
+                            }
+                          />
+                          
                           <span className="text-xs text-muted-foreground">
                             Max 25MB per file
                           </span>
                         </div>
 
-                        {/* Selected Attachments */}
+                        {/* File Attachments */}
                         {composeForm.attachments && composeForm.attachments.length > 0 && (
                           <div className="space-y-2">
+                            <h4 className="text-sm font-medium">New Files</h4>
                             {composeForm.attachments.map((file, index) => (
                               <div key={index} className="flex items-center gap-3 p-2 bg-secondary rounded-lg">
                                 <Paperclip className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -944,6 +1023,43 @@ const Mailbox: React.FC = () => {
                             ))}
                           </div>
                         )}
+
+                        {/* Document Attachments */}
+                        {composeForm.documentAttachments && composeForm.documentAttachments.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium">From Documents</h4>
+                            {composeForm.documentAttachments.map((doc, index) => (
+                              <div key={doc.id} className="flex items-center gap-3 p-2 bg-accent rounded-lg">
+                                <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{doc.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground">
+                                      {doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown size'}
+                                    </p>
+                                    {doc.source_type === 'email_attachment' && (
+                                      <span className="text-xs text-muted-foreground">• From email</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setComposeForm(prev => ({
+                                      ...prev,
+                                      documentAttachments: prev.documentAttachments?.filter(d => d.id !== doc.id) || []
+                                    }));
+                                  }}
+                                  className="flex-shrink-0 p-1 h-6 w-6"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -951,7 +1067,7 @@ const Mailbox: React.FC = () => {
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => {
                         setShowComposeDialog(false);
-                        setComposeForm({ to: '', subject: '', content: '', attachments: [] });
+                        setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                       }}>
                         Cancel
                       </Button>
@@ -961,7 +1077,10 @@ const Mailbox: React.FC = () => {
                         className="gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        {sendingEmail ? 'Sending...' : 'Send'}
+                        {sendingEmail ? 'Sending...' : 
+                         `Send${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0) > 0 
+                           ? ` (${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)} attachment${((composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)) !== 1 ? 's' : ''})`
+                           : ''}`}
                       </Button>
                     </div>
                   </DrawerFooter>
