@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -607,6 +607,128 @@ const Mailbox = () => {
     setLoading(false);
   };
 
+  const deleteEmail = async (emailId: string, conversationId: string) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'delete',
+          userId: user.id,
+          messageId: emailId
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email Deleted",
+        description: "Email has been permanently deleted from Gmail"
+      });
+
+      // Remove email from local state for current view
+      if (currentView === 'sent') {
+        setSentEmails(prev => prev.filter(email => email.id !== emailId));
+        setSentConversations(prev => prev.map(conv => {
+          if (conv.id === conversationId) {
+            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
+            if (updatedEmails.length === 0) {
+              return null; // Remove conversation if no emails left
+            }
+            return {
+              ...conv,
+              emails: updatedEmails,
+              messageCount: updatedEmails.length,
+              unreadCount: updatedEmails.filter(email => email.unread).length,
+              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
+            };
+          }
+          return conv;
+        }).filter(Boolean) as Conversation[]);
+      } else {
+        setEmails(prev => prev.filter(email => email.id !== emailId));
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === conversationId) {
+            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
+            if (updatedEmails.length === 0) {
+              return null; // Remove conversation if no emails left
+            }
+            return {
+              ...conv,
+              emails: updatedEmails,
+              messageCount: updatedEmails.length,
+              unreadCount: updatedEmails.filter(email => email.unread).length,
+              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
+            };
+          }
+          return conv;
+        }).filter(Boolean) as Conversation[]);
+      }
+
+      // Clear selection if deleted email was selected
+      if (selectedEmail?.id === emailId) {
+        setSelectedEmail(null);
+      }
+      
+      // Clear conversation selection if it was the last email
+      const currentConversation = currentConversations.find(conv => conv.id === conversationId);
+      if (currentConversation && currentConversation.emails.length === 1) {
+        setSelectedConversation(null);
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete email: ${error.message}`
+      });
+    }
+  };
+
+  const deleteConversation = async (conversation: Conversation) => {
+    if (!user) return;
+
+    try {
+      // Delete all emails in the conversation
+      for (const email of conversation.emails) {
+        await supabase.functions.invoke('gmail-api', {
+          body: {
+            action: 'delete',
+            userId: user.id,
+            messageId: email.id
+          }
+        });
+      }
+
+      toast({
+        title: "Conversation Deleted",
+        description: `All ${conversation.emails.length} emails in this conversation have been permanently deleted from Gmail`
+      });
+
+      // Remove conversation from local state for current view
+      if (currentView === 'sent') {
+        setSentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+        setSentEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
+      } else {
+        setConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+        setEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
+      }
+
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation?.id === conversation.id) {
+        setSelectedConversation(null);
+        setSelectedEmail(null);
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete conversation: ${error.message}`
+      });
+    }
+  };
+
   // Filter conversations based on unread status
   const showUnreadOnly = showOnlyUnread;
   const filteredConversations = showUnreadOnly 
@@ -880,7 +1002,7 @@ const Mailbox = () => {
                           return (
                             <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
                               <div
-                                className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
+                                className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden group ${
                                   selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
@@ -938,8 +1060,20 @@ const Mailbox = () => {
                                       )}
                                     </div>
                                     
-                                    {/* Bottom right: Dropdown arrow */}
-                                    <div className="flex justify-end">
+                                    {/* Bottom right: Action buttons */}
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-0 h-4 w-4 hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteConversation(conversation);
+                                        }}
+                                        title="Delete conversation"
+                                      >
+                                        <Trash2 className="w-3 h-3 text-destructive" />
+                                      </Button>
                                       {conversation.messageCount > 1 && (
                                         <Button
                                           variant="ghost"
@@ -988,17 +1122,31 @@ const Mailbox = () => {
                                             {formatDate(email.date)}
                                           </p>
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             handleEmailClick(email, conversation);
-                                           }}
-                                         >
-                                          <Reply className="w-3 h-3" />
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              deleteEmail(email.id, conversation.id);
+                                            }}
+                                            title="Delete email"
+                                          >
+                                            <Trash2 className="w-3 h-3 text-destructive" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               handleEmailClick(email, conversation);
+                                             }}
+                                           >
+                                            <Reply className="w-3 h-3" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   ))}
@@ -1053,16 +1201,39 @@ const Mailbox = () => {
                           </Badge>
                         )}
                       </div>
-                      {selectedEmail && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedEmail(null)}
-                          className="text-xs"
-                        >
-                          View Full Thread
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {selectedEmail ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
+                              className="text-xs"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedEmail(null)}
+                              className="text-xs"
+                            >
+                              View Full Thread
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteConversation(selectedConversation)}
+                            className="text-xs"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete Conversation
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">

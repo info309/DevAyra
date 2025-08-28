@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent';
+  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent' | 'delete';
   userId: string;
   messageId?: string;
   attachmentId?: string;
@@ -726,6 +726,31 @@ const handler = async (req: Request): Promise<Response> => {
         const result = await response.json();
 
         return new Response(JSON.stringify({ success: true, messageId: result.id }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'delete': {
+        if (!messageId) {
+          throw new Error('Message ID is required');
+        }
+
+        const response = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to delete email');
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
