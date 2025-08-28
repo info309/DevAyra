@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'getEmails' | 'sendEmail' | 'searchEmails' | 'markAsRead' | 'deleteThread' | 'deleteMessage' | 'saveDraft' | 'reply';
+  action: 'getEmails' | 'sendEmail' | 'searchEmails' | 'markAsRead' | 'deleteThread' | 'deleteMessage' | 'saveDraft' | 'reply' | 'downloadAttachment';
   messageId?: string;
   attachmentId?: string;
   maxResults?: number;
@@ -1072,6 +1072,44 @@ const handler = async (req: Request): Promise<Response> => {
         console.log('Successfully trashed thread:', threadId);
 
         return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'downloadAttachment': {
+        if (!messageId || !attachmentId) {
+          throw new Error('Message ID and Attachment ID are required');
+        }
+
+        console.log(`Downloading attachment: ${attachmentId} from message: ${messageId}`);
+
+        const response = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to download attachment:', response.status, errorText);
+          throw new Error(`Failed to download attachment: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Convert base64url to base64
+        const base64Data = result.data.replace(/-/g, '+').replace(/_/g, '/');
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          data: base64Data,
+          size: result.size 
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });

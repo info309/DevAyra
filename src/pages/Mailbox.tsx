@@ -33,6 +33,7 @@ interface Attachment {
   mimeType: string;
   size: number;
   downloadUrl?: string;
+  attachmentId?: string;
 }
 
 interface Conversation {
@@ -646,24 +647,26 @@ const Mailbox: React.FC = () => {
 
   const handleSaveAttachmentToDocuments = async (attachment: Attachment, email: Email) => {
     try {
-      if (!attachment.downloadUrl) {
-        toast({
-          title: "Error",
-          description: "Attachment download URL not available",
-          variant: "destructive",
-        });
-        return;
+      // Download the attachment data using Gmail API
+      const { data, error } = await supabase.functions.invoke("gmail-api", {
+        body: {
+          action: "downloadAttachment",
+          messageId: email.id,
+          attachmentId: attachment.attachmentId,
+        },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || 'Failed to download attachment');
       }
 
-      // Download the attachment file
-      const response = await fetch(attachment.downloadUrl);
-      if (!response.ok) {
-        throw new Error('Failed to download attachment');
+      // Convert base64 data to Uint8Array
+      const base64Data = data.data;
+      const binaryString = atob(base64Data);
+      const uint8Array = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        uint8Array[i] = binaryString.charCodeAt(i);
       }
-
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
 
       // Generate a unique file path for storage
       const timestamp = Date.now();
