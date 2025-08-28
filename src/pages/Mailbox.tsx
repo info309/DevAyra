@@ -768,23 +768,26 @@ const Mailbox: React.FC = () => {
         {/* Navigation and Search Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* View Toggle */}
-          <Button
-            variant="outline"
-            onClick={() => setCurrentView(currentView === 'inbox' ? 'sent' : 'inbox')}
-            className="gap-2"
-          >
-            {currentView === 'inbox' ? (
-              <>
-                <Mail className="w-4 h-4" />
-                Inbox
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Sent
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={currentView === 'inbox' ? 'default' : 'outline'}
+              onClick={() => setCurrentView('inbox')}
+              size="sm"
+              className="gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Inbox
+            </Button>
+            <Button
+              variant={currentView === 'sent' ? 'default' : 'outline'}
+              onClick={() => setCurrentView('sent')}
+              size="sm"
+              className="gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Sent
+            </Button>
+          </div>
 
           {/* Search Controls */}
           <div className="flex-1 flex gap-2 max-w-md">
