@@ -905,8 +905,8 @@ const Mailbox: React.FC = () => {
           {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
           <div className="flex justify-between items-center lg:justify-between">
             {/* Mobile/Tablet Logo and Menu - Left side */}
-            <div className="flex lg:hidden items-center gap-3">
-              <h1 className="text-xl font-bold">/Ayra</h1>
+            <div className="flex lg:hidden items-center gap-4 pl-4">
+              <h1 className="text-2xl font-bold">/Ayra</h1>
               <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
             </div>
 
