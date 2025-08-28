@@ -123,6 +123,8 @@ const handler = async (req: Request): Promise<Response> => {
               access_token: tokens.access_token,
               refresh_token: tokens.refresh_token || '',
               is_active: true,
+            }, {
+              onConflict: 'user_id,email_address'
             });
 
           if (dbError) {
@@ -253,6 +255,8 @@ const handler = async (req: Request): Promise<Response> => {
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token || '',
           is_active: true,
+        }, {
+          onConflict: 'user_id,email_address'
         });
 
       if (error) {
