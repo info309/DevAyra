@@ -891,22 +891,25 @@ const Mailbox: React.FC = () => {
       <div className="container mx-auto p-2">
         {/* Desktop Header - Logo and Menu */}
         <div className="hidden lg:flex items-center justify-start pl-8 py-4 mb-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Logo */}
             <h1 className="text-3xl font-bold">/Ayra</h1>
             
             {/* Menu Icon */}
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Menu className="w-4 h-4" />
-              Menu
-            </Button>
+            <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
           </div>
         </div>
 
         {/* Header with controls */}
         <div className="flex flex-col gap-4 mb-2">
-          {/* Top row - Compose and Refresh buttons (mobile/tablet top right, desktop right) */}
-          <div className="flex justify-end lg:justify-between lg:items-center">
+          {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
+          <div className="flex justify-between items-center lg:justify-between">
+            {/* Mobile/Tablet Logo and Menu - Left side */}
+            <div className="flex lg:hidden items-center gap-3">
+              <h1 className="text-xl font-bold">/Ayra</h1>
+              <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
+            </div>
+
             {/* View Toggle - Desktop left side */}
             <div className="hidden lg:inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
               <button
