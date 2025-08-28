@@ -1636,8 +1636,8 @@ const Mailbox: React.FC = () => {
                         </div>
                       </div>
                       
-                      <ScrollArea className="h-[calc(100vh-10rem)]">
-                        <div className="px-6 py-4">
+                      <div className="h-[calc(100vh-10rem)] overflow-hidden">
+                        <div className="px-6 py-4 h-full overflow-y-auto">
                           {selectedEmail ? (
                             // Show only the selected email
                             <EmailContent 
@@ -1657,7 +1657,7 @@ const Mailbox: React.FC = () => {
                             />
                           )}
                         </div>
-                      </ScrollArea>
+                      </div>
                     </div>
                   ) : (
                     <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
