@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import DocumentPreview from '@/components/DocumentPreview';
 
 interface UserDocument {
   id: string;
@@ -313,17 +314,6 @@ const Documents = () => {
               </Button>
             </div>
           </div>
-
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search documents and folders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
         </div>
       </header>
 
@@ -365,9 +355,22 @@ const Documents = () => {
 
         {/* Documents Grid */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">
-            {currentFolder ? 'Contents' : 'My Documents'}
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">
+              {currentFolder ? 'Contents' : 'My Documents'}
+            </h2>
+          </div>
+          
+          {/* Search */}
+          <div className="relative max-w-md mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search documents and folders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
           
           {loading ? (
             <div className="flex items-center justify-center h-32">
@@ -396,7 +399,7 @@ const Documents = () => {
                   className="group relative"
                 >
                   <Card 
-                    className="hover:shadow-lg transition-all cursor-pointer aspect-square flex flex-col"
+                    className="hover:shadow-lg transition-all cursor-pointer h-32 flex flex-col overflow-hidden"
                     onClick={() => {
                       if (doc.is_folder) {
                         setCurrentFolder(doc);
@@ -405,50 +408,57 @@ const Documents = () => {
                       }
                     }}
                   >
-                    <CardContent className="p-4 flex flex-col items-center justify-center flex-1">
-                      {doc.is_folder ? (
-                        <div className="w-12 h-12 mb-2">
-                          <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <defs>
-                              <linearGradient id="folderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#60a5fa" />
-                                <stop offset="100%" stopColor="#3b82f6" />
-                              </linearGradient>
-                            </defs>
-                            <path
-                              d="M15 25 L35 25 L40 35 L85 35 L85 75 L15 75 Z"
-                              fill="url(#folderGrad)"
-                              stroke="#2563eb"
-                              strokeWidth="1"
-                            />
-                            <path
-                              d="M15 25 L15 20 L35 20 L40 30 L85 30 L85 35 L40 35 L35 25 Z"
-                              fill="#93c5fd"
-                              stroke="#2563eb"
-                              strokeWidth="1"
-                            />
-                          </svg>
-                        </div>
-                      ) : (
-                        React.createElement(getFileIcon(doc.mime_type), {
-                          className: "w-8 h-8 text-primary mb-2"
-                        })
-                      )}
+                    <CardContent className="p-2 flex flex-col h-full">
+                      {/* Preview/Icon Area */}
+                      <div className="flex-1 flex items-center justify-center mb-2 min-h-0">
+                        {doc.is_folder ? (
+                          <div className="w-12 h-12">
+                            <svg viewBox="0 0 100 100" className="w-full h-full">
+                              <defs>
+                                <linearGradient id="folderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                  <stop offset="0%" stopColor="#60a5fa" />
+                                  <stop offset="100%" stopColor="#3b82f6" />
+                                </linearGradient>
+                              </defs>
+                              <path
+                                d="M15 25 L35 25 L40 35 L85 35 L85 75 L15 75 Z"
+                                fill="url(#folderGrad)"
+                                stroke="#2563eb"
+                                strokeWidth="1"
+                              />
+                              <path
+                                d="M15 25 L15 20 L35 20 L40 30 L85 30 L85 35 L40 35 L35 25 Z"
+                                fill="#93c5fd"
+                                stroke="#2563eb"
+                                strokeWidth="1"
+                              />
+                            </svg>
+                          </div>
+                        ) : (
+                          <DocumentPreview 
+                            document={doc}
+                            className="w-full h-full"
+                          />
+                        )}
+                      </div>
                       
-                      <p className="text-xs font-medium text-center truncate w-full" title={doc.name}>
-                        {doc.name}
-                      </p>
-                      
-                      {!doc.is_folder && (
-                        <div className="flex items-center gap-1 mt-1">
-                          {doc.source_type === 'email_attachment' && (
-                            <Mail className="w-3 h-3 text-muted-foreground" />
-                          )}
-                          {doc.is_favorite && (
-                            <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                          )}
-                        </div>
-                      )}
+                      {/* Document Name */}
+                      <div className="text-center px-1">
+                        <p className="text-xs font-medium text-center truncate w-full leading-tight" title={doc.name}>
+                          {doc.name}
+                        </p>
+                        
+                        {!doc.is_folder && (
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            {doc.source_type === 'email_attachment' && (
+                              <Mail className="w-3 h-3 text-muted-foreground" />
+                            )}
+                            {doc.is_favorite && (
+                              <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 
