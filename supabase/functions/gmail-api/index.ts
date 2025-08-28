@@ -467,11 +467,8 @@ const handler = async (req: Request): Promise<Response> => {
       const attachmentData = await attachmentResponse.json();
       const fileData = base64UrlDecode(attachmentData.data);
       
-      // Convert to Uint8Array for upload
-      const fileBytes = new Uint8Array(fileData.length);
-      for (let i = 0; i < fileData.length; i++) {
-        fileBytes[i] = fileData.charCodeAt(i);
-      }
+      // fileData is already a Uint8Array, no need to convert
+      const fileBytes = fileData;
 
       // Generate unique filename with path
       const timestamp = Date.now();
@@ -833,12 +830,15 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('To, subject, and content are required');
         }
 
+        console.log('Sending email with attachments:', attachments ? attachments.length : 0);
+
         // Check if this is a reply (has threadId)
         const isReply = threadId && threadId.length > 0;
         
         let emailBody: string;
 
         if (attachments && attachments.length > 0) {
+          console.log('Creating multipart email with', attachments.length, 'attachments');
           // Create multipart email with attachments
           const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           
@@ -868,6 +868,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           // Add attachment parts
           for (const attachment of attachments) {
+            console.log('Adding attachment:', attachment.filename, 'size:', attachment.size);
             parts.push([
               `--${boundary}`,
               `Content-Type: ${attachment.contentType}; name="${attachment.filename}"`,
@@ -882,6 +883,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           emailBody = [...headers, '', parts.join('\n')].join('\n');
         } else {
+          console.log('Creating simple email without attachments');
           // Create simple email without attachments
           // Convert plain text line breaks to HTML for Gmail
           const htmlContent = content.replace(/\n/g, '<br>');
@@ -902,6 +904,7 @@ const handler = async (req: Request): Promise<Response> => {
           emailBody = [...headers, '', htmlContent].join('\n');
         }
 
+        console.log('Email body created, encoding for Gmail API...');
         const encodedEmail = btoa(emailBody).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
         // Prepare request body
@@ -930,7 +933,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const result = await response.json();
-        console.log('Successfully sent email:', result.id);
+        console.log('Successfully sent email:', result.id, 'with', attachments?.length || 0, 'attachments');
 
         // Return success with message data for local state update
         return new Response(JSON.stringify({ 
