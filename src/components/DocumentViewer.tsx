@@ -142,9 +142,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
-      console.log('Rendering image preview on mobile');
+      console.log('Rendering image preview - ensuring full fit');
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg p-1">
+        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
           <img
             src={previewUrl}
             alt={document.name}
@@ -152,8 +152,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             style={{ 
               width: '100%',
               height: '100%',
-              maxHeight: '200px',
-              maxWidth: '280px'
+              objectFit: 'contain'
             }}
             onError={() => {
               console.error('Failed to load image preview');
@@ -161,8 +160,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             }}
             onLoad={(e) => {
               const img = e.target as HTMLImageElement;
-              console.log('Image loaded - Natural size:', img.naturalWidth, 'x', img.naturalHeight);
-              console.log('Image displayed size:', img.width, 'x', img.height);
+              console.log('Image loaded and fitted to container');
             }}
           />
         </div>
@@ -171,21 +169,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // PDF preview
     if (document.mime_type?.includes('pdf')) {
-      console.log('Rendering PDF preview on mobile');
+      console.log('Rendering PDF preview - fitting entire page');
       return (
         <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
           <iframe
-            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-width`}
+            src={`${previewUrl}#view=FitV&pagemode=none&toolbar=0`}
             className="w-full h-full border-0"
             style={{ 
-              height: '200px',
-              width: '280px',
-              transform: 'scale(1)',
-              transformOrigin: 'top left'
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden'
             }}
+            scrolling="no"
             title={`Preview of ${document.name}`}
             onLoad={() => {
-              console.log('PDF iframe loaded');
+              console.log('PDF iframe loaded and fitted');
             }}
             onError={() => {
               console.error('Failed to load PDF preview');
@@ -199,15 +197,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Text files preview
     if (document.mime_type?.startsWith('text/') || 
         document.mime_type?.includes('plain')) {
+      console.log('Rendering text file preview - fitting content');
       return (
         <div className="w-full h-full bg-white rounded-lg border overflow-hidden">
           <iframe
             src={previewUrl}
             className="w-full h-full border-0"
             style={{ 
-              height: '250px',
-              width: 'calc(100vw - 60px)'
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden'
             }}
+            scrolling="no"
             title={`Preview of ${document.name}`}
           />
         </div>
@@ -288,10 +289,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="p-2 overflow-hidden bg-gray-50" style={{ height: '240px' }}>
-          <div className="w-full h-full border border-red-500" style={{ maxWidth: '300px', maxHeight: '220px' }}>
-            {/* Debug info */}
-            {(() => { console.log('Render preview container size - Mobile viewport'); return null; })()}
+        <div className="p-2 overflow-hidden bg-gray-50" style={{ height: '400px' }}>
+          <div className="w-full h-full bg-white rounded shadow-lg overflow-hidden" style={{ 
+            maxWidth: '300px', 
+            maxHeight: '380px',
+            aspectRatio: document?.mime_type?.includes('pdf') ? '1/1.414' : 'auto'
+          }}>
+            {(() => { console.log('Container: 300x380px - Document should fit entirely'); return null; })()}
             {renderPreview()}
           </div>
         </div>
