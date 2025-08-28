@@ -126,18 +126,20 @@ const Mailbox: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      loadEmailsForView();
+      // Preload both inbox and sent views for instant switching
+      loadEmailsForView('inbox');
+      loadEmailsForView('sent');
     }
   }, [user]);
 
-  // Handle view switching with caching
+  // Handle view switching with instant cache access
   useEffect(() => {
     if (user && viewCache[currentView]) {
+      // Immediately show cached data
       setCurrentConversations(viewCache[currentView]!);
-    } else if (user) {
-      loadEmailsForView();
+      setEmailLoading(false);
     }
-  }, [currentView]);
+  }, [currentView, viewCache]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -243,11 +245,26 @@ const Mailbox: React.FC = () => {
   };
 
   const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
-    if (!user || viewLoading[view]) return;
+    if (!user) return;
+
+    // If we already have cached data and this is not a pagination request, return early
+    if (!pageToken && viewCache[view] && viewCache[view]!.length > 0) {
+      if (view === currentView) {
+        setCurrentConversations(viewCache[view]!);
+        setEmailLoading(false);
+      }
+      return;
+    }
+
+    if (viewLoading[view]) return;
 
     try {
       setViewLoading(prev => ({ ...prev, [view]: true }));
-      setEmailLoading(true);
+      
+      // Only show loading state for the current view
+      if (view === currentView) {
+        setEmailLoading(true);
+      }
       
       const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
       
@@ -261,11 +278,13 @@ const Mailbox: React.FC = () => {
 
       if (error) {
         console.error('Error loading emails:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load emails. Please try again.",
-          variant: "destructive"
-        });
+        if (view === currentView) {
+          toast({
+            title: "Error",
+            description: "Failed to load emails. Please try again.",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
@@ -287,19 +306,25 @@ const Mailbox: React.FC = () => {
         setConversations(newConversations);
       }
       
-      setCurrentPageToken(nextPageToken);
-      setCurrentAllEmailsLoaded(allEmailsLoaded);
+      if (view === currentView) {
+        setCurrentPageToken(nextPageToken);
+        setCurrentAllEmailsLoaded(allEmailsLoaded);
+      }
       
     } catch (error) {
       console.error('Error loading emails:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load emails. Please try again.",
-        variant: "destructive"
-      });
+      if (view === currentView) {
+        toast({
+          title: "Error",
+          description: "Failed to load emails. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setViewLoading(prev => ({ ...prev, [view]: false }));
-      setEmailLoading(false);
+      if (view === currentView) {
+        setEmailLoading(false);
+      }
     }
   };
 
