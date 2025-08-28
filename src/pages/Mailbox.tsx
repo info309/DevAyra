@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -805,8 +805,8 @@ const Mailbox: React.FC = () => {
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
               </Button>
-              <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
-                <DialogTrigger asChild>
+              <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
+                <DrawerTrigger asChild>
                   <Button className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
                     setComposeForm({ to: '', subject: '', content: '' });
@@ -814,15 +814,15 @@ const Mailbox: React.FC = () => {
                     <Plus className="w-4 h-4" />
                     Compose
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Compose Email</DialogTitle>
-                    <DialogDescription>
+                </DrawerTrigger>
+                <DrawerContent className="max-w-none">
+                  <DrawerHeader>
+                    <DrawerTitle>Compose Email</DrawerTitle>
+                    <DrawerDescription>
                       Send a new email
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-4 pb-4 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
                       <Label htmlFor="to">To</Label>
                       <Input
@@ -849,27 +849,30 @@ const Mailbox: React.FC = () => {
                         onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Write your message here..."
                         rows={10}
+                        className="min-h-[200px]"
                       />
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setShowComposeDialog(false);
-                      setComposeForm({ to: '', subject: '', content: '' });
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={sendEmail}
-                      disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                      className="gap-2"
-                    >
-                      <Send className="w-4 h-4" />
-                      {sendingEmail ? 'Sending...' : 'Send'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  <DrawerFooter>
+                    <div className="flex gap-2 w-full">
+                      <Button 
+                        onClick={sendEmail}
+                        disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                        className="gap-2 flex-1"
+                      >
+                        <Send className="w-4 h-4" />
+                        {sendingEmail ? 'Sending...' : 'Send'}
+                      </Button>
+                      <Button variant="outline" onClick={() => {
+                        setShowComposeDialog(false);
+                        setComposeForm({ to: '', subject: '', content: '' });
+                      }} className="flex-1">
+                        Cancel
+                      </Button>
+                    </div>
+                  </DrawerFooter>
+                </DrawerContent>
+              </Drawer>
             </div>
           </div>
 
