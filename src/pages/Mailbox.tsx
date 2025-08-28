@@ -1583,11 +1583,11 @@ const Mailbox: React.FC = () => {
                 </DrawerHeader>
                 
                 <ScrollArea className="flex-1">
-                  <div className="p-4 max-w-full overflow-hidden">
+                  <div className="p-4 w-full min-w-0 overflow-hidden">
                     {selectedConversation ? (
                       selectedEmail ? (
                         // Show only the selected email
-                        <div className="max-w-full overflow-hidden">
+                        <div className="w-full min-w-0 overflow-hidden">
                           <EmailContent 
                             key={selectedEmail.id}
                             conversation={{
@@ -1599,7 +1599,7 @@ const Mailbox: React.FC = () => {
                         </div>
                       ) : (
                         // Show all emails in the conversation thread
-                        <div className="max-w-full overflow-hidden">
+                        <div className="w-full min-w-0 overflow-hidden">
                           <EmailContent 
                             key={selectedConversation.id}
                             conversation={selectedConversation}

@@ -95,23 +95,23 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
   );
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
+    <div className="space-y-6 w-full min-w-0 overflow-hidden">
       {sortedEmails.map((email, emailIndex) => {
         const regularAttachments = email.attachments?.filter(att => !att.mimeType.startsWith('image/') || att.filename.includes('.')) || [];
         const inlineImages = email.attachments?.filter(att => att.mimeType.startsWith('image/') && !att.filename.includes('.')) || [];
 
         return (
-          <div key={email.id} className="space-y-4 max-w-full overflow-hidden">
+          <div key={email.id} className="space-y-4 w-full min-w-0 overflow-hidden">
             {/* Email Header */}
-            <div className="flex items-start justify-between p-4 bg-accent/30 rounded-lg max-w-full overflow-hidden">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 max-w-full overflow-hidden">
+            <div className="flex items-start justify-between p-4 bg-accent/30 rounded-lg w-full min-w-0 overflow-hidden">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 w-full min-w-0 overflow-hidden">
                   <p className="font-medium text-sm truncate">
                     {email.from.split('<')[0].trim() || email.from}
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-muted-foreground max-w-full overflow-hidden">
-                  <div className="flex items-center gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-muted-foreground w-full min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-1 min-w-0">
                     <Clock className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{formatDate(email.date)}</span>
                   </div>
@@ -122,33 +122,33 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
 
             {/* Regular Attachments */}
             {regularAttachments.length > 0 && (
-              <div className="border-b border-border pb-4">
+              <div className="border-b border-border pb-4 w-full min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
                   <Paperclip className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
                     {regularAttachments.length} Attachment{regularAttachments.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 w-full min-w-0">
                   {regularAttachments.map((attachment, index) => (
                     <div 
                       key={index}
-                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors w-full min-w-0 overflow-hidden"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                         <div className="flex-shrink-0">
                           <Badge variant="secondary" className="text-xs font-mono">
                             {attachment.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
                           </Badge>
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 overflow-hidden">
                           <p className="text-sm font-medium truncate text-foreground">{attachment.filename}</p>
                           <p className="text-xs text-muted-foreground">
                             {formatFileSize(attachment.size)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-shrink-0">
                         {onSaveAttachment && (
                           <Button
                             variant="ghost"
@@ -189,33 +189,33 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
 
             {/* Inline Images */}
             {inlineImages.length > 0 && (
-              <div className="border-b border-border pb-4">
+              <div className="border-b border-border pb-4 w-full min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
                   <ImageIcon className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
                     {inlineImages.length} Image{inlineImages.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 w-full min-w-0">
                   {inlineImages.map((image, index) => (
                     <div 
                       key={index}
-                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors w-full min-w-0 overflow-hidden"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                         <div className="flex-shrink-0">
                           <Badge variant="outline" className="text-xs font-mono">
                             {image.mimeType.split('/')[1]?.toUpperCase() || 'IMG'}
                           </Badge>
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 overflow-hidden">
                           <p className="text-sm font-medium truncate text-foreground">{image.filename}</p>
                           <p className="text-xs text-muted-foreground">
                             {formatFileSize(image.size)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-shrink-0">
                         {onSaveAttachment && (
                           <Button
                             variant="ghost"
@@ -255,10 +255,10 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
             )}
 
             {/* Email Content */}
-            <div className="space-y-4">
+            <div className="space-y-4 w-full min-w-0 overflow-hidden">
               <IsolatedEmailRenderer 
                 content={email.content || ''}
-                className="w-full"
+                className="w-full min-w-0"
               />
             </div>
 
