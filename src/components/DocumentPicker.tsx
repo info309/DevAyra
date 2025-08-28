@@ -122,19 +122,26 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
   });
 
   const handleDocumentToggle = (document: UserDocument) => {
+    console.log('Document toggle clicked:', document.name);
     if (multiple) {
       const isSelected = localSelection.some(d => d.id === document.id);
       if (isSelected) {
-        setLocalSelection(prev => prev.filter(d => d.id !== document.id));
+        const newSelection = localSelection.filter(d => d.id !== document.id);
+        console.log('Removing document, new selection:', newSelection.map(d => d.name));
+        setLocalSelection(newSelection);
       } else {
-        setLocalSelection(prev => [...prev, document]);
+        const newSelection = [...localSelection, document];
+        console.log('Adding document, new selection:', newSelection.map(d => d.name));
+        setLocalSelection(newSelection);
       }
     } else {
+      console.log('Single select mode, selecting:', document.name);
       setLocalSelection([document]);
     }
   };
 
   const handleConfirm = () => {
+    console.log('DocumentPicker confirm clicked with selection:', localSelection.map(d => d.name));
     onDocumentsSelected(localSelection);
     setOpen(false);
   };
