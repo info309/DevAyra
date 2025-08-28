@@ -143,11 +143,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
+        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-4">
           <img
             src={previewUrl}
             alt={document.name}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain rounded shadow-lg"
+            style={{ maxHeight: 'calc(95vh - 200px)' }}
             onError={() => {
               console.error('Failed to load image preview');
               setPreviewUrl(null);
@@ -162,8 +163,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       return (
         <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
           <iframe
-            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-            className="w-full h-full border-0"
+            src={`${previewUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+            className="w-full h-full border-0 rounded"
+            style={{ minHeight: 'calc(95vh - 200px)' }}
             title={`Preview of ${document.name}`}
             onError={() => {
               console.error('Failed to load PDF preview');
@@ -181,7 +183,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <div className="flex-1 bg-white rounded-lg border overflow-hidden">
           <iframe
             src={previewUrl}
-            className="w-full h-full border-0"
+            className="w-full h-full border-0 rounded"
+            style={{ minHeight: 'calc(95vh - 200px)' }}
             title={`Preview of ${document.name}`}
           />
         </div>
@@ -210,7 +213,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="h-[90vh] max-w-4xl mx-auto">
+      <DrawerContent className="h-[95vh] w-full max-w-none mx-auto">
         <DrawerHeader className="border-b px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -262,8 +265,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="flex-1 p-6 overflow-hidden">
-          {renderPreview()}
+        <div className="flex-1 p-6 overflow-auto bg-gray-50">
+          <div className="h-full max-w-none mx-auto">
+            {renderPreview()}
+          </div>
         </div>
       </DrawerContent>
     </Drawer>
