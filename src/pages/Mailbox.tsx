@@ -605,7 +605,7 @@ const Mailbox = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-22rem)]">
+              <ScrollArea className="h-[calc(100vh-22rem)] w-full overflow-hidden">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -625,14 +625,14 @@ const Mailbox = () => {
                       );
                       
                       return (
-                        <div key={conversation.id} className="border-b border-border last:border-b-0">
+                        <div key={conversation.id} className="border-b border-border last:border-b-0 max-w-full overflow-hidden">
                           <div
-                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full overflow-hidden ${
+                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="flex justify-between items-start gap-3 w-full overflow-hidden">
+                            <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden">
                               {/* Left side content */}
                               <div className="flex-1 min-w-0 space-y-1 pr-2 overflow-hidden">
                                 {/* Email address and unread badge */}
@@ -686,20 +686,18 @@ const Mailbox = () => {
                                 
                                 {/* Bottom right: Dropdown arrow */}
                                 <div className="flex justify-end">
-                                  {conversation.messageCount > 1 && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
-                                      onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                    >
-                                      {expandedConversations.has(conversation.id) ? (
-                                        <ChevronDown className="w-3 h-3" />
-                                      ) : (
-                                        <ChevronRight className="w-3 h-3" />
-                                      )}
-                                    </Button>
-                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
+                                    onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                  >
+                                    {expandedConversations.has(conversation.id) ? (
+                                      <ChevronDown className="w-3 h-3" />
+                                    ) : (
+                                      <ChevronRight className="w-3 h-3" />
+                                    )}
+                                  </Button>
                                 </div>
                               </div>
                             </div>
