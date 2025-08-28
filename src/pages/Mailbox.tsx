@@ -691,14 +691,39 @@ const Mailbox: React.FC = () => {
   const editDraft = (draft: Email) => {
     setEditingDraft(draft);
     
-    // Clean the draft content and properly convert HTML line breaks to plain text
+    // Clean the draft content and properly convert HTML to plain text with line breaks
     let cleanContent = draft.content || '';
     
-    // First convert <br> tags to line breaks
-    cleanContent = cleanContent.replace(/<br\s*\/?>/gi, '\n');
-    
-    // Then clean any remaining HTML
-    cleanContent = cleanEmailContentForReply(cleanContent);
+    // Handle different HTML line break patterns
+    cleanContent = cleanContent
+      // Convert <br> tags to line breaks (all variations)
+      .replace(/<br\s*\/?>/gi, '\n')
+      // Convert </p><p> to double line breaks
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+      // Convert paragraph endings to line breaks
+      .replace(/<\/p>/gi, '\n')
+      // Convert div endings to line breaks
+      .replace(/<\/div>/gi, '\n')
+      // Convert closing block elements to line breaks
+      .replace(/<\/(h[1-6]|div|p|li|td|th|tr)>/gi, '\n')
+      // Remove opening block element tags
+      .replace(/<(h[1-6]|div|p|li|td|th|tr)[^>]*>/gi, '')
+      // Remove all remaining HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Decode HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      // Clean up excessive whitespace but preserve intentional line breaks
+      .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
+      .replace(/\n[ \t]+/g, '\n') // Remove spaces at start of lines
+      .replace(/[ \t]+\n/g, '\n') // Remove spaces at end of lines
+      .replace(/\n{3,}/g, '\n\n') // Limit to maximum 2 consecutive line breaks
+      .trim();
     
     setComposeForm({
       to: draft.to || '',
