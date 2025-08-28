@@ -61,6 +61,7 @@ const Mailbox = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -191,7 +192,7 @@ const Mailbox = () => {
       const requestBody = {
         action,
         userId: user.id,
-        maxResults: 100, // Load more emails at once
+        maxResults: 50, // Load 50 emails at a time
         pageToken: loadMore ? nextPageToken : undefined,
         query: searchQuery
       };
@@ -310,8 +311,20 @@ const Mailbox = () => {
   };
 
   const loadMoreEmails = async () => {
-    if (!nextPageToken || allEmailsLoaded) return;
+    if (!nextPageToken || allEmailsLoaded || autoLoading) return;
+    setAutoLoading(true);
     await fetchEmails(searchQuery || undefined, true);
+    setAutoLoading(false);
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    
+    // Load more when 90% scrolled and not already loading
+    if (scrollPercentage > 0.9 && !allEmailsLoaded && !autoLoading && nextPageToken) {
+      loadMoreEmails();
+    }
   };
 
   const fetchEmailContent = async (emailId: string) => {
@@ -663,7 +676,10 @@ const Mailbox = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
-              <ScrollArea className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden">
+              <ScrollArea 
+                className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden"
+                onScrollCapture={handleScroll}
+              >
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -817,23 +833,20 @@ const Mailbox = () => {
                         </div>
                       );
                     })}
+                    {/* Auto-loading indicator */}
+                    {autoLoading && (
+                      <div className="p-4 text-center border-t">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Loading more emails...</span>
+                        </div>
+                      </div>
+                    )}
                     
-                    {/* Load More Button */}
-                    {!allEmailsLoaded && nextPageToken && (
-                      <div className="p-4 border-t">
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={loadMoreEmails}
-                          disabled={emailLoading}
-                        >
-                          {emailLoading ? (
-                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                          ) : (
-                            <Plus className="w-4 h-4 mr-2" />
-                          )}
-                          Load More Emails
-                        </Button>
+                    {/* End of results indicator */}
+                    {allEmailsLoaded && !autoLoading && filteredConversations.length > 0 && (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <span className="text-sm">No more emails to load</span>
                       </div>
                     )}
                   </>
