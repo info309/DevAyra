@@ -1636,7 +1636,7 @@ const Mailbox: React.FC = () => {
                         </div>
                       </div>
                       
-                      <ScrollArea className="h-[calc(100vh-8rem)]">
+                      <ScrollArea className="h-[calc(100vh-10rem)]">
                         <div className="px-6 py-4">
                           {selectedEmail ? (
                             // Show only the selected email
