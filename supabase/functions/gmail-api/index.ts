@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search';
+  action: 'list' | 'get' | 'send' | 'search' | 'markRead';
   userId: string;
   messageId?: string;
   attachmentId?: string;
@@ -594,6 +594,27 @@ const handler = async (req: Request): Promise<Response> => {
         const message = await response.json();
         const headers = message.payload?.headers || [];
         
+        // Mark email as read if it was unread
+        if (message.labelIds?.includes('UNREAD')) {
+          try {
+            await fetch(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  removeLabelIds: ['UNREAD']
+                })
+              }
+            );
+          } catch (error) {
+            console.error('Failed to mark email as read:', error);
+          }
+        }
+        
         // Process email content and attachments
         const { content, attachments } = processEmailContent(message.payload);
         
@@ -624,10 +645,39 @@ const handler = async (req: Request): Promise<Response> => {
           date: headers.find((h: any) => h.name === 'Date')?.value || '',
           content: content,
           attachments: processedAttachments,
-          unread: message.labelIds?.includes('UNREAD') || false,
+          unread: false, // Mark as read since we're viewing it
         };
 
         return new Response(JSON.stringify(emailData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'markRead': {
+        if (!messageId) {
+          throw new Error('Message ID is required');
+        }
+
+        const response = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              removeLabelIds: ['UNREAD']
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to mark message as read');
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
