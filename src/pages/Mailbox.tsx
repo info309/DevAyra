@@ -1532,50 +1532,53 @@ const Mailbox: React.FC = () => {
             {/* Mobile Drawer for Email Content */}
             <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
               <DrawerContent className="h-[90vh] max-w-full">
-                <DrawerHeader className="border-b px-4">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex-1 min-w-0 mr-4">
-                      <DrawerTitle className="text-left truncate text-base">
-                        {selectedConversation?.subject || 'Email'}
-                      </DrawerTitle>
-                      {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
-                        <DrawerDescription className="text-left text-sm">
-                          {selectedConversation.messageCount} messages
-                        </DrawerDescription>
-                      )}
+                <DrawerHeader className="border-b px-4 pb-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between w-full">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <DrawerTitle className="text-left truncate text-base leading-tight">
+                          {selectedConversation?.subject || 'Email'}
+                        </DrawerTitle>
+                        {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
+                          <DrawerDescription className="text-left text-sm mt-1">
+                            {selectedConversation.messageCount} messages
+                          </DrawerDescription>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {selectedConversation && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              handleReplyClick(
-                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                                selectedConversation
-                              );
-                              setMobileDrawerOpen(false);
-                            }}
-                            className="gap-1 text-xs px-2"
-                          >
-                            <Reply className="w-3 h-3" />
-                            Reply
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              deleteConversation(selectedConversation);
-                              setMobileDrawerOpen(false);
-                            }}
-                            className="gap-1 hover:bg-destructive/10 text-xs px-2"
-                          >
-                            <Trash2 className="w-3 h-3 text-destructive" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    
+                    {/* Action buttons - Full width on mobile */}
+                    {selectedConversation && (
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            handleReplyClick(
+                              selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                              selectedConversation
+                            );
+                            setMobileDrawerOpen(false);
+                          }}
+                          className="flex-1 gap-2"
+                        >
+                          <Reply className="w-4 h-4" />
+                          Reply
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            deleteConversation(selectedConversation);
+                            setMobileDrawerOpen(false);
+                          }}
+                          className="gap-2 hover:bg-destructive/10 px-3"
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                          Delete
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </DrawerHeader>
                 
