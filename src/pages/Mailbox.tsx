@@ -1179,19 +1179,20 @@ const Mailbox: React.FC = () => {
                     
                     <ScrollArea className="h-[calc(100vh-18rem)]">
                       {selectedEmail ? (
+                        // Show only the selected email
                         <EmailContent 
                           key={selectedEmail.id}
-                          conversation={selectedConversation}
+                          conversation={{
+                            ...selectedConversation,
+                            emails: [selectedEmail]  // Only show the selected email
+                          }}
                         />
                       ) : (
-                        selectedConversation.emails
-                          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                          .map(email => (
-                            <EmailContent 
-                              key={email.id}
-                              conversation={selectedConversation}
-                            />
-                          ))
+                        // Show all emails in the conversation thread
+                        <EmailContent 
+                          key={selectedConversation.id}
+                          conversation={selectedConversation}
+                        />
                       )}
                     </ScrollArea>
                   </div>
