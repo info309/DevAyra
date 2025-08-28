@@ -34,23 +34,30 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
       if (document.mime_type.startsWith('image/')) {
         const { data, error } = await supabase.storage
           .from('documents')
-          .download(document.file_path);
+          .createSignedUrl(document.file_path, 3600); // 1 hour expiry
         
         if (!error && data) {
-          const url = URL.createObjectURL(data);
-          setPreviewUrl(url);
+          setPreviewUrl(data.signedUrl);
           
           // Detect orientation
           const img = new Image();
           img.onload = () => {
             setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
-            URL.revokeObjectURL(url);
           };
-          img.src = url;
+          img.src = data.signedUrl;
         }
       }
-      // For PDFs, we could implement PDF.js preview here
-      // For now, we'll show the A4 icon
+      
+      // For PDFs, create a signed URL for preview
+      if (document.mime_type?.includes('pdf')) {
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(document.file_path, 3600);
+        
+        if (!error && data) {
+          setPreviewUrl(data.signedUrl);
+        }
+      }
       
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -156,39 +163,54 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // If it's an image and we have a preview, show the actual image
   if (document.mime_type?.startsWith('image/') && previewUrl) {
     return (
-      <div className={`${className} flex items-center justify-center`}>
+      <div className={`${className} bg-gray-100 rounded-lg overflow-hidden shadow-sm`}>
         <img
           src={previewUrl}
           alt={document.name}
-          className={`max-w-full max-h-full object-cover rounded ${
-            imageOrientation === 'landscape' ? 'w-full h-auto' : 'h-full w-auto'
-          }`}
-          onLoad={() => URL.revokeObjectURL(previewUrl)}
+          className="w-full h-full object-cover"
         />
       </div>
     );
   }
 
-  // For PDFs, show a special PDF preview (could be enhanced with PDF.js)
+  // For PDFs, show a document-like preview
   if (document.mime_type?.includes('pdf')) {
     return (
-      <div className={`${className} flex items-center justify-center`}>
-        <div className="bg-red-50 border border-red-200 rounded p-2 flex items-center justify-center w-12 h-16">
-          <div className="text-center">
-            <div className="text-red-600 text-xs font-bold">PDF</div>
-            <div className="text-red-500 text-[10px]">📄</div>
+      <div className={`${className} bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200`}>
+        <div className="w-full h-full bg-white relative">
+          {/* Simulate document content */}
+          <div className="p-2 h-full flex flex-col">
+            <div className="flex-1 space-y-1">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className={`bg-gray-300 rounded h-1 ${i % 3 === 0 ? 'w-3/4' : 'w-full'}`} />
+              ))}
+            </div>
+            <div className="text-[8px] text-gray-500 text-center mt-1">PDF</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // For all other documents, show A4 icon with extension
+  // For all other documents, show document-like preview
   return (
-    <A4DocumentIcon 
-      extension={getFileExtension()} 
-      orientation={imageOrientation}
-    />
+    <div className={`${className} bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200`}>
+      <div className="w-full h-full bg-white relative p-2">
+        {/* Document lines simulation */}
+        <div className="space-y-1 mb-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={`bg-gray-200 rounded h-1 ${i % 3 === 0 ? 'w-2/3' : 'w-full'}`} />
+          ))}
+        </div>
+        
+        {/* File extension in center */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-medium">
+            {getFileExtension()}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

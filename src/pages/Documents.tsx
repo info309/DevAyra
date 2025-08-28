@@ -392,84 +392,85 @@ const Documents = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="group relative"
+                  className="group relative cursor-pointer"
+                  onClick={() => {
+                    if (doc.is_folder) {
+                      setCurrentFolder(doc);
+                    } else {
+                      handleDownload(doc);
+                    }
+                  }}
                 >
-                  <Card 
-                    className="hover:shadow-lg transition-all cursor-pointer h-32 flex flex-col overflow-hidden"
-                    onClick={() => {
-                      if (doc.is_folder) {
-                        setCurrentFolder(doc);
-                      } else {
-                        handleDownload(doc);
-                      }
-                    }}
-                  >
-                    <CardContent className="p-2 flex flex-col h-full">
-                      {/* Preview/Icon Area */}
-                      <div className="flex-1 flex items-center justify-center mb-2 min-h-0">
-                        {doc.is_folder ? (
-                          <div className="w-12 h-12">
-                            <svg viewBox="0 0 100 100" className="w-full h-full">
-                              <defs>
-                                <linearGradient id="folderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="#60a5fa" />
-                                  <stop offset="100%" stopColor="#3b82f6" />
-                                </linearGradient>
-                              </defs>
-                              <path
-                                d="M15 25 L35 25 L40 35 L85 35 L85 75 L15 75 Z"
-                                fill="url(#folderGrad)"
-                                stroke="#2563eb"
-                                strokeWidth="1"
-                              />
-                              <path
-                                d="M15 25 L15 20 L35 20 L40 30 L85 30 L85 35 L40 35 L35 25 Z"
-                                fill="#93c5fd"
-                                stroke="#2563eb"
-                                strokeWidth="1"
-                              />
-                            </svg>
-                          </div>
-                        ) : (
-                          <DocumentPreview 
-                            document={doc}
-                            className="w-full h-full"
-                          />
+                  {/* Preview/Icon Area */}
+                  <div className="w-full aspect-[3/4] mb-2 rounded-lg overflow-hidden">
+                    {doc.is_folder ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-16 h-16">
+                          <svg viewBox="0 0 100 100" className="w-full h-full">
+                            <defs>
+                              <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#60a5fa" />
+                                <stop offset="100%" stopColor="#3b82f6" />
+                              </linearGradient>
+                            </defs>
+                            <path
+                              d="M15 25 L35 25 L40 35 L85 35 L85 75 L15 75 Z"
+                              fill={`url(#folderGrad-${doc.id})`}
+                              stroke="#2563eb"
+                              strokeWidth="1"
+                            />
+                            <path
+                              d="M15 25 L15 20 L35 20 L40 30 L85 30 L85 35 L40 35 L35 25 Z"
+                              fill="#93c5fd"
+                              stroke="#2563eb"
+                              strokeWidth="1"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <DocumentPreview 
+                        document={doc}
+                        className="w-full h-full"
+                      />
+                    )}
+                  </div>
+                  
+                  {/* Document Info */}
+                  <div className="text-center">
+                    <p className="text-sm font-medium truncate w-full leading-tight mb-1" title={doc.name}>
+                      {doc.name}
+                    </p>
+                    
+                    {!doc.is_folder && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>{formatDate(doc.created_at)}</div>
+                        {doc.file_size && (
+                          <div>{formatFileSize(doc.file_size)}</div>
                         )}
                       </div>
-                      
-                      {/* Document Name */}
-                      <div className="text-center px-1">
-                        <p className="text-xs font-medium text-center truncate w-full leading-tight" title={doc.name}>
-                          {doc.name}
-                        </p>
-                        
-                        {!doc.is_folder && (
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            {doc.source_type === 'email_attachment' && (
-                              <Mail className="w-3 h-3 text-muted-foreground" />
-                            )}
-                            {doc.is_favorite && (
-                              <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                            )}
-                          </div>
-                        )}
+                    )}
+                    
+                    {doc.is_folder && (
+                      <div className="text-xs text-muted-foreground">
+                        {/* We'd need to count items in folder here */}
+                        Folder
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
 
                   {/* Context Menu */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-6 w-6 p-0 bg-background/80 hover:bg-background"
+                          className="h-6 w-6 p-0 bg-background/80 hover:bg-background shadow-sm"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="w-3 h-3" />
@@ -498,20 +499,6 @@ const Documents = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-
-                  {/* File details overlay */}
-                  {!doc.is_folder && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-background/90 p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity rounded-b-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">
-                          {doc.file_size ? formatFileSize(doc.file_size) : ''}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {formatDate(doc.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
