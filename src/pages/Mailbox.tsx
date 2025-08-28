@@ -135,25 +135,13 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  // Function to extract plain text from email content, removing ALL HTML, CSS, and styling
+  // Function to aggressively clean email content by removing ALL HTML, CSS, and styling
   const cleanEmailContentForReply = (htmlContent: string): string => {
     if (!htmlContent) return '';
     
-    console.log('Original content for cleaning:', htmlContent.substring(0, 200) + '...');
-    
     let cleaned = htmlContent;
     
-    // FIRST: Remove the specific wrapper div pattern that appears in replies
-    cleaned = cleaned.replace(/<div\s+style="[^"]*max-width:\s*100%[^"]*"[^>]*>[\s\S]*?<\/div>\s*$/gi, (match) => {
-      // Extract content inside the wrapper div
-      const innerContent = match.replace(/<div\s+style="[^"]*"[^>]*>/, '').replace(/<\/div>\s*$/, '');
-      return innerContent;
-    });
-    
-    // Remove any remaining outer wrapper divs with styling
-    cleaned = cleaned.replace(/^<div[^>]*style="[^"]*"[^>]*>([\s\S]*)<\/div>$/gi, '$1');
-    
-    // Remove all style blocks and their contents
+    // First, remove all style blocks and their contents
     cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     
     // Remove all script blocks and their contents
@@ -162,27 +150,16 @@ const Mailbox: React.FC = () => {
     // Remove HTML comments
     cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
     
-    // Remove DOCTYPE and XML declarations
+    // Remove DOCTYPE declarations
     cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+    
+    // Remove XML declarations
     cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
-    cleaned = cleaned.replace(/<html[^>]*>/gi, '');
-    cleaned = cleaned.replace(/<\/html>/gi, '');
-    cleaned = cleaned.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-    cleaned = cleaned.replace(/<body[^>]*>/gi, '');
-    cleaned = cleaned.replace(/<\/body>/gi, '');
     
-    // Remove meta tags
-    cleaned = cleaned.replace(/<meta[^>]*>/gi, '');
-    
-    // Convert common block elements to line breaks before removing tags
-    cleaned = cleaned.replace(/<\/?(div|p|br|h[1-6])[^>]*>/gi, '\n');
-    cleaned = cleaned.replace(/<\/?(ul|ol|li)[^>]*>/gi, '\n');
-    cleaned = cleaned.replace(/<\/?(table|tr|td|th)[^>]*>/gi, '\n');
-    
-    // Remove ALL remaining HTML tags
+    // Remove all HTML tags completely
     cleaned = cleaned.replace(/<[^>]*>/g, ' ');
     
-    // Decode HTML entities
+    // Clean up HTML entities
     cleaned = cleaned
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
@@ -200,37 +177,44 @@ const Mailbox: React.FC = () => {
       .replace(/&ldquo;/g, '"')
       .replace(/&#\d+;/g, ' '); // Remove any remaining numeric entities
     
-    // Remove CSS properties that might have leaked through
-    cleaned = cleaned.replace(/[a-zA-Z-]+\s*:\s*[^;\n]+;/g, ' ');
+    // Remove CSS properties and selectors that might have leaked through
+    cleaned = cleaned.replace(/[a-zA-Z-]+\s*:\s*[^;]+;/g, ' ');
+    cleaned = cleaned.replace(/@[a-zA-Z-]+[^{]*\{[^}]*\}/g, ' ');
+    cleaned = cleaned.replace(/\.[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
+    cleaned = cleaned.replace(/#[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
     
-    // Remove excessive whitespace and normalize
+    // Remove URLs that are not part of meaningful text
+    cleaned = cleaned.replace(/https?:\/\/[^\s<>"']{20,}/g, ' ');
+    
+    // Clean up whitespace and line breaks
     cleaned = cleaned
       .replace(/\r\n/g, '\n')           // Normalize line endings
       .replace(/\r/g, '\n')            // Convert remaining \r to \n
-      .replace(/[ \t]+/g, ' ')         // Collapse multiple spaces/tabs
-      .replace(/\n[ \t]+/g, '\n')      // Remove spaces at start of lines
-      .replace(/[ \t]+\n/g, '\n')      // Remove spaces at end of lines
-      .replace(/\n{3,}/g, '\n\n')      // Limit consecutive line breaks to 2
+      .replace(/\n{4,}/g, '\n\n\n')    // Limit to maximum 3 consecutive line breaks
+      .replace(/[ \t]{2,}/g, ' ')      // Collapse multiple spaces/tabs to single space
+      .replace(/[ \t]*\n[ \t]*/g, '\n') // Clean up spaces around line breaks
+      .replace(/^\s+|\s+$/g, '')       // Trim start and end
       .split('\n')                     // Split into lines
       .map(line => line.trim())        // Trim each line
-      .filter(line => {                // Filter out noise
-        // Keep lines that have actual content
-        return line.length > 0 && 
-               !line.match(/^[^a-zA-Z0-9]*$/) && // Not just symbols
-               !line.match(/^(max-width|word-wrap|font-family|line-height|color|overflow-wrap|word-break)/i); // Not CSS properties
-      })
-      .join('\n')                      // Rejoin lines
-      .replace(/\n{3,}/g, '\n\n')      // Final cleanup of line breaks
-      .trim();
+      .filter(line => line.length > 0 && !line.match(/^[^a-zA-Z0-9]*$/)) // Remove empty or symbol-only lines
+      .join('\n')                      // Rejoin
+      .replace(/\n{3,}/g, '\n\n');     // Final cleanup of excessive line breaks
     
-    console.log('Cleaned content:', cleaned.substring(0, 200) + '...');
-    
-    // Final validation - if it still looks like markup or is too short, provide fallback
-    if (cleaned.length < 5 || cleaned.match(/[<>{}@#]{2,}/)) {
-      return '[Original message content could not be cleaned for reply]';
+    // If the result is still very long or seems to contain CSS/HTML artifacts, try a more aggressive approach
+    if (cleaned.length > 2000 || cleaned.match(/[{}@#\.]/)) {
+      // Try to extract only sentences and readable text
+      const sentences = cleaned.match(/[A-Z][^.!?]*[.!?]/g) || [];
+      if (sentences.length > 0) {
+        cleaned = sentences.join(' ').trim();
+      }
     }
     
-    return cleaned;
+    // Final safety check - if it still looks like code/CSS, return a simple message
+    if (cleaned.match(/[{}@#]{3,}/) || cleaned.length < 10) {
+      return '[Original message content cannot be cleanly displayed as text]';
+    }
+    
+    return cleaned.trim();
   };
 
   const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
