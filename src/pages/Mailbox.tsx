@@ -23,574 +23,510 @@ interface Email {
   from: string;
   to: string;
   date: string;
+  content: string;
   unread: boolean;
-  content?: string;
-  isDraft?: boolean;
-  draftId?: string;
-  attachments?: Array<{
-    filename: string;
-    mimeType: string;
-    size: number;
-    attachmentId?: string;
-    downloadUrl?: string;
-  }>;
+  attachments?: Attachment[];
+}
+
+interface Attachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  downloadUrl?: string;
 }
 
 interface Conversation {
-  id: string; // threadId or generated conversation ID
+  id: string;
   subject: string;
-  participants: string[];
+  emails: Email[];
+  messageCount: number;
   lastDate: string;
   unreadCount: number;
-  messageCount: number;
-  emails: Email[];
+  participants: string[];
 }
 
-interface GmailConnection {
-  id: string;
-  email_address: string;
-  is_active: boolean;
+interface ComposeFormData {
+  to: string;
+  subject: string;
+  content: string;
+  replyTo?: string;
+  threadId?: string;
 }
 
-const Mailbox = () => {
-  const { user } = useAuth();
+const Mailbox: React.FC = () => {
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [connections, setConnections] = useState<GmailConnection[]>([]);
-  const [emails, setEmails] = useState<Email[]>([]);
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
-  
-  // Current view and sent email states
-  const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
-  const [sentEmails, setSentEmails] = useState<Email[]>([]);
-  const [sentConversations, setSentConversations] = useState<Conversation[]>([]);
-  const [sentPageToken, setSentPageToken] = useState<string | null>(null);
-  const [allSentEmailsLoaded, setAllSentEmailsLoaded] = useState(false);
-  
-  // Draft states
-  const [draftEmails, setDraftEmails] = useState<Email[]>([]);
-  const [draftConversations, setDraftConversations] = useState<Conversation[]>([]);
-  const [draftPageToken, setDraftPageToken] = useState<string | null>(null);
-  const [allDraftsLoaded, setAllDraftsLoaded] = useState(false);
-  
-  const [composeOpen, setComposeOpen] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [allEmailsLoaded, setAllEmailsLoaded] = useState(false);
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [expandedConversations, setExpandedConversations] = useState<Set<string>>(new Set());
-  
-  // Compose form state
-  const [to, setTo] = useState('');
-  const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
-  
-  // Reply state
-  const [replyOpen, setReplyOpen] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<Email | null>(null);
-  const [replyConversation, setReplyConversation] = useState<Conversation | null>(null);
-  
+
+  // Compose dialog state
+  const [showComposeDialog, setShowComposeDialog] = useState(false);
+  const [composeForm, setComposeForm] = useState<ComposeFormData>({
+    to: '',
+    subject: '',
+    content: ''
+  });
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  // Pagination state
+  const [currentPageToken, setCurrentPageToken] = useState<string | null>(null);
+  const [currentAllEmailsLoaded, setCurrentAllEmailsLoaded] = useState(false);
+
+  // View state
+  const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
+  const [currentConversations, setCurrentConversations] = useState<Conversation[]>([]);
+
   // Draft editing state
   const [editingDraft, setEditingDraft] = useState<Email | null>(null);
-  const [draftEditOpen, setDraftEditOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchGmailConnections();
+      loadEmails();
     }
-  }, [user]);
+  }, [user, currentView]);
 
-  // Load initial emails when component mounts or connections change
-  useEffect(() => {
-    if (connections.length > 0) {
-      fetchEmails(undefined, false, currentView);
-    }
-  }, [connections, currentView]);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-  // Switch view handler
-  const handleViewChange = (view: 'inbox' | 'sent' | 'drafts') => {
-    setCurrentView(view);
-    setSelectedConversation(null);
-    setSelectedEmail(null);
-    setSearchQuery('');
-  };
-
-  // Get current data based on view
-  const currentEmails = currentView === 'sent' ? sentEmails : currentView === 'drafts' ? draftEmails : emails;
-  const currentConversations = currentView === 'sent' ? sentConversations : currentView === 'drafts' ? draftConversations : conversations;
-  const currentPageToken = currentView === 'sent' ? sentPageToken : currentView === 'drafts' ? draftPageToken : nextPageToken;
-  const currentAllEmailsLoaded = currentView === 'sent' ? allSentEmailsLoaded : currentView === 'drafts' ? allDraftsLoaded : allEmailsLoaded;
-
-  const fetchGmailConnections = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('gmail_connections')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('is_active', true);
-
-      if (error) throw error;
-      setConnections(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch Gmail connections"
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
       });
-    }
-  };
-
-  const connectGmail = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Call edge function with userId as query parameter for GET request
-      const response = await fetch(
-        `https://lmkpmnndrygjatnipfgd.supabase.co/functions/v1/gmail-auth?userId=${user.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA`,
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA',
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get auth URL');
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Open OAuth popup
-      const popup = window.open(data.authUrl, 'gmail-auth', 'width=500,height=600,scrollbars=yes,resizable=yes');
-      
-      // Listen for popup completion
-      const handleMessage = (event: MessageEvent) => {
-        console.log('Received message:', event.data);
-        
-        if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
-          console.log('Gmail auth success received');
-          popup?.close();
-          fetchGmailConnections();
-          toast({
-            title: "Success!",
-            description: `Gmail account (${event.data.data?.email || 'Unknown'}) connected successfully`
-          });
-          window.removeEventListener('message', handleMessage);
-        } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
-          console.log('Gmail auth error received:', event.data.error);
-          popup?.close();
-          toast({
-            variant: "destructive",
-            title: "Connection Failed",
-            description: event.data.error
-          });
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-      
-      // Also check if popup was closed manually
-      const checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
-        }
-      }, 1000);
-    } catch (error: any) {
-      console.error('Gmail connection error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    }
-    setLoading(false);
-  };
-
-  const disconnectGmail = async () => {
-    if (!user || connections.length === 0) return;
-    
-    try {
-      setLoading(true);
-      
-      // Deactivate the connection in the database
-      const { error } = await supabase
-        .from('gmail_connections')
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-
-      if (error) throw error;
-
-      // Clear local state
-      setConnections([]);
-      setEmails([]);
-      setConversations([]);
-      setSentEmails([]);
-      setSentConversations([]);
-      setDraftEmails([]);
-      setDraftConversations([]);
-      setSelectedConversation(null);
-      setSelectedEmail(null);
-
-      toast({
-        title: "Gmail Disconnected",
-        description: "Your Gmail account has been disconnected. You can reconnect with updated permissions.",
-      });
-
-    } catch (error: any) {
-      console.error('Disconnect error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    }
-    setLoading(false);
-  };
-
-  const fetchEmails = async (searchQuery?: string, loadMore = false, viewType: 'inbox' | 'sent' | 'drafts' = 'inbox') => {
-    if (!user || connections.length === 0) return;
-    
-    setEmailLoading(true);
-    try {
-      const action = searchQuery ? 'search' : (viewType === 'sent' ? 'sent' : viewType === 'drafts' ? 'drafts' : 'list');
-      const requestBody = {
-        action,
-        userId: user.id,
-        maxResults: 100, // Load more emails at once
-        pageToken: loadMore ? (viewType === 'sent' ? sentPageToken : viewType === 'drafts' ? draftPageToken : nextPageToken) : undefined,
-        query: searchQuery,
-        mailbox: viewType
-      };
-
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: requestBody
-      });
-
-      if (error) throw error;
-
-      const newEmails = data.messages || [];
-      
-      if (viewType === 'sent') {
-        if (loadMore) {
-          setSentEmails(prev => [...prev, ...newEmails]);
-        } else {
-          setSentEmails(newEmails);
-        }
-        setSentPageToken(data.nextPageToken || null);
-        setAllSentEmailsLoaded(!data.nextPageToken);
-        
-        // Group sent emails into conversations
-        const allSentEmails = loadMore ? [...sentEmails, ...newEmails] : newEmails;
-        const conversations = groupEmailsIntoConversations(allSentEmails);
-        setSentConversations(conversations);
-      } else if (viewType === 'drafts') {
-        if (loadMore) {
-          setDraftEmails(prev => [...prev, ...newEmails]);
-        } else {
-          setDraftEmails(newEmails);
-        }
-        setDraftPageToken(data.nextPageToken || null);
-        setAllDraftsLoaded(!data.nextPageToken);
-        
-        // Group draft emails into conversations
-        const allDraftEmails = loadMore ? [...draftEmails, ...newEmails] : newEmails;
-        const conversations = groupEmailsIntoConversations(allDraftEmails);
-        setDraftConversations(conversations);
-      } else {
-        if (loadMore) {
-          setEmails(prev => [...prev, ...newEmails]);
-        } else {
-          setEmails(newEmails);
-        }
-        setNextPageToken(data.nextPageToken || null);
-        setAllEmailsLoaded(!data.nextPageToken);
-        
-        // Group emails into conversations
-        const allEmails = loadMore ? [...emails, ...newEmails] : newEmails;
-        const conversations = groupEmailsIntoConversations(allEmails);
-        setConversations(conversations);
-      }
-      
-    } catch (error: any) {
-      console.error('Failed to fetch emails:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to fetch emails: ${error.message}`
-      });
-    }
-    setEmailLoading(false);
-  };
-
-  const searchEmails = async (query: string) => {
-    if (!query.trim()) {
-      // If empty query, load regular inbox
-      await fetchEmails();
-      return;
-    }
-    
-    setSearchLoading(true);
-    setSearchQuery(query);
-    
-    // Build Gmail search query
-    let gmailQuery = '';
-    
-    // Check if it looks like an email address
-    if (query.includes('@')) {
-      gmailQuery = `from:${query} OR to:${query}`;
+    } else if (diffInHours < 168) { // 7 days
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
     } else {
-      // Search in subject, body, and attachment names
-      gmailQuery = `subject:${query} OR ${query} OR filename:${query}`;
-    }
-    
-    try {
-      await fetchEmails(gmailQuery);
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        variant: "destructive",
-        title: "Search Error",
-        description: "Failed to search emails"
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
       });
     }
-    
-    setSearchLoading(false);
   };
 
-  const groupEmailsIntoConversations = (emailList: Email[]): Conversation[] => {
-    const conversationMap = new Map<string, Conversation>();
-    
-    emailList.forEach(email => {
-      // Create conversation key based on thread ID or subject + participants
-      let conversationKey = email.threadId;
-      
-      // If no threadId, create conversation based on subject and participants  
-      if (!conversationKey) {
-        const cleanSubject = email.subject.replace(/^(Re:|Fwd?:)\s*/i, '').trim();
-        const participants = [email.from, email.to].filter(Boolean).sort();
-        conversationKey = `${cleanSubject}-${participants.join('-')}`;
-      }
-      
-      if (conversationMap.has(conversationKey)) {
-        const conversation = conversationMap.get(conversationKey)!;
-        conversation.emails.push(email);
-        conversation.messageCount++;
-        if (email.unread) conversation.unreadCount++;
-        
-        // Update last date if this email is newer
-        if (new Date(email.date) > new Date(conversation.lastDate)) {
-          conversation.lastDate = email.date;
-        }
-      } else {
-        // Create new conversation
-        const participants = [email.from, email.to].filter(Boolean);
-        conversationMap.set(conversationKey, {
-          id: conversationKey,
-          subject: email.subject,
-          participants: [...new Set(participants)],
-          lastDate: email.date,
-          unreadCount: email.unread ? 1 : 0,
-          messageCount: 1,
-          emails: [email]
-        });
-      }
-    });
-    
-    // Sort conversations by last date (newest first)
-    return Array.from(conversationMap.values()).sort((a, b) => 
-      new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
-    );
-  };
-
-  const loadMoreEmails = async () => {
-    const isLoadingMore = currentView === 'sent' ? 
-      (!sentPageToken || allSentEmailsLoaded) : 
-      currentView === 'drafts' ?
-      (!draftPageToken || allDraftsLoaded) :
-      (!nextPageToken || allEmailsLoaded);
-    
-    if (isLoadingMore) return;
-    await fetchEmails(searchQuery || undefined, true, currentView);
-  };
-
-  const fetchEmailContent = async (emailId: string) => {
+  const loadEmails = async (pageToken?: string | null) => {
     if (!user) return;
-    
+
     try {
+      setEmailLoading(true);
+      
       const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'get',
-          userId: user.id,
-          messageId: emailId
+        body: { 
+          action: 'getEmails',
+          query: currentView === 'inbox' ? 'in:inbox' : 
+                 currentView === 'sent' ? 'in:sent' : 
+                 'in:drafts',
+          pageToken: pageToken || undefined
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading emails:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load emails. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      const emailWithContent = data as Email;
+      const { conversations: newConversations, nextPageToken, allEmailsLoaded } = data;
       
-      // Update the email in the current view's list with content
-      if (currentView === 'sent') {
-        setSentEmails(prev => prev.map(email => 
-          email.id === emailId ? { ...email, ...emailWithContent } : email
-        ));
-        
-        // Update sent conversations as well
-        setSentConversations(prev => prev.map(conv => ({
-          ...conv,
-          emails: conv.emails.map(email =>
-            email.id === emailId ? { ...email, ...emailWithContent } : email
-          )
-        })));
-      } else if (currentView === 'drafts') {
-        setDraftEmails(prev => prev.map(email => 
-          email.id === emailId ? { ...email, ...emailWithContent } : email
-        ));
-        
-        // Update draft conversations as well
-        setDraftConversations(prev => prev.map(conv => ({
-          ...conv,
-          emails: conv.emails.map(email =>
-            email.id === emailId ? { ...email, ...emailWithContent } : email
-          )
-        })));
+      if (pageToken) {
+        // Append to existing conversations for pagination
+        setCurrentConversations(prev => [...prev, ...newConversations]);
       } else {
-        // Update the email in the list with content
-        setEmails(prev => prev.map(email => 
-          email.id === emailId ? { ...email, ...emailWithContent } : email
-        ));
-        
-        // Update conversations as well
-        setConversations(prev => prev.map(conv => ({
-          ...conv,
-          emails: conv.emails.map(email =>
-            email.id === emailId ? { ...email, ...emailWithContent } : email
-          )
-        })));
+        // Replace conversations for initial load or refresh
+        setCurrentConversations(newConversations);
+        setConversations(newConversations);
       }
       
-    } catch (error: any) {
-      console.error('Failed to fetch email content:', error);
+      setCurrentPageToken(nextPageToken);
+      setCurrentAllEmailsLoaded(allEmailsLoaded);
+      
+    } catch (error) {
+      console.error('Error loading emails:', error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: `Failed to fetch email content: ${error.message}`
+        description: "Failed to load emails. Please try again.",
+        variant: "destructive"
       });
+    } finally {
+      setEmailLoading(false);
     }
   };
 
-  const handleConversationClick = async (conversation: Conversation) => {
-    console.log('Selecting conversation:', conversation.id, conversation.subject);
-    setSelectedConversation(conversation);
-    setSelectedEmail(null); // Reset individual email selection
-    
-    // Mark all emails in conversation as read
-    markConversationAsRead(conversation);
-    
-    // Fetch full content for all emails in the conversation that don't have content yet
-    for (const email of conversation.emails) {
-      if (!email.content && !email.attachments) {
-        await fetchEmailContent(email.id);
+  const loadMoreEmails = () => {
+    if (currentPageToken && !emailLoading) {
+      loadEmails(currentPageToken);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!user || !searchQuery.trim()) return;
+
+    try {
+      setSearchLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'searchEmails',
+          query: searchQuery
+        }
+      });
+
+      if (error) {
+        console.error('Error searching emails:', error);
+        toast({
+          title: "Error",
+          description: "Failed to search emails. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
+
+      setCurrentConversations(data.conversations);
+      
+    } catch (error) {
+      console.error('Error searching emails:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to search emails. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSearchLoading(false);
     }
   };
 
-  const handleEmailClick = async (email: Email, conversation: Conversation) => {
-    console.log('Selecting individual email:', email.id);
+  const handleConversationClick = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    setSelectedEmail(null);
+  
+    // Mark conversation as read if it has unread messages
+    if (conversation.unreadCount > 0) {
+      markConversationAsRead(conversation);
+    }
+  };
+
+  const handleEmailClick = (email: Email, conversation: Conversation) => {
     setSelectedConversation(conversation);
     setSelectedEmail(email);
     
-    // Mark this specific email as read
-    markEmailAsRead(email.id, conversation.id);
-    
-    // Fetch full content for the email if it doesn't have content yet
-    if (!email.content && !email.attachments) {
-      await fetchEmailContent(email.id);
+    // Mark email as read if unread
+    if (email.unread) {
+      markEmailAsRead(email.id, conversation.id);
+    }
+  };
+
+  const markConversationAsRead = async (conversation: Conversation) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'markAsRead',
+          threadId: conversation.id
+        }
+      });
+
+      if (error) {
+        console.error('Error marking conversation as read:', error);
+        return;
+      }
+
+      // Update local state
+      setCurrentConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversation.id 
+            ? { ...conv, unreadCount: 0, emails: conv.emails.map(email => ({ ...email, unread: false })) }
+            : conv
+        )
+      );
+      
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
     }
   };
 
   const markEmailAsRead = async (emailId: string, conversationId: string) => {
-    // Mark as read on Gmail's side
+    if (!user) return;
+
     try {
-      await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'markRead',
-          userId: user?.id,
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'markAsRead',
           messageId: emailId
         }
       });
-    } catch (error) {
-      console.error('Failed to mark email as read on Gmail:', error);
-    }
 
-    // Update local state for current view
-    const updateConversations = currentView === 'sent' ? setSentConversations : currentView === 'drafts' ? setDraftConversations : setConversations;
-    
-    updateConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        const updatedEmails = conv.emails.map(email => 
-          email.id === emailId ? { ...email, unread: false } : email
-        );
-        const unreadCount = updatedEmails.filter(email => email.unread).length;
-        
-        return {
-          ...conv,
-          emails: updatedEmails,
-          unreadCount
-        };
+      if (error) {
+        console.error('Error marking email as read:', error);
+        return;
       }
-      return conv;
-    }));
+
+      // Update local state
+      setCurrentConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversationId 
+            ? { 
+                ...conv, 
+                unreadCount: Math.max(0, conv.unreadCount - 1),
+                emails: conv.emails.map(email => 
+                  email.id === emailId ? { ...email, unread: false } : email
+                )
+              }
+            : conv
+        )
+      );
+      
+    } catch (error) {
+      console.error('Error marking email as read:', error);
+    }
   };
 
-  const markConversationAsRead = async (conversation: Conversation) => {
-    // Mark all unread emails as read on Gmail's side
-    const unreadEmails = conversation.emails.filter(email => email.unread);
-    
-    for (const email of unreadEmails) {
-      try {
-        await supabase.functions.invoke('gmail-api', {
-          body: {
-            action: 'markRead',
-            userId: user?.id,
-            messageId: email.id
-          }
-        });
-      } catch (error) {
-        console.error(`Failed to mark email ${email.id} as read on Gmail:`, error);
-      }
-    }
+  const deleteConversation = async (conversation: Conversation) => {
+    if (!user) return;
 
-    // Update local state for current view
-    const updateConversations = currentView === 'sent' ? setSentConversations : currentView === 'drafts' ? setDraftConversations : setConversations;
-    
-    updateConversations(prev => prev.map(conv => {
-      if (conv.id === conversation.id) {
-        return {
-          ...conv,
-          emails: conv.emails.map(email => ({ ...email, unread: false })),
-          unreadCount: 0
-        };
+    try {
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'deleteThread',
+          threadId: conversation.id
+        }
+      });
+
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete conversation. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
-      return conv;
-    }));
+
+      // Remove from local state
+      setCurrentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+      
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation?.id === conversation.id) {
+        setSelectedConversation(null);
+        setSelectedEmail(null);
+      }
+
+      toast({
+        title: "Success",
+        description: `${currentView === 'drafts' ? 'Drafts' : 'Conversation'} deleted successfully.`
+      });
+      
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteEmail = async (emailId: string, conversationId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'deleteMessage',
+          messageId: emailId
+        }
+      });
+
+      if (error) {
+        console.error('Error deleting email:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete email. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update local state
+      setCurrentConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversationId 
+            ? { 
+                ...conv,
+                emails: conv.emails.filter(email => email.id !== emailId),
+                messageCount: conv.messageCount - 1
+              }
+            : conv
+        ).filter(conv => conv.emails.length > 0) // Remove conversations with no emails
+      );
+
+      // Clear selection if deleted email was selected
+      if (selectedEmail?.id === emailId) {
+        setSelectedEmail(null);
+      }
+
+      toast({
+        title: "Success",
+        description: "Email deleted successfully."
+      });
+      
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete email. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendEmail = async () => {
+    if (!user) return;
+
+    try {
+      setSendingEmail(true);
+      
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'sendEmail',
+          to: composeForm.to,
+          subject: composeForm.subject,
+          content: composeForm.content,
+          replyTo: composeForm.replyTo,
+          threadId: composeForm.threadId
+        }
+      });
+
+      if (error) {
+        console.error('Error sending email:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send email. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Email sent successfully!"
+      });
+
+      // Reset form and close dialog
+      setComposeForm({ to: '', subject: '', content: '' });
+      setShowComposeDialog(false);
+
+      // Refresh emails to show the sent email
+      loadEmails();
+      
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!user) return;
+
+    try {
+      setSendingEmail(true);
+      
+      const { error } = await supabase.functions.invoke('gmail-api', {
+        body: { 
+          action: 'saveDraft',
+          to: composeForm.to,
+          subject: composeForm.subject,
+          content: composeForm.content,
+          messageId: editingDraft?.id
+        }
+      });
+
+      if (error) {
+        console.error('Error saving draft:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save draft. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Draft saved successfully!"
+      });
+
+      // Reset form and close dialog
+      setComposeForm({ to: '', subject: '', content: '' });
+      setShowComposeDialog(false);
+      setEditingDraft(null);
+
+      // Refresh emails to show the updated draft
+      loadEmails();
+      
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleReplyClick = (email: Email, conversation: Conversation) => {
+    const replyToEmail = email.from.includes('<') ? 
+      email.from.split('<')[1].replace('>', '') : 
+      email.from;
+    
+    const replySubject = email.subject.startsWith('Re: ') ? 
+      email.subject : 
+      `Re: ${email.subject}`;
+
+    // Format the original email content for quoting
+    const quotedContent = `\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${email.content}`;
+
+    setComposeForm({
+      to: replyToEmail,
+      subject: replySubject,
+      content: quotedContent,
+      replyTo: email.id,
+      threadId: conversation.id
+    });
+    
+    setShowComposeDialog(true);
+  };
+
+  const editDraft = (draft: Email) => {
+    setEditingDraft(draft);
+    setComposeForm({
+      to: draft.to || '',
+      subject: draft.subject || '',
+      content: draft.content || ''
+    });
+    setShowComposeDialog(true);
   };
 
   const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
@@ -606,696 +542,97 @@ const Mailbox = () => {
     });
   };
 
-  const sendEmail = async (isDraft = false) => {
-    if (!user || !to || !subject || !body) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all fields"
-      });
-      return;
-    }
-
-    setLoading(true);
+  const handleLogout = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: isDraft ? 'draft' : 'send',
-          userId: user.id,
-          to,
-          subject,
-          body
-        }
-      });
-
-      if (error) throw error;
-
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
       toast({
-        title: "Success!",
-        description: isDraft ? "Draft saved successfully" : "Email sent successfully"
-      });
-
-      // Reset form
-      setTo('');
-      setSubject('');
-      setBody('');
-      setComposeOpen(false);
-
-      // Refresh emails for current view
-      fetchEmails(undefined, false, currentView);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
         title: "Error",
-        description: `Failed to ${isDraft ? 'save draft' : 'send email'}`
-      });
-    }
-    setLoading(false);
-  };
-
-  const replyToEmail = async () => {
-    if (!user || !replyingTo || !replyConversation || !to || !subject || !body) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all fields"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'reply',
-          userId: user.id,
-          to,
-          subject,
-          body,
-          threadId: replyingTo.threadId,
-          replyToMessageId: replyingTo.id
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Reply sent successfully"
-      });
-
-      // Reset reply form
-      setTo('');
-      setSubject('');
-      setBody('');
-      setReplyOpen(false);
-      setReplyingTo(null);
-      setReplyConversation(null);
-
-      // Refresh emails for current view
-      fetchEmails(undefined, false, currentView);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to send reply: ${error.message}`
-      });
-    }
-    setLoading(false);
-  };
-
-  const saveDraft = async () => {
-    if (!user || !to || !subject || !body) {
-      toast({
-        variant: "destructive",
-        title: "Error", 
-        description: "Please fill in all fields"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'saveDraft',
-          userId: user.id,
-          to,
-          subject,
-          body,
-          draftId: editingDraft?.draftId // Include draft ID if editing existing draft
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Draft saved successfully"
-      });
-
-      // Reset form
-      setTo('');
-      setSubject('');
-      setBody('');
-      setComposeOpen(false);
-      setDraftEditOpen(false);
-      setEditingDraft(null);
-
-      // Refresh drafts
-      fetchEmails(undefined, false, 'drafts');
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to save draft: ${error.message}`
-      });
-    }
-    setLoading(false);
-  };
-
-  const editDraft = (email: Email) => {
-    setEditingDraft(email);
-    setTo(email.to || '');
-    setSubject(email.subject || '');
-    setBody(email.content || '');
-    setDraftEditOpen(true);
-  };
-
-  const sendDraftAsEmail = async () => {
-    if (!user || !editingDraft || !to || !subject || !body) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all fields"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // First delete the draft
-      await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'deleteDraft',
-          userId: user.id,
-          draftId: editingDraft.draftId
-        }
-      });
-
-      // Then send as regular email
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'send',
-          userId: user.id,
-          to,
-          subject,
-          body
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Email sent successfully"
-      });
-
-      // Reset form
-      setTo('');
-      setSubject('');
-      setBody('');
-      setDraftEditOpen(false);
-      setEditingDraft(null);
-
-      // Refresh current view
-      fetchEmails(undefined, false, currentView);
-    } catch (error: any) {
-      toast({
-        variant: "destructive", 
-        title: "Error",
-        description: `Failed to send email: ${error.message}`
-      });
-    }
-    setLoading(false);
-  };
-
-  const deleteEmail = async (emailId: string, conversationId: string) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'delete',
-          userId: user.id,
-          messageId: emailId
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Email Deleted",
-        description: "Email has been permanently deleted from Gmail"
-      });
-
-      // Remove email from local state for current view
-      if (currentView === 'sent') {
-        setSentEmails(prev => prev.filter(email => email.id !== emailId));
-        setSentConversations(prev => prev.map(conv => {
-          if (conv.id === conversationId) {
-            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
-            if (updatedEmails.length === 0) {
-              return null; // Remove conversation if no emails left
-            }
-            return {
-              ...conv,
-              emails: updatedEmails,
-              messageCount: updatedEmails.length,
-              unreadCount: updatedEmails.filter(email => email.unread).length,
-              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
-            };
-          }
-          return conv;
-        }).filter(Boolean) as Conversation[]);
-      } else if (currentView === 'drafts') {
-        setDraftEmails(prev => prev.filter(email => email.id !== emailId));
-        setDraftConversations(prev => prev.map(conv => {
-          if (conv.id === conversationId) {
-            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
-            if (updatedEmails.length === 0) {
-              return null; // Remove conversation if no emails left
-            }
-            return {
-              ...conv,
-              emails: updatedEmails,
-              messageCount: updatedEmails.length,
-              unreadCount: updatedEmails.filter(email => email.unread).length,
-              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
-            };
-          }
-          return conv;
-        }).filter(Boolean) as Conversation[]);
-      } else {
-        setEmails(prev => prev.filter(email => email.id !== emailId));
-        setConversations(prev => prev.map(conv => {
-          if (conv.id === conversationId) {
-            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
-            if (updatedEmails.length === 0) {
-              return null; // Remove conversation if no emails left
-            }
-            return {
-              ...conv,
-              emails: updatedEmails,
-              messageCount: updatedEmails.length,
-              unreadCount: updatedEmails.filter(email => email.unread).length,
-              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
-            };
-          }
-          return conv;
-        }).filter(Boolean) as Conversation[]);
-      }
-
-      // Clear selection if deleted email was selected
-      if (selectedEmail?.id === emailId) {
-        setSelectedEmail(null);
-      }
-      
-      // Clear conversation selection if it was the last email
-      const currentConversation = currentConversations.find(conv => conv.id === conversationId);
-      if (currentConversation && currentConversation.emails.length === 1) {
-        setSelectedConversation(null);
-      }
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to delete email: ${error.message}`
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
       });
     }
   };
 
-  const deleteConversation = async (conversation: Conversation) => {
-    if (!user) return;
-
-    try {
-      // Delete all emails in the conversation
-      for (const email of conversation.emails) {
-        await supabase.functions.invoke('gmail-api', {
-          body: {
-            action: 'delete',
-            userId: user.id,
-            messageId: email.id
-          }
-        });
-      }
-
-      toast({
-        title: "Conversation Deleted",
-        description: `All ${conversation.emails.length} emails in this conversation have been permanently deleted from Gmail`
-      });
-
-      // Remove conversation from local state for current view
-      if (currentView === 'sent') {
-        setSentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-        setSentEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
-      } else if (currentView === 'drafts') {
-        setDraftConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-        setDraftEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
-      } else {
-        setConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-        setEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
-      }
-
-      // Clear selection if deleted conversation was selected
-      if (selectedConversation?.id === conversation.id) {
-        setSelectedConversation(null);
-        setSelectedEmail(null);
-      }
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to delete conversation: ${error.message}`
-      });
-    }
-  };
-
-  const handleReplyClick = (email: Email, conversation: Conversation) => {
-    // Extract sender's email address from the "from" field
-    const fromMatch = email.from.match(/<(.+?)>/);
-    const replyToAddress = fromMatch ? fromMatch[1] : email.from;
+  const filteredConversations = currentConversations.filter(conversation => {
+    if (showOnlyUnread && conversation.unreadCount === 0) return false;
+    if (!searchQuery) return true;
     
-    // Create quoted content with proper formatting
-    const originalDate = formatDate(email.date);
-    const originalFrom = email.from;
-    const quotedContent = `
-      <br><br>
-      <div style="border-left: 4px solid #ccc; padding-left: 16px; margin: 16px 0; color: #666;">
-        <p><strong>From:</strong> ${originalFrom}<br>
-        <strong>Date:</strong> ${originalDate}<br>
-        <strong>Subject:</strong> ${email.subject}</p>
-        <div style="margin-top: 8px;">
-          ${email.content || email.snippet || ''}
-        </div>
-      </div>
-    `;
-    
-    // Set reply form data
-    setTo(replyToAddress);
-    setSubject(email.subject.startsWith('Re: ') ? email.subject : `Re: ${email.subject}`);
-    setBody(quotedContent);
-    setReplyingTo(email);
-    setReplyConversation(conversation);
-    setReplyOpen(true);
-  };
-
-  // Filter conversations based on unread status
-  const showUnreadOnly = showOnlyUnread;
-  const filteredConversations = showUnreadOnly 
-    ? currentConversations.filter(conv => conv.unreadCount > 0)
-    : currentConversations;
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  if (connections.length === 0) {
+    const searchLower = searchQuery.toLowerCase();
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card p-4">
-          <div className="max-w-7xl mx-auto flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-2xl font-heading font-bold">Mailbox</h1>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto p-6">
-          <Card className="text-center">
-            <CardHeader>
-              <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <CardTitle className="text-2xl">Connect Your Gmail</CardTitle>
-              <CardDescription>
-                Connect your Gmail account to manage emails directly within Ayra. Click to reconnect with updated permissions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={connectGmail} disabled={loading} size="lg">
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Connect Gmail Account
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+      conversation.subject.toLowerCase().includes(searchLower) ||
+      conversation.emails.some(email => 
+        email.from.toLowerCase().includes(searchLower) ||
+        email.snippet.toLowerCase().includes(searchLower)
+      )
     );
-  }
+  });
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
             </Button>
-            <h1 className="text-2xl font-heading font-bold">Mailbox</h1>
-            <Badge variant="secondary">
-              {connections[0].email_address}
-            </Badge>
+            <h1 className="text-3xl font-bold">Email Management</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => fetchEmails()} disabled={emailLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${emailLoading ? 'animate-spin' : ''}`} />
-              Refresh
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => window.open('https://mail.google.com', '_blank')} className="gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Open Gmail
             </Button>
-            <Button variant="outline" size="sm" onClick={disconnectGmail} disabled={loading}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Reconnect Gmail
+            <Button onClick={handleLogout} variant="outline">
+              Sign Out
             </Button>
-            <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Compose
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Compose Email</DialogTitle>
-                  <DialogDescription>
-                    Send a new email from your connected Gmail account
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="to">To</Label>
-                    <Input
-                      id="to"
-                      value={to}
-                      onChange={(e) => setTo(e.target.value)}
-                      placeholder="recipient@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Email subject"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="body">Message</Label>
-                    <Textarea
-                      id="body"
-                      value={body}
-                      onChange={(e) => setBody(e.target.value)}
-                      placeholder="Type your message here..."
-                      rows={12}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setComposeOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="outline" onClick={saveDraft} disabled={loading}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Draft
-                  </Button>
-                  <Button onClick={() => sendEmail(false)} disabled={loading}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Email
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            {/* Reply Dialog */}
-            <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Reply to Email</DialogTitle>
-                  <DialogDescription>
-                    Reply to {replyingTo?.from}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="reply-to">To</Label>
-                    <Input
-                      id="reply-to"
-                      value={to}
-                      onChange={(e) => setTo(e.target.value)}
-                      placeholder="recipient@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reply-subject">Subject</Label>
-                    <Input
-                      id="reply-subject"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Email subject"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reply-body">Message</Label>
-                    <Textarea
-                      id="reply-body"
-                      value={body}
-                      onChange={(e) => setBody(e.target.value)}
-                      placeholder="Type your reply message here..."
-                      rows={12}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setReplyOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={replyToEmail} disabled={loading}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Reply
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            {/* Draft Edit Dialog */}
-            <Dialog open={draftEditOpen} onOpenChange={setDraftEditOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Edit Draft</DialogTitle>
-                  <DialogDescription>
-                    Edit your draft email
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="draft-to">To</Label>
-                    <Input
-                      id="draft-to"
-                      value={to}
-                      onChange={(e) => setTo(e.target.value)}
-                      placeholder="recipient@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="draft-subject">Subject</Label>
-                    <Input
-                      id="draft-subject"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Email subject"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="draft-body">Message</Label>
-                    <Textarea
-                      id="draft-body"
-                      value={body}
-                      onChange={(e) => setBody(e.target.value)}
-                      placeholder="Type your message here..."
-                      rows={12}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDraftEditOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="outline" onClick={saveDraft} disabled={loading}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Draft
-                  </Button>
-                  <Button onClick={sendDraftAsEmail} disabled={loading}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Email
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {currentView === 'sent' ? 'Sent Mail' : currentView === 'drafts' ? 'Drafts' : 'Mailbox'}
-            </h1>
-            <div className="flex items-center space-x-4">
-              <div className="flex bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => handleViewChange('inbox')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    currentView === 'inbox' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Inbox
-                </button>
-                <button
-                  onClick={() => handleViewChange('sent')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    currentView === 'sent' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Sent
-                </button>
-                <button
-                  onClick={() => handleViewChange('drafts')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    currentView === 'drafts' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Drafts
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search emails..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
-              />
-            </div>
+        {/* View Tabs */}
+        <div className="flex gap-2 mb-6">
+          <Button 
+            variant={currentView === 'inbox' ? 'default' : 'outline'}
+            onClick={() => setCurrentView('inbox')}
+            className="gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            Inbox
+          </Button>
+          <Button 
+            variant={currentView === 'sent' ? 'default' : 'outline'}
+            onClick={() => setCurrentView('sent')}
+            className="gap-2"
+          >
+            <Send className="w-4 h-4" />
+            Sent
+          </Button>
+          <Button 
+            variant={currentView === 'drafts' ? 'default' : 'outline'}
+            onClick={() => setCurrentView('drafts')}
+            className="gap-2"
+          >
+            <Save className="w-4 h-4" />
+            Drafts
+          </Button>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 flex gap-2">
+            <Input 
+              placeholder="Search emails..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="flex-1"
+            />
             <Button 
               variant="outline" 
-              onClick={() => searchEmails(searchQuery)}
+              onClick={handleSearch}
               disabled={searchLoading}
             >
               {searchLoading ? 'Searching...' : 'Search'}
@@ -1307,6 +644,86 @@ const Mailbox = () => {
             >
               {showOnlyUnread ? 'Show All' : 'Unread Only'}
             </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => loadEmails()} variant="outline" className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </Button>
+            <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Compose
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editingDraft ? 'Edit Draft' : 'Compose Email'}</DialogTitle>
+                  <DialogDescription>
+                    {editingDraft ? 'Edit and send your draft' : 'Send a new email'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="to">To</Label>
+                    <Input
+                      id="to"
+                      value={composeForm.to}
+                      onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
+                      placeholder="recipient@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      value={composeForm.subject}
+                      onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Email subject"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="content">Message</Label>
+                    <Textarea
+                      id="content"
+                      value={composeForm.content}
+                      onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
+                      placeholder="Write your message here..."
+                      rows={10}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setShowComposeDialog(false);
+                    setComposeForm({ to: '', subject: '', content: '' });
+                    setEditingDraft(null);
+                  }}>
+                    Cancel
+                  </Button>
+                  {editingDraft && (
+                    <Button 
+                      variant="outline" 
+                      onClick={saveDraft}
+                      disabled={sendingEmail}
+                      className="gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {sendingEmail ? 'Saving...' : 'Save Draft'}
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={sendEmail}
+                    disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                    className="gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    {sendingEmail ? 'Sending...' : 'Send'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -1345,69 +762,69 @@ const Mailbox = () => {
                           
                           return (
                             <div key={conversation.id}>
-                               <div
-                                 className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
-                                   isSelected ? 'bg-accent' : 'hover:bg-accent/50'
-                                 }`}
-                                 onClick={() => handleConversationClick(conversation)}
-                               >
-                                <div className="flex items-center justify-between gap-2 w-full min-w-0 overflow-hidden">
+                              <div
+                                className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
+                                  isSelected ? 'bg-accent' : 'hover:bg-accent/50'
+                                }`}
+                                onClick={() => handleConversationClick(conversation)}
+                              >
+                                <div className="flex items-start justify-between gap-3 w-full min-w-0 overflow-hidden">
                                   <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium truncate flex-1 min-w-0 max-w-[180px] overflow-hidden">
+                                      <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
                                         {firstEmail.from.split('<')[0].trim() || firstEmail.from}
                                       </p>
-                                      {conversation.unreadCount > 0 && (
-                                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                      )}
                                     </div>
-                                    <div className="flex items-center justify-between gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
+                                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                                      <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[220px] overflow-hidden">
                                         {conversation.subject}
                                       </p>
-                                      {conversation.messageCount > 1 && (
-                                        <Badge variant="outline" className="text-xs flex-shrink-0">
-                                          {conversation.messageCount}
-                                        </Badge>
-                                      )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate max-w-[240px] overflow-hidden">
+                                    <p className="text-xs text-muted-foreground truncate max-w-[260px] overflow-hidden">
                                       {firstEmail.snippet}
                                     </p>
-                                    <div className="flex items-center justify-between min-w-0 overflow-hidden">
-                                      <p className="text-xs text-muted-foreground truncate flex-1 min-w-0 max-w-[160px] overflow-hidden">
-                                        {formatDate(conversation.lastDate)}
-                                      </p>
-                                      <div className="flex items-center gap-1 flex-shrink-0">
-                                        {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
-                                          <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                        )}
-                                      </div>
-                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate max-w-[180px] overflow-hidden">
+                                      {formatDate(conversation.lastDate)}
+                                    </p>
                                   </div>
                                   
-                                  <div className="flex flex-col gap-1 flex-shrink-0 items-end ml-2 w-6">
-                                    {conversation.messageCount > 1 && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-6 w-6 opacity-100 transition-opacity"
-                                        onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                        title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
-                                      >
-                                        {expandedConversations.has(conversation.id) ? 
-                                          <ChevronDown className="w-3 h-3" /> : 
-                                          <ChevronRight className="w-3 h-3" />
-                                        }
-                                      </Button>
-                                    )}
+                                  <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
+                                    {/* Top right - Paperclip icon */}
+                                    <div className="flex justify-end">
+                                      {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                      )}
+                                    </div>
                                     
-                                    <div className="flex gap-1">
-                                      {currentView === 'drafts' && (
+                                    {/* Middle right - Unread dot */}
+                                    <div className="flex justify-center">
+                                      {conversation.unreadCount > 0 && (
+                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Bottom right - Action buttons */}
+                                    <div className="flex gap-1 items-center">
+                                      {conversation.messageCount > 1 && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="p-1 h-5 w-5 opacity-100 transition-opacity"
+                                          onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                          title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
+                                        >
+                                          {expandedConversations.has(conversation.id) ? 
+                                            <ChevronDown className="w-3 h-3" /> : 
+                                            <ChevronRight className="w-3 h-3" />
+                                          }
+                                        </Button>
+                                      )}
+                                      
+                                      {currentView === 'drafts' ? (
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="p-1 h-6 w-6 opacity-100 transition-opacity flex-shrink-0"
+                                          className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             editDraft(conversation.emails[0]);
@@ -1416,19 +833,20 @@ const Mailbox = () => {
                                         >
                                           <Reply className="w-3 h-3" />
                                         </Button>
+                                      ) : (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteConversation(conversation);
+                                          }}
+                                          title={`Delete conversation`}
+                                        >
+                                          <Trash2 className="w-3 h-3 text-destructive" />
+                                        </Button>
                                       )}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-6 w-6 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteConversation(conversation);
-                                        }}
-                                        title={`Delete ${currentView === 'drafts' ? 'drafts' : 'conversation'}`}
-                                      >
-                                         <Trash2 className="w-3 h-3 text-destructive" />
-                                      </Button>
                                     </div>
                                   </div>
                                 </div>
@@ -1512,9 +930,9 @@ const Mailbox = () => {
                               )}
 
                               {index < filteredConversations.length - 1 && <Separator />}
-                              </div>
-                            );
-                          })}
+                            </div>
+                          );
+                        })}
                       </div>
                       
                       {currentPageToken && !currentAllEmailsLoaded && (
@@ -1559,74 +977,34 @@ const Mailbox = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {selectedEmail ? (
-                            <>
-                              {currentView !== 'drafts' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleReplyClick(selectedEmail, selectedConversation)}
-                                  className="text-xs"
-                                >
-                                  <Reply className="w-3 h-3 mr-1" />
-                                  Reply
-                                </Button>
-                              )}
-                              {currentView === 'drafts' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => editDraft(selectedEmail)}
-                                  className="text-xs"
-                                >
-                                  <Reply className="w-3 h-3 mr-1" />
-                                  Edit Draft
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
-                                className="text-xs"
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Delete
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSelectedEmail(null)}
-                                className="text-xs"
-                              >
-                                View Full Thread
-                              </Button>
-                            </>
-                          ) : (
+                          {currentView !== 'drafts' && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => deleteConversation(selectedConversation)}
-                              className="text-xs"
+                              onClick={() => handleReplyClick(
+                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                                selectedConversation
+                              )}
+                              className="gap-2"
                             >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete {currentView === 'drafts' ? 'Drafts' : 'Conversation'}
+                              <Reply className="w-4 h-4" />
+                              Reply
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteConversation(selectedConversation)}
+                            className="gap-2 hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                            Delete
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          <span>{selectedConversation.participants.map(p => p.split('<')[0].trim()).join(', ')}</span>
-                        </div>
-                        {selectedConversation.unreadCount > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            {selectedConversation.unreadCount} unread
-                          </Badge>
-                        )}
                       </div>
                     </div>
-                    <ScrollArea className="flex-1">
+                    
+                    <ScrollArea className="h-[calc(100vh-18rem)]">
                       {selectedEmail ? (
                         <EmailContent 
                           key={selectedEmail.id}
@@ -1648,16 +1026,17 @@ const Mailbox = () => {
                   <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
                     <div className="text-center">
                       <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Select a conversation to view its content</p>
+                      <h3 className="text-lg font-medium mb-2">No email selected</h3>
+                      <p className="text-muted-foreground">Select an email from the list to view its content</p>
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-        </main>
+        </div>
       </div>
     );
-  };
+};
 
-  export default Mailbox;
+export default Mailbox;
