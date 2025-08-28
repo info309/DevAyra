@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
 
@@ -78,6 +79,7 @@ const Mailbox: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -116,6 +118,9 @@ const Mailbox: React.FC = () => {
     inbox: boolean;
     sent: boolean;
   }>({ inbox: false, sent: false });
+
+  // Mobile drawer state
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Draft editing state - REMOVED (no longer supporting drafts)
 
@@ -362,6 +367,11 @@ const Mailbox: React.FC = () => {
     if (conversation.unreadCount > 0) {
       markConversationAsRead(conversation);
     }
+
+    // Open drawer on mobile
+    if (isMobile) {
+      setMobileDrawerOpen(true);
+    }
   };
 
   const handleEmailClick = (email: Email, conversation: Conversation) => {
@@ -371,6 +381,11 @@ const Mailbox: React.FC = () => {
     // Mark email as read if unread
     if (email.unread) {
       markEmailAsRead(email.id, conversation.id);
+    }
+
+    // Open drawer on mobile
+    if (isMobile) {
+      setMobileDrawerOpen(true);
     }
   };
 
@@ -1147,7 +1162,7 @@ const Mailbox: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardHeader>
@@ -1348,29 +1363,110 @@ const Mailbox: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Email/Thread Content */}
-            <Card className="lg:col-span-2 min-w-0 overflow-hidden">
-              <CardContent className="p-0">
-                {selectedConversation ? (
-                  <div className="h-[calc(100vh-10rem)]">
-                    <div className="p-6 border-b">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
-                          {selectedConversation.messageCount > 1 && !selectedEmail && (
-                            <Badge variant="secondary" className="text-xs mt-1">
-                              {selectedConversation.messageCount} messages
-                            </Badge>
-                          )}
+            {/* Email/Thread Content - Desktop Only */}
+            {!isMobile && (
+              <Card className="lg:col-span-2 min-w-0 overflow-hidden">
+                <CardContent className="p-0">
+                  {selectedConversation ? (
+                    <div className="h-[calc(100vh-10rem)]">
+                      <div className="p-6 border-b">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
+                            {selectedConversation.messageCount > 1 && !selectedEmail && (
+                              <Badge variant="secondary" className="text-xs mt-1">
+                                {selectedConversation.messageCount} messages
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReplyClick(
+                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                                selectedConversation
+                              )}
+                              className="gap-2"
+                            >
+                              <Reply className="w-4 h-4" />
+                              Reply
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteConversation(selectedConversation)}
+                              className="gap-2 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                              Delete
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                      </div>
+                      
+                      <ScrollArea className="h-[calc(100vh-18rem)]">
+                        {selectedEmail ? (
+                          // Show only the selected email
+                          <EmailContent 
+                            key={selectedEmail.id}
+                            conversation={{
+                              ...selectedConversation,
+                              emails: [selectedEmail]  // Only show the selected email
+                            }}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        ) : (
+                          // Show all emails in the conversation thread
+                          <EmailContent 
+                            key={selectedConversation.id}
+                            conversation={selectedConversation}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        )}
+                      </ScrollArea>
+                    </div>
+                  ) : (
+                    <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
+                      <div className="text-center">
+                        <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">No email selected</h3>
+                        <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mobile Drawer for Email Content */}
+            <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+              <DrawerContent className="h-[90vh]">
+                <DrawerHeader className="border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <DrawerTitle className="text-left truncate">
+                        {selectedConversation?.subject || 'Email'}
+                      </DrawerTitle>
+                      {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
+                        <DrawerDescription className="text-left">
+                          {selectedConversation.messageCount} messages
+                        </DrawerDescription>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      {selectedConversation && (
+                        <>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleReplyClick(
-                              selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                              selectedConversation
-                            )}
+                            onClick={() => {
+                              handleReplyClick(
+                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                                selectedConversation
+                              );
+                              setMobileDrawerOpen(false);
+                            }}
                             className="gap-2"
                           >
                             <Reply className="w-4 h-4" />
@@ -1379,48 +1475,57 @@ const Mailbox: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => deleteConversation(selectedConversation)}
+                            onClick={() => {
+                              deleteConversation(selectedConversation);
+                              setMobileDrawerOpen(false);
+                            }}
                             className="gap-2 hover:bg-destructive/10"
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
-                            Delete
                           </Button>
-                        </div>
+                        </>
+                      )}
+                      <DrawerClose asChild>
+                        <Button variant="outline" size="sm">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </DrawerClose>
+                    </div>
+                  </div>
+                </DrawerHeader>
+                
+                <ScrollArea className="flex-1 p-4">
+                  {selectedConversation ? (
+                    selectedEmail ? (
+                      // Show only the selected email
+                      <EmailContent 
+                        key={selectedEmail.id}
+                        conversation={{
+                          ...selectedConversation,
+                          emails: [selectedEmail]  // Only show the selected email
+                        }}
+                        onSaveAttachment={handleSaveAttachmentToDocuments}
+                      />
+                    ) : (
+                      // Show all emails in the conversation thread
+                      <EmailContent 
+                        key={selectedConversation.id}
+                        conversation={selectedConversation}
+                        onSaveAttachment={handleSaveAttachmentToDocuments}
+                      />
+                    )
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">No email selected</h3>
+                        <p className="text-muted-foreground">Select an email from the list to view its content</p>
                       </div>
                     </div>
-                    
-                    <ScrollArea className="h-[calc(100vh-18rem)]">
-                      {selectedEmail ? (
-                        // Show only the selected email
-                        <EmailContent 
-                          key={selectedEmail.id}
-                          conversation={{
-                            ...selectedConversation,
-                            emails: [selectedEmail]  // Only show the selected email
-                          }}
-                          onSaveAttachment={handleSaveAttachmentToDocuments}
-                        />
-                      ) : (
-                        // Show all emails in the conversation thread
-                        <EmailContent 
-                          key={selectedConversation.id}
-                          conversation={selectedConversation}
-                          onSaveAttachment={handleSaveAttachmentToDocuments}
-                        />
-                      )}
-                    </ScrollArea>
-                  </div>
-                ) : (
-                  <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
-                    <div className="text-center">
-                      <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No email selected</h3>
-                      <p className="text-muted-foreground">Select an email from the list to view its content</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </ScrollArea>
+              </DrawerContent>
+            </Drawer>
           </div>
         </div>
       </div>
