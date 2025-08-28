@@ -100,11 +100,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                   </div>
                   <span>To: {email.to.split('<')[0].trim() || email.to}</span>
                 </div>
-                {email.unread && (
-                  <div className="mt-1">
-                    <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  </div>
-                )}
               </div>
             </div>
 
