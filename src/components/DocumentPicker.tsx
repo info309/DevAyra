@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { 
   Search, 
   FileText, 
@@ -154,19 +154,19 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Select Documents to Attach</DialogTitle>
-        </DialogHeader>
+      </DrawerTrigger>
+      <DrawerContent className="h-[85vh] max-w-full">
+        <DrawerHeader className="border-b px-4 pb-3">
+          <DrawerTitle>Select Documents to Attach</DrawerTitle>
+        </DrawerHeader>
         
-        <div className="flex flex-col gap-4 flex-1 min-h-0">
+        <div className="flex flex-col gap-4 flex-1 min-h-0 p-4">
           {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col gap-4 items-start">
+            <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search documents..."
@@ -176,7 +176,7 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
               />
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap w-full">
               <Button
                 variant={filterSource === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -314,8 +314,8 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
