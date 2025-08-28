@@ -643,10 +643,14 @@ const Mailbox: React.FC = () => {
 
   const editDraft = (draft: Email) => {
     setEditingDraft(draft);
+    
+    // Clean the draft content by removing HTML wrapper and converting to plain text
+    const cleanContent = cleanEmailContentForReply(draft.content || '');
+    
     setComposeForm({
       to: draft.to || '',
       subject: draft.subject || '',
-      content: draft.content || ''
+      content: cleanContent
     });
     setShowComposeDialog(true);
   };
