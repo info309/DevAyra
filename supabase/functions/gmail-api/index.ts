@@ -440,21 +440,6 @@ const handler = async (req: Request): Promise<Response> => {
       cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, ''); // Remove HTML comments
       cleaned = cleaned.replace(/&nbsp;{3,}/g, ' '); // Replace multiple nbsp with single space
       
-      // Wrap in styled container with better email-specific CSS
-      cleaned = `
-        <div style="
-          max-width: 100%; 
-          word-wrap: break-word; 
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-          line-height: 1.6; 
-          color: hsl(var(--foreground));
-          overflow-wrap: break-word;
-          word-break: break-word;
-        ">
-          ${cleaned}
-        </div>
-      `;
-      
       return cleaned.trim();
     };
 
