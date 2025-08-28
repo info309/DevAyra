@@ -1351,38 +1351,47 @@ const Mailbox = () => {
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
-                                <div className="flex items-start justify-between gap-3 w-full max-w-full overflow-hidden">
-                                  <div className="min-w-0 flex-1 overflow-hidden">
-                                    <div className="flex items-center gap-2 mb-1 min-w-0">
-                                      <p className="font-medium truncate flex-1 min-w-0">
-                                        {firstEmail.from.split('<')[0].trim() || firstEmail.from}
+                                <div className="flex items-start justify-between gap-3 w-full">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <p className="font-medium truncate">
+                                          {firstEmail.from.split('<')[0].trim() || firstEmail.from}
+                                        </p>
+                                        {conversation.unreadCount > 0 && (
+                                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1 flex-shrink-0">
+                                        {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                          <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                        )}
+                                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                          {formatDate(conversation.lastDate)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className="font-medium text-sm truncate flex-1">
+                                        {conversation.subject}
                                       </p>
-                                      {conversation.unreadCount > 0 && (
-                                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                      )}
                                       {conversation.messageCount > 1 && (
-                                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                                        <Badge variant="outline" className="text-xs flex-shrink-0 ml-2">
                                           {conversation.messageCount}
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="font-medium text-sm truncate mb-1">
-                                      {conversation.subject}
-                                    </p>
                                     <p className="text-xs text-muted-foreground truncate">
                                       {firstEmail.snippet}
                                     </p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {formatDate(conversation.lastDate)}
-                                    </p>
                                   </div>
                                   
-                                  <div className="flex items-start gap-1 flex-shrink-0">
+                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                     {conversation.messageCount > 1 && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="p-1 h-6 w-6 opacity-100 transition-opacity"
                                         onClick={(e) => toggleConversationExpansion(conversation.id, e)}
                                         title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
                                       >
@@ -1393,32 +1402,34 @@ const Mailbox = () => {
                                       </Button>
                                     )}
                                     
-                                    {currentView === 'drafts' && (
+                                    <div className="flex gap-1">
+                                      {currentView === 'drafts' && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="p-1 h-6 w-6 opacity-100 transition-opacity flex-shrink-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            editDraft(conversation.emails[0]);
+                                          }}
+                                          title="Edit draft"
+                                        >
+                                          <Reply className="w-3 h-3" />
+                                        </Button>
+                                      )}
                                       <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="sm"
-                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                        className="p-1 h-6 w-6 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          editDraft(conversation.emails[0]);
+                                          deleteConversation(conversation);
                                         }}
-                                        title="Edit draft"
+                                        title={`Delete ${currentView === 'drafts' ? 'drafts' : 'conversation'}`}
                                       >
-                                        <Reply className="w-3 h-3" />
+                                         <Trash2 className="w-3 h-3 text-destructive" />
                                       </Button>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteConversation(conversation);
-                                      }}
-                                      title={`Delete ${currentView === 'drafts' ? 'drafts' : 'conversation'}`}
-                                    >
-                                      <Trash2 className="w-3 h-3 text-destructive" />
-                                    </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
