@@ -281,7 +281,15 @@ const Mailbox: React.FC = () => {
   };
 
   const refreshCurrentView = () => {
+    console.log('Refresh button clicked for view:', currentView);
+    // Clear cache for current view
     setViewCache(prev => ({ ...prev, [currentView]: undefined }));
+    // Clear current conversations immediately to show loading state
+    setCurrentConversations([]);
+    // Reset page token
+    setCurrentPageToken(null);
+    setCurrentAllEmailsLoaded(false);
+    // Load fresh data
     loadEmailsForView();
   };
 
