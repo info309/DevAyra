@@ -595,9 +595,9 @@ const Mailbox = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)] min-w-0">
           {/* Inbox List */}
-          <Card className="lg:col-span-1 overflow-hidden">
+          <Card className="lg:col-span-1 min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
               <CardDescription>
@@ -627,12 +627,12 @@ const Mailbox = () => {
                       return (
                         <div key={conversation.id} className="border-b border-border last:border-b-0">
                           <div
-                            className={`p-3 cursor-pointer hover:bg-accent transition-colors ${
+                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full overflow-hidden ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="flex justify-between items-start gap-3">
+                            <div className="flex justify-between items-start gap-3 w-full overflow-hidden">
                               {/* Left side content */}
                               <div className="flex-1 min-w-0 space-y-1 pr-2 overflow-hidden">
                                 {/* Email address and unread badge */}
@@ -663,7 +663,7 @@ const Mailbox = () => {
                               </div>
                               
                               {/* Right side content */}
-                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0">
+                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-20 sm:w-24 md:w-28 lg:w-32">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
@@ -784,7 +784,7 @@ const Mailbox = () => {
           </Card>
 
           {/* Email/Thread Content */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 min-w-0 overflow-hidden">
             <CardContent className="p-0">
               {selectedConversation ? (
                 <div className="h-[calc(100vh-10rem)]">
