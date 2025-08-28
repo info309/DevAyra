@@ -634,9 +634,9 @@ const Mailbox = () => {
                           >
                             <div className="flex justify-between items-start gap-3">
                               {/* Left side content */}
-                              <div className="flex-1 min-w-0 space-y-1 pr-2">
+                              <div className="flex-1 min-w-0 space-y-1 pr-2 overflow-hidden">
                                 {/* Email address and unread badge */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
                                     {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
                                   </p>
@@ -648,14 +648,18 @@ const Mailbox = () => {
                                 </div>
                                 
                                 {/* Subject */}
-                                <p className="text-xs text-muted-foreground truncate font-medium max-w-full overflow-hidden">
-                                  {conversation.subject}
-                                </p>
+                                <div className="w-full overflow-hidden">
+                                  <p className="text-xs text-muted-foreground font-medium truncate">
+                                    {conversation.subject}
+                                  </p>
+                                </div>
                                 
-                                {/* Snippet with ellipsis */}
-                                <p className="text-xs text-muted-foreground/80 truncate max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
-                                  {conversation.emails[0]?.snippet}
-                                </p>
+                                {/* Snippet with proper ellipsis */}
+                                <div className="w-full overflow-hidden">
+                                  <p className="text-xs text-muted-foreground/80 truncate">
+                                    {conversation.emails[0]?.snippet}
+                                  </p>
+                                </div>
                               </div>
                               
                               {/* Right side content */}
