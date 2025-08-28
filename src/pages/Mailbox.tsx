@@ -803,13 +803,15 @@ const Mailbox: React.FC = () => {
               {/* Desktop search */}
               <div className="relative hidden lg:block">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search emails..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-64 pl-10"
-                />
+              <Input 
+                placeholder="Search emails..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-64 pl-10"
+                autoComplete="off"
+                name="email-search"
+              />
               </div>
               
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
@@ -840,6 +842,8 @@ const Mailbox: React.FC = () => {
                         value={composeForm.to}
                         onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
                         placeholder="recipient@example.com"
+                        autoComplete="email"
+                        name="compose-to"
                       />
                     </div>
                     <div>
@@ -897,6 +901,8 @@ const Mailbox: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="w-full pl-10"
+                autoComplete="off"
+                name="email-search-mobile"
               />
             </div>
 
