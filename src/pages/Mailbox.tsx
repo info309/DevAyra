@@ -613,7 +613,16 @@ const Mailbox = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
-              <ScrollArea className="h-[calc(100vh-22rem)] w-full max-w-full overflow-hidden">
+              <div 
+                style={{
+                  height: 'calc(100vh - 22rem)',
+                  width: '100%',
+                  maxWidth: '100%',
+                  overflow: 'hidden auto',
+                  contain: 'layout style size',
+                  isolation: 'isolate'
+                }}
+              >
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -709,7 +718,7 @@ const Mailbox = () => {
                     )}
                   </>
                 )}
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 

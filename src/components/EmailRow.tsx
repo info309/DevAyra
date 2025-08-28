@@ -53,19 +53,85 @@ const EmailRow = React.memo(({
   );
 
   return (
-    <div className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
+    <div 
+      className="border-b border-border last:border-b-0"
+      style={{
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'hidden',
+        contain: 'layout style',
+        isolation: 'isolate'
+      }}
+    >
       <div
-        className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden h-[68px] flex-shrink-0 ${
+        className={`cursor-pointer hover:bg-accent transition-colors ${
           isSelected ? 'bg-accent' : ''
         }`}
         onClick={() => onSelect(conversation)}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          height: '68px',
+          minHeight: '68px',
+          maxHeight: '68px',
+          padding: '12px',
+          display: 'flex',
+          contain: 'layout style size',
+          isolation: 'isolate'
+        }}
       >
-        <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden h-[44px]">
+        <div 
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '12px',
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            height: '44px',
+            contain: 'layout style'
+          }}
+        >
           {/* Left side content */}
-          <div className="min-w-0 space-y-1 overflow-hidden flex-1 h-[44px]">
+          <div 
+            style={{
+              minWidth: '0',
+              flex: '1',
+              height: '44px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              contain: 'layout style'
+            }}
+          >
             {/* Email address and unread badge */}
-            <div className="flex items-center gap-2 min-w-0 h-4">
-              <p className="font-medium text-sm truncate flex-1 min-w-0">
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                minWidth: '0',
+                height: '16px',
+                contain: 'layout style'
+              }}
+            >
+              <p 
+                className="font-medium text-sm truncate text-foreground"
+                style={{
+                  flex: '1',
+                  minWidth: '0',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  lineHeight: '16px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  contain: 'layout style'
+                }}
+              >
                 {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
               </p>
               {conversation.unreadCount > 0 && (
@@ -76,50 +142,129 @@ const EmailRow = React.memo(({
             </div>
             
             {/* Subject */}
-            <div className="w-full overflow-hidden h-3">
-              <p className="text-xs text-muted-foreground font-medium truncate">
+            <div 
+              style={{
+                width: '100%',
+                overflow: 'hidden',
+                height: '12px',
+                contain: 'layout style'
+              }}
+            >
+              <p 
+                className="text-xs text-muted-foreground font-medium truncate"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  lineHeight: '12px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  contain: 'layout style'
+                }}
+              >
                 {conversation.subject}
               </p>
             </div>
             
-            {/* Snippet with proper ellipsis */}
-            <div className="w-full overflow-hidden h-3">
-              <p className="text-xs text-muted-foreground/80 truncate">
+            {/* Snippet */}
+            <div 
+              style={{
+                width: '100%',
+                overflow: 'hidden',
+                height: '12px',
+                contain: 'layout style'
+              }}
+            >
+              <p 
+                className="text-xs text-muted-foreground/80 truncate"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '400',
+                  lineHeight: '12px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  contain: 'layout style'
+                }}
+              >
                 {conversation.emails[0]?.snippet}
               </p>
             </div>
           </div>
           
           {/* Right side content */}
-          <div className="flex flex-col items-end justify-between h-[44px] flex-shrink-0 w-24">
-            {/* Top right: Date */}
-            <p className="text-xs text-muted-foreground whitespace-nowrap">
+          <div 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              height: '44px',
+              flexShrink: 0,
+              width: '96px',
+              contain: 'layout style'
+            }}
+          >
+            {/* Date */}
+            <p 
+              className="text-xs text-muted-foreground"
+              style={{
+                fontSize: '12px',
+                fontWeight: '400',
+                lineHeight: '12px',
+                whiteSpace: 'nowrap',
+                contain: 'layout style'
+              }}
+            >
               {new Date(conversation.lastDate).toLocaleDateString()}
             </p>
             
-            {/* Middle right: Attachment icon */}
-            <div className="flex items-center gap-1">
+            {/* Icons */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                contain: 'layout style'
+              }}
+            >
               {hasAttachments && (
                 <Paperclip className="w-3 h-3 text-muted-foreground" />
               )}
               {conversation.messageCount > 1 && (
-                <div className="flex items-center gap-1">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
+                  <span 
+                    className="text-xs text-muted-foreground"
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: '400',
+                      lineHeight: '12px',
+                      contain: 'layout style'
+                    }}
+                  >
                     {conversation.messageCount}
                   </span>
                 </div>
               )}
             </div>
             
-            {/* Bottom right: Dropdown arrow */}
-            <div className="flex justify-end">
+            {/* Arrow */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               {conversation.messageCount > 1 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
                   onClick={(e) => onToggleExpansion(conversation.id, e)}
+                  style={{
+                    padding: '0',
+                    height: '16px',
+                    width: '16px',
+                    minHeight: '16px',
+                    minWidth: '16px',
+                    contain: 'layout style'
+                  }}
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-3 h-3" />
