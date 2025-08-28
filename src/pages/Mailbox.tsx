@@ -383,7 +383,21 @@ const Mailbox = () => {
     }
   };
 
-  const markEmailAsRead = (emailId: string, conversationId: string) => {
+  const markEmailAsRead = async (emailId: string, conversationId: string) => {
+    // Mark as read on Gmail's side
+    try {
+      await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'markRead',
+          userId: user?.id,
+          messageId: emailId
+        }
+      });
+    } catch (error) {
+      console.error('Failed to mark email as read on Gmail:', error);
+    }
+
+    // Update local state
     setConversations(prev => prev.map(conv => {
       if (conv.id === conversationId) {
         const updatedEmails = conv.emails.map(email => 
@@ -401,7 +415,25 @@ const Mailbox = () => {
     }));
   };
 
-  const markConversationAsRead = (conversation: Conversation) => {
+  const markConversationAsRead = async (conversation: Conversation) => {
+    // Mark all unread emails as read on Gmail's side
+    const unreadEmails = conversation.emails.filter(email => email.unread);
+    
+    for (const email of unreadEmails) {
+      try {
+        await supabase.functions.invoke('gmail-api', {
+          body: {
+            action: 'markRead',
+            userId: user?.id,
+            messageId: email.id
+          }
+        });
+      } catch (error) {
+        console.error(`Failed to mark email ${email.id} as read on Gmail:`, error);
+      }
+    }
+
+    // Update local state
     setConversations(prev => prev.map(conv => {
       if (conv.id === conversation.id) {
         return {
