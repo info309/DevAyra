@@ -1426,24 +1426,26 @@ const Mailbox: React.FC = () => {
                       </div>
                       
                       <ScrollArea className="h-[calc(100vh-10rem)]">
-                        {selectedEmail ? (
-                          // Show only the selected email
-                          <EmailContent 
-                            key={selectedEmail.id}
-                            conversation={{
-                              ...selectedConversation,
-                              emails: [selectedEmail]  // Only show the selected email
-                            }}
-                            onSaveAttachment={handleSaveAttachmentToDocuments}
-                          />
-                        ) : (
-                          // Show all emails in the conversation thread
-                          <EmailContent 
-                            key={selectedConversation.id}
-                            conversation={selectedConversation}
-                            onSaveAttachment={handleSaveAttachmentToDocuments}
-                          />
-                        )}
+                        <div className="px-6 py-4">
+                          {selectedEmail ? (
+                            // Show only the selected email
+                            <EmailContent 
+                              key={selectedEmail.id}
+                              conversation={{
+                                ...selectedConversation,
+                                emails: [selectedEmail]  // Only show the selected email
+                              }}
+                              onSaveAttachment={handleSaveAttachmentToDocuments}
+                            />
+                          ) : (
+                            // Show all emails in the conversation thread
+                            <EmailContent 
+                              key={selectedConversation.id}
+                              conversation={selectedConversation}
+                              onSaveAttachment={handleSaveAttachmentToDocuments}
+                            />
+                          )}
+                        </div>
                       </ScrollArea>
                     </div>
                   ) : (
