@@ -193,22 +193,27 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
       <DrawerContent 
         className="h-[85vh] max-w-full"
         onPointerDownOutside={(e) => {
-          // Prevent closing when clicking inside the drawer content
-          e.preventDefault();
+          // Allow closing when clicking outside the drawer
         }}
         onInteractOutside={(e) => {
-          // Only allow closing when clicking truly outside
-          const target = e.target as Element;
-          if (!target.closest('[data-drawer-content]')) {
-            setOpen(false);
-          }
+          // Allow closing when clicking outside the drawer
         }}
       >
         <DrawerHeader className="border-b px-4 pb-3">
           <DrawerTitle>Select Documents to Attach</DrawerTitle>
         </DrawerHeader>
         
-        <div className="flex flex-col gap-4 flex-1 min-h-0 p-4" data-drawer-content>
+        <div 
+          className="flex flex-col gap-4 flex-1 min-h-0 p-4" 
+          onClick={(e) => {
+            // Prevent drawer from closing when clicking inside content area
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            // Prevent drawer from closing on mouse down inside content area
+            e.stopPropagation();
+          }}
+        >
           {/* Search */}
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
