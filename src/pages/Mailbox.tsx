@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -81,23 +81,20 @@ const Mailbox: React.FC = () => {
   const [currentAllEmailsLoaded, setCurrentAllEmailsLoaded] = useState(false);
 
   // View state
-  const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
+  const [currentView, setCurrentView] = useState<'inbox' | 'sent'>('inbox');
   const [currentConversations, setCurrentConversations] = useState<Conversation[]>([]);
   
   // Cache for each view to improve performance
   const [viewCache, setViewCache] = useState<{
     inbox?: Conversation[];
     sent?: Conversation[];
-    drafts?: Conversation[];
   }>({});
   const [viewLoading, setViewLoading] = useState<{
     inbox: boolean;
     sent: boolean;
-    drafts: boolean;
-  }>({ inbox: false, sent: false, drafts: false });
+  }>({ inbox: false, sent: false });
 
-  // Draft editing state
-  const [editingDraft, setEditingDraft] = useState<Email | null>(null);
+  // Draft editing state - REMOVED (no longer supporting drafts)
 
   useEffect(() => {
     if (user) {
@@ -224,9 +221,7 @@ const Mailbox: React.FC = () => {
       setViewLoading(prev => ({ ...prev, [view]: true }));
       setEmailLoading(true);
       
-      const query = view === 'inbox' ? 'in:inbox' : 
-                   view === 'sent' ? 'in:sent' : 
-                   'in:drafts';
+      const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
       
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
@@ -454,7 +449,7 @@ const Mailbox: React.FC = () => {
 
       toast({
         title: "Success",
-        description: `${currentView === 'drafts' ? 'Drafts' : 'Conversation'} deleted successfully.`
+        description: "Conversation deleted successfully."
       });
       
     } catch (error) {
@@ -619,56 +614,7 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  const saveDraft = async () => {
-    if (!user) return;
-
-    try {
-      setSendingEmail(true);
-      
-      const { error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'saveDraft',
-          to: composeForm.to,
-          subject: composeForm.subject,
-          content: composeForm.content,
-          messageId: editingDraft?.id
-        }
-      });
-
-      if (error) {
-        console.error('Error saving draft:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save draft. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Draft saved successfully!"
-      });
-
-      // Reset form and close dialog
-      setComposeForm({ to: '', subject: '', content: '' });
-      setShowComposeDialog(false);
-      setEditingDraft(null);
-
-      // Refresh emails to show the updated draft
-      refreshCurrentView();
-      
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save draft. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setSendingEmail(false);
-    }
-  };
+  // REMOVED: All draft-related functions and state have been removed
 
   const handleReplyClick = (email: Email, conversation: Conversation) => {
     const replyToEmail = email.from.includes('<') ? 
@@ -696,50 +642,7 @@ const Mailbox: React.FC = () => {
     setShowComposeDialog(true);
   };
 
-  const editDraft = (draft: Email) => {
-    setEditingDraft(draft);
-    
-    // Clean the draft content and properly convert HTML to plain text with line breaks
-    let cleanContent = draft.content || '';
-    
-    // Handle different HTML line break patterns
-    cleanContent = cleanContent
-      // Convert <br> tags to line breaks (all variations)
-      .replace(/<br\s*\/?>/gi, '\n')
-      // Convert </p><p> to double line breaks
-      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-      // Convert paragraph endings to line breaks
-      .replace(/<\/p>/gi, '\n')
-      // Convert div endings to line breaks
-      .replace(/<\/div>/gi, '\n')
-      // Convert closing block elements to line breaks
-      .replace(/<\/(h[1-6]|div|p|li|td|th|tr)>/gi, '\n')
-      // Remove opening block element tags
-      .replace(/<(h[1-6]|div|p|li|td|th|tr)[^>]*>/gi, '')
-      // Remove all remaining HTML tags
-      .replace(/<[^>]*>/g, '')
-      // Decode HTML entities
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'")
-      // Clean up excessive whitespace but preserve intentional line breaks
-      .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
-      .replace(/\n[ \t]+/g, '\n') // Remove spaces at start of lines
-      .replace(/[ \t]+\n/g, '\n') // Remove spaces at end of lines
-      .replace(/\n{3,}/g, '\n\n') // Limit to maximum 2 consecutive line breaks
-      .trim();
-    
-    setComposeForm({
-      to: draft.to || '',
-      subject: draft.subject || '',
-      content: cleanContent
-    });
-    setShowComposeDialog(true);
-  };
+  // REMOVED: editDraft function - no longer supporting drafts
 
   const handleSaveAttachmentToDocuments = async (attachment: Attachment, email: Email) => {
     try {
@@ -889,14 +792,6 @@ const Mailbox: React.FC = () => {
             <Send className="w-4 h-4" />
             Sent
           </Button>
-          <Button 
-            variant={currentView === 'drafts' ? 'default' : 'outline'}
-            onClick={() => setCurrentView('drafts')}
-            className="gap-2"
-          >
-            <Save className="w-4 h-4" />
-            Drafts
-          </Button>
         </div>
 
         {/* Controls */}
@@ -934,7 +829,6 @@ const Mailbox: React.FC = () => {
                 <Button className="gap-2" onClick={() => {
                   // Reset form to empty state for new email
                   setComposeForm({ to: '', subject: '', content: '' });
-                  setEditingDraft(null);
                 }}>
                   <Plus className="w-4 h-4" />
                   Compose
@@ -942,9 +836,9 @@ const Mailbox: React.FC = () => {
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>{editingDraft ? 'Edit Draft' : 'Compose Email'}</DialogTitle>
+                  <DialogTitle>Compose Email</DialogTitle>
                   <DialogDescription>
-                    {editingDraft ? 'Edit and send your draft' : 'Send a new email'}
+                    Send a new email
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -981,21 +875,9 @@ const Mailbox: React.FC = () => {
                   <Button variant="outline" onClick={() => {
                     setShowComposeDialog(false);
                     setComposeForm({ to: '', subject: '', content: '' });
-                    setEditingDraft(null);
                   }}>
                     Cancel
                   </Button>
-                  {editingDraft && (
-                    <Button 
-                      variant="outline" 
-                      onClick={saveDraft}
-                      disabled={sendingEmail}
-                      className="gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      {sendingEmail ? 'Saving...' : 'Save Draft'}
-                    </Button>
-                  )}
                   <Button 
                     onClick={sendEmail}
                     disabled={sendingEmail || !composeForm.to || !composeForm.subject}
@@ -1103,33 +985,18 @@ const Mailbox: React.FC = () => {
                                         </Button>
                                       )}
                                       
-                                      {currentView === 'drafts' ? (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            editDraft(conversation.emails[0]);
-                                          }}
-                                          title="Edit draft"
-                                        >
-                                          <Reply className="w-3 h-3" />
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            deleteConversation(conversation);
-                                          }}
-                                          title={`Delete conversation`}
-                                        >
-                                          <Trash2 className="w-3 h-3 text-destructive" />
-                                        </Button>
-                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteConversation(conversation);
+                                        }}
+                                        title={`Delete conversation`}
+                                      >
+                                        <Trash2 className="w-3 h-3 text-destructive" />
+                                      </Button>
                                     </div>
                                   </div>
                                 </div>
@@ -1177,33 +1044,18 @@ const Mailbox: React.FC = () => {
                                             >
                                               <Trash2 className="w-3 h-3 text-destructive" />
                                             </Button>
-                                            {currentView === 'drafts' ? (
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  editDraft(email);
-                                                }}
-                                                title="Edit draft"
-                                              >
-                                                <Reply className="w-3 h-3" />
-                                              </Button>
-                                            ) : (
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                                 onClick={(e) => {
-                                                   e.stopPropagation();
-                                                   handleReplyClick(email, conversation);
-                                                 }}
-                                                 title="Reply to email"
-                                               >
-                                                <Reply className="w-3 h-3" />
-                                              </Button>
-                                            )}
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 handleReplyClick(email, conversation);
+                                               }}
+                                               title="Reply to email"
+                                             >
+                                              <Reply className="w-3 h-3" />
+                                            </Button>
                                           </div>
                                         </div>
                                       </div>
@@ -1234,7 +1086,7 @@ const Mailbox: React.FC = () => {
                       {currentAllEmailsLoaded && currentConversations.length > 5 && (
                         <div className="text-center py-4">
                           <p className="text-sm text-muted-foreground">
-                            All {currentView === 'sent' ? 'sent emails' : currentView === 'drafts' ? 'drafts' : 'emails'} loaded
+                            All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
                           </p>
                         </div>
                       )}
@@ -1260,20 +1112,18 @@ const Mailbox: React.FC = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {currentView !== 'drafts' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleReplyClick(
-                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                                selectedConversation
-                              )}
-                              className="gap-2"
-                            >
-                              <Reply className="w-4 h-4" />
-                              Reply
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReplyClick(
+                              selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                              selectedConversation
+                            )}
+                            className="gap-2"
+                          >
+                            <Reply className="w-4 h-4" />
+                            Reply
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
