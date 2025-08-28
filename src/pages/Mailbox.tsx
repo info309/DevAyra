@@ -815,14 +815,14 @@ const Mailbox: React.FC = () => {
                     Compose
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="max-w-none">
+                <DrawerContent className="max-w-none h-[80vh]">
                   <DrawerHeader>
                     <DrawerTitle>Compose Email</DrawerTitle>
                     <DrawerDescription>
                       Send a new email
                     </DrawerDescription>
                   </DrawerHeader>
-                  <div className="px-4 pb-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                  <div className="px-4 pb-4 space-y-4 flex-1 overflow-y-auto">
                     <div>
                       <Label htmlFor="to">To</Label>
                       <Input
@@ -848,8 +848,8 @@ const Mailbox: React.FC = () => {
                         value={composeForm.content}
                         onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Write your message here..."
-                        rows={10}
-                        className="min-h-[200px]"
+                        rows={15}
+                        className="min-h-[300px] resize-none"
                       />
                     </div>
                   </div>
