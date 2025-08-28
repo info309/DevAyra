@@ -1192,7 +1192,7 @@ const Mailbox: React.FC = () => {
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-8rem)] w-full">
+              <ScrollArea className="h-[calc(100vh-6rem)] w-full">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
