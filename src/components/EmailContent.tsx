@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
+import DocumentViewer from './DocumentViewer';
 
 interface Attachment {
   filename: string;
@@ -43,6 +44,10 @@ interface EmailContentProps {
 
 const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
   const { toast } = useToast();
+  const [previewAttachment, setPreviewAttachment] = useState<{
+    attachment: Attachment;
+    messageId: string;
+  } | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -72,20 +77,8 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
     }
   };
 
-  const handleAttachmentPreview = (attachment: Attachment) => {
-    if (attachment.downloadUrl) {
-      window.open(attachment.downloadUrl, '_blank');
-      toast({
-        title: "Opening Preview",
-        description: `Previewing ${attachment.filename}`,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Preview Unavailable", 
-        description: `Preview not available for ${attachment.filename}`,
-      });
-    }
+  const handleAttachmentPreview = (attachment: Attachment, messageId: string) => {
+    setPreviewAttachment({ attachment, messageId });
   };
 
   // Sort emails by date (oldest first for conversation thread)
@@ -151,8 +144,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleAttachmentPreview(attachment)}
-                          disabled={!attachment.downloadUrl}
+                          onClick={() => handleAttachmentPreview(attachment, email.id)}
                           className="flex-shrink-0"
                           title="Preview document"
                         >
@@ -207,8 +199,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleAttachmentPreview(image)}
-                          disabled={!image.downloadUrl}
+                          onClick={() => handleAttachmentPreview(image, email.id)}
                           className="flex-shrink-0"
                           title="Preview image"
                         >
@@ -246,6 +237,13 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
           </div>
         );
       })}
+      
+      <DocumentViewer
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        attachment={previewAttachment?.attachment || null}
+        messageId={previewAttachment?.messageId || ''}
+      />
     </div>
   );
 };
