@@ -546,16 +546,29 @@ const Mailbox: React.FC = () => {
   const deleteConversation = async (conversation: Conversation) => {
     if (!user) return;
 
+    // Optimistic update - remove from UI immediately
+    setCurrentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+    
+    // Clear selection if deleted conversation was selected
+    if (selectedConversation?.id === conversation.id) {
+      setSelectedConversation(null);
+      setSelectedEmail(null);
+    }
+
     try {
       const { error } = await supabase.functions.invoke('gmail-api', {
         body: { 
-          action: 'deleteThread',
+          action: 'permanentDeleteThread',
           threadId: conversation.id
         }
       });
 
       if (error) {
         console.error('Error deleting conversation:', error);
+        // Restore the conversation on error
+        setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
+          new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+        ));
         toast({
           title: "Error",
           description: "Failed to delete conversation. Please try again.",
@@ -563,19 +576,13 @@ const Mailbox: React.FC = () => {
         });
         return;
       }
-
-      // Remove from local state
-      setCurrentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-      
-      // Clear selection if deleted conversation was selected
-      if (selectedConversation?.id === conversation.id) {
-        setSelectedConversation(null);
-        setSelectedEmail(null);
-      }
-
       
     } catch (error) {
       console.error('Error deleting conversation:', error);
+      // Restore the conversation on error
+      setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
+        new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+      ));
       toast({
         title: "Error",
         description: "Failed to delete conversation. Please try again.",

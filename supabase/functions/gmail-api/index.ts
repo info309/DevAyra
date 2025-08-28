@@ -1135,6 +1135,54 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      case 'permanentDeleteThread': {
+        if (!threadId) {
+          throw new Error('Thread ID is required');
+        }
+
+        console.log(`Attempting to permanently delete thread: ${threadId}`);
+
+        // Get all messages in the thread first
+        const threadResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!threadResponse.ok) {
+          throw new Error('Failed to fetch thread');
+        }
+
+        const threadData = await threadResponse.json();
+        
+        // Permanently delete all messages in the thread
+        const deletePromises = threadData.messages.map((message: any) =>
+          fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          })
+        );
+
+        const results = await Promise.all(deletePromises);
+        const failures = results.filter(r => !r.ok);
+        
+        if (failures.length > 0) {
+          throw new Error('Failed to permanently delete some messages in thread');
+        }
+
+        console.log('Successfully permanently deleted thread:', threadId);
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
       case 'downloadAttachment': {
         if (!messageId || !attachmentId) {
           throw new Error('Message ID and Attachment ID are required');
@@ -1199,6 +1247,37 @@ const handler = async (req: Request): Promise<Response> => {
 
         const result = await response.json();
         console.log('Successfully trashed message:', result.id);
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'permanentDeleteMessage': {
+        if (!messageId) {
+          throw new Error('Message ID is required');
+        }
+
+        console.log(`Attempting to permanently delete message: ${messageId}`);
+
+        const response = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to permanently delete email:', response.status, errorText);
+          throw new Error(`Failed to permanently delete email: ${response.status}`);
+        }
+
+        console.log('Successfully permanently deleted message:', messageId);
 
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
