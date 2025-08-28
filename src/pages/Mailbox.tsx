@@ -807,9 +807,9 @@ const Mailbox = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
-                        {selectedConversation.messageCount > 1 && (
+                        {selectedConversation.messageCount > 1 && !selectedEmail && (
                           <Badge variant="secondary" className="text-xs mt-1">
-                            {selectedEmail ? 'Single Email' : `${selectedConversation.messageCount} messages`}
+                            {selectedConversation.messageCount} messages
                           </Badge>
                         )}
                       </div>
