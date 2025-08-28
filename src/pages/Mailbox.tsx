@@ -1562,28 +1562,29 @@ const Mailbox: React.FC = () => {
                             </div>
                           );
                         })}
+                      
+                        {/* Load More Button - Inside the scrollable area */}
+                        {currentPageToken && !currentAllEmailsLoaded && (
+                          <div className="p-4 border-t">
+                            <Button 
+                              variant="outline" 
+                              onClick={loadMoreEmails}
+                              disabled={emailLoading}
+                              className="w-full"
+                            >
+                              {emailLoading ? 'Loading...' : 'Load More Emails'}
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {currentAllEmailsLoaded && currentConversations.length > 5 && (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-muted-foreground">
+                              All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      
-                      {currentPageToken && !currentAllEmailsLoaded && (
-                        <div className="p-4 border-t">
-                          <Button 
-                            variant="outline" 
-                            onClick={loadMoreEmails}
-                            disabled={emailLoading}
-                            className="w-full"
-                          >
-                            {emailLoading ? 'Loading...' : 'Load More Emails'}
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {currentAllEmailsLoaded && currentConversations.length > 5 && (
-                        <div className="text-center py-4">
-                          <p className="text-sm text-muted-foreground">
-                            All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
-                          </p>
-                        </div>
-                      )}
                     </>
                   )}
                 </ScrollArea>
