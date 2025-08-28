@@ -7,13 +7,14 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search' | 'markRead';
+  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent';
   userId: string;
   messageId?: string;
   attachmentId?: string;
   maxResults?: number;
   pageToken?: string;
   query?: string; // Gmail search query
+  mailbox?: 'inbox' | 'sent'; // Add mailbox type
   to?: string;
   subject?: string;
   body?: string;
@@ -52,7 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, to, subject, body }: GmailRequest = await req.json();
+    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, mailbox = 'inbox', to, subject, body }: GmailRequest = await req.json();
     
     if (!userId) {
       throw new Error('User ID is required');
@@ -485,15 +486,24 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     switch (action) {
+      case 'sent':
       case 'search':
       case 'list': {
-        // Build Gmail search query
+        // Build Gmail search query with label filtering
         let searchQuery = '';
+        
         if (action === 'search' && query) {
           searchQuery = encodeURIComponent(query);
+        } else if (action === 'sent' || mailbox === 'sent') {
+          // Fetch sent emails only
+          searchQuery = encodeURIComponent('in:sent');
+        } else {
+          // Default to INBOX for list action, excluding SENT emails
+          // This ensures we only show received emails in the main inbox
+          searchQuery = encodeURIComponent('in:inbox -in:sent');
         }
         
-        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`;
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}&q=${searchQuery}`;
         
         const response = await fetch(url, {
           headers: {

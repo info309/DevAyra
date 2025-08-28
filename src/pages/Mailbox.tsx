@@ -63,6 +63,14 @@ const Mailbox = () => {
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  
+  // Current view and sent email states
+  const [currentView, setCurrentView] = useState<'inbox' | 'sent'>('inbox');
+  const [sentEmails, setSentEmails] = useState<Email[]>([]);
+  const [sentConversations, setSentConversations] = useState<Conversation[]>([]);
+  const [sentPageToken, setSentPageToken] = useState<string | null>(null);
+  const [allSentEmailsLoaded, setAllSentEmailsLoaded] = useState(false);
+  
   const [composeOpen, setComposeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
@@ -81,11 +89,26 @@ const Mailbox = () => {
     }
   }, [user]);
 
+  // Load initial emails when component mounts or connections change
   useEffect(() => {
     if (connections.length > 0) {
-      fetchEmails();
+      fetchEmails(undefined, false, currentView);
     }
-  }, [connections]);
+  }, [connections, currentView]);
+
+  // Switch view handler
+  const handleViewChange = (view: 'inbox' | 'sent') => {
+    setCurrentView(view);
+    setSelectedConversation(null);
+    setSelectedEmail(null);
+    setSearchQuery('');
+  };
+
+  // Get current data based on view
+  const currentEmails = currentView === 'sent' ? sentEmails : emails;
+  const currentConversations = currentView === 'sent' ? sentConversations : conversations;
+  const currentPageToken = currentView === 'sent' ? sentPageToken : nextPageToken;
+  const currentAllEmailsLoaded = currentView === 'sent' ? allSentEmailsLoaded : allEmailsLoaded;
 
   const fetchGmailConnections = async () => {
     try {
@@ -201,6 +224,8 @@ const Mailbox = () => {
       setConnections([]);
       setEmails([]);
       setConversations([]);
+      setSentEmails([]);
+      setSentConversations([]);
       setSelectedConversation(null);
       setSelectedEmail(null);
 
@@ -220,18 +245,19 @@ const Mailbox = () => {
     setLoading(false);
   };
 
-  const fetchEmails = async (searchQuery?: string, loadMore = false) => {
+  const fetchEmails = async (searchQuery?: string, loadMore = false, viewType: 'inbox' | 'sent' = 'inbox') => {
     if (!user || connections.length === 0) return;
     
     setEmailLoading(true);
     try {
-      const action = searchQuery ? 'search' : 'list';
+      const action = searchQuery ? 'search' : (viewType === 'sent' ? 'sent' : 'list');
       const requestBody = {
         action,
         userId: user.id,
         maxResults: 100, // Load more emails at once
-        pageToken: loadMore ? nextPageToken : undefined,
-        query: searchQuery
+        pageToken: loadMore ? (viewType === 'sent' ? sentPageToken : nextPageToken) : undefined,
+        query: searchQuery,
+        mailbox: viewType
       };
 
       const { data, error } = await supabase.functions.invoke('gmail-api', {
@@ -242,19 +268,33 @@ const Mailbox = () => {
 
       const newEmails = data.messages || [];
       
-      if (loadMore) {
-        setEmails(prev => [...prev, ...newEmails]);
+      if (viewType === 'sent') {
+        if (loadMore) {
+          setSentEmails(prev => [...prev, ...newEmails]);
+        } else {
+          setSentEmails(newEmails);
+        }
+        setSentPageToken(data.nextPageToken || null);
+        setAllSentEmailsLoaded(!data.nextPageToken);
+        
+        // Group sent emails into conversations
+        const allSentEmails = loadMore ? [...sentEmails, ...newEmails] : newEmails;
+        const conversations = groupEmailsIntoConversations(allSentEmails);
+        setSentConversations(conversations);
       } else {
-        setEmails(newEmails);
+        if (loadMore) {
+          setEmails(prev => [...prev, ...newEmails]);
+        } else {
+          setEmails(newEmails);
+        }
+        setNextPageToken(data.nextPageToken || null);
+        setAllEmailsLoaded(!data.nextPageToken);
+        
+        // Group emails into conversations
+        const allEmails = loadMore ? [...emails, ...newEmails] : newEmails;
+        const conversations = groupEmailsIntoConversations(allEmails);
+        setConversations(conversations);
       }
-      
-      setNextPageToken(data.nextPageToken || null);
-      setAllEmailsLoaded(!data.nextPageToken);
-      
-      // Group emails into conversations
-      const allEmails = loadMore ? [...emails, ...newEmails] : newEmails;
-      const conversations = groupEmailsIntoConversations(allEmails);
-      setConversations(conversations);
       
     } catch (error: any) {
       console.error('Failed to fetch emails:', error);
@@ -348,8 +388,12 @@ const Mailbox = () => {
   };
 
   const loadMoreEmails = async () => {
-    if (!nextPageToken || allEmailsLoaded) return;
-    await fetchEmails(searchQuery || undefined, true);
+    const isLoadingMore = currentView === 'sent' ? 
+      (!sentPageToken || allSentEmailsLoaded) : 
+      (!nextPageToken || allEmailsLoaded);
+    
+    if (isLoadingMore) return;
+    await fetchEmails(searchQuery || undefined, true, currentView);
   };
 
   const fetchEmailContent = async (emailId: string) => {
@@ -368,18 +412,33 @@ const Mailbox = () => {
 
       const emailWithContent = data as Email;
       
-      // Update the email in the list with content
-      setEmails(prev => prev.map(email => 
-        email.id === emailId ? { ...email, ...emailWithContent } : email
-      ));
-      
-      // Update conversations as well
-      setConversations(prev => prev.map(conv => ({
-        ...conv,
-        emails: conv.emails.map(email =>
+      // Update the email in the current view's list with content
+      if (currentView === 'sent') {
+        setSentEmails(prev => prev.map(email => 
           email.id === emailId ? { ...email, ...emailWithContent } : email
-        )
-      })));
+        ));
+        
+        // Update sent conversations as well
+        setSentConversations(prev => prev.map(conv => ({
+          ...conv,
+          emails: conv.emails.map(email =>
+            email.id === emailId ? { ...email, ...emailWithContent } : email
+          )
+        })));
+      } else {
+        // Update the email in the list with content
+        setEmails(prev => prev.map(email => 
+          email.id === emailId ? { ...email, ...emailWithContent } : email
+        ));
+        
+        // Update conversations as well
+        setConversations(prev => prev.map(conv => ({
+          ...conv,
+          emails: conv.emails.map(email =>
+            email.id === emailId ? { ...email, ...emailWithContent } : email
+          )
+        })));
+      }
       
     } catch (error: any) {
       console.error('Failed to fetch email content:', error);
@@ -435,8 +494,10 @@ const Mailbox = () => {
       console.error('Failed to mark email as read on Gmail:', error);
     }
 
-    // Update local state
-    setConversations(prev => prev.map(conv => {
+    // Update local state for current view
+    const updateConversations = currentView === 'sent' ? setSentConversations : setConversations;
+    
+    updateConversations(prev => prev.map(conv => {
       if (conv.id === conversationId) {
         const updatedEmails = conv.emails.map(email => 
           email.id === emailId ? { ...email, unread: false } : email
@@ -471,8 +532,10 @@ const Mailbox = () => {
       }
     }
 
-    // Update local state
-    setConversations(prev => prev.map(conv => {
+    // Update local state for current view
+    const updateConversations = currentView === 'sent' ? setSentConversations : setConversations;
+    
+    updateConversations(prev => prev.map(conv => {
       if (conv.id === conversation.id) {
         return {
           ...conv,
@@ -532,8 +595,8 @@ const Mailbox = () => {
       setBody('');
       setComposeOpen(false);
 
-      // Refresh emails
-      fetchEmails();
+      // Refresh emails for current view
+      fetchEmails(undefined, false, currentView);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -545,9 +608,10 @@ const Mailbox = () => {
   };
 
   // Filter conversations based on unread status
-  const filteredConversations = showOnlyUnread 
-    ? conversations.filter(conv => conv.unreadCount > 0)
-    : conversations;
+  const showUnreadOnly = showOnlyUnread;
+  const filteredConversations = showUnreadOnly 
+    ? currentConversations.filter(conv => conv.unreadCount > 0)
+    : currentConversations;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -681,42 +745,74 @@ const Mailbox = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-6">
-        {/* Search Controls */}
         <div className="mb-6">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search emails by address, content, or attachment..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
-              />
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {currentView === 'sent' ? 'Sent Mail' : 'Mailbox'}
+            </h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => handleViewChange('inbox')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'inbox' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Inbox
+                </button>
+                <button
+                  onClick={() => handleViewChange('sent')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'sent' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Sent
+                </button>
+              </div>
             </div>
-            <Button 
-              onClick={() => searchEmails(searchQuery)} 
-              disabled={searchLoading}
-              variant="outline"
-            >
-              {searchLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Search className="w-4 h-4" />
-              )}
-            </Button>
-            {searchQuery && (
+          </div>
+          
+          {/* Search Controls */}
+          <div className="mt-6">
+            <div className="flex gap-4 items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search emails by address, content, or attachment..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
+                />
+              </div>
               <Button 
-                onClick={() => {
-                  setSearchQuery('');
-                  fetchEmails();
-                }}
-                variant="ghost"
-                size="sm"
+                onClick={() => searchEmails(searchQuery)} 
+                disabled={searchLoading}
+                variant="outline"
               >
-                Clear
+                {searchLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
               </Button>
-            )}
+              {searchQuery && (
+                <Button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    fetchEmails();
+                  }}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -724,7 +820,9 @@ const Mailbox = () => {
           {/* Inbox List */}
           <Card className="lg:col-span-1 w-full max-w-full overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-lg">Inbox</CardTitle>
+              <CardTitle className="text-lg">
+                {currentView === 'sent' ? 'Sent Mail' : 'Inbox'}
+              </CardTitle>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowOnlyUnread(!showOnlyUnread)}
@@ -732,7 +830,7 @@ const Mailbox = () => {
                     showOnlyUnread ? 'text-primary font-medium' : 'text-muted-foreground'
                   }`}
                 >
-                  {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
+                  {currentConversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
                 </button>
                 {showOnlyUnread && (
                   <Button
@@ -748,176 +846,190 @@ const Mailbox = () => {
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
               <ScrollArea className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden">
-                {emailLoading ? (
+                {emailLoading && currentEmails.length === 0 ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading emails...</p>
                   </div>
-                ) : filteredConversations.length === 0 ? (
+                ) : currentConversations.length === 0 ? (
                   <div className="p-4 text-center">
                     <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      {showOnlyUnread ? 'No unread emails' : 'No emails found'}
+                    <p className="text-muted-foreground mb-4">
+                      {currentView === 'sent' 
+                        ? "You haven't sent any emails yet." 
+                        : "No emails found. Try connecting your Gmail account or check your search terms."
+                      }
                     </p>
+                    {currentView === 'inbox' && (
+                      <Button variant="outline" onClick={connectGmail}>
+                        Connect Gmail
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <>
-                    {filteredConversations.map((conversation, index) => {
-                      // Check if conversation has attachments
-                      const hasAttachments = conversation.emails.some(email => 
-                        email.attachments && email.attachments.length > 0
-                      );
-                      
-                      return (
-                        <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
-                          <div
-                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
-                              selectedConversation?.id === conversation.id ? 'bg-accent' : ''
-                            }`}
-                            onClick={() => handleConversationClick(conversation)}
-                          >
-                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                              {/* Left side content */}
-                              <div className="min-w-0 space-y-1 overflow-hidden">
-                                {/* Email address and unread indicator */}
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <p className="font-medium text-sm truncate flex-1 min-w-0">
-                                    {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
-                                  </p>
-                                </div>
-                                
-                                {/* Subject */}
-                                <div className="w-full overflow-hidden">
-                                  <p className="text-xs text-muted-foreground font-medium truncate">
-                                    {conversation.subject}
-                                  </p>
-                                </div>
-                                 
-                                 {/* Snippet with proper ellipsis */}
-                                 <div className="w-full overflow-hidden">
-                                   <p className="text-xs text-muted-foreground/80 truncate">
-                                     {conversation.emails[0]?.snippet}
-                                   </p>
-                                 </div>
-                               </div>
-                              
-                               {/* Right side - Date, Indicators and Arrow */}
-                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
-                                {/* Top right: Date */}
-                                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {new Date(conversation.lastDate).toLocaleDateString()}
-                                </p>
-                                
-                                {/* Middle right: Indicators */}
-                                <div className="flex items-center gap-1">
-                                  {/* Attachment and thread indicators on left of arrow */}
-                                  {hasAttachments && (
-                                    <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                  )}
-                                  {conversation.messageCount > 1 && (
-                                    <div className="flex items-center gap-1">
-                                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                                      <span className="text-xs text-muted-foreground">
-                                        {conversation.messageCount}
-                                      </span>
+                    <div className="space-y-2">
+                      {currentConversations
+                        .filter(conv => showUnreadOnly ? conv.unreadCount > 0 : true)
+                        .map((conversation, index) => {
+                          // Check if conversation has attachments
+                          const hasAttachments = conversation.emails.some(email => 
+                            email.attachments && email.attachments.length > 0
+                          );
+                          
+                          return (
+                            <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
+                              <div
+                                className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
+                                  selectedConversation?.id === conversation.id ? 'bg-accent' : ''
+                                }`}
+                                onClick={() => handleConversationClick(conversation)}
+                              >
+                                <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                  {/* Left side content */}
+                                  <div className="min-w-0 space-y-1 overflow-hidden">
+                                    {/* Email address and unread indicator */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <p className="font-medium text-sm truncate flex-1 min-w-0">
+                                        {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                      </p>
                                     </div>
-                                  )}
+                                    
+                                    {/* Subject */}
+                                    <div className="w-full overflow-hidden">
+                                      <p className="text-xs text-muted-foreground font-medium truncate">
+                                        {conversation.subject}
+                                      </p>
+                                    </div>
+                                     
+                                     {/* Snippet with proper ellipsis */}
+                                     <div className="w-full overflow-hidden">
+                                       <p className="text-xs text-muted-foreground/80 truncate">
+                                         {conversation.emails[0]?.snippet}
+                                       </p>
+                                     </div>
+                                   </div>
                                   
-                                  {/* Unread dot */}
-                                  {conversation.unreadCount > 0 && (
-                                    <div className="w-2 h-2 bg-primary rounded-full ml-1"></div>
-                                  )}
-                                </div>
-                                
-                                {/* Bottom right: Dropdown arrow */}
-                                <div className="flex justify-end">
-                                  {conversation.messageCount > 1 && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
-                                      onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                    >
-                                      {expandedConversations.has(conversation.id) ? (
-                                        <ChevronDown className="w-3 h-3" />
-                                      ) : (
-                                        <ChevronRight className="w-3 h-3" />
+                                   {/* Right side - Date, Indicators and Arrow */}
+                                  <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
+                                    {/* Top right: Date */}
+                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                      {new Date(conversation.lastDate).toLocaleDateString()}
+                                    </p>
+                                    
+                                    {/* Middle right: Indicators */}
+                                    <div className="flex items-center gap-1">
+                                      {/* Attachment and thread indicators on left of arrow */}
+                                      {hasAttachments && (
+                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
                                       )}
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                        {/* Expanded Thread Emails */}
-                        {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                          <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
-                            <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
-                              {conversation.emails
-                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                .map((email, emailIndex) => (
-                                <div
-                                  key={email.id}
-                                  className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
-                                   onClick={(e) => handleEmailClick(email, conversation)}
-                                 >
-                                  <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                                    <div className="min-w-0 overflow-hidden">
-                                      <div className="flex items-center gap-2 mb-1 min-w-0">
-                                        <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                          {email.from.split('<')[0].trim() || email.from}
-                                        </p>
-                                         {email.unread && (
-                                           <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                         )}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {email.snippet}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {formatDate(email.date)}
-                                      </p>
+                                      {conversation.messageCount > 1 && (
+                                        <div className="flex items-center gap-1">
+                                          <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {conversation.messageCount}
+                                          </span>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Unread dot */}
+                                      {conversation.unreadCount > 0 && (
+                                        <div className="w-2 h-2 bg-primary rounded-full ml-1"></div>
+                                      )}
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         handleEmailClick(email, conversation);
-                                       }}
-                                     >
-                                      <Reply className="w-3 h-3" />
-                                    </Button>
+                                    
+                                    {/* Bottom right: Dropdown arrow */}
+                                    <div className="flex justify-end">
+                                      {conversation.messageCount > 1 && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
+                                          onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                        >
+                                          {expandedConversations.has(conversation.id) ? (
+                                            <ChevronDown className="w-3 h-3" />
+                                          ) : (
+                                            <ChevronRight className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                              </div>
 
-                        {index < filteredConversations.length - 1 && <Separator />}
-                        </div>
-                      );
-                    })}
+                            {/* Expanded Thread Emails */}
+                            {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
+                              <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
+                                <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
+                                  {conversation.emails
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((email, emailIndex) => (
+                                    <div
+                                      key={email.id}
+                                      className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
+                                       onClick={(e) => handleEmailClick(email, conversation)}
+                                     >
+                                      <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                        <div className="min-w-0 overflow-hidden">
+                                          <div className="flex items-center gap-2 mb-1 min-w-0">
+                                            <p className="text-xs font-medium truncate flex-1 min-w-0">
+                                              {email.from.split('<')[0].trim() || email.from}
+                                            </p>
+                                             {email.unread && (
+                                               <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                             )}
+                                          </div>
+                                          <p className="text-xs text-muted-foreground truncate">
+                                            {email.snippet}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {formatDate(email.date)}
+                                          </p>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleEmailClick(email, conversation);
+                                           }}
+                                         >
+                                          <Reply className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {index < filteredConversations.length - 1 && <Separator />}
+                            </div>
+                          );
+                        })}
+                    </div>
                     
-                    {/* Load More Button */}
-                    {!allEmailsLoaded && nextPageToken && (
+                    {currentPageToken && !currentAllEmailsLoaded && (
                       <div className="p-4 border-t">
                         <Button 
                           variant="outline" 
-                          className="w-full"
                           onClick={loadMoreEmails}
                           disabled={emailLoading}
+                          className="w-full"
                         >
-                          {emailLoading ? (
-                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                          ) : (
-                            <Plus className="w-4 h-4 mr-2" />
-                          )}
-                          Load More Emails
+                          {emailLoading ? 'Loading...' : 'Load More Emails'}
                         </Button>
+                      </div>
+                    )}
+                    
+                    {currentAllEmailsLoaded && currentConversations.length > 5 && (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">
+                          All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
+                        </p>
                       </div>
                     )}
                   </>
