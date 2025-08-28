@@ -1619,7 +1619,6 @@ const Mailbox = () => {
                       {selectedEmail ? (
                         <EmailContent 
                           key={selectedEmail.id}
-                          email={selectedEmail}
                           conversation={selectedConversation}
                         />
                       ) : (
@@ -1628,7 +1627,6 @@ const Mailbox = () => {
                           .map(email => (
                             <EmailContent 
                               key={email.id}
-                              email={email}
                               conversation={selectedConversation}
                             />
                           ))
