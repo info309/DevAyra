@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
+import DocumentViewer from './DocumentViewer';
 
 interface Attachment {
   filename: string;
@@ -46,6 +47,7 @@ interface EmailContentProps {
 
 const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations, setConversations, fetchEmailContent }) => {
   const { toast } = useToast();
+  const [selectedAttachment, setSelectedAttachment] = useState<{ attachment: Attachment; emailId: string } | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -75,60 +77,8 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations
     }
   };
 
-  const handleAttachmentPreview = async (attachment: Attachment) => {
-    console.log('Preview clicked for attachment:', attachment);
-    
-    if (attachment.downloadUrl) {
-      // If we already have the download URL, use it
-      window.open(attachment.downloadUrl, '_blank');
-      toast({
-        title: "Opening Preview",
-        description: `Previewing ${attachment.filename}`,
-      });
-    } else {
-      console.log('No download URL, fetching email content...');
-      // If no download URL, we need to fetch the full email to get attachment URLs
-      const email = conversation.emails.find(e => 
-        e.attachments?.some(a => a.filename === attachment.filename)
-      );
-      
-      console.log('Found email for attachment:', email?.id);
-      
-      if (email && !email.attachments?.find(a => a.filename === attachment.filename)?.downloadUrl) {
-        // Fetch full email content to get attachment URLs
-        console.log('Fetching email content for:', email.id);
-        await fetchEmailContent(email.id);
-        
-        // After fetching, find the updated attachment
-        const updatedConversation = conversations.find(c => c.id === conversation.id);
-        const updatedEmail = updatedConversation?.emails.find(e => e.id === email.id);
-        const updatedAttachment = updatedEmail?.attachments?.find(a => a.filename === attachment.filename);
-        
-        console.log('Updated attachment after fetch:', updatedAttachment);
-        
-        if (updatedAttachment?.downloadUrl) {
-          window.open(updatedAttachment.downloadUrl, '_blank');
-          toast({
-            title: "Opening Preview",
-            description: `Previewing ${attachment.filename}`,
-          });
-        } else {
-          console.error('Still no download URL after fetching content');
-          toast({
-            variant: "destructive",
-            title: "Preview Unavailable", 
-            description: `Could not generate preview for ${attachment.filename}`,
-          });
-        }
-      } else {
-        console.error('Could not find email or attachment already has URL');
-        toast({
-          variant: "destructive",
-          title: "Preview Unavailable", 
-          description: `Preview not available for ${attachment.filename}`,
-        });
-      }
-    }
+  const handleAttachmentPreview = (attachment: Attachment, emailId: string) => {
+    setSelectedAttachment({ attachment, emailId });
   };
 
   // Sort emails by date (oldest first for conversation thread)
@@ -194,7 +144,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleAttachmentPreview(attachment)}
+                          onClick={() => handleAttachmentPreview(attachment, email.id)}
                           className="flex-shrink-0"
                           title="Preview document"
                         >
@@ -249,7 +199,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleAttachmentPreview(image)}
+                          onClick={() => handleAttachmentPreview(image, email.id)}
                           className="flex-shrink-0"
                           title="Preview image"
                         >
@@ -287,6 +237,12 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations
           </div>
         );
       })}
+      
+      <DocumentViewer
+        attachment={selectedAttachment?.attachment || null}
+        emailId={selectedAttachment?.emailId || ''}
+        onClose={() => setSelectedAttachment(null)}
+      />
     </div>
   );
 };
