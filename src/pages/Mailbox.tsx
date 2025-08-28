@@ -60,6 +60,7 @@ const Mailbox = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -463,6 +464,11 @@ const Mailbox = () => {
     setLoading(false);
   };
 
+  // Filter conversations based on unread status
+  const filteredConversations = showOnlyUnread 
+    ? conversations.filter(conv => conv.unreadCount > 0)
+    : conversations;
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -635,9 +641,31 @@ const Mailbox = () => {
           <Card className="lg:col-span-1 w-full max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
-              <CardDescription>
-                {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
+              <CardDescription className="flex items-center justify-between">
+                <span>
+                  {showOnlyUnread ? filteredConversations.length : conversations.length} conversations, {emails.length} total emails
+                </span>
+                {showOnlyUnread && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowOnlyUnread(false)}
+                    className="text-xs h-6 px-2"
+                  >
+                    Show All
+                  </Button>
+                )}
               </CardDescription>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowOnlyUnread(!showOnlyUnread)}
+                  className={`text-sm transition-colors hover:text-primary ${
+                    showOnlyUnread ? 'text-primary font-medium' : 'text-muted-foreground'
+                  }`}
+                >
+                  {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
               <ScrollArea className="h-[calc(100vh-22rem)] w-full max-w-full overflow-hidden">
@@ -646,14 +674,16 @@ const Mailbox = () => {
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading emails...</p>
                   </div>
-                ) : conversations.length === 0 ? (
+                ) : filteredConversations.length === 0 ? (
                   <div className="p-4 text-center">
                     <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">No emails found</p>
+                    <p className="text-sm text-muted-foreground">
+                      {showOnlyUnread ? 'No unread emails' : 'No emails found'}
+                    </p>
                   </div>
                 ) : (
                   <>
-                    {conversations.map((conversation, index) => {
+                    {filteredConversations.map((conversation, index) => {
                       // Check if conversation has attachments
                       const hasAttachments = conversation.emails.some(email => 
                         email.attachments && email.attachments.length > 0
@@ -788,7 +818,7 @@ const Mailbox = () => {
                           </div>
                         )}
 
-                        {index < conversations.length - 1 && <Separator />}
+                        {index < filteredConversations.length - 1 && <Separator />}
                         </div>
                       );
                     })}
