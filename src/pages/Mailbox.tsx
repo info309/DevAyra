@@ -686,18 +686,20 @@ const Mailbox = () => {
                                 
                                 {/* Bottom right: Dropdown arrow */}
                                 <div className="flex justify-end">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
-                                    onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                  >
-                                    {expandedConversations.has(conversation.id) ? (
-                                      <ChevronDown className="w-3 h-3" />
-                                    ) : (
-                                      <ChevronRight className="w-3 h-3" />
-                                    )}
-                                  </Button>
+                                  {conversation.messageCount > 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
+                                      onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                    >
+                                      {expandedConversations.has(conversation.id) ? (
+                                        <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ChevronRight className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             </div>
