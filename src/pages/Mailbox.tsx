@@ -597,7 +597,7 @@ const Mailbox = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)]">
           {/* Inbox List */}
-          <Card className="lg:col-span-1">
+          <Card className="lg:col-span-1 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
               <CardDescription>
@@ -619,62 +619,62 @@ const Mailbox = () => {
                 ) : (
                   <>
                     {conversations.map((conversation, index) => (
-                      <div key={conversation.id}>
+                      <div key={conversation.id} className="overflow-hidden">
                         <div
-                          className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                          className={`p-3 cursor-pointer hover:bg-accent transition-colors overflow-hidden ${
                             selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                           }`}
                           onClick={() => selectConversation(conversation)}
                         >
-                           <div className="flex items-start justify-between mb-2 gap-2">
-                             <div className="flex-1 min-w-0 pr-2">
-                               <div className="flex items-center gap-2 mb-1">
-                                 <p className="font-medium text-sm truncate">
-                                   {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
-                                 </p>
-                                 {conversation.messageCount > 1 && (
-                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                     <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                                     <Badge variant="outline" className="text-xs px-1 py-0">
-                                       {conversation.messageCount}
-                                     </Badge>
-                                   </div>
-                                 )}
-                               </div>
-                               <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
-                                 {conversation.subject}
-                               </p>
-                             </div>
-                             <div className="flex items-center gap-2 flex-shrink-0">
-                               {conversation.unreadCount > 0 && (
-                                 <Badge variant="default" className="text-xs">
-                                   {conversation.unreadCount}
-                                 </Badge>
-                               )}
-                               {conversation.messageCount > 1 && (
-                                 <Button
-                                   variant="ghost"
-                                   size="sm"
-                                   className="p-1 h-6 w-6 hover:bg-accent-foreground/10 flex-shrink-0"
-                                   onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                 >
-                                   {expandedConversations.has(conversation.id) ? (
-                                     <ChevronDown className="w-3 h-3" />
-                                   ) : (
-                                     <ChevronRight className="w-3 h-3" />
-                                   )}
-                                 </Button>
-                               )}
-                             </div>
-                           </div>
-                           <div className="flex items-center justify-between gap-2">
-                             <p className="text-xs text-muted-foreground truncate flex-1">
-                               {conversation.emails[0]?.snippet}
-                             </p>
-                             <p className="text-xs text-muted-foreground flex-shrink-0">
-                               {formatDate(conversation.lastDate)}
-                             </p>
-                           </div>
+                          <div className="flex items-start justify-between mb-2 gap-2 w-full">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-2 mb-1 overflow-hidden">
+                                <p className="font-medium text-sm truncate flex-1 min-w-0">
+                                  {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                </p>
+                                {conversation.messageCount > 1 && (
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                    <Badge variant="outline" className="text-xs px-1 py-0">
+                                      {conversation.messageCount}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                              <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
+                                {conversation.subject}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {conversation.unreadCount > 0 && (
+                                <Badge variant="default" className="text-xs">
+                                  {conversation.unreadCount}
+                                </Badge>
+                              )}
+                              {conversation.messageCount > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-1 h-6 w-6 hover:bg-accent-foreground/10 flex-shrink-0"
+                                  onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                >
+                                  {expandedConversations.has(conversation.id) ? (
+                                    <ChevronDown className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 overflow-hidden">
+                            <p className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+                              {conversation.emails[0]?.snippet}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">
+                              {formatDate(conversation.lastDate)}
+                            </p>
+                          </div>
                         </div>
 
                         {/* Expanded Thread Emails */}
