@@ -250,20 +250,61 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Helper function to clean HTML content
         const cleanHtmlContent = (html: string): string => {
-          return html
-            // Remove tracking pixels and hidden elements
-            .replace(/<img[^>]*width="1"[^>]*height="1"[^>]*>/gi, '')
-            .replace(/<img[^>]*height="1"[^>]*width="1"[^>]*>/gi, '')
-            // Fix broken image tags
-            .replace(/(<img[^>]*src="[^"]*)"[^>]*>/gi, '$1">')
-            // Remove style attributes that might break layout
-            .replace(/style="[^"]*"/gi, '')
-            // Clean up excessive whitespace
-            .replace(/\s+/g, ' ')
-            .replace(/>\s+</g, '><')
-            // Ensure proper link formatting
-            .replace(/<a([^>]*)>/gi, '<a$1 target="_blank" rel="noopener noreferrer">')
-            .trim();
+          let cleaned = html;
+          
+          // Remove DOCTYPE and XML declarations
+          cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+          cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
+          cleaned = cleaned.replace(/xmlns[^=]*="[^"]*"/gi, '');
+          
+          // Remove weird spacing characters that appear in emails
+          cleaned = cleaned.replace(/âÍ/g, '');
+          cleaned = cleaned.replace(/Â­/g, '');
+          cleaned = cleaned.replace(/â\s/g, '');
+          
+          // Fix broken image tags - convert malformed img syntax to proper format
+          cleaned = cleaned.replace(/([^>])https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)"[^>]*>/gi, (match, before, ext) => {
+            const urlMatch = match.match(/https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)/i);
+            if (urlMatch) {
+              return `${before}<img src="${urlMatch[0]}" style="max-width: 100%; height: auto;" alt="Image">`;
+            }
+            return before;
+          });
+          
+          // Fix broken link tags - ensure proper href attributes
+          cleaned = cleaned.replace(/([^>])https:\/\/[^"]*" target="_blank"/gi, (match, before) => {
+            const urlMatch = match.match(/https:\/\/[^"]*/);
+            if (urlMatch) {
+              return `${before}<a href="${urlMatch[0]}" target="_blank" rel="noopener noreferrer">`;
+            }
+            return before;
+          });
+          
+          // Clean up malformed image references
+          cleaned = cleaned.replace(/(\w+)https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)">/gi, (match, text, ext) => {
+            const urlMatch = match.match(/https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)/i);
+            if (urlMatch) {
+              return `<div><img src="${urlMatch[0]}" alt="${text}" style="max-width: 100%; height: auto;"><p>${text}</p></div>`;
+            }
+            return text;
+          });
+          
+          // Remove tracking pixels and 1x1 images
+          cleaned = cleaned.replace(/<img[^>]*width="1"[^>]*height="1"[^>]*>/gi, '');
+          cleaned = cleaned.replace(/<img[^>]*height="1"[^>]*width="1"[^>]*>/gi, '');
+          
+          // Fix standalone URLs that should be links
+          cleaned = cleaned.replace(/([^">])(https?:\/\/[^\s<>"]+)/gi, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+          
+          // Clean up excessive whitespace and broken formatting
+          cleaned = cleaned.replace(/\s+/g, ' ');
+          cleaned = cleaned.replace(/>\s+</g, '><');
+          cleaned = cleaned.replace(/â+/g, '');
+          
+          // Wrap in a container for better styling
+          cleaned = `<div style="max-width: 100%; word-wrap: break-word; font-family: Arial, sans-serif; line-height: 1.4;">${cleaned}</div>`;
+          
+          return cleaned.trim();
         };
 
         const headers = message.payload?.headers || [];
