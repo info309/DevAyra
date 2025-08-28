@@ -890,20 +890,17 @@ const Mailbox: React.FC = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-2">
         {/* Desktop Header - Logo and Menu */}
-        <div className="hidden lg:flex items-center justify-between py-4 border-b border-border mb-6">
+        <div className="hidden lg:flex items-center gap-4 py-4 mb-6">
           <div className="flex items-center gap-3">
-            {/* Logo Space */}
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Mail className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-semibold">Mailbox</h1>
+            {/* Logo */}
+            <h1 className="text-xl font-semibold">/Ayra</h1>
+            
+            {/* Menu Icon */}
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Users className="w-4 h-4" />
+              Menu
+            </Button>
           </div>
-          
-          {/* Menu Icon */}
-          <Button variant="ghost" size="sm" className="gap-2">
-            <Users className="w-4 h-4" />
-            Menu
-          </Button>
         </div>
 
         {/* Header with controls */}
