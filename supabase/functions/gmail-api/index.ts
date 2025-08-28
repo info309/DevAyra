@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent' | 'delete';
+  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent' | 'delete' | 'reply';
   userId: string;
   messageId?: string;
   attachmentId?: string;
@@ -18,6 +18,8 @@ interface GmailRequest {
   to?: string;
   subject?: string;
   body?: string;
+  threadId?: string; // For reply threading
+  replyToMessageId?: string; // Original message being replied to
 }
 
 interface ProcessedAttachment {
@@ -53,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, mailbox = 'inbox', to, subject, body }: GmailRequest = await req.json();
+    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, mailbox = 'inbox', to, subject, body, threadId, replyToMessageId }: GmailRequest = await req.json();
     
     if (!userId) {
       throw new Error('User ID is required');
@@ -724,6 +726,54 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const result = await response.json();
+
+        return new Response(JSON.stringify({ success: true, messageId: result.id }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'reply': {
+        if (!to || !subject || !body || !threadId) {
+          throw new Error('To, subject, body, and threadId are required for replies');
+        }
+
+        // Create email with In-Reply-To and References headers for proper threading
+        const headers: string[] = [
+          `To: ${to}`,
+          `Subject: ${subject}`,
+          'Content-Type: text/html; charset=utf-8',
+        ];
+
+        // Add threading headers if replying to a specific message
+        if (replyToMessageId) {
+          headers.push(`In-Reply-To: <${replyToMessageId}@gmail.com>`);
+          headers.push(`References: <${replyToMessageId}@gmail.com>`);
+        }
+
+        const email = [...headers, '', body].join('\n');
+        const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            raw: encodedEmail,
+            threadId: threadId
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to send reply:', response.status, errorText);
+          throw new Error(`Failed to send reply: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Successfully sent reply:', result.id);
 
         return new Response(JSON.stringify({ success: true, messageId: result.id }), {
           status: 200,

@@ -82,6 +82,11 @@ const Mailbox = () => {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  
+  // Reply state
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Email | null>(null);
+  const [replyConversation, setReplyConversation] = useState<Conversation | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -607,6 +612,57 @@ const Mailbox = () => {
     setLoading(false);
   };
 
+  const replyToEmail = async () => {
+    if (!user || !replyingTo || !replyConversation || !to || !subject || !body) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all fields"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'reply',
+          userId: user.id,
+          to,
+          subject,
+          body,
+          threadId: replyingTo.threadId,
+          replyToMessageId: replyingTo.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Reply sent successfully"
+      });
+
+      // Reset reply form
+      setTo('');
+      setSubject('');
+      setBody('');
+      setReplyOpen(false);
+      setReplyingTo(null);
+      setReplyConversation(null);
+
+      // Refresh emails for current view
+      fetchEmails(undefined, false, currentView);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to send reply: ${error.message}`
+      });
+    }
+    setLoading(false);
+  };
+
   const deleteEmail = async (emailId: string, conversationId: string) => {
     if (!user) return;
 
@@ -685,8 +741,36 @@ const Mailbox = () => {
     }
   };
 
+  const handleReplyClick = (email: Email, conversation: Conversation) => {
+    // Extract sender's email address from the "from" field
+    const fromMatch = email.from.match(/<(.+?)>/);
+    const replyToAddress = fromMatch ? fromMatch[1] : email.from;
+    
+    // Create quoted content with proper formatting
+    const originalDate = formatDate(email.date);
+    const originalFrom = email.from;
+    const quotedContent = `
+      <br><br>
+      <div style="border-left: 4px solid #ccc; padding-left: 16px; margin: 16px 0; color: #666;">
+        <p><strong>From:</strong> ${originalFrom}<br>
+        <strong>Date:</strong> ${originalDate}<br>
+        <strong>Subject:</strong> ${email.subject}</p>
+        <div style="margin-top: 8px;">
+          ${email.content || email.snippet || ''}
+        </div>
+      </div>
+    `;
+    
+    // Set reply form data
+    setTo(replyToAddress);
+    setSubject(email.subject.startsWith('Re: ') ? email.subject : `Re: ${email.subject}`);
+    setBody(quotedContent);
+    setReplyingTo(email);
+    setReplyConversation(conversation);
+    setReplyOpen(true);
+  };
+
   const deleteConversation = async (conversation: Conversation) => {
-    if (!user) return;
 
     try {
       // Delete all emails in the conversation
@@ -858,6 +942,58 @@ const Mailbox = () => {
                   <Button onClick={() => sendEmail(false)} disabled={loading}>
                     <Send className="w-4 h-4 mr-2" />
                     Send Email
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Reply Dialog */}
+            <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Reply to Email</DialogTitle>
+                  <DialogDescription>
+                    Reply to {replyingTo?.from}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="reply-to">To</Label>
+                    <Input
+                      id="reply-to"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      placeholder="recipient@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reply-subject">Subject</Label>
+                    <Input
+                      id="reply-subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Email subject"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reply-body">Message</Label>
+                    <Textarea
+                      id="reply-body"
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      placeholder="Type your reply message here..."
+                      rows={12}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setReplyOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={replyToEmail} disabled={loading}>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Reply
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1135,17 +1271,18 @@ const Mailbox = () => {
                                           >
                                             <Trash2 className="w-3 h-3 text-destructive" />
                                           </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                             onClick={(e) => {
-                                               e.stopPropagation();
-                                               handleEmailClick(email, conversation);
-                                             }}
-                                           >
-                                            <Reply className="w-3 h-3" />
-                                          </Button>
+                                           <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleReplyClick(email, conversation);
+                                              }}
+                                              title="Reply to email"
+                                            >
+                                             <Reply className="w-3 h-3" />
+                                           </Button>
                                         </div>
                                       </div>
                                     </div>
@@ -1201,39 +1338,48 @@ const Mailbox = () => {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        {selectedEmail ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
-                              className="text-xs"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedEmail(null)}
-                              className="text-xs"
-                            >
-                              View Full Thread
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteConversation(selectedConversation)}
-                            className="text-xs"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete Conversation
-                          </Button>
-                        )}
-                      </div>
+                       <div className="flex items-center gap-2">
+                         {selectedEmail ? (
+                           <>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => handleReplyClick(selectedEmail, selectedConversation)}
+                               className="text-xs"
+                             >
+                               <Reply className="w-3 h-3 mr-1" />
+                               Reply
+                             </Button>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
+                               className="text-xs"
+                             >
+                               <Trash2 className="w-3 h-3 mr-1" />
+                               Delete
+                             </Button>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => setSelectedEmail(null)}
+                               className="text-xs"
+                             >
+                               View Full Thread
+                             </Button>
+                           </>
+                         ) : (
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => deleteConversation(selectedConversation)}
+                             className="text-xs"
+                           >
+                             <Trash2 className="w-3 h-3 mr-1" />
+                             Delete Conversation
+                           </Button>
+                         )}
+                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
