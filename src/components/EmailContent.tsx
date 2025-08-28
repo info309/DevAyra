@@ -88,9 +88,9 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
     }
   };
 
-  // Sort emails by date (oldest first for conversation thread)
+  // Sort emails by date (newest first for conversation thread)
   const sortedEmails = [...conversation.emails].sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
+    new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   return (
