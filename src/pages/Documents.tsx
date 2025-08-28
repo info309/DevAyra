@@ -27,6 +27,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DocumentPreview from '@/components/DocumentPreview';
+import DocumentViewer from '@/components/DocumentViewer';
 
 interface UserDocument {
   id: string;
@@ -55,6 +56,8 @@ const Documents = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -205,12 +208,12 @@ const Documents = () => {
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = doc.name;
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast({
@@ -222,6 +225,47 @@ const Documents = () => {
       toast({
         title: "Error",
         description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentClick = (doc: UserDocument) => {
+    if (doc.is_folder) {
+      setCurrentFolder(doc);
+    } else {
+      setSelectedDocument(doc);
+      setShowDocumentViewer(true);
+    }
+  };
+
+  const toggleFavorite = async (doc: UserDocument) => {
+    try {
+      const { error } = await supabase
+        .from('user_documents')
+        .update({ is_favorite: !doc.is_favorite })
+        .eq('id', doc.id);
+
+      if (error) throw error;
+
+      setDocuments(prev => 
+        prev.map(d => d.id === doc.id ? { ...d, is_favorite: !d.is_favorite } : d)
+      );
+
+      // Also update selectedDocument if it's the same document
+      if (selectedDocument?.id === doc.id) {
+        setSelectedDocument(prev => prev ? { ...prev, is_favorite: !prev.is_favorite } : null);
+      }
+
+      toast({
+        title: "Success",
+        description: doc.is_favorite ? "Removed from favorites" : "Added to favorites",
+      });
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorite",
         variant: "destructive",
       });
     }
@@ -397,13 +441,7 @@ const Documents = () => {
                 <div
                   key={doc.id}
                   className="group relative cursor-pointer"
-                  onClick={() => {
-                    if (doc.is_folder) {
-                      setCurrentFolder(doc);
-                    } else {
-                      handleDownload(doc);
-                    }
-                  }}
+                  onClick={() => handleDocumentClick(doc)}
                 >
                   {/* Preview/Icon Area */}
                   <div className="w-full aspect-[3/4] mb-2 rounded-lg overflow-hidden">
@@ -504,6 +542,17 @@ const Documents = () => {
             </div>
           )}
         </div>
+        
+        {/* Document Viewer */}
+        <DocumentViewer
+          document={selectedDocument}
+          isOpen={showDocumentViewer}
+          onClose={() => {
+            setShowDocumentViewer(false);
+            setSelectedDocument(null);
+          }}
+          onToggleFavorite={toggleFavorite}
+        />
       </div>
     </div>
   );
