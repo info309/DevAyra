@@ -94,11 +94,43 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
     }
   };
 
-  const getFileIcon = (mimeType: string | null) => {
-    if (!mimeType) return File;
-    if (mimeType.startsWith('image/')) return Image;
-    if (mimeType.includes('pdf') || mimeType.includes('document')) return FileText;
-    return File;
+  const getFileIcon = (mimeType: string | null, fileName: string) => {
+    if (!mimeType && !fileName) return File;
+    
+    const fileExtension = fileName.toLowerCase().split('.').pop();
+    
+    // Check by MIME type first
+    if (mimeType) {
+      if (mimeType.includes('pdf')) return FileText;
+      if (mimeType.startsWith('image/')) return Image;
+      if (mimeType.includes('word') || mimeType.includes('document')) return FileText;
+      if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return FileText;
+      if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return FileText;
+    }
+    
+    // Fallback to file extension
+    switch (fileExtension) {
+      case 'pdf':
+        return FileText;
+      case 'doc':
+      case 'docx':
+        return FileText;
+      case 'xls':
+      case 'xlsx':
+        return FileText;
+      case 'ppt':
+      case 'pptx':
+        return FileText;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'svg':
+        return Image;
+      default:
+        return File;
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -177,43 +209,15 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
         </DrawerHeader>
         
         <div className="flex flex-col gap-4 flex-1 min-h-0 p-4" data-drawer-content>
-          {/* Search and Filters */}
-          <div className="flex flex-col gap-4 items-start">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            
-            <div className="flex items-center gap-2 flex-wrap w-full">
-              <Button
-                variant={filterSource === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterSource('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={filterSource === 'upload' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterSource('upload')}
-              >
-                <Upload className="w-4 h-4 mr-1" />
-                Uploaded
-              </Button>
-              <Button
-                variant={filterSource === 'email_attachment' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterSource('email_attachment')}
-              >
-                <Mail className="w-4 h-4 mr-1" />
-                From Email
-              </Button>
-            </div>
+          {/* Search */}
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search documents..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
           {/* Selection Counter */}
@@ -243,15 +247,13 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
             ) : (
               <div className="space-y-2">
                 {filteredDocuments.map((doc) => {
-                  const FileIcon = getFileIcon(doc.mime_type);
+                  const FileIcon = getFileIcon(doc.mime_type, doc.name);
                   const isSelected = localSelection.some(d => d.id === doc.id);
                   
                   return (
                     <Card 
                       key={doc.id} 
-                      className={`hover:shadow-sm transition-all cursor-pointer ${
-                        isSelected ? 'ring-2 ring-primary bg-accent/50' : ''
-                      }`}
+                      className="hover:shadow-sm transition-all cursor-pointer"
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
@@ -283,9 +285,6 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
                             </div>
                             
                             <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="secondary" className="text-xs">
-                                {doc.source_type === 'email_attachment' ? 'Email' : 'Upload'}
-                              </Badge>
                               {doc.file_size && (
                                 <span className="text-xs text-muted-foreground">
                                   {formatFileSize(doc.file_size)}
