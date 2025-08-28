@@ -995,7 +995,7 @@ const Mailbox: React.FC = () => {
   });
 
   return (
-    <div className="h-screen overflow-hidden bg-background">
+    <div className="h-screen bg-background">
       <div className="container mx-auto p-2 lg:px-8">
         {/* Desktop Header - Logo and Menu */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
@@ -1399,7 +1399,7 @@ const Mailbox: React.FC = () => {
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardContent className="p-0 overflow-hidden rounded-lg">
-              <ScrollArea className="h-[calc(100vh-8rem)] w-full rounded-lg overflow-hidden">
+              <ScrollArea className="h-[calc(100vh-16rem)] md:h-[calc(100vh-10rem)] lg:h-[calc(100vh-12rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
@@ -1632,7 +1632,7 @@ const Mailbox: React.FC = () => {
                         </div>
                       </div>
                       
-                      <ScrollArea className="h-[calc(100vh-8rem)]">
+                      <ScrollArea className="h-[calc(100vh-16rem)] md:h-[calc(100vh-10rem)] lg:h-[calc(100vh-12rem)]">
                         <div className="px-6 py-4">
                           {selectedEmail ? (
                             // Show only the selected email
