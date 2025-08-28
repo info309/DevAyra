@@ -64,11 +64,21 @@ const Documents = () => {
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('user_documents')
         .select('*')
-        .eq('user_id', user?.id)
-        .eq('folder_id', currentFolder?.id || null)
+        .eq('user_id', user?.id);
+      
+      // If we're in a specific folder, show only items in that folder
+      // If we're at root level, show items with no folder_id (loose documents) and folders at root level
+      if (currentFolder) {
+        query = query.eq('folder_id', currentFolder.id);
+      } else {
+        query = query.is('folder_id', null);
+      }
+      
+      const { data, error } = await query
         .order('is_folder', { ascending: false })
         .order('created_at', { ascending: false });
 
