@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Paperclip, Download, Image as ImageIcon, Clock } from 'lucide-react';
+import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
 
@@ -72,6 +72,22 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
     }
   };
 
+  const handleAttachmentPreview = (attachment: Attachment) => {
+    if (attachment.downloadUrl) {
+      window.open(attachment.downloadUrl, '_blank');
+      toast({
+        title: "Opening Preview",
+        description: `Previewing ${attachment.filename}`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Preview Unavailable", 
+        description: `Preview not available for ${attachment.filename}`,
+      });
+    }
+  };
+
   // Sort emails by date (oldest first for conversation thread)
   const sortedEmails = [...conversation.emails].sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -131,15 +147,28 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAttachmentDownload(attachment)}
-                        disabled={!attachment.downloadUrl}
-                        className="flex-shrink-0"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAttachmentPreview(attachment)}
+                          disabled={!attachment.downloadUrl}
+                          className="flex-shrink-0"
+                          title="Preview document"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAttachmentDownload(attachment)}
+                          disabled={!attachment.downloadUrl}
+                          className="flex-shrink-0"
+                          title="Download attachment"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -174,15 +203,28 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAttachmentDownload(image)}
-                        disabled={!image.downloadUrl}
-                        className="flex-shrink-0"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAttachmentPreview(image)}
+                          disabled={!image.downloadUrl}
+                          className="flex-shrink-0"
+                          title="Preview image"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAttachmentDownload(image)}
+                          disabled={!image.downloadUrl}
+                          className="flex-shrink-0"
+                          title="Download image"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
