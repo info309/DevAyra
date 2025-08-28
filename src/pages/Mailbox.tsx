@@ -627,7 +627,30 @@ const Mailbox = () => {
                           onClick={() => selectConversation(conversation)}
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-sm truncate">
+                                  {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                </p>
+                                {conversation.messageCount > 1 && (
+                                  <div className="flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                    <Badge variant="outline" className="text-xs px-1 py-0">
+                                      {conversation.messageCount}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                              <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
+                                {conversation.subject}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {conversation.unreadCount > 0 && (
+                                <Badge variant="default" className="text-xs">
+                                  {conversation.unreadCount}
+                                </Badge>
+                              )}
                               {conversation.messageCount > 1 && (
                                 <Button
                                   variant="ghost"
@@ -641,31 +664,6 @@ const Mailbox = () => {
                                     <ChevronRight className="w-3 h-3" />
                                   )}
                                 </Button>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="font-medium text-sm truncate">
-                                    {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
-                                  </p>
-                                  {conversation.messageCount > 1 && (
-                                    <div className="flex items-center gap-1">
-                                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                                      <Badge variant="outline" className="text-xs px-1 py-0">
-                                        {conversation.messageCount}
-                                      </Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
-                                  {conversation.subject}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              {conversation.unreadCount > 0 && (
-                                <Badge variant="default" className="text-xs">
-                                  {conversation.unreadCount}
-                                </Badge>
                               )}
                             </div>
                           </div>
@@ -681,51 +679,49 @@ const Mailbox = () => {
 
                         {/* Expanded Thread Emails */}
                         {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-accent/50 z-10 rounded-b-lg shadow-lg border border-border/50">
-                              <div className="p-2 space-y-1">
-                                {conversation.emails
-                                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                  .map((email, emailIndex) => (
-                                  <div
-                                    key={email.id}
-                                    className="p-3 hover:bg-background/80 rounded-md cursor-pointer transition-colors group"
-                                    onClick={(e) => selectEmailFromThread(email, e)}
-                                  >
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <p className="text-xs font-medium truncate">
-                                            {email.from.split('<')[0].trim() || email.from}
-                                          </p>
-                                          {email.unread && (
-                                            <Badge variant="default" className="text-xs py-0 px-1">
-                                              New
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground truncate">
-                                          {email.snippet}
+                          <div className="bg-accent/30 border-l-2 border-primary/20 ml-4">
+                            <div className="p-2 space-y-1">
+                              {conversation.emails
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((email, emailIndex) => (
+                                <div
+                                  key={email.id}
+                                  className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30"
+                                  onClick={(e) => selectEmailFromThread(email, e)}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-xs font-medium truncate">
+                                          {email.from.split('<')[0].trim() || email.from}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {formatDate(email.date)}
-                                        </p>
+                                        {email.unread && (
+                                          <Badge variant="default" className="text-xs py-0 px-1">
+                                            New
+                                          </Badge>
+                                        )}
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          selectEmailFromThread(email, e);
-                                        }}
-                                      >
-                                        <Reply className="w-3 h-3" />
-                                      </Button>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {email.snippet}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatDate(email.date)}
+                                      </p>
                                     </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        selectEmailFromThread(email, e);
+                                      }}
+                                    >
+                                      <Reply className="w-3 h-3" />
+                                    </Button>
                                   </div>
-                                ))}
-                              </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
