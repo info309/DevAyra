@@ -135,28 +135,38 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  // Function to clean email content by removing the HTML wrapper we add for styling
+  // Function to clean email content by removing ALL HTML and converting to plain text
   const cleanEmailContentForReply = (htmlContent: string): string => {
     if (!htmlContent) return '';
     
-    // Remove our styled wrapper div
-    let cleaned = htmlContent.replace(
-      /<div style="\s*max-width: 100%;\s*word-wrap: break-word;.*?">\s*/gi,
-      ''
-    );
-    
-    // Remove closing div
-    cleaned = cleaned.replace(/<\/div>\s*$/gi, '').trim();
-    
-    // Convert HTML to plain text for better quoting
+    // Create a temporary div to parse HTML
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = cleaned;
+    tempDiv.innerHTML = htmlContent;
     
-    // Get text content and preserve line breaks
+    // Get plain text content only
     let textContent = tempDiv.innerText || tempDiv.textContent || '';
     
-    // Clean up excessive whitespace
-    textContent = textContent.replace(/\n\s*\n/g, '\n\n').trim();
+    // Remove any remaining HTML tags that might have slipped through
+    textContent = textContent.replace(/<[^>]*>/g, '');
+    
+    // Clean up HTML entities
+    textContent = textContent
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&hellip;/g, '...');
+    
+    // Clean up excessive whitespace and normalize line breaks
+    textContent = textContent
+      .replace(/\r\n/g, '\n')  // Normalize line endings
+      .replace(/\r/g, '\n')    // Convert remaining \r to \n
+      .replace(/\n{3,}/g, '\n\n')  // Limit to maximum 2 consecutive line breaks
+      .replace(/[ \t]+/g, ' ')     // Normalize spaces and tabs
+      .replace(/[ \t]*\n[ \t]*/g, '\n')  // Clean up spaces around line breaks
+      .trim();
     
     return textContent;
   };
