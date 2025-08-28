@@ -25,9 +25,153 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const url = new URL(req.url);
+    const pathname = url.pathname;
+
     if (req.method === 'GET') {
-      // Generate OAuth URL
-      const url = new URL(req.url);
+      // Check if this is a callback request
+      if (pathname.includes('/callback')) {
+        // Handle OAuth callback
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state'); // This is the user ID
+        const error = url.searchParams.get('error');
+        
+        if (error) {
+          return new Response(`
+            <html>
+              <body>
+                <script>
+                  window.opener?.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: '${error}'
+                  }, '*');
+                  window.close();
+                </script>
+              </body>
+            </html>
+          `, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          });
+        }
+
+        if (!code || !state) {
+          return new Response(`
+            <html>
+              <body>
+                <script>
+                  window.opener?.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: 'Missing authorization code or user ID'
+                  }, '*');
+                  window.close();
+                </script>
+              </body>
+            </html>
+          `, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          });
+        }
+
+        // Exchange code for tokens
+        const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+        const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+        const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/gmail-auth/callback`;
+
+        try {
+          // Exchange authorization code for tokens
+          const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              client_id: clientId!,
+              client_secret: clientSecret!,
+              code: code,
+              grant_type: 'authorization_code',
+              redirect_uri: redirectUri,
+            }),
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error('Failed to exchange code for tokens');
+          }
+
+          const tokens = await tokenResponse.json();
+          
+          // Get user's email address
+          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`,
+            },
+          });
+
+          if (!userInfoResponse.ok) {
+            throw new Error('Failed to get user info');
+          }
+
+          const userInfo = await userInfoResponse.json();
+
+          // Store the connection in the database
+          const { error: dbError } = await supabaseClient
+            .from('gmail_connections')
+            .upsert({
+              user_id: state,
+              email_address: userInfo.email,
+              access_token: tokens.access_token,
+              refresh_token: tokens.refresh_token || '',
+              is_active: true,
+            });
+
+          if (dbError) {
+            console.error('Database error:', dbError);
+            throw dbError;
+          }
+
+          console.log('Gmail connection saved successfully');
+
+          // Return success page that closes popup and notifies parent
+          return new Response(`
+            <html>
+              <body>
+                <script>
+                  window.opener?.postMessage({
+                    type: 'GMAIL_AUTH_SUCCESS',
+                    data: { email: '${userInfo.email}' }
+                  }, '*');
+                  window.close();
+                </script>
+              </body>
+            </html>
+          `, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          });
+
+        } catch (err: any) {
+          console.error('Error processing OAuth callback:', err);
+          return new Response(`
+            <html>
+              <body>
+                <script>
+                  window.opener?.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: '${err.message}'
+                  }, '*');
+                  window.close();
+                </script>
+              </body>
+            </html>
+          `, {
+            status: 200,
+            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          });
+        }
+      }
+
+      // Generate OAuth URL for initial request
       const userId = url.searchParams.get('userId');
       
       if (!userId) {
