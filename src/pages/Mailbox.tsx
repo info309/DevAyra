@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, List, Users, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -58,14 +58,12 @@ const Mailbox = () => {
   const [connections, setConnections] = useState<GmailConnection[]>([]);
   const [emails, setEmails] = useState<Email[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'conversations' | 'emails'>('conversations');
   const [allEmailsLoaded, setAllEmailsLoaded] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   
@@ -328,7 +326,6 @@ const Mailbox = () => {
       if (error) throw error;
 
       const emailWithContent = data as Email;
-      setSelectedEmail(emailWithContent);
       
       // Update the email in the list with content
       setEmails(prev => prev.map(email => 
@@ -353,14 +350,14 @@ const Mailbox = () => {
     }
   };
 
-  const selectConversation = (conversation: Conversation) => {
+  const selectConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    setSelectedEmail(null);
     
-    // Load content for the latest email in conversation if not already loaded
-    const latestEmail = conversation.emails[0];
-    if (latestEmail && !latestEmail.content) {
-      fetchEmailContent(latestEmail.id);
+    // Load content for all emails in conversation that don't have content yet
+    const emailsWithoutContent = conversation.emails.filter(email => !email.content);
+    
+    for (const email of emailsWithoutContent) {
+      await fetchEmailContent(email.id);
     }
   };
 
@@ -539,8 +536,8 @@ const Mailbox = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-6">
-        {/* Search and View Controls */}
-        <div className="mb-6 space-y-4">
+        {/* Search Controls */}
+        <div className="mb-6">
           <div className="flex gap-4 items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -576,56 +573,32 @@ const Mailbox = () => {
               </Button>
             )}
           </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant={viewMode === 'conversations' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('conversations')}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Conversations ({conversations.length})
-            </Button>
-            <Button 
-              variant={viewMode === 'emails' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('emails')}
-            >
-              <List className="w-4 h-4 mr-2" />
-              All Emails ({emails.length})
-            </Button>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-20rem)]">
-          {/* Email/Conversation List */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)]">
+          {/* Inbox List */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg">
-                {viewMode === 'conversations' ? 'Conversations' : 'All Emails'}
-              </CardTitle>
+              <CardTitle className="text-lg">Inbox</CardTitle>
               <CardDescription>
-                {viewMode === 'conversations' 
-                  ? `${conversations.length} conversations` 
-                  : `${emails.length} emails`
-                }
+                {conversations.length} conversations, {emails.length} total emails
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-24rem)]">
+              <ScrollArea className="h-[calc(100vh-22rem)]">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading emails...</p>
                   </div>
-                ) : viewMode === 'conversations' ? (
-                  conversations.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <MessageSquare className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No conversations found</p>
-                    </div>
-                  ) : (
-                    conversations.map((conversation, index) => (
+                ) : conversations.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No emails found</p>
+                  </div>
+                ) : (
+                  <>
+                    {conversations.map((conversation, index) => (
                       <div key={conversation.id}>
                         <div
                           className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
@@ -635,9 +608,19 @@ const Mailbox = () => {
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
-                              </p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-sm truncate">
+                                  {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                </p>
+                                {conversation.messageCount > 1 && (
+                                  <div className="flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                    <Badge variant="outline" className="text-xs px-1 py-0">
+                                      {conversation.messageCount}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
                               <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
                                 {conversation.subject}
                               </p>
@@ -648,9 +631,6 @@ const Mailbox = () => {
                                   {conversation.unreadCount}
                                 </Badge>
                               )}
-                              <Badge variant="secondary" className="text-xs">
-                                {conversation.messageCount}
-                              </Badge>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
@@ -664,107 +644,71 @@ const Mailbox = () => {
                         </div>
                         {index < conversations.length - 1 && <Separator />}
                       </div>
-                    ))
-                  )
-                ) : (
-                  emails.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No emails found</p>
-                    </div>
-                  ) : (
-                    <>
-                      {emails.map((email, index) => (
-                        <div key={email.id}>
-                          <div
-                            className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                              selectedEmail?.id === email.id ? 'bg-accent' : ''
-                            }`}
-                            onClick={() => fetchEmailContent(email.id)}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">
-                                  {email.from.split('<')[0].trim() || email.from}
-                                </p>
-                                <p className={`text-sm truncate ${email.unread ? 'font-medium' : 'text-muted-foreground'}`}>
-                                  {email.subject}
-                                </p>
-                              </div>
-                              {email.unread && (
-                                <Badge variant="default" className="ml-2 text-xs">
-                                  New
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {email.snippet}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDate(email.date)}
-                            </p>
-                          </div>
-                          {index < emails.length - 1 && <Separator />}
-                        </div>
-                      ))}
-                      
-                      {/* Load More Button */}
-                      {!allEmailsLoaded && nextPageToken && (
-                        <div className="p-4 border-t">
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={loadMoreEmails}
-                            disabled={emailLoading}
-                          >
-                            {emailLoading ? (
-                              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                            ) : (
-                              <Plus className="w-4 h-4 mr-2" />
-                            )}
-                            Load More Emails
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )
+                    ))}
+                    
+                    {/* Load More Button */}
+                    {!allEmailsLoaded && nextPageToken && (
+                      <div className="p-4 border-t">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={loadMoreEmails}
+                          disabled={emailLoading}
+                        >
+                          {emailLoading ? (
+                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Plus className="w-4 h-4 mr-2" />
+                          )}
+                          Load More Emails
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </ScrollArea>
             </CardContent>
           </Card>
 
-          {/* Email Content */}
+          {/* Email/Thread Content */}
           <Card className="lg:col-span-2">
             <CardContent className="p-0">
-              {selectedEmail ? (
-                <div className="h-[calc(100vh-12rem)]">
+              {selectedConversation ? (
+                <div className="h-[calc(100vh-10rem)]">
                   <div className="p-6 border-b">
-                    <h2 className="text-xl font-heading font-semibold mb-2">
-                      {selectedEmail.subject}
-                    </h2>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <div>
-                        <p><strong>From:</strong> {selectedEmail.from}</p>
-                        <p><strong>Date:</strong> {formatDate(selectedEmail.date)}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-xl font-heading font-semibold">
+                        {selectedConversation.subject}
+                      </h2>
+                      {selectedConversation.messageCount > 1 && (
+                        <Badge variant="outline" className="text-xs">
+                          {selectedConversation.messageCount} messages
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        <span>{selectedConversation.participants.map(p => p.split('<')[0].trim()).join(', ')}</span>
                       </div>
-                      {selectedEmail.unread && (
-                        <Badge variant="default">New</Badge>
+                      {selectedConversation.unreadCount > 0 && (
+                        <Badge variant="default" className="text-xs">
+                          {selectedConversation.unreadCount} unread
+                        </Badge>
                       )}
                     </div>
                   </div>
-                  <ScrollArea className="h-[calc(100vh-20rem)] p-6">
+                  <ScrollArea className="h-[calc(100vh-18rem)]">
                     <EmailContent 
-                      content={selectedEmail.content || ''}
-                      attachments={selectedEmail.attachments || []}
-                      messageId={selectedEmail.id}
+                      conversation={selectedConversation}
                     />
                   </ScrollArea>
                 </div>
               ) : (
-                <div className="h-[calc(100vh-12rem)] flex items-center justify-center">
+                <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
                   <div className="text-center">
                     <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Select an email to view its content</p>
+                    <p className="text-muted-foreground">Select a conversation to view its content</p>
                   </div>
                 </div>
               )}
