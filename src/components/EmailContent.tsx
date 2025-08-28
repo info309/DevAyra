@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import IsolatedEmailRenderer from './IsolatedEmailRenderer';
 
 interface Attachment {
   filename: string;
@@ -192,55 +193,10 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
             )}
 
             {/* Email Content */}
-            <div 
-              className="email-content-wrapper prose prose-sm max-w-none dark:prose-invert prose-img:rounded-lg prose-img:shadow-md"
-              style={{
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word',
-                maxWidth: '100%',
-                lineHeight: 1.6,
-                // Isolated styles to prevent bleeding
-                isolation: 'isolate',
-                contain: 'layout style'
-              }}
-            >
-              <div 
-                className="email-html-content"
-                dangerouslySetInnerHTML={{ 
-                  __html: email.content || '<p class="text-muted-foreground italic">No content available</p>'
-                }}
-                style={{
-                  // Scope all styles to this container only
-                  contain: 'layout style',
-                  maxWidth: '100%',
-                  overflow: 'hidden'
-                }}
-              />
-              <style scoped>{`
-                .email-content-wrapper .email-html-content img {
-                  max-width: 100% !important;
-                  height: auto !important;
-                  border-radius: 8px !important;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-                  display: block !important;
-                }
-                .email-content-wrapper .email-html-content a {
-                  color: hsl(var(--primary)) !important;
-                  text-decoration: underline !important;
-                }
-                .email-content-wrapper .email-html-content a:hover {
-                  text-decoration-color: transparent !important;
-                }
-                .email-content-wrapper .email-html-content * {
-                  max-width: 100% !important;
-                  box-sizing: border-box !important;
-                }
-                .email-content-wrapper .email-html-content table {
-                  width: auto !important;
-                  max-width: 100% !important;
-                }
-              `}</style>
-            </div>
+            <IsolatedEmailRenderer 
+              content={email.content || ''}
+              className="rounded-lg border border-border"
+            />
 
             {/* Separator between emails in thread */}
             {emailIndex < sortedEmails.length - 1 && (
