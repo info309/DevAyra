@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -769,14 +768,23 @@ const Mailbox: React.FC = () => {
         {/* Navigation and Search Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* View Toggle */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Inbox</span>
-            <Switch
-              checked={currentView === 'sent'}
-              onCheckedChange={(checked) => setCurrentView(checked ? 'sent' : 'inbox')}
-            />
-            <span className="text-sm font-medium">Sent</span>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentView(currentView === 'inbox' ? 'sent' : 'inbox')}
+            className="gap-2"
+          >
+            {currentView === 'inbox' ? (
+              <>
+                <Mail className="w-4 h-4" />
+                Inbox
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Sent
+              </>
+            )}
+          </Button>
 
           {/* Search Controls */}
           <div className="flex-1 flex gap-2 max-w-md">
