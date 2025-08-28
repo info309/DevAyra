@@ -874,9 +874,9 @@ const Mailbox: React.FC = () => {
           </div>
 
           {/* Second row - Mobile/Tablet search and toggle */}
-          <div className="flex flex-col gap-4 lg:hidden items-start">
+          <div className="flex flex-col sm:flex-row gap-4 lg:hidden items-start">
             {/* Mobile/Tablet search */}
-            <div className="relative w-full">
+            <div className="relative w-full sm:flex-1 sm:min-w-0 order-2 sm:order-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 placeholder="Search emails..." 
@@ -888,7 +888,7 @@ const Mailbox: React.FC = () => {
             </div>
 
             {/* View Toggle - Mobile/Tablet */}
-            <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
+            <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit order-1 sm:order-2">
               <button
                 onClick={() => setCurrentView('inbox')}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
