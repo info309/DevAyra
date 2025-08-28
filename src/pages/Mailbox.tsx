@@ -635,32 +635,32 @@ const Mailbox = () => {
                             <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                               {/* Left side content */}
                               <div className="min-w-0 space-y-1 overflow-hidden">
-                                {/* Email address and unread badge */}
+                                {/* Email address and unread indicator */}
                                 <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
                                     {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
                                   </p>
-                                  {conversation.unreadCount > 0 && (
-                                    <Badge variant="default" className="text-xs px-2 py-0 flex-shrink-0">
-                                      {conversation.unreadCount}
-                                    </Badge>
-                                  )}
                                 </div>
                                 
-                                {/* Subject */}
+                                {/* Subject and unread dot */}
                                 <div className="w-full overflow-hidden">
-                                  <p className="text-xs text-muted-foreground font-medium truncate">
-                                    {conversation.subject}
-                                  </p>
-                                </div>
-                                
-                                {/* Snippet with proper ellipsis */}
-                                <div className="w-full overflow-hidden">
-                                  <p className="text-xs text-muted-foreground/80 truncate">
-                                    {conversation.emails[0]?.snippet}
-                                  </p>
-                                </div>
-                              </div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground font-medium truncate flex-1">
+                                      {conversation.subject}
+                                    </p>
+                                     {conversation.unreadCount > 0 && (
+                                       <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                     )}
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Snippet with proper ellipsis */}
+                                 <div className="w-full overflow-hidden">
+                                   <p className="text-xs text-muted-foreground/80 truncate">
+                                     {conversation.emails[0]?.snippet}
+                                   </p>
+                                 </div>
+                               </div>
                               
                               {/* Right side content */}
                               <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
@@ -723,11 +723,9 @@ const Mailbox = () => {
                                         <p className="text-xs font-medium truncate flex-1 min-w-0">
                                           {email.from.split('<')[0].trim() || email.from}
                                         </p>
-                                        {email.unread && (
-                                          <Badge variant="default" className="text-xs py-0 px-1 flex-shrink-0">
-                                            New
-                                          </Badge>
-                                        )}
+                                         {email.unread && (
+                                           <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                         )}
                                       </div>
                                       <p className="text-xs text-muted-foreground truncate">
                                         {email.snippet}
@@ -805,9 +803,7 @@ const Mailbox = () => {
                         <span>{selectedConversation.participants.map(p => p.split('<')[0].trim()).join(', ')}</span>
                       </div>
                       {selectedConversation.unreadCount > 0 && (
-                        <Badge variant="default" className="text-xs">
-                          {selectedConversation.unreadCount} unread
-                        </Badge>
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
                       )}
                     </div>
                   </div>
