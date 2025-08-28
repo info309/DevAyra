@@ -758,48 +758,37 @@ const Mailbox: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold">Email Management</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => window.open('https://mail.google.com', '_blank')} className="gap-2">
-              <ExternalLink className="w-4 h-4" />
-              Open Gmail
-            </Button>
-            <Button onClick={handleLogout} variant="outline">
-              Sign Out
-            </Button>
-          </div>
-        </div>
-
-        {/* View Tabs */}
-        <div className="flex gap-2 mb-6">
-          <Button 
-            variant={currentView === 'inbox' ? 'default' : 'outline'}
-            onClick={() => setCurrentView('inbox')}
-            className="gap-2"
-          >
-            <Mail className="w-4 h-4" />
-            Inbox
-          </Button>
-          <Button 
-            variant={currentView === 'sent' ? 'default' : 'outline'}
-            onClick={() => setCurrentView('sent')}
-            className="gap-2"
-          >
-            <Send className="w-4 h-4" />
-            Sent
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
           </Button>
         </div>
 
-        {/* Controls */}
+        {/* Navigation and Search Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 flex gap-2">
+          {/* View Tabs */}
+          <div className="flex gap-2">
+            <Button 
+              variant={currentView === 'inbox' ? 'default' : 'outline'}
+              onClick={() => setCurrentView('inbox')}
+              className="gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Inbox
+            </Button>
+            <Button 
+              variant={currentView === 'sent' ? 'default' : 'outline'}
+              onClick={() => setCurrentView('sent')}
+              className="gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Sent
+            </Button>
+          </div>
+
+          {/* Search Controls */}
+          <div className="flex-1 flex gap-2 max-w-md">
             <Input 
               placeholder="Search emails..." 
               value={searchQuery}
@@ -811,9 +800,14 @@ const Mailbox: React.FC = () => {
               variant="outline" 
               onClick={handleSearch}
               disabled={searchLoading}
+              size="sm"
             >
               {searchLoading ? 'Searching...' : 'Search'}
             </Button>
+          </div>
+
+          {/* Action Controls */}
+          <div className="flex gap-2">
             <Button 
               variant={showOnlyUnread ? "default" : "outline"}
               size="sm"
@@ -821,9 +815,7 @@ const Mailbox: React.FC = () => {
             >
               {showOnlyUnread ? 'Show All' : 'Unread Only'}
             </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => refreshCurrentView()} variant="outline" className="gap-2">
+            <Button onClick={() => refreshCurrentView()} variant="outline" size="sm" className="gap-2">
               <RefreshCw className="w-4 h-4" />
               Refresh
             </Button>
@@ -832,7 +824,7 @@ const Mailbox: React.FC = () => {
                 <Button className="gap-2" onClick={() => {
                   // Reset form to empty state for new email
                   setComposeForm({ to: '', subject: '', content: '' });
-                }}>
+                }} size="sm">
                   <Plus className="w-4 h-4" />
                   Compose
                 </Button>
