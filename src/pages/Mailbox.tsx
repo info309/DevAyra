@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -767,24 +768,14 @@ const Mailbox: React.FC = () => {
 
         {/* Navigation and Search Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* View Tabs */}
-          <div className="flex gap-2">
-            <Button 
-              variant={currentView === 'inbox' ? 'default' : 'outline'}
-              onClick={() => setCurrentView('inbox')}
-              className="gap-2"
-            >
-              <Mail className="w-4 h-4" />
-              Inbox
-            </Button>
-            <Button 
-              variant={currentView === 'sent' ? 'default' : 'outline'}
-              onClick={() => setCurrentView('sent')}
-              className="gap-2"
-            >
-              <Send className="w-4 h-4" />
-              Sent
-            </Button>
+          {/* View Toggle */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Inbox</span>
+            <Switch
+              checked={currentView === 'sent'}
+              onCheckedChange={(checked) => setCurrentView(checked ? 'sent' : 'inbox')}
+            />
+            <span className="text-sm font-medium">Sent</span>
           </div>
 
           {/* Search Controls */}
@@ -815,9 +806,8 @@ const Mailbox: React.FC = () => {
             >
               {showOnlyUnread ? 'Show All' : 'Unread Only'}
             </Button>
-            <Button onClick={() => refreshCurrentView()} variant="outline" size="sm" className="gap-2">
+            <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4" />
-              Refresh
             </Button>
             <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
               <DialogTrigger asChild>
@@ -826,7 +816,6 @@ const Mailbox: React.FC = () => {
                   setComposeForm({ to: '', subject: '', content: '' });
                 }} size="sm">
                   <Plus className="w-4 h-4" />
-                  Compose
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
