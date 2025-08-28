@@ -501,6 +501,17 @@ const handler = async (req: Request): Promise<Response> => {
       return urlData.signedUrl;
     };
 
+    // Function to clean email subject prefixes
+    const cleanSubjectPrefixes = (subject: string): string => {
+      if (!subject) return subject;
+      
+      // Remove common reply/forward prefixes (case insensitive)
+      // Handles: Re:, RE:, Fwd:, FWD:, Fw:, multiple Re: Re: chains
+      return subject
+        .replace(/^(\s*(re|fwd?|aw|sv|antw):\s*)+/gi, '')
+        .trim();
+    };
+
     switch (action) {
       case 'getEmails': {
         // Build Gmail search query with label filtering, always exclude trash
@@ -610,7 +621,7 @@ const handler = async (req: Request): Promise<Response> => {
 
               return {
                 id: thread.id,
-                subject: latestEmail?.subject || 'No Subject',
+                subject: cleanSubjectPrefixes(latestEmail?.subject || 'No Subject'),
                 emails: processedEmails,
                 messageCount: processedEmails.length,
                 lastDate: latestEmail?.date || '',
