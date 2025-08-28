@@ -1486,11 +1486,6 @@ const Mailbox: React.FC = () => {
                           </Button>
                         </>
                       )}
-                      <DrawerClose asChild>
-                        <Button variant="outline" size="sm" className="px-2">
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </DrawerClose>
                     </div>
                   </div>
                 </DrawerHeader>
