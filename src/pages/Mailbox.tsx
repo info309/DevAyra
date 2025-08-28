@@ -62,6 +62,7 @@ const Mailbox = () => {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [autoLoading, setAutoLoading] = useState(false);
+  const [scrollTimeout, setScrollTimeout] = useState<NodeJS.Timeout | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -81,6 +82,14 @@ const Mailbox = () => {
       fetchGmailConnections();
     }
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
+  }, [scrollTimeout]);
 
   useEffect(() => {
     if (connections.length > 0) {
@@ -318,14 +327,30 @@ const Mailbox = () => {
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
-    // Load more only when scrolled to the very bottom (within 5px tolerance)
-    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5;
-    
-    if (isAtBottom && !allEmailsLoaded && !autoLoading && nextPageToken) {
-      loadMoreEmails();
+    // Clear existing timeout
+    if (scrollTimeout) {
+      clearTimeout(scrollTimeout);
     }
+    
+    // Debounce scroll events
+    const timeout = setTimeout(() => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      
+      console.log('Scroll debug:', { scrollTop, scrollHeight, clientHeight, diff: scrollHeight - (scrollTop + clientHeight) });
+      
+      // Only trigger when truly at the bottom (less than 1px remaining)
+      const remainingScroll = scrollHeight - (scrollTop + clientHeight);
+      const isAtBottom = remainingScroll < 1;
+      
+      console.log('Is at bottom:', isAtBottom, 'Remaining:', remainingScroll);
+      
+      if (isAtBottom && !allEmailsLoaded && !autoLoading && nextPageToken && filteredConversations.length > 0) {
+        console.log('Triggering auto load');
+        loadMoreEmails();
+      }
+    }, 100); // 100ms debounce
+    
+    setScrollTimeout(timeout);
   };
 
   const fetchEmailContent = async (emailId: string) => {
