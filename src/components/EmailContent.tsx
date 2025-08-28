@@ -92,9 +92,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                   <p className="font-medium text-sm">
                     {email.from.split('<')[0].trim() || email.from}
                   </p>
-                  {email.unread && (
-                    <Badge variant="default" className="text-xs">New</Badge>
-                  )}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
@@ -103,6 +100,11 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                   </div>
                   <span>To: {email.to.split('<')[0].trim() || email.to}</span>
                 </div>
+                {email.unread && (
+                  <div className="mt-1">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  </div>
+                )}
               </div>
             </div>
 
