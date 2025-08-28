@@ -642,17 +642,12 @@ const Mailbox = () => {
                                   </p>
                                 </div>
                                 
-                                {/* Subject and unread dot */}
+                                {/* Subject */}
                                 <div className="w-full overflow-hidden">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-xs text-muted-foreground font-medium truncate flex-1">
-                                      {conversation.subject}
-                                    </p>
-                                     {conversation.unreadCount > 0 && (
-                                       <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                     )}
-                                   </div>
-                                 </div>
+                                  <p className="text-xs text-muted-foreground font-medium truncate">
+                                    {conversation.subject}
+                                  </p>
+                                </div>
                                  
                                  {/* Snippet with proper ellipsis */}
                                  <div className="w-full overflow-hidden">
@@ -662,15 +657,16 @@ const Mailbox = () => {
                                  </div>
                                </div>
                               
-                              {/* Right side content */}
+                               {/* Right side - Date, Indicators and Arrow */}
                               <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
                                 </p>
                                 
-                                {/* Middle right: Attachment icon */}
+                                {/* Middle right: Indicators */}
                                 <div className="flex items-center gap-1">
+                                  {/* Attachment and thread indicators on left of arrow */}
                                   {hasAttachments && (
                                     <Paperclip className="w-3 h-3 text-muted-foreground" />
                                   )}
@@ -681,6 +677,11 @@ const Mailbox = () => {
                                         {conversation.messageCount}
                                       </span>
                                     </div>
+                                  )}
+                                  
+                                  {/* Unread dot */}
+                                  {conversation.unreadCount > 0 && (
+                                    <div className="w-2 h-2 bg-primary rounded-full ml-1"></div>
                                   )}
                                 </div>
                                 
