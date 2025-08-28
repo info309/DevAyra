@@ -1442,20 +1442,20 @@ const Mailbox: React.FC = () => {
 
             {/* Mobile Drawer for Email Content */}
             <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-              <DrawerContent className="h-[90vh]">
-                <DrawerHeader className="border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <DrawerTitle className="text-left truncate">
+              <DrawerContent className="h-[90vh] max-w-full">
+                <DrawerHeader className="border-b px-4">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex-1 min-w-0 mr-4">
+                      <DrawerTitle className="text-left truncate text-base">
                         {selectedConversation?.subject || 'Email'}
                       </DrawerTitle>
                       {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
-                        <DrawerDescription className="text-left">
+                        <DrawerDescription className="text-left text-sm">
                           {selectedConversation.messageCount} messages
                         </DrawerDescription>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {selectedConversation && (
                         <>
                           <Button
@@ -1468,9 +1468,9 @@ const Mailbox: React.FC = () => {
                               );
                               setMobileDrawerOpen(false);
                             }}
-                            className="gap-2"
+                            className="gap-1 text-xs px-2"
                           >
-                            <Reply className="w-4 h-4" />
+                            <Reply className="w-3 h-3" />
                             Reply
                           </Button>
                           <Button
@@ -1480,50 +1480,56 @@ const Mailbox: React.FC = () => {
                               deleteConversation(selectedConversation);
                               setMobileDrawerOpen(false);
                             }}
-                            className="gap-2 hover:bg-destructive/10"
+                            className="gap-1 hover:bg-destructive/10 text-xs px-2"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-3 h-3 text-destructive" />
                           </Button>
                         </>
                       )}
                       <DrawerClose asChild>
-                        <Button variant="outline" size="sm">
-                          <X className="w-4 h-4" />
+                        <Button variant="outline" size="sm" className="px-2">
+                          <X className="w-3 h-3" />
                         </Button>
                       </DrawerClose>
                     </div>
                   </div>
                 </DrawerHeader>
                 
-                <ScrollArea className="flex-1 p-4">
-                  {selectedConversation ? (
-                    selectedEmail ? (
-                      // Show only the selected email
-                      <EmailContent 
-                        key={selectedEmail.id}
-                        conversation={{
-                          ...selectedConversation,
-                          emails: [selectedEmail]  // Only show the selected email
-                        }}
-                        onSaveAttachment={handleSaveAttachmentToDocuments}
-                      />
+                <ScrollArea className="flex-1">
+                  <div className="p-4 max-w-full overflow-hidden">
+                    {selectedConversation ? (
+                      selectedEmail ? (
+                        // Show only the selected email
+                        <div className="max-w-full overflow-hidden">
+                          <EmailContent 
+                            key={selectedEmail.id}
+                            conversation={{
+                              ...selectedConversation,
+                              emails: [selectedEmail]  // Only show the selected email
+                            }}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        </div>
+                      ) : (
+                        // Show all emails in the conversation thread
+                        <div className="max-w-full overflow-hidden">
+                          <EmailContent 
+                            key={selectedConversation.id}
+                            conversation={selectedConversation}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        </div>
+                      )
                     ) : (
-                      // Show all emails in the conversation thread
-                      <EmailContent 
-                        key={selectedConversation.id}
-                        conversation={selectedConversation}
-                        onSaveAttachment={handleSaveAttachmentToDocuments}
-                      />
-                    )
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No email selected</h3>
-                        <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-medium mb-2">No email selected</h3>
+                          <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </ScrollArea>
               </DrawerContent>
             </Drawer>

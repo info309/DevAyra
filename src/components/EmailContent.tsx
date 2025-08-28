@@ -95,27 +95,27 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       {sortedEmails.map((email, emailIndex) => {
         const regularAttachments = email.attachments?.filter(att => !att.mimeType.startsWith('image/') || att.filename.includes('.')) || [];
         const inlineImages = email.attachments?.filter(att => att.mimeType.startsWith('image/') && !att.filename.includes('.')) || [];
 
         return (
-          <div key={email.id} className="space-y-4">
+          <div key={email.id} className="space-y-4 max-w-full overflow-hidden">
             {/* Email Header */}
-            <div className="flex items-start justify-between p-4 bg-accent/30 rounded-lg">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-medium text-sm">
+            <div className="flex items-start justify-between p-4 bg-accent/30 rounded-lg max-w-full overflow-hidden">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 max-w-full overflow-hidden">
+                  <p className="font-medium text-sm truncate">
                     {email.from.split('<')[0].trim() || email.from}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-muted-foreground max-w-full overflow-hidden">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDate(email.date)}</span>
+                    <Clock className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{formatDate(email.date)}</span>
                   </div>
-                  <span>To: {email.to.split('<')[0].trim() || email.to}</span>
+                  <span className="truncate">To: {email.to.split('<')[0].trim() || email.to}</span>
                 </div>
               </div>
             </div>
