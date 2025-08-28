@@ -995,8 +995,8 @@ const Mailbox: React.FC = () => {
   });
 
   return (
-    <div className="h-screen bg-background flex flex-col">
-      <div className="container mx-auto p-2 lg:px-8 flex flex-col flex-1 min-h-0">
+    <div className="h-screen bg-background overflow-hidden">
+      <div className="container mx-auto p-2 lg:px-8 h-full flex flex-col">
         {/* Desktop Header - Logo and Menu */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
           <div className="flex items-center gap-4">
@@ -1395,11 +1395,11 @@ const Mailbox: React.FC = () => {
           </div>
         </div>
 
-        <div className={`grid gap-6 flex-1 min-h-0 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
+        <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'} flex-1 overflow-hidden`}>
           {/* Email List */}
-          <Card className="lg:col-span-1 min-w-0 flex flex-col">
-            <CardContent className="p-0 overflow-hidden rounded-lg flex-1 min-h-0">
-              <ScrollArea className="flex-1 w-full rounded-lg overflow-hidden">
+          <Card className="lg:col-span-1 min-w-0 h-full overflow-hidden">
+            <CardContent className="p-0 overflow-hidden rounded-lg h-full">
+              <ScrollArea className="h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] lg:h-[calc(100vh-8rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
