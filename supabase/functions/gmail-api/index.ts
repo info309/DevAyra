@@ -846,6 +846,7 @@ const handler = async (req: Request): Promise<Response> => {
             `To: ${to}`,
             `Subject: ${subject}`,
             `Content-Type: multipart/mixed; boundary="${boundary}"`,
+            `MIME-Version: 1.0`
           ];
 
           // Add threading headers if this is a reply
@@ -854,34 +855,35 @@ const handler = async (req: Request): Promise<Response> => {
             headers.push(`References: <${replyTo}@gmail.com>`);
           }
 
-          const parts: string[] = [];
+          let bodyParts = [];
           
           // Add email content part
           const htmlContent = content.replace(/\n/g, '<br>');
-          parts.push([
+          bodyParts.push([
             `--${boundary}`,
             'Content-Type: text/html; charset=utf-8',
-            'Content-Transfer-Encoding: base64',
+            'Content-Transfer-Encoding: quoted-printable',
             '',
-            btoa(htmlContent)
-          ].join('\n'));
+            htmlContent
+          ].join('\r\n'));
 
           // Add attachment parts
           for (const attachment of attachments) {
             console.log('Adding attachment:', attachment.filename, 'size:', attachment.size);
-            parts.push([
+            bodyParts.push([
               `--${boundary}`,
               `Content-Type: ${attachment.contentType}; name="${attachment.filename}"`,
               'Content-Transfer-Encoding: base64',
               `Content-Disposition: attachment; filename="${attachment.filename}"`,
               '',
               attachment.content
-            ].join('\n'));
+            ].join('\r\n'));
           }
 
-          parts.push(`--${boundary}--`);
+          // Close boundary
+          bodyParts.push(`--${boundary}--`);
 
-          emailBody = [...headers, '', parts.join('\n')].join('\n');
+          emailBody = headers.join('\r\n') + '\r\n\r\n' + bodyParts.join('\r\n');
         } else {
           console.log('Creating simple email without attachments');
           // Create simple email without attachments
