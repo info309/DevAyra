@@ -158,12 +158,25 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
       <DrawerTrigger asChild>
         {trigger || defaultTrigger}
       </DrawerTrigger>
-      <DrawerContent className="h-[85vh] max-w-full">
+      <DrawerContent 
+        className="h-[85vh] max-w-full"
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking inside the drawer content
+          e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          // Only allow closing when clicking truly outside
+          const target = e.target as Element;
+          if (!target.closest('[data-drawer-content]')) {
+            setOpen(false);
+          }
+        }}
+      >
         <DrawerHeader className="border-b px-4 pb-3">
           <DrawerTitle>Select Documents to Attach</DrawerTitle>
         </DrawerHeader>
         
-        <div className="flex flex-col gap-4 flex-1 min-h-0 p-4">
+        <div className="flex flex-col gap-4 flex-1 min-h-0 p-4" data-drawer-content>
           {/* Search and Filters */}
           <div className="flex flex-col gap-4 items-start">
             <div className="relative w-full max-w-md">
@@ -239,8 +252,14 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
                       className={`hover:shadow-sm transition-all cursor-pointer ${
                         isSelected ? 'ring-2 ring-primary bg-accent/50' : ''
                       }`}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
+                        console.log('Card clicked:', doc.name);
                         handleDocumentToggle(doc);
                       }}
                     >
@@ -296,16 +315,20 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
           <div className="flex justify-between items-center pt-4 border-t">
             <Button 
               variant="outline" 
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 setOpen(false);
               }}
             >
               Cancel
             </Button>
             <Button 
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 handleConfirm();
               }}
               disabled={localSelection.length === 0}
