@@ -759,49 +759,49 @@ const Mailbox: React.FC = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
         {/* Header with controls */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          {/* View Toggle - Left side */}
-          <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
-            <button
-              onClick={() => setCurrentView('inbox')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                currentView === 'inbox' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'hover:bg-background/50'
-              }`}
-            >
-              <Mail className="w-4 h-4" />
-              Inbox
-            </button>
-            <button
-              onClick={() => setCurrentView('sent')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                currentView === 'sent' 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'hover:bg-background/50'
-              }`}
-            >
-              <Send className="w-4 h-4" />
-              Sent
-            </button>
-          </div>
-
-          {/* Search and controls - Right side */}
-          <div className="flex flex-col sm:flex-row gap-2 items-end">
-            {/* Search Controls */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search emails..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-64 pl-10"
-              />
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Top row - Compose and Refresh buttons (mobile/tablet top right, desktop right) */}
+          <div className="flex justify-end lg:justify-between lg:items-center">
+            {/* View Toggle - Desktop left side */}
+            <div className="hidden lg:inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
+              <button
+                onClick={() => setCurrentView('inbox')}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                  currentView === 'inbox' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'hover:bg-background/50'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Inbox
+              </button>
+              <button
+                onClick={() => setCurrentView('sent')}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                  currentView === 'sent' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'hover:bg-background/50'
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                Sent
+              </button>
             </div>
 
-            {/* Action Controls */}
+            {/* Action Controls - Right side on all screens */}
             <div className="flex gap-2">
+              {/* Desktop search */}
+              <div className="relative hidden lg:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search emails..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-64 pl-10"
+                />
+              </div>
+              
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
               </Button>
@@ -870,6 +870,47 @@ const Mailbox: React.FC = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+            </div>
+          </div>
+
+          {/* Second row - Mobile/Tablet search and toggle */}
+          <div className="flex flex-col sm:flex-row gap-4 lg:hidden items-start">
+            {/* View Toggle - Mobile/Tablet */}
+            <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
+              <button
+                onClick={() => setCurrentView('inbox')}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                  currentView === 'inbox' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'hover:bg-background/50'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Inbox
+              </button>
+              <button
+                onClick={() => setCurrentView('sent')}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
+                  currentView === 'sent' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'hover:bg-background/50'
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                Sent
+              </button>
+            </div>
+
+            {/* Mobile/Tablet search */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search emails..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full pl-10"
+              />
             </div>
           </div>
         </div>
