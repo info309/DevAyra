@@ -143,14 +143,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg p-4">
+        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg p-2">
           <img
             src={previewUrl}
             alt={document.name}
             className="max-w-full max-h-full object-contain rounded shadow-lg"
             style={{ 
-              maxHeight: '70vh',
-              maxWidth: '90vw'
+              maxHeight: '400px',
+              maxWidth: '100%'
             }}
             onError={() => {
               console.error('Failed to load image preview');
@@ -169,7 +169,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitV&zoom=page-width`}
             className="w-full h-full border-0"
             style={{ 
-              height: '70vh',
+              height: '400px',
               width: '100%'
             }}
             title={`Preview of ${document.name}`}
@@ -191,7 +191,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             src={previewUrl}
             className="w-full h-full border-0"
             style={{ 
-              height: '70vh',
+              height: '400px',
               width: '100%'
             }}
             title={`Preview of ${document.name}`}
@@ -274,7 +274,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="p-6 overflow-hidden bg-gray-50" style={{ height: '80vh' }}>
+        <div className="p-4 overflow-hidden bg-gray-50" style={{ height: '500px' }}>
           <div className="w-full h-full">
             {renderPreview()}
           </div>
