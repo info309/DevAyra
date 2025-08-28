@@ -173,22 +173,40 @@ const handler = async (req: Request): Promise<Response> => {
 
         const message = await response.json();
         
-        // Extract email content
-        const getTextContent = (part: any): string => {
-          if (part.mimeType === 'text/plain' && part.body?.data) {
-            return atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          }
-          if (part.mimeType === 'text/html' && part.body?.data) {
-            return atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          }
-          if (part.parts) {
-            return part.parts.map(getTextContent).join('');
-          }
-          return '';
+        // Extract email content and attachments
+        const getEmailParts = (part: any): { content: string; attachments: any[] } => {
+          let content = '';
+          let attachments: any[] = [];
+
+          const processPart = (p: any) => {
+            // Check if this part has an attachment
+            if (p.filename && p.filename.length > 0 && p.body?.attachmentId) {
+              attachments.push({
+                filename: p.filename,
+                mimeType: p.mimeType,
+                size: p.body.size,
+                attachmentId: p.body.attachmentId
+              });
+            }
+            // Extract text content
+            else if (p.mimeType === 'text/plain' && p.body?.data) {
+              content += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            }
+            else if (p.mimeType === 'text/html' && p.body?.data) {
+              content += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            }
+            // Process nested parts
+            else if (p.parts) {
+              p.parts.forEach(processPart);
+            }
+          };
+
+          processPart(part);
+          return { content, attachments };
         };
 
         const headers = message.payload?.headers || [];
-        const content = getTextContent(message.payload);
+        const { content, attachments } = getEmailParts(message.payload);
 
         const emailData = {
           id: message.id,
@@ -198,6 +216,7 @@ const handler = async (req: Request): Promise<Response> => {
           to: headers.find((h: any) => h.name === 'To')?.value || '',
           date: headers.find((h: any) => h.name === 'Date')?.value || '',
           content: content,
+          attachments: attachments,
           unread: message.labelIds?.includes('UNREAD') || false,
         };
 

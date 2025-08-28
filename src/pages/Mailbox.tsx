@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import EmailContent from '@/components/EmailContent';
 
 interface Email {
   id: string;
@@ -23,6 +24,12 @@ interface Email {
   date: string;
   unread: boolean;
   content?: string;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+    attachmentId: string;
+  }>;
 }
 
 interface GmailConnection {
@@ -458,11 +465,10 @@ const Mailbox = () => {
                     </div>
                   </div>
                   <ScrollArea className="h-[calc(100vh-20rem)] p-6">
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
-                        __html: selectedEmail.content?.replace(/\n/g, '<br>') || 'No content available' 
-                      }}
+                    <EmailContent 
+                      content={selectedEmail.content || ''}
+                      attachments={selectedEmail.attachments || []}
+                      messageId={selectedEmail.id}
                     />
                   </ScrollArea>
                 </div>
