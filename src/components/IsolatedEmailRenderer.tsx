@@ -29,25 +29,60 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             
             body {
               margin: 0;
-              padding: 0;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              padding: 20px;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
               font-size: 14px;
               line-height: 1.6;
               color: #374151;
               background: transparent;
               word-wrap: break-word;
               overflow-wrap: break-word;
+              -webkit-text-size-adjust: 100%;
+              -ms-text-size-adjust: 100%;
             }
             
-            /* Email content styling */
+            /* Email content styling - Handle both modern and table-based layouts */
+            table {
+              border-collapse: collapse !important;
+              mso-table-lspace: 0pt !important;
+              mso-table-rspace: 0pt !important;
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+            
+            td, th {
+              border-collapse: collapse;
+              mso-line-height-rule: exactly;
+            }
+            
+            /* Center tables and content */
+            table[align="center"], 
+            .center,
+            center {
+              margin: 0 auto !important;
+            }
+            
+            /* Handle Outlook-specific elements */
+            .ExternalClass,
+            .ExternalClass p,
+            .ExternalClass span,
+            .ExternalClass font,
+            .ExternalClass td,
+            .ExternalClass div {
+              line-height: 100% !important;
+            }
+            
+            /* Image handling */
             img {
               max-width: 100% !important;
               height: auto !important;
               border-radius: 8px;
               box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               display: block;
+              -ms-interpolation-mode: bicubic;
             }
             
+            /* Links */
             a {
               color: #3b82f6 !important;
               text-decoration: underline;
@@ -57,19 +92,24 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               text-decoration-color: transparent;
             }
             
-            table {
-              width: auto !important;
+            /* Text elements */
+            p, div, span, h1, h2, h3, h4, h5, h6 {
               max-width: 100% !important;
-              border-collapse: collapse;
+              word-wrap: break-word !important;
+              overflow-wrap: break-word !important;
             }
             
-            td, th {
-              max-width: 100% !important;
-            }
-            
-            /* Prevent layout breaking */
-            div, p, span {
-              max-width: 100% !important;
+            /* Responsive handling */
+            @media screen and (max-width: 600px) {
+              table {
+                width: 100% !important;
+                min-width: 100% !important;
+              }
+              
+              td {
+                width: 100% !important;
+                display: block !important;
+              }
             }
             
             /* Dark mode support */
