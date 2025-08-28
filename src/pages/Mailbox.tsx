@@ -368,20 +368,29 @@ const Mailbox = () => {
 
   const handleConversationClick = (conversation: Conversation) => {
     console.log('Selecting conversation:', conversation.id, conversation.subject);
+    
+    // Mark previously selected conversation as read if it was unread
+    if (selectedConversation && selectedConversation.id !== conversation.id && selectedConversation.unreadCount > 0) {
+      markConversationAsRead(selectedConversation);
+    }
+    
     setSelectedConversation(conversation);
     setSelectedEmail(null); // Reset individual email selection
-    
-    // Mark all emails in conversation as read
-    markConversationAsRead(conversation);
   };
 
   const handleEmailClick = (email: Email, conversation: Conversation) => {
     console.log('Selecting individual email:', email.id);
+    
+    // Mark previously selected email as read if it was unread
+    if (selectedEmail && selectedEmail.id !== email.id && selectedEmail.unread) {
+      markEmailAsRead(selectedEmail.id, selectedConversation?.id || '');
+    } else if (selectedConversation && selectedConversation.id !== conversation.id && selectedConversation.unreadCount > 0) {
+      // If switching conversations, mark the previous one as read
+      markConversationAsRead(selectedConversation);
+    }
+    
     setSelectedConversation(conversation);
     setSelectedEmail(email);
-    
-    // Mark this specific email as read
-    markEmailAsRead(email.id, conversation.id);
   };
 
   const markEmailAsRead = (emailId: string, conversationId: string) => {
