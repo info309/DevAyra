@@ -13,6 +13,29 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
       
       if (doc) {
+        // Sanitize and clean email content
+        const sanitizeContent = (htmlContent: string): string => {
+          // Remove script tags and dangerous elements
+          let cleaned = htmlContent
+            .replace(/<script[^>]*>.*?<\/script>/gi, '')
+            .replace(/<link[^>]*>/gi, '')
+            .replace(/<style[^>]*>.*?<\/style>/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+            .replace(/on\w+\s*=\s*'[^']*'/gi, '');
+          
+          // Fix common encoding issues
+          cleaned = cleaned
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'");
+          
+          return cleaned;
+        };
+
         // Create completely isolated HTML with refined styles
         const isolatedHTML = `
           <!DOCTYPE html>
@@ -21,227 +44,311 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
-              /* Complete CSS reset */
+              /* Complete CSS reset and normalization */
               * {
-                margin: 0;
-                padding: 0;
-                border: 0;
-                font-size: 100%;
-                font: inherit;
-                vertical-align: baseline;
-                box-sizing: border-box;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: 0 !important;
+                font-size: 100% !important;
+                font: inherit !important;
+                vertical-align: baseline !important;
+                box-sizing: border-box !important;
               }
               
-              /* Base styles */
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                font-size: 14px;
-                line-height: 1.6;
-                color: #374151;
-                background: #ffffff;
-                margin: 0;
-                padding: 20px;
-                overflow-wrap: break-word;
-                word-wrap: break-word;
-                min-height: 100vh;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
+              /* Force override any inline styles */
+              *[style] {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
               }
               
-              /* Typography */
-              p { 
-                margin-bottom: 16px; 
-                line-height: 1.6;
-              }
-              h1, h2, h3, h4, h5, h6 { 
-                margin-bottom: 16px; 
-                font-weight: 600; 
-                line-height: 1.3;
-              }
-              h1 { font-size: 24px; color: #1f2937; }
-              h2 { font-size: 20px; color: #1f2937; }
-              h3 { font-size: 18px; color: #1f2937; }
-              h4 { font-size: 16px; color: #1f2937; }
-              
-              /* Links */
-              a {
-                color: #3b82f6;
-                text-decoration: underline;
-                transition: color 0.2s ease;
-              }
-              a:hover {
-                color: #1d4ed8;
-                text-decoration: none;
-              }
-              
-              /* Images with better handling */
-              img {
-                max-width: 100% !important;
+              /* Base container and body */
+              html, body {
+                width: 100% !important;
                 height: auto !important;
-                border-radius: 6px;
-                display: block;
-                margin: 12px auto;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                transition: opacity 0.3s ease;
+                margin: 0 !important;
+                padding: 0 !important;
+                isolation: isolate !important;
+                contain: layout style paint !important;
               }
               
-              /* Handle broken images */
-              img[src=""], img:not([src]), img[src*="cid:"] {
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                font-size: 15px !important;
+                line-height: 1.7 !important;
+                color: #2d3748 !important;
+                background: transparent !important;
+                padding: 24px !important;
+                overflow-wrap: break-word !important;
+                word-wrap: break-word !important;
+                word-break: break-word !important;
+                -webkit-font-smoothing: antialiased !important;
+                -moz-osx-font-smoothing: grayscale !important;
+                text-rendering: optimizeLegibility !important;
+              }
+              
+              .email-content {
+                max-width: 100% !important;
+                overflow: hidden !important;
+              }
+              
+              /* Typography with forced overrides */
+              p {
+                margin: 0 0 18px 0 !important;
+                padding: 0 !important;
+                line-height: 1.7 !important;
+                font-size: 15px !important;
+                color: #2d3748 !important;
+                font-family: inherit !important;
+              }
+              
+              p:last-child {
+                margin-bottom: 0 !important;
+              }
+              
+              p:empty {
+                margin: 0 !important;
                 display: none !important;
               }
               
-              /* Image error handling */
-              img::before {
-                content: "";
-                display: block;
-                width: 100%;
-                height: 100px;
-                background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-                border-radius: 6px;
-                position: relative;
+              h1, h2, h3, h4, h5, h6 {
+                margin: 24px 0 16px 0 !important;
+                padding: 0 !important;
+                font-weight: 600 !important;
+                line-height: 1.4 !important;
+                color: #1a202c !important;
+                font-family: inherit !important;
               }
               
-              /* Tables */
+              h1 { font-size: 28px !important; }
+              h2 { font-size: 24px !important; }
+              h3 { font-size: 20px !important; }
+              h4 { font-size: 18px !important; }
+              h5 { font-size: 16px !important; }
+              h6 { font-size: 15px !important; }
+              
+              /* Links */
+              a {
+                color: #3182ce !important;
+                text-decoration: underline !important;
+                transition: all 0.2s ease !important;
+                font-family: inherit !important;
+                word-break: break-all !important;
+              }
+              
+              a:hover {
+                color: #2c5282 !important;
+                text-decoration: none !important;
+              }
+              
+              /* Enhanced image handling */
+              img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                margin: 16px auto !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+                transition: all 0.3s ease !important;
+                border: none !important;
+                padding: 0 !important;
+              }
+              
+              /* Hide problematic images */
+              img[src=""], 
+              img:not([src]), 
+              img[src*="cid:"],
+              img[src*="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"],
+              img[width="1"],
+              img[height="1"],
+              img[style*="width: 1px"],
+              img[style*="height: 1px"],
+              img[style*="width:1px"],
+              img[style*="height:1px"] {
+                display: none !important;
+                visibility: hidden !important;
+              }
+              
+              /* Tables with better styling */
               table {
-                border-collapse: collapse;
-                width: 100%;
-                margin: 16px 0;
-                border-radius: 6px;
-                overflow: hidden;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                background: #ffffff;
+                border-collapse: collapse !important;
+                width: 100% !important;
+                margin: 20px 0 !important;
+                border-radius: 8px !important;
+                overflow: hidden !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+                background: #ffffff !important;
+                border: none !important;
+                font-family: inherit !important;
               }
               
               td, th {
-                padding: 12px 16px;
-                text-align: left;
-                border-bottom: 1px solid #f3f4f6;
-                vertical-align: top;
+                padding: 14px 18px !important;
+                text-align: left !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                vertical-align: top !important;
+                font-family: inherit !important;
+                font-size: 15px !important;
+                line-height: 1.6 !important;
               }
               
               th {
-                background: #f9fafb;
-                font-weight: 600;
-                color: #374151;
+                background: #f7fafc !important;
+                font-weight: 600 !important;
+                color: #2d3748 !important;
+                border-bottom: 2px solid #e2e8f0 !important;
               }
               
               tr:last-child td {
-                border-bottom: none;
+                border-bottom: none !important;
               }
               
-              tr:hover {
-                background: #f9fafb;
+              tr:nth-child(even) {
+                background: #f8f9fa !important;
               }
               
-              /* Lists */
+              /* Lists with proper spacing */
               ul, ol {
-                margin: 16px 0;
-                padding-left: 24px;
+                margin: 18px 0 !important;
+                padding-left: 28px !important;
+                font-family: inherit !important;
               }
               
               li {
-                margin-bottom: 8px;
-                line-height: 1.6;
+                margin-bottom: 8px !important;
+                line-height: 1.7 !important;
+                font-size: 15px !important;
+                color: #2d3748 !important;
+                font-family: inherit !important;
               }
               
-              /* Block elements */
+              li:last-child {
+                margin-bottom: 0 !important;
+              }
+              
+              /* Enhanced blockquotes */
               blockquote {
-                margin: 16px 0;
-                padding: 16px 20px;
-                border-left: 4px solid #3b82f6;
-                background: #f8fafc;
-                border-radius: 0 6px 6px 0;
-                font-style: italic;
-                color: #64748b;
+                margin: 24px 0 !important;
+                padding: 20px 24px !important;
+                border-left: 4px solid #4299e1 !important;
+                background: #ebf8ff !important;
+                border-radius: 0 8px 8px 0 !important;
+                font-style: italic !important;
+                color: #2b6cb0 !important;
+                font-family: inherit !important;
+                position: relative !important;
               }
               
-              /* Code blocks */
-              pre, code {
-                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-                background: #f1f5f9;
-                border-radius: 4px;
-                padding: 2px 6px;
-                font-size: 13px;
+              /* Code with better styling */
+              code {
+                font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+                background: #f1f5f9 !important;
+                border-radius: 4px !important;
+                padding: 3px 6px !important;
+                font-size: 13px !important;
+                color: #d63384 !important;
+                border: 1px solid #e2e8f0 !important;
               }
               
               pre {
-                padding: 16px;
-                margin: 16px 0;
-                overflow-x: auto;
-                border: 1px solid #e2e8f0;
+                font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+                background: #1a202c !important;
+                color: #e2e8f0 !important;
+                border-radius: 8px !important;
+                padding: 20px !important;
+                margin: 20px 0 !important;
+                overflow-x: auto !important;
+                border: none !important;
+                line-height: 1.6 !important;
+                font-size: 14px !important;
+              }
+              
+              pre code {
+                background: transparent !important;
+                color: inherit !important;
+                padding: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
               }
               
               /* Dividers */
               hr {
-                margin: 32px 0;
-                border: none;
-                height: 1px;
-                background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+                margin: 32px 0 !important;
+                border: none !important;
+                height: 2px !important;
+                background: linear-gradient(to right, transparent, #e2e8f0, transparent) !important;
+                border-radius: 2px !important;
               }
               
-              /* Email-specific elements */
-              .email-signature {
-                margin-top: 32px;
-                padding-top: 16px;
-                border-top: 1px solid #e5e7eb;
-                font-size: 13px;
-                color: #6b7280;
-              }
-              
-              /* Outlook/Exchange specific fixes */
-              div[style*="font-family"] {
+              /* Email signatures and footers */
+              .signature, 
+              div[style*="font-size: 12px"],
+              div[style*="font-size: 11px"],
+              div[style*="font-size:12px"],
+              div[style*="font-size:11px"] {
+                margin-top: 32px !important;
+                padding-top: 20px !important;
+                border-top: 1px solid #e2e8f0 !important;
+                font-size: 13px !important;
+                color: #718096 !important;
                 font-family: inherit !important;
               }
               
-              /* Hide tracking pixels and analytics */
-              img[width="1"], img[height="1"], img[style*="width:1px"], img[style*="height:1px"] {
+              /* Force override problematic inline styles */
+              [style*="font-family"],
+              [style*="font-size"],
+              [style*="color"],
+              [style*="background"] {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              }
+              
+              /* Fix Outlook and Exchange quirks */
+              o\\:p { display: none !important; }
+              .MsoNormal { margin: 0 !important; }
+              
+              /* Handle nested tables (common in email templates) */
+              table table {
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+              }
+              
+              table table td {
+                border: none !important;
+                background: transparent !important;
+              }
+              
+              /* Remove any remaining styling conflicts */
+              span[style] {
+                all: unset !important;
+                font-family: inherit !important;
+                color: inherit !important;
+                font-size: inherit !important;
+              }
+              
+              div[style] {
+                background: none !important;
+                font-family: inherit !important;
+              }
+              
+              /* Center content nicely */
+              center {
+                text-align: center !important;
+                width: 100% !important;
+              }
+              
+              /* Handle empty paragraphs and divs */
+              p:empty, div:empty {
                 display: none !important;
               }
               
-              /* Prevent any CSS from affecting parent */
-              html, body {
-                isolation: isolate;
-                contain: layout style paint;
-              }
-              
-              /* Hide or neutralize potentially problematic elements */
-              style, script, link[rel="stylesheet"] {
+              /* Ensure consistent spacing */
+              br + br {
                 display: none !important;
-              }
-              
-              /* Dark mode support */
-              @media (prefers-color-scheme: dark) {
-                body {
-                  background: #1f2937;
-                  color: #f3f4f6;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                  color: #ffffff;
-                }
-                table {
-                  background: #374151;
-                }
-                th {
-                  background: #4b5563;
-                  color: #f3f4f6;
-                }
-                tr:hover {
-                  background: #4b5563;
-                }
-                blockquote {
-                  background: #374151;
-                  color: #d1d5db;
-                }
-                pre, code {
-                  background: #374151;
-                  color: #f3f4f6;
-                }
               }
             </style>
           </head>
           <body>
             <div class="email-content">
-              ${content || '<p style="color: #6b7280; font-style: italic; text-align: center; margin-top: 40px;">No content available</p>'}
+              ${sanitizeContent(content) || '<p style="color: #718096; font-style: italic; text-align: center; margin-top: 40px;">No content available</p>'}
             </div>
           </body>
           </html>
