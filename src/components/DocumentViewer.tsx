@@ -143,23 +143,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-8">
-          <div className="bg-white shadow-xl rounded-lg overflow-hidden" style={{ 
-            width: '595px',  // A4 width at 72 DPI
-            height: '842px', // A4 height at 72 DPI
-            maxWidth: '90vw',
-            maxHeight: '80vh'
-          }}>
-            <img
-              src={previewUrl}
-              alt={document.name}
-              className="w-full h-full object-contain"
-              onError={() => {
-                console.error('Failed to load image preview');
-                setPreviewUrl(null);
-              }}
-            />
-          </div>
+        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-4">
+          <img
+            src={previewUrl}
+            alt={document.name}
+            className="max-w-full max-h-full object-contain rounded shadow-lg"
+            style={{ 
+              maxHeight: 'calc(95vh - 160px)',
+              maxWidth: 'calc(100vw - 100px)'
+            }}
+            onError={() => {
+              console.error('Failed to load image preview');
+              setPreviewUrl(null);
+            }}
+          />
         </div>
       );
     }
@@ -167,23 +164,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // PDF preview
     if (document.mime_type?.includes('pdf')) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-8">
-          <div className="bg-white shadow-xl rounded-lg overflow-hidden" style={{ 
-            width: '595px',  // A4 width at 72 DPI
-            height: '842px', // A4 height at 72 DPI
-            maxWidth: '90vw',
-            maxHeight: '80vh'
-          }}>
-            <iframe
-              src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH&zoom=100`}
-              className="w-full h-full border-0"
-              title={`Preview of ${document.name}`}
-              onError={() => {
-                console.error('Failed to load PDF preview');
-                setPreviewUrl(null);
-              }}
-            />
-          </div>
+        <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
+          <iframe
+            src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=0&view=Fit&zoom=page-fit`}
+            className="w-full h-full border-0 rounded shadow-lg"
+            style={{ 
+              height: 'calc(95vh - 160px)',
+              width: '100%'
+            }}
+            title={`Preview of ${document.name}`}
+            onError={() => {
+              console.error('Failed to load PDF preview');
+              setPreviewUrl(null);
+            }}
+          />
         </div>
       );
     }
@@ -192,43 +186,33 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (document.mime_type?.startsWith('text/') || 
         document.mime_type?.includes('plain')) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-8">
-          <div className="bg-white shadow-xl rounded-lg overflow-hidden" style={{ 
-            width: '595px',  // A4 width at 72 DPI
-            height: '842px', // A4 height at 72 DPI
-            maxWidth: '90vw',
-            maxHeight: '80vh'
-          }}>
-            <iframe
-              src={previewUrl}
-              className="w-full h-full border-0"
-              title={`Preview of ${document.name}`}
-            />
-          </div>
+        <div className="flex-1 bg-white rounded-lg border overflow-hidden">
+          <iframe
+            src={previewUrl}
+            className="w-full h-full border-0 rounded shadow-lg"
+            style={{ 
+              height: 'calc(95vh - 160px)',
+              width: '100%'
+            }}
+            title={`Preview of ${document.name}`}
+          />
         </div>
       );
     }
 
     // Other document types - show document info
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden p-8">
-        <div className="bg-white shadow-xl rounded-lg overflow-hidden p-8 text-center" style={{ 
-          width: '595px',  // A4 width at 72 DPI
-          height: '842px', // A4 height at 72 DPI
-          maxWidth: '90vw',
-          maxHeight: '80vh'
-        }}>
-          <div className="flex flex-col items-center justify-center h-full">
-            <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">{document.name}</h3>
-            <p className="text-gray-500 mb-4">
-              This file type cannot be previewed. Click download to open it with the appropriate application.
-            </p>
-            <Button onClick={handleDownload} className="gap-2">
-              <Download className="w-4 h-4" />
-              Download to View
-            </Button>
-          </div>
+      <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+        <div className="text-center max-w-sm">
+          <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">{document.name}</h3>
+          <p className="text-gray-500 mb-4">
+            This file type cannot be previewed. Click download to open it with the appropriate application.
+          </p>
+          <Button onClick={handleDownload} className="gap-2">
+            <Download className="w-4 h-4" />
+            Download to View
+          </Button>
         </div>
       </div>
     );
