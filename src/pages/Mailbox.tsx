@@ -627,14 +627,14 @@ const Mailbox = () => {
                       return (
                         <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
                           <div
-                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden h-16 ${
+                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start h-full">
+                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                               {/* Left side content */}
-                              <div className="min-w-0 space-y-1 overflow-hidden h-full flex flex-col justify-center">
+                              <div className="min-w-0 space-y-1 overflow-hidden">
                                 {/* Email address and unread badge */}
                                 <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
@@ -663,7 +663,7 @@ const Mailbox = () => {
                               </div>
                               
                               {/* Right side content */}
-                              <div className="flex flex-col items-end justify-between h-full flex-shrink-0 w-24">
+                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
