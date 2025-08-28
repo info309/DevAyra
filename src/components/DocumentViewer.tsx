@@ -137,18 +137,47 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    if (attachmentData && attachment) {
-      const link = document.createElement('a');
-      link.href = attachmentData;
-      link.download = attachment.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleDownload = async () => {
+    if (!attachment) return;
+
+    try {
+      // If we have a storage URL, fetch it and create a blob for download
+      if (attachmentData && attachmentData.startsWith('http')) {
+        const response = await fetch(attachmentData);
+        if (!response.ok) throw new Error('Failed to fetch file');
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = attachment.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the blob URL
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      } else if (attachmentData) {
+        // Direct blob URL download
+        const link = document.createElement('a');
+        link.href = attachmentData;
+        link.download = attachment.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
       
       toast({
         title: "Download Started",
         description: `Downloading ${attachment.filename}`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Could not download the file. Please try again.",
       });
     }
   };
