@@ -83,15 +83,36 @@ const Mailbox: React.FC = () => {
   // View state
   const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
   const [currentConversations, setCurrentConversations] = useState<Conversation[]>([]);
+  
+  // Cache for each view to improve performance
+  const [viewCache, setViewCache] = useState<{
+    inbox?: Conversation[];
+    sent?: Conversation[];
+    drafts?: Conversation[];
+  }>({});
+  const [viewLoading, setViewLoading] = useState<{
+    inbox: boolean;
+    sent: boolean;
+    drafts: boolean;
+  }>({ inbox: false, sent: false, drafts: false });
 
   // Draft editing state
   const [editingDraft, setEditingDraft] = useState<Email | null>(null);
 
   useEffect(() => {
     if (user) {
-      loadEmails();
+      loadEmailsForView();
     }
-  }, [user, currentView]);
+  }, [user]);
+
+  // Handle view switching with caching
+  useEffect(() => {
+    if (user && viewCache[currentView]) {
+      setCurrentConversations(viewCache[currentView]!);
+    } else if (user) {
+      loadEmailsForView();
+    }
+  }, [currentView]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -114,18 +135,21 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  const loadEmails = async (pageToken?: string | null) => {
-    if (!user) return;
+  const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
+    if (!user || viewLoading[view]) return;
 
     try {
+      setViewLoading(prev => ({ ...prev, [view]: true }));
       setEmailLoading(true);
+      
+      const query = view === 'inbox' ? 'in:inbox' : 
+                   view === 'sent' ? 'in:sent' : 
+                   'in:drafts';
       
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
           action: 'getEmails',
-          query: currentView === 'inbox' ? 'in:inbox' : 
-                 currentView === 'sent' ? 'in:sent' : 
-                 'in:drafts',
+          query,
           pageToken: pageToken || undefined
         }
       });
@@ -144,10 +168,17 @@ const Mailbox: React.FC = () => {
       
       if (pageToken) {
         // Append to existing conversations for pagination
-        setCurrentConversations(prev => [...prev, ...newConversations]);
+        const updatedConversations = [...(viewCache[view] || []), ...newConversations];
+        setViewCache(prev => ({ ...prev, [view]: updatedConversations }));
+        if (view === currentView) {
+          setCurrentConversations(updatedConversations);
+        }
       } else {
         // Replace conversations for initial load or refresh
-        setCurrentConversations(newConversations);
+        setViewCache(prev => ({ ...prev, [view]: newConversations }));
+        if (view === currentView) {
+          setCurrentConversations(newConversations);
+        }
         setConversations(newConversations);
       }
       
@@ -162,13 +193,19 @@ const Mailbox: React.FC = () => {
         variant: "destructive"
       });
     } finally {
+      setViewLoading(prev => ({ ...prev, [view]: false }));
       setEmailLoading(false);
     }
   };
 
+  const refreshCurrentView = () => {
+    setViewCache(prev => ({ ...prev, [currentView]: undefined }));
+    loadEmailsForView();
+  };
+
   const loadMoreEmails = () => {
-    if (currentPageToken && !emailLoading) {
-      loadEmails(currentPageToken);
+    if (currentPageToken && !emailLoading && !viewLoading[currentView]) {
+      loadEmailsForView(currentView, currentPageToken);
     }
   };
 
@@ -431,7 +468,7 @@ const Mailbox: React.FC = () => {
       setShowComposeDialog(false);
 
       // Refresh emails to show the sent email
-      loadEmails();
+      refreshCurrentView();
       
     } catch (error) {
       console.error('Error sending email:', error);
@@ -482,7 +519,7 @@ const Mailbox: React.FC = () => {
       setEditingDraft(null);
 
       // Refresh emails to show the updated draft
-      loadEmails();
+      refreshCurrentView();
       
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -646,7 +683,7 @@ const Mailbox: React.FC = () => {
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => loadEmails()} variant="outline" className="gap-2">
+            <Button onClick={() => refreshCurrentView()} variant="outline" className="gap-2">
               <RefreshCw className="w-4 h-4" />
               Refresh
             </Button>
