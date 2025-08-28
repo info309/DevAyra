@@ -29,7 +29,7 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             
             body {
               margin: 0;
-              padding: 16px;
+              padding: 0;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               font-size: 14px;
               line-height: 1.6;
@@ -96,22 +96,25 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               
               parent.postMessage({
                 type: 'resize',
-                height: Math.max(height, 100)
+                height: Math.max(height + 20, 100)
               }, '*');
             }
             
             // Initial height calculation
-            setTimeout(updateHeight, 100);
+            setTimeout(updateHeight, 50);
             
             // Watch for content changes (images loading, etc.)
-            const observer = new ResizeObserver(updateHeight);
-            observer.observe(document.body);
+            if (window.ResizeObserver) {
+              const observer = new ResizeObserver(updateHeight);
+              observer.observe(document.body);
+            }
             
             // Listen for image load events
             document.addEventListener('load', updateHeight, true);
+            document.addEventListener('DOMContentLoaded', updateHeight);
             
-            // Fallback periodic check
-            setInterval(updateHeight, 1000);
+            // Update on window resize
+            window.addEventListener('resize', updateHeight);
           </script>
         </body>
       </html>
@@ -148,17 +151,20 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
   }
 
   return (
-    <iframe
-      ref={iframeRef}
-      className={`w-full border-0 ${className}`}
-      style={{ 
-        height: `${iframeHeight}px`,
-        minHeight: '100px',
-        overflow: 'hidden'
-      }}
-      sandbox="allow-same-origin"
-      title="Email Content"
-    />
+    <div className={`email-renderer-container ${className}`}>
+      <iframe
+        ref={iframeRef}
+        className="w-full border-0 bg-transparent"
+        style={{ 
+          height: `${iframeHeight}px`,
+          minHeight: '60px',
+          overflow: 'hidden',
+          display: 'block'
+        }}
+        sandbox="allow-same-origin"
+        title="Email Content"
+      />
+    </div>
   );
 };
 

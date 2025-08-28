@@ -193,10 +193,12 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
             )}
 
             {/* Email Content */}
-            <IsolatedEmailRenderer 
-              content={email.content || ''}
-              className="rounded-lg border border-border"
-            />
+            <div className="space-y-4">
+              <IsolatedEmailRenderer 
+                content={email.content || ''}
+                className="w-full"
+              />
+            </div>
 
             {/* Separator between emails in thread */}
             {emailIndex < sortedEmails.length - 1 && (
