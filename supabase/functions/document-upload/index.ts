@@ -20,6 +20,8 @@ interface Database {
           tags: string[] | null;
           description: string | null;
           is_favorite: boolean;
+          is_folder: boolean;
+          folder_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -36,6 +38,8 @@ interface Database {
           tags?: string[] | null;
           description?: string | null;
           is_favorite?: boolean;
+          is_folder?: boolean;
+          folder_id?: string | null;
         };
       };
     };
@@ -89,6 +93,7 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string;
+    const folderId = formData.get('folderId') as string;
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
@@ -142,7 +147,9 @@ serve(async (req) => {
         mime_type: file.type,
         source_type: 'upload',
         category: category || null,
-        description: description || null
+        description: description || null,
+        is_folder: false,
+        folder_id: folderId || null
       })
       .select()
       .single();

@@ -252,8 +252,10 @@ export type Database = {
           description: string | null
           file_path: string
           file_size: number | null
+          folder_id: string | null
           id: string
           is_favorite: boolean | null
+          is_folder: boolean
           mime_type: string | null
           name: string
           source_email_id: string | null
@@ -269,8 +271,10 @@ export type Database = {
           description?: string | null
           file_path: string
           file_size?: number | null
+          folder_id?: string | null
           id?: string
           is_favorite?: boolean | null
+          is_folder?: boolean
           mime_type?: string | null
           name: string
           source_email_id?: string | null
@@ -286,8 +290,10 @@ export type Database = {
           description?: string | null
           file_path?: string
           file_size?: number | null
+          folder_id?: string | null
           id?: string
           is_favorite?: boolean | null
+          is_folder?: boolean
           mime_type?: string | null
           name?: string
           source_email_id?: string | null
@@ -297,7 +303,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "user_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
