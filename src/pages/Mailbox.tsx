@@ -634,26 +634,26 @@ const Mailbox = () => {
                           >
                             <div className="flex justify-between items-start gap-3">
                               {/* Left side content */}
-                              <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex-1 min-w-0 space-y-1 pr-2">
                                 {/* Email address and unread badge */}
                                 <div className="flex items-center gap-2">
-                                  <p className="font-medium text-sm truncate">
+                                  <p className="font-medium text-sm truncate flex-1 min-w-0">
                                     {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
                                   </p>
                                   {conversation.unreadCount > 0 && (
-                                    <Badge variant="default" className="text-xs px-2 py-0">
+                                    <Badge variant="default" className="text-xs px-2 py-0 flex-shrink-0">
                                       {conversation.unreadCount}
                                     </Badge>
                                   )}
                                 </div>
                                 
                                 {/* Subject */}
-                                <p className="text-xs text-muted-foreground truncate font-medium">
+                                <p className="text-xs text-muted-foreground truncate font-medium max-w-full overflow-hidden">
                                   {conversation.subject}
                                 </p>
                                 
-                                {/* Snippet */}
-                                <p className="text-xs text-muted-foreground/80 truncate">
+                                {/* Snippet with ellipsis */}
+                                <p className="text-xs text-muted-foreground/80 truncate max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
                                   {conversation.emails[0]?.snippet}
                                 </p>
                               </div>
