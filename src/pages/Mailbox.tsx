@@ -636,7 +636,7 @@ const Mailbox = () => {
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
               <CardDescription>
-                {conversations.length} conversations, {emails.length} total emails
+                {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
