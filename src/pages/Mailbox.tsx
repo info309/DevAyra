@@ -888,9 +888,9 @@ const Mailbox: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4">
         {/* Header with controls */}
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-4 mb-4">
           {/* Top row - Compose and Refresh buttons (mobile/tablet top right, desktop right) */}
           <div className="flex justify-end lg:justify-between lg:items-center">
             {/* View Toggle - Desktop left side */}
@@ -1192,7 +1192,7 @@ const Mailbox: React.FC = () => {
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-16rem)] w-full">
+              <ScrollArea className="h-[calc(100vh-12rem)] w-full">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
@@ -1388,7 +1388,7 @@ const Mailbox: React.FC = () => {
               <Card className="lg:col-span-2 min-w-0 overflow-hidden">
                 <CardContent className="p-0">
                   {selectedConversation ? (
-                    <div className="h-[calc(100vh-10rem)]">
+                    <div className="h-[calc(100vh-8rem)]">
                       <div className="p-6 border-b">
                         <div className="flex items-center justify-between mb-4">
                           <div>
@@ -1425,7 +1425,7 @@ const Mailbox: React.FC = () => {
                         </div>
                       </div>
                       
-                      <ScrollArea className="h-[calc(100vh-18rem)]">
+                      <ScrollArea className="h-[calc(100vh-14rem)]">
                         {selectedEmail ? (
                           // Show only the selected email
                           <EmailContent 
@@ -1447,7 +1447,7 @@ const Mailbox: React.FC = () => {
                       </ScrollArea>
                     </div>
                   ) : (
-                    <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
+                    <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
                       <div className="text-center">
                         <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                         <h3 className="text-lg font-medium mb-2">No email selected</h3>
