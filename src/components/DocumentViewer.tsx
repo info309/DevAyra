@@ -149,8 +149,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             alt={document.name}
             className="max-w-full max-h-full object-contain rounded shadow-lg"
             style={{ 
-              maxHeight: '400px',
-              maxWidth: '100%'
+              maxHeight: '250px',
+              maxWidth: 'calc(100vw - 60px)'
             }}
             onError={() => {
               console.error('Failed to load image preview');
@@ -169,8 +169,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitV&zoom=page-width`}
             className="w-full h-full border-0"
             style={{ 
-              height: '400px',
-              width: '100%'
+              height: '250px',
+              width: 'calc(100vw - 60px)'
             }}
             title={`Preview of ${document.name}`}
             onError={() => {
@@ -191,8 +191,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             src={previewUrl}
             className="w-full h-full border-0"
             style={{ 
-              height: '400px',
-              width: '100%'
+              height: '250px',
+              width: 'calc(100vw - 60px)'
             }}
             title={`Preview of ${document.name}`}
           />
@@ -222,7 +222,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="h-[95vh] w-full max-w-none mx-auto">
+      <DrawerContent className="h-[85vh] md:h-[95vh] w-full max-w-none mx-auto">
         <DrawerHeader className="border-b px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="p-4 overflow-hidden bg-gray-50" style={{ height: '500px' }}>
+        <div className="p-3 overflow-hidden bg-gray-50" style={{ height: '300px' }}>
           <div className="w-full h-full">
             {renderPreview()}
           </div>
