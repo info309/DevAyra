@@ -519,7 +519,7 @@ const Mailbox: React.FC = () => {
     try {
       setSendingEmail(true);
       
-      const { error } = await supabase.functions.invoke('gmail-api', {
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
           action: 'sendEmail',
           to: composeForm.to,
@@ -545,12 +545,59 @@ const Mailbox: React.FC = () => {
         description: "Email sent successfully!"
       });
 
+      // If this was a reply to an existing conversation, add the sent email to the local state
+      if (composeForm.threadId && selectedConversation && data?.sentMessage) {
+        const sentEmail: Email = {
+          id: data.sentMessage.id || `temp-${Date.now()}`,
+          threadId: composeForm.threadId,
+          snippet: composeForm.content.substring(0, 100) + (composeForm.content.length > 100 ? '...' : ''),
+          subject: composeForm.subject,
+          from: user.email || 'me',
+          to: composeForm.to,
+          date: new Date().toISOString(),
+          content: composeForm.content,
+          unread: false,
+          attachments: []
+        };
+
+        // Update the selected conversation with the new email
+        const updatedConversation = {
+          ...selectedConversation,
+          emails: [...selectedConversation.emails, sentEmail],
+          messageCount: selectedConversation.messageCount + 1,
+          lastDate: sentEmail.date
+        };
+
+        setSelectedConversation(updatedConversation);
+
+        // Update the conversations list
+        setCurrentConversations(prev => 
+          prev.map(conv => 
+            conv.id === composeForm.threadId 
+              ? updatedConversation
+              : conv
+          )
+        );
+
+        // Update the view cache
+        setViewCache(prev => ({
+          ...prev,
+          [currentView]: prev[currentView]?.map(conv => 
+            conv.id === composeForm.threadId 
+              ? updatedConversation
+              : conv
+          )
+        }));
+      }
+
       // Reset form and close dialog
       setComposeForm({ to: '', subject: '', content: '' });
       setShowComposeDialog(false);
 
-      // Refresh emails to show the sent email
-      refreshCurrentView();
+      // Only refresh if it wasn't a reply (for new emails or if we couldn't update locally)
+      if (!composeForm.threadId) {
+        refreshCurrentView();
+      }
       
     } catch (error) {
       console.error('Error sending email:', error);

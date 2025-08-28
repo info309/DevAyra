@@ -763,15 +763,34 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('To, subject, and content are required');
         }
 
-        const email = [
+        // Check if this is a reply (has threadId)
+        const isReply = threadId && threadId.length > 0;
+        
+        // Create email with proper headers
+        const headers: string[] = [
           `To: ${to}`,
           `Subject: ${subject}`,
           'Content-Type: text/html; charset=utf-8',
-          '',
-          content
-        ].join('\n');
+        ];
 
+        // Add threading headers if this is a reply
+        if (isReply && replyTo) {
+          headers.push(`In-Reply-To: <${replyTo}@gmail.com>`);
+          headers.push(`References: <${replyTo}@gmail.com>`);
+        }
+
+        const email = [...headers, '', content].join('\n');
         const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        // Prepare request body
+        const requestBody: any = {
+          raw: encodedEmail
+        };
+
+        // Add threadId for replies to ensure proper threading
+        if (isReply) {
+          requestBody.threadId = threadId;
+        }
 
         const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
           method: 'POST',
@@ -779,18 +798,27 @@ const handler = async (req: Request): Promise<Response> => {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            raw: encodedEmail
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to send email');
+          const errorText = await response.text();
+          console.error('Failed to send email:', response.status, errorText);
+          throw new Error(`Failed to send email: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Successfully sent email:', result.id);
 
-        return new Response(JSON.stringify({ success: true, messageId: result.id }), {
+        // Return success with message data for local state update
+        return new Response(JSON.stringify({ 
+          success: true, 
+          messageId: result.id,
+          sentMessage: {
+            id: result.id,
+            threadId: result.threadId || threadId
+          }
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
