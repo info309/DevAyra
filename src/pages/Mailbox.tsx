@@ -674,8 +674,8 @@ const Mailbox: React.FC = () => {
     // Clean the original email content by removing HTML wrapper and converting to plain text
     const cleanContent = cleanEmailContentForReply(email.content || '');
 
-    // Format the original email content for quoting with proper HTML formatting for Gmail
-    const quotedContent = `<br><br><br><br><br><br>--- Original Message ---<br>From: ${email.from}<br>Date: ${email.date}<br>Subject: ${email.subject}<br><br>${cleanContent.replace(/\n/g, '<br>')}`;
+    // Format the original email content for quoting with plain text line breaks for textarea
+    const quotedContent = `\n\n\n\n\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
 
     setComposeForm({
       to: replyToEmail,

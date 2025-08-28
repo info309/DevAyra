@@ -766,6 +766,9 @@ const handler = async (req: Request): Promise<Response> => {
         // Check if this is a reply (has threadId)
         const isReply = threadId && threadId.length > 0;
         
+        // Convert plain text line breaks to HTML for Gmail
+        const htmlContent = content.replace(/\n/g, '<br>');
+        
         // Create email with proper headers
         const headers: string[] = [
           `To: ${to}`,
@@ -779,7 +782,7 @@ const handler = async (req: Request): Promise<Response> => {
           headers.push(`References: <${replyTo}@gmail.com>`);
         }
 
-        const email = [...headers, '', content].join('\n');
+        const email = [...headers, '', htmlContent].join('\n');
         const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
         // Prepare request body
