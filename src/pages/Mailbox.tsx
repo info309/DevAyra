@@ -983,42 +983,6 @@ const Mailbox: React.FC = () => {
                               }));
                             }}
                           />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => document.getElementById('attachments')?.click()}
-                            className="gap-2"
-                          >
-                            <Paperclip className="w-4 h-4" />
-                            Add Files
-                          </Button>
-                          
-                          {/* Document Picker */}
-                          <DocumentPicker
-                            onDocumentsSelected={(documents) => {
-                              setComposeForm(prev => ({
-                                ...prev,
-                                documentAttachments: documents
-                              }));
-                            }}
-                            selectedDocuments={composeForm.documentAttachments || []}
-                            trigger={
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                              >
-                                <FolderOpen className="w-4 h-4" />
-                                From Documents
-                              </Button>
-                            }
-                          />
-                          
-                          <span className="text-xs text-muted-foreground">
-                            Max 25MB per file
-                          </span>
                         </div>
 
                         {/* File Attachments */}
@@ -1093,24 +1057,61 @@ const Mailbox: React.FC = () => {
                     </div>
                   </div>
                   <DrawerFooter>
-                    <div className="flex gap-2 justify-end">
-                      <Button variant="outline" onClick={() => {
-                        setShowComposeDialog(false);
-                        setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
-                      }}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={sendEmail}
-                        disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                        className="gap-2"
-                      >
-                        <Send className="w-4 h-4" />
-                        {sendingEmail ? 'Sending...' : 
-                         `Send${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0) > 0 
-                           ? ` (${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)} attachment${((composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)) !== 1 ? 's' : ''})`
-                           : ''}`}
-                      </Button>
+                    <div className="flex gap-2 justify-between">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('attachments')?.click()}
+                          className="gap-2"
+                        >
+                          <Paperclip className="w-4 h-4" />
+                          Add Files
+                        </Button>
+                        
+                        {/* Document Picker */}
+                        <DocumentPicker
+                          onDocumentsSelected={(documents) => {
+                            setComposeForm(prev => ({
+                              ...prev,
+                              documentAttachments: documents
+                            }));
+                          }}
+                          selectedDocuments={composeForm.documentAttachments || []}
+                          trigger={
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                            >
+                              <FolderOpen className="w-4 h-4" />
+                              From Documents
+                            </Button>
+                          }
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => {
+                          setShowComposeDialog(false);
+                          setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={sendEmail}
+                          disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                          className="gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          {sendingEmail ? 'Sending...' : 
+                           `Send${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0) > 0 
+                             ? ` (${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)} attachment${((composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)) !== 1 ? 's' : ''})`
+                             : ''}`}
+                        </Button>
+                      </div>
                     </div>
                   </DrawerFooter>
                 </DrawerContent>
