@@ -117,8 +117,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     await refreshTokenIfNeeded();
 
-    // Helper functions for decoding
-    const base64UrlDecode = (str: string): string => {
+    // Helper functions for advanced decoding
+    const base64UrlDecode = (str: string): Uint8Array => {
       try {
         // Convert Base64URL to Base64
         let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -128,10 +128,16 @@ const handler = async (req: Request): Promise<Response> => {
           base64 += '=';
         }
         
-        return atob(base64);
+        // Decode to bytes
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
       } catch (error) {
         console.error('Base64URL decode error:', error);
-        return str;
+        return new TextEncoder().encode(str);
       }
     };
 
@@ -139,21 +145,80 @@ const handler = async (req: Request): Promise<Response> => {
       if (!str) return '';
       
       try {
-        return str
-          // Decode =XX hex sequences
-          .replace(/=([0-9A-F]{2})/gi, (match, hex) => {
-            return String.fromCharCode(parseInt(hex, 16));
-          })
-          // Remove soft line breaks
-          .replace(/=\r?\n/g, '')
-          // Clean up common artifacts
-          .replace(/=3D/g, '=')
-          .replace(/=20/g, ' ')
-          .replace(/=\s*$/gm, '');
+        let decoded = str;
+        
+        // Decode =XX hex sequences
+        decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, hex) => {
+          return String.fromCharCode(parseInt(hex, 16));
+        });
+        
+        // Remove soft line breaks (= at end of line)
+        decoded = decoded.replace(/=[\r\n]+/g, '');
+        decoded = decoded.replace(/=$/gm, '');
+        
+        return decoded;
       } catch (error) {
         console.error('Quoted-printable decode error:', error);
         return str;
       }
+    };
+
+    const detectAndDecodeContent = (bodyData: string, headers: any[]): string => {
+      if (!bodyData) return '';
+      
+      // Get Content-Transfer-Encoding header
+      const encodingHeader = headers.find(
+        (h: any) => h.name.toLowerCase() === 'content-transfer-encoding'
+      );
+      const encoding = encodingHeader?.value?.toLowerCase() || 'base64';
+      
+      try {
+        // Step 1: Always decode from Base64URL first (Gmail format)
+        const decodedBytes = base64UrlDecode(bodyData);
+        let decodedString = new TextDecoder('utf-8').decode(decodedBytes);
+        
+        // Step 2: Apply additional decoding based on Content-Transfer-Encoding
+        if (encoding === 'quoted-printable') {
+          decodedString = decodeQuotedPrintable(decodedString);
+        } else if (encoding === '7bit' || encoding === '8bit') {
+          // Already decoded, no additional processing needed
+        }
+        
+        // Step 3: Fix common encoding issues
+        decodedString = fixCommonEncodingIssues(decodedString);
+        
+        return decodedString;
+      } catch (error) {
+        console.error('Content decode error:', error);
+        // Fallback to simple base64url decode
+        try {
+          const fallbackBytes = base64UrlDecode(bodyData);
+          return new TextDecoder('utf-8').decode(fallbackBytes);
+        } catch (fallbackError) {
+          console.error('Fallback decode error:', fallbackError);
+          return bodyData;
+        }
+      }
+    };
+
+    const fixCommonEncodingIssues = (str: string): string => {
+      if (!str) return '';
+      
+      return str
+        // Fix common UTF-8 encoding issues
+        .replace(/â€™/g, "'") // Right single quotation mark
+        .replace(/â€œ/g, '"') // Left double quotation mark  
+        .replace(/â€/g, '"') // Right double quotation mark
+        .replace(/â€¦/g, '…') // Horizontal ellipsis
+        .replace(/â€"/g, '–') // En dash
+        .replace(/â€"/g, '—') // Em dash
+        .replace(/Â /g, ' ') // Non-breaking space issues
+        .replace(/Â­/g, '') // Soft hyphen
+        .replace(/â\s/g, '') // Orphaned â characters
+        // Fix other common issues
+        .replace(/=\r?\n/g, '') // Remove quoted-printable line breaks
+        .replace(/\r\n/g, '\n') // Normalize line endings
+        .replace(/\r/g, '\n'); // Convert remaining \r to \n
     };
 
     const processEmailContent = (payload: any): { content: string; attachments: ProcessedAttachment[] } => {
@@ -162,7 +227,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attachments: ProcessedAttachment[] = [];
 
       const processPart = (part: any) => {
-        const { mimeType, filename, body, parts } = part;
+        const { mimeType, filename, body, parts, headers = [] } = part;
 
         // Handle attachments
         if (filename && filename.length > 0 && body?.attachmentId) {
@@ -175,15 +240,20 @@ const handler = async (req: Request): Promise<Response> => {
           return;
         }
 
+        // Handle inline images
+        if (mimeType && mimeType.startsWith('image/') && body?.attachmentId) {
+          attachments.push({
+            filename: filename || `inline-image.${mimeType.split('/')[1]}`,
+            mimeType: mimeType,
+            size: body.size || 0,
+            attachmentId: body.attachmentId
+          });
+          return;
+        }
+
         // Handle content parts
         if (body?.data) {
-          const rawContent = base64UrlDecode(body.data);
-          let decodedContent = rawContent;
-          
-          // Apply quoted-printable decoding if needed
-          if (rawContent.includes('=20') || rawContent.includes('=3D') || rawContent.includes('=\n')) {
-            decodedContent = decodeQuotedPrintable(rawContent);
-          }
+          const decodedContent = detectAndDecodeContent(body.data, headers);
 
           if (mimeType === 'text/html') {
             htmlContent += decodedContent;
@@ -192,7 +262,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Process nested parts
+        // Process nested parts recursively
         if (parts && Array.isArray(parts)) {
           parts.forEach(processPart);
         }
@@ -205,23 +275,33 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Convert plain text to HTML if no HTML version exists
       if (!htmlContent && textContent) {
-        finalContent = textContent
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br>')
-          .replace(/\r/g, '');
+        finalContent = convertPlainTextToHtml(textContent);
       }
 
-      // Clean and sanitize HTML
+      // Clean and enhance HTML
       if (finalContent) {
-        finalContent = cleanHtmlContent(finalContent);
+        finalContent = cleanAndEnhanceHtml(finalContent);
       }
 
       return { content: finalContent, attachments };
     };
 
-    const cleanHtmlContent = (html: string): string => {
+    const convertPlainTextToHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>')
+        // Convert URLs to links
+        .replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
+    };
+
+    const cleanAndEnhanceHtml = (html: string): string => {
       if (!html) return '';
       
       let cleaned = html;
@@ -231,29 +311,59 @@ const handler = async (req: Request): Promise<Response> => {
       cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
       cleaned = cleaned.replace(/xmlns[^=]*="[^"]*"/gi, '');
       
-      // Remove tracking pixels
+      // Remove tracking pixels and 1x1 images
       cleaned = cleaned.replace(/<img[^>]*width=["']1["'][^>]*height=["']1["'][^>]*>/gi, '');
       cleaned = cleaned.replace(/<img[^>]*height=["']1["'][^>]*width=["']1["'][^>]*>/gi, '');
       
-      // Fix malformed URLs and make links functional
-      cleaned = cleaned.replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      // Fix broken image tags and make them responsive
+      cleaned = cleaned.replace(/<img([^>]*?)>/gi, (match, attrs) => {
+        // Ensure images have proper styling
+        if (!attrs.includes('style=')) {
+          attrs += ' style="max-width: 100%; height: auto; display: block;"';
+        }
+        if (!attrs.includes('loading=')) {
+          attrs += ' loading="lazy"';
+        }
+        return `<img${attrs}>`;
       });
       
-      // Ensure all existing links have proper attributes
-      cleaned = cleaned.replace(/<a([^>]*href=["'][^"']*["'][^>]*)>/gi, (match, attrs) => {
+      // Enhance links with proper attributes
+      cleaned = cleaned.replace(/<a([^>]*?)>/gi, (match, attrs) => {
         if (!attrs.includes('target=')) {
-          attrs += ' target="_blank" rel="noopener noreferrer"';
+          attrs += ' target="_blank"';
+        }
+        if (!attrs.includes('rel=')) {
+          attrs += ' rel="noopener noreferrer"';
+        }
+        // Add link styling
+        if (!attrs.includes('style=')) {
+          attrs += ' style="color: hsl(var(--primary)); text-decoration: underline;"';
         }
         return `<a${attrs}>`;
       });
       
-      // Clean up whitespace and formatting artifacts
+      // Convert standalone URLs to links
+      cleaned = cleaned.replace(
+        /(?<!href=["']|src=["'])(https?:\/\/[^\s<>"'\)]+)/gi,
+        '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: hsl(var(--primary)); text-decoration: underline;">$1</a>'
+      );
+      
+      // Clean up excessive whitespace
       cleaned = cleaned.replace(/\s+/g, ' ');
       cleaned = cleaned.replace(/>\s+</g, '><');
       
-      // Wrap in container for consistent styling
-      cleaned = `<div style="max-width: 100%; word-wrap: break-word; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;">${cleaned}</div>`;
+      // Wrap in styled container
+      cleaned = `
+        <div style="
+          max-width: 100%; 
+          word-wrap: break-word; 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+          line-height: 1.6; 
+          color: hsl(var(--foreground));
+        ">
+          ${cleaned}
+        </div>
+      `;
       
       return cleaned.trim();
     };
