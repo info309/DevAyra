@@ -938,19 +938,6 @@ const Mailbox: React.FC = () => {
 
             {/* Action Controls - Right side on all screens */}
             <div className="flex gap-2">
-              {/* Desktop search */}
-              <div className="relative hidden lg:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search emails..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-64 pl-10"
-                autoComplete="off"
-                name="email-search"
-              />
-              </div>
               
               <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4" />
@@ -1202,6 +1189,22 @@ const Mailbox: React.FC = () => {
                 Sent
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Search Section */}
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search emails..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-full pl-10"
+              autoComplete="off"
+              name="email-search"
+            />
           </div>
         </div>
 
