@@ -893,10 +893,7 @@ const Mailbox: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
-                Conversations
-                {filteredConversations.length > 0 && (
-                  <Badge variant="secondary">{filteredConversations.length}</Badge>
-                )}
+                {currentView === 'inbox' ? 'Inbox' : 'Sent'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
