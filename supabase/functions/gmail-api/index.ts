@@ -218,7 +218,7 @@ const handler = async (req: Request): Promise<Response> => {
               .replace(/=C2=A0/g, ' ') // Non-breaking space
               .replace(/=E2=80=93/g, '–') // En dash
               .replace(/=E2=80=94/g, '—') // Em dash
-              .replace(/=E2=80=99/g, ''') // Right single quotation mark
+              .replace(/=E2=80=99/g, "'") // Right single quotation mark
               .replace(/=E2=80=9C/g, '"') // Left double quotation mark
               .replace(/=E2=80=9D/g, '"') // Right double quotation mark
               .replace(/=E2=80=A6/g, '…') // Horizontal ellipsis
