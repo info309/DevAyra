@@ -25,6 +25,8 @@ interface Email {
   date: string;
   unread: boolean;
   content?: string;
+  isDraft?: boolean;
+  draftId?: string;
   attachments?: Array<{
     filename: string;
     mimeType: string;
@@ -65,11 +67,17 @@ const Mailbox = () => {
   const [emailLoading, setEmailLoading] = useState(false);
   
   // Current view and sent email states
-  const [currentView, setCurrentView] = useState<'inbox' | 'sent'>('inbox');
+  const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
   const [sentEmails, setSentEmails] = useState<Email[]>([]);
   const [sentConversations, setSentConversations] = useState<Conversation[]>([]);
   const [sentPageToken, setSentPageToken] = useState<string | null>(null);
   const [allSentEmailsLoaded, setAllSentEmailsLoaded] = useState(false);
+  
+  // Draft states
+  const [draftEmails, setDraftEmails] = useState<Email[]>([]);
+  const [draftConversations, setDraftConversations] = useState<Conversation[]>([]);
+  const [draftPageToken, setDraftPageToken] = useState<string | null>(null);
+  const [allDraftsLoaded, setAllDraftsLoaded] = useState(false);
   
   const [composeOpen, setComposeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,6 +95,10 @@ const Mailbox = () => {
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Email | null>(null);
   const [replyConversation, setReplyConversation] = useState<Conversation | null>(null);
+  
+  // Draft editing state
+  const [editingDraft, setEditingDraft] = useState<Email | null>(null);
+  const [draftEditOpen, setDraftEditOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -102,7 +114,7 @@ const Mailbox = () => {
   }, [connections, currentView]);
 
   // Switch view handler
-  const handleViewChange = (view: 'inbox' | 'sent') => {
+  const handleViewChange = (view: 'inbox' | 'sent' | 'drafts') => {
     setCurrentView(view);
     setSelectedConversation(null);
     setSelectedEmail(null);
@@ -110,10 +122,10 @@ const Mailbox = () => {
   };
 
   // Get current data based on view
-  const currentEmails = currentView === 'sent' ? sentEmails : emails;
-  const currentConversations = currentView === 'sent' ? sentConversations : conversations;
-  const currentPageToken = currentView === 'sent' ? sentPageToken : nextPageToken;
-  const currentAllEmailsLoaded = currentView === 'sent' ? allSentEmailsLoaded : allEmailsLoaded;
+  const currentEmails = currentView === 'sent' ? sentEmails : currentView === 'drafts' ? draftEmails : emails;
+  const currentConversations = currentView === 'sent' ? sentConversations : currentView === 'drafts' ? draftConversations : conversations;
+  const currentPageToken = currentView === 'sent' ? sentPageToken : currentView === 'drafts' ? draftPageToken : nextPageToken;
+  const currentAllEmailsLoaded = currentView === 'sent' ? allSentEmailsLoaded : currentView === 'drafts' ? allDraftsLoaded : allEmailsLoaded;
 
   const fetchGmailConnections = async () => {
     try {
@@ -231,6 +243,8 @@ const Mailbox = () => {
       setConversations([]);
       setSentEmails([]);
       setSentConversations([]);
+      setDraftEmails([]);
+      setDraftConversations([]);
       setSelectedConversation(null);
       setSelectedEmail(null);
 
@@ -250,17 +264,17 @@ const Mailbox = () => {
     setLoading(false);
   };
 
-  const fetchEmails = async (searchQuery?: string, loadMore = false, viewType: 'inbox' | 'sent' = 'inbox') => {
+  const fetchEmails = async (searchQuery?: string, loadMore = false, viewType: 'inbox' | 'sent' | 'drafts' = 'inbox') => {
     if (!user || connections.length === 0) return;
     
     setEmailLoading(true);
     try {
-      const action = searchQuery ? 'search' : (viewType === 'sent' ? 'sent' : 'list');
+      const action = searchQuery ? 'search' : (viewType === 'sent' ? 'sent' : viewType === 'drafts' ? 'drafts' : 'list');
       const requestBody = {
         action,
         userId: user.id,
         maxResults: 100, // Load more emails at once
-        pageToken: loadMore ? (viewType === 'sent' ? sentPageToken : nextPageToken) : undefined,
+        pageToken: loadMore ? (viewType === 'sent' ? sentPageToken : viewType === 'drafts' ? draftPageToken : nextPageToken) : undefined,
         query: searchQuery,
         mailbox: viewType
       };
@@ -286,6 +300,19 @@ const Mailbox = () => {
         const allSentEmails = loadMore ? [...sentEmails, ...newEmails] : newEmails;
         const conversations = groupEmailsIntoConversations(allSentEmails);
         setSentConversations(conversations);
+      } else if (viewType === 'drafts') {
+        if (loadMore) {
+          setDraftEmails(prev => [...prev, ...newEmails]);
+        } else {
+          setDraftEmails(newEmails);
+        }
+        setDraftPageToken(data.nextPageToken || null);
+        setAllDraftsLoaded(!data.nextPageToken);
+        
+        // Group draft emails into conversations
+        const allDraftEmails = loadMore ? [...draftEmails, ...newEmails] : newEmails;
+        const conversations = groupEmailsIntoConversations(allDraftEmails);
+        setDraftConversations(conversations);
       } else {
         if (loadMore) {
           setEmails(prev => [...prev, ...newEmails]);
@@ -395,6 +422,8 @@ const Mailbox = () => {
   const loadMoreEmails = async () => {
     const isLoadingMore = currentView === 'sent' ? 
       (!sentPageToken || allSentEmailsLoaded) : 
+      currentView === 'drafts' ?
+      (!draftPageToken || allDraftsLoaded) :
       (!nextPageToken || allEmailsLoaded);
     
     if (isLoadingMore) return;
@@ -425,6 +454,18 @@ const Mailbox = () => {
         
         // Update sent conversations as well
         setSentConversations(prev => prev.map(conv => ({
+          ...conv,
+          emails: conv.emails.map(email =>
+            email.id === emailId ? { ...email, ...emailWithContent } : email
+          )
+        })));
+      } else if (currentView === 'drafts') {
+        setDraftEmails(prev => prev.map(email => 
+          email.id === emailId ? { ...email, ...emailWithContent } : email
+        ));
+        
+        // Update draft conversations as well
+        setDraftConversations(prev => prev.map(conv => ({
           ...conv,
           emails: conv.emails.map(email =>
             email.id === emailId ? { ...email, ...emailWithContent } : email
@@ -500,7 +541,7 @@ const Mailbox = () => {
     }
 
     // Update local state for current view
-    const updateConversations = currentView === 'sent' ? setSentConversations : setConversations;
+    const updateConversations = currentView === 'sent' ? setSentConversations : currentView === 'drafts' ? setDraftConversations : setConversations;
     
     updateConversations(prev => prev.map(conv => {
       if (conv.id === conversationId) {
@@ -538,7 +579,7 @@ const Mailbox = () => {
     }
 
     // Update local state for current view
-    const updateConversations = currentView === 'sent' ? setSentConversations : setConversations;
+    const updateConversations = currentView === 'sent' ? setSentConversations : currentView === 'drafts' ? setDraftConversations : setConversations;
     
     updateConversations(prev => prev.map(conv => {
       if (conv.id === conversation.id) {
@@ -663,6 +704,122 @@ const Mailbox = () => {
     setLoading(false);
   };
 
+  const saveDraft = async () => {
+    if (!user || !to || !subject || !body) {
+      toast({
+        variant: "destructive",
+        title: "Error", 
+        description: "Please fill in all fields"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'saveDraft',
+          userId: user.id,
+          to,
+          subject,
+          body,
+          draftId: editingDraft?.draftId // Include draft ID if editing existing draft
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Draft saved successfully"
+      });
+
+      // Reset form
+      setTo('');
+      setSubject('');
+      setBody('');
+      setComposeOpen(false);
+      setDraftEditOpen(false);
+      setEditingDraft(null);
+
+      // Refresh drafts
+      fetchEmails(undefined, false, 'drafts');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to save draft: ${error.message}`
+      });
+    }
+    setLoading(false);
+  };
+
+  const editDraft = (email: Email) => {
+    setEditingDraft(email);
+    setTo(email.to || '');
+    setSubject(email.subject || '');
+    setBody(email.content || '');
+    setDraftEditOpen(true);
+  };
+
+  const sendDraftAsEmail = async () => {
+    if (!user || !editingDraft || !to || !subject || !body) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all fields"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // First delete the draft
+      await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'deleteDraft',
+          userId: user.id,
+          draftId: editingDraft.draftId
+        }
+      });
+
+      // Then send as regular email
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body: {
+          action: 'send',
+          userId: user.id,
+          to,
+          subject,
+          body
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Email sent successfully"
+      });
+
+      // Reset form
+      setTo('');
+      setSubject('');
+      setBody('');
+      setDraftEditOpen(false);
+      setEditingDraft(null);
+
+      // Refresh current view
+      fetchEmails(undefined, false, currentView);
+    } catch (error: any) {
+      toast({
+        variant: "destructive", 
+        title: "Error",
+        description: `Failed to send email: ${error.message}`
+      });
+    }
+    setLoading(false);
+  };
+
   const deleteEmail = async (emailId: string, conversationId: string) => {
     if (!user) return;
 
@@ -686,6 +843,24 @@ const Mailbox = () => {
       if (currentView === 'sent') {
         setSentEmails(prev => prev.filter(email => email.id !== emailId));
         setSentConversations(prev => prev.map(conv => {
+          if (conv.id === conversationId) {
+            const updatedEmails = conv.emails.filter(email => email.id !== emailId);
+            if (updatedEmails.length === 0) {
+              return null; // Remove conversation if no emails left
+            }
+            return {
+              ...conv,
+              emails: updatedEmails,
+              messageCount: updatedEmails.length,
+              unreadCount: updatedEmails.filter(email => email.unread).length,
+              lastDate: updatedEmails[updatedEmails.length - 1]?.date || conv.lastDate
+            };
+          }
+          return conv;
+        }).filter(Boolean) as Conversation[]);
+      } else if (currentView === 'drafts') {
+        setDraftEmails(prev => prev.filter(email => email.id !== emailId));
+        setDraftConversations(prev => prev.map(conv => {
           if (conv.id === conversationId) {
             const updatedEmails = conv.emails.filter(email => email.id !== emailId);
             if (updatedEmails.length === 0) {
@@ -741,6 +916,53 @@ const Mailbox = () => {
     }
   };
 
+  const deleteConversation = async (conversation: Conversation) => {
+    if (!user) return;
+
+    try {
+      // Delete all emails in the conversation
+      for (const email of conversation.emails) {
+        await supabase.functions.invoke('gmail-api', {
+          body: {
+            action: 'delete',
+            userId: user.id,
+            messageId: email.id
+          }
+        });
+      }
+
+      toast({
+        title: "Conversation Deleted",
+        description: `All ${conversation.emails.length} emails in this conversation have been permanently deleted from Gmail`
+      });
+
+      // Remove conversation from local state for current view
+      if (currentView === 'sent') {
+        setSentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+        setSentEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
+      } else if (currentView === 'drafts') {
+        setDraftConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+        setDraftEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
+      } else {
+        setConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+        setEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
+      }
+
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation?.id === conversation.id) {
+        setSelectedConversation(null);
+        setSelectedEmail(null);
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to delete conversation: ${error.message}`
+      });
+    }
+  };
+
   const handleReplyClick = (email: Email, conversation: Conversation) => {
     // Extract sender's email address from the "from" field
     const fromMatch = email.from.match(/<(.+?)>/);
@@ -768,49 +990,6 @@ const Mailbox = () => {
     setReplyingTo(email);
     setReplyConversation(conversation);
     setReplyOpen(true);
-  };
-
-  const deleteConversation = async (conversation: Conversation) => {
-
-    try {
-      // Delete all emails in the conversation
-      for (const email of conversation.emails) {
-        await supabase.functions.invoke('gmail-api', {
-          body: {
-            action: 'delete',
-            userId: user.id,
-            messageId: email.id
-          }
-        });
-      }
-
-      toast({
-        title: "Conversation Deleted",
-        description: `All ${conversation.emails.length} emails in this conversation have been permanently deleted from Gmail`
-      });
-
-      // Remove conversation from local state for current view
-      if (currentView === 'sent') {
-        setSentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-        setSentEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
-      } else {
-        setConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-        setEmails(prev => prev.filter(email => !conversation.emails.some(convEmail => convEmail.id === email.id)));
-      }
-
-      // Clear selection if deleted conversation was selected
-      if (selectedConversation?.id === conversation.id) {
-        setSelectedConversation(null);
-        setSelectedEmail(null);
-      }
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to delete conversation: ${error.message}`
-      });
-    }
   };
 
   // Filter conversations based on unread status
@@ -908,34 +1087,37 @@ const Mailbox = () => {
                     <Label htmlFor="to">To</Label>
                     <Input
                       id="to"
-                      type="email"
-                      placeholder="recipient@example.com"
                       value={to}
                       onChange={(e) => setTo(e.target.value)}
+                      placeholder="recipient@example.com"
                     />
                   </div>
                   <div>
                     <Label htmlFor="subject">Subject</Label>
                     <Input
                       id="subject"
-                      placeholder="Email subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Email subject"
                     />
                   </div>
                   <div>
                     <Label htmlFor="body">Message</Label>
                     <Textarea
                       id="body"
-                      placeholder="Write your message here..."
-                      className="min-h-[200px]"
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
+                      placeholder="Type your message here..."
+                      rows={12}
+                      className="resize-none"
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => sendEmail(true)} disabled={loading}>
+                  <Button variant="outline" onClick={() => setComposeOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="outline" onClick={saveDraft} disabled={loading}>
                     <Save className="w-4 h-4 mr-2" />
                     Save Draft
                   </Button>
@@ -998,6 +1180,62 @@ const Mailbox = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            
+            {/* Draft Edit Dialog */}
+            <Dialog open={draftEditOpen} onOpenChange={setDraftEditOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Draft</DialogTitle>
+                  <DialogDescription>
+                    Edit your draft email
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="draft-to">To</Label>
+                    <Input
+                      id="draft-to"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      placeholder="recipient@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="draft-subject">Subject</Label>
+                    <Input
+                      id="draft-subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Email subject"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="draft-body">Message</Label>
+                    <Textarea
+                      id="draft-body"
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      placeholder="Type your message here..."
+                      rows={12}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDraftEditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="outline" onClick={saveDraft} disabled={loading}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Draft
+                  </Button>
+                  <Button onClick={sendDraftAsEmail} disabled={loading}>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Email
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </header>
@@ -1006,7 +1244,7 @@ const Mailbox = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">
-              {currentView === 'sent' ? 'Sent Mail' : 'Mailbox'}
+              {currentView === 'sent' ? 'Sent Mail' : currentView === 'drafts' ? 'Drafts' : 'Mailbox'}
             </h1>
             <div className="flex items-center space-x-4">
               <div className="flex bg-muted rounded-lg p-1">
@@ -1030,398 +1268,387 @@ const Mailbox = () => {
                 >
                   Sent
                 </button>
+                <button
+                  onClick={() => handleViewChange('drafts')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentView === 'drafts' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Drafts
+                </button>
               </div>
             </div>
           </div>
           
-          {/* Search Controls */}
-          <div className="mt-6">
-            <div className="flex gap-4 items-center">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search emails by address, content, or attachment..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
-                />
-              </div>
-              <Button 
-                onClick={() => searchEmails(searchQuery)} 
-                disabled={searchLoading}
-                variant="outline"
-              >
-                {searchLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-              </Button>
-              {searchQuery && (
-                <Button 
-                  onClick={() => {
-                    setSearchQuery('');
-                    fetchEmails();
-                  }}
-                  variant="ghost"
-                  size="sm"
-                >
-                  Clear
-                </Button>
-              )}
+          <div className="mt-6 flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search emails..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && searchEmails(searchQuery)}
+              />
             </div>
+            <Button 
+              variant="outline" 
+              onClick={() => searchEmails(searchQuery)}
+              disabled={searchLoading}
+            >
+              {searchLoading ? 'Searching...' : 'Search'}
+            </Button>
+            <Button 
+              variant={showOnlyUnread ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowOnlyUnread(!showOnlyUnread)}
+            >
+              {showOnlyUnread ? 'Show All' : 'Unread Only'}
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)] min-w-0">
-          {/* Inbox List */}
-          <Card className="lg:col-span-1 w-full max-w-full overflow-hidden">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Email List */}
+          <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-lg">
-                {currentView === 'sent' ? 'Sent Mail' : 'Inbox'}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-                  className={`text-sm transition-colors hover:text-primary ${
-                    showOnlyUnread ? 'text-primary font-medium' : 'text-muted-foreground'
-                  }`}
-                >
-                  {currentConversations.reduce((total, conv) => total + conv.unreadCount, 0)} unread emails
-                </button>
-                {showOnlyUnread && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowOnlyUnread(false)}
-                    className="text-xs h-6 px-2"
-                  >
-                    Show All
-                  </Button>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Conversations
+                {filteredConversations.length > 0 && (
+                  <Badge variant="secondary">{filteredConversations.length}</Badge>
                 )}
-              </div>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 w-full max-w-full overflow-hidden">
-              <ScrollArea className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden">
-                {emailLoading && currentEmails.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading emails...</p>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[calc(100vh-16rem)]">
+                {emailLoading && filteredConversations.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Loading emails...</p>
                   </div>
-                ) : currentConversations.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-4">
-                      {currentView === 'sent' 
-                        ? "You haven't sent any emails yet." 
-                        : "No emails found. Try connecting your Gmail account or check your search terms."
-                      }
+                ) : filteredConversations.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      {searchQuery ? 'No emails found for your search.' : `No ${currentView} emails found.`}
                     </p>
-                    {currentView === 'inbox' && (
-                      <Button variant="outline" onClick={connectGmail}>
-                        Connect Gmail
-                      </Button>
-                    )}
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-2">
-                      {currentConversations
-                        .filter(conv => showUnreadOnly ? conv.unreadCount > 0 : true)
-                        .map((conversation, index) => {
-                          // Check if conversation has attachments
-                          const hasAttachments = conversation.emails.some(email => 
-                            email.attachments && email.attachments.length > 0
-                          );
+                    <div className="divide-y divide-border">
+                      {filteredConversations.map((conversation, index) => {
+                          const firstEmail = conversation.emails[0];
+                          const isSelected = selectedConversation?.id === conversation.id;
                           
                           return (
-                            <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
+                            <div key={conversation.id}>
                               <div
-                                className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden group ${
-                                  selectedConversation?.id === conversation.id ? 'bg-accent' : ''
+                                className={`p-4 cursor-pointer transition-colors group ${
+                                  isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
-                                <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                                  {/* Left side content */}
-                                  <div className="min-w-0 space-y-1 overflow-hidden">
-                                    {/* Email address and unread indicator */}
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <p className="font-medium text-sm truncate flex-1 min-w-0">
-                                        {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                <div className="flex items-start justify-between gap-3 w-full max-w-full overflow-hidden">
+                                  <div className="min-w-0 flex-1 overflow-hidden">
+                                    <div className="flex items-center gap-2 mb-1 min-w-0">
+                                      <p className="font-medium truncate flex-1 min-w-0">
+                                        {firstEmail.from.split('<')[0].trim() || firstEmail.from}
                                       </p>
-                                    </div>
-                                    
-                                    {/* Subject */}
-                                    <div className="w-full overflow-hidden">
-                                      <p className="text-xs text-muted-foreground font-medium truncate">
-                                        {conversation.subject}
-                                      </p>
-                                    </div>
-                                     
-                                     {/* Snippet with proper ellipsis */}
-                                     <div className="w-full overflow-hidden">
-                                       <p className="text-xs text-muted-foreground/80 truncate">
-                                         {conversation.emails[0]?.snippet}
-                                       </p>
-                                     </div>
-                                   </div>
-                                  
-                                   {/* Right side - Date, Indicators and Arrow */}
-                                  <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
-                                    {/* Top right: Date */}
-                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                      {new Date(conversation.lastDate).toLocaleDateString()}
-                                    </p>
-                                    
-                                    {/* Middle right: Indicators */}
-                                    <div className="flex items-center gap-1">
-                                      {/* Attachment and thread indicators on left of arrow */}
-                                      {hasAttachments && (
-                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                      {conversation.unreadCount > 0 && (
+                                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                                       )}
                                       {conversation.messageCount > 1 && (
-                                        <div className="flex items-center gap-1">
-                                          <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                                          <span className="text-xs text-muted-foreground">
-                                            {conversation.messageCount}
-                                          </span>
-                                        </div>
-                                      )}
-                                      
-                                      {/* Unread dot */}
-                                      {conversation.unreadCount > 0 && (
-                                        <div className="w-2 h-2 bg-primary rounded-full ml-1"></div>
+                                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                                          {conversation.messageCount}
+                                        </Badge>
                                       )}
                                     </div>
-                                    
-                                    {/* Bottom right: Action buttons */}
-                                    <div className="flex items-center gap-1">
+                                    <p className="font-medium text-sm truncate mb-1">
+                                      {conversation.subject}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {firstEmail.snippet}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {formatDate(conversation.lastDate)}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="flex items-start gap-1 flex-shrink-0">
+                                    {conversation.messageCount > 1 && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="p-0 h-4 w-4 hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                        title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
+                                      >
+                                        {expandedConversations.has(conversation.id) ? 
+                                          <ChevronDown className="w-3 h-3" /> : 
+                                          <ChevronRight className="w-3 h-3" />
+                                        }
+                                      </Button>
+                                    )}
+                                    
+                                    {currentView === 'drafts' && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          deleteConversation(conversation);
+                                          editDraft(conversation.emails[0]);
                                         }}
-                                        title="Delete conversation"
+                                        title="Edit draft"
                                       >
-                                        <Trash2 className="w-3 h-3 text-destructive" />
+                                        <Reply className="w-3 h-3" />
                                       </Button>
-                                      {conversation.messageCount > 1 && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="p-0 h-4 w-4 hover:bg-accent-foreground/10"
-                                          onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                        >
-                                          {expandedConversations.has(conversation.id) ? (
-                                            <ChevronDown className="w-3 h-3" />
-                                          ) : (
-                                            <ChevronRight className="w-3 h-3" />
-                                          )}
-                                        </Button>
-                                      )}
-                                    </div>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteConversation(conversation);
+                                      }}
+                                      title={`Delete ${currentView === 'drafts' ? 'drafts' : 'conversation'}`}
+                                    >
+                                      <Trash2 className="w-3 h-3 text-destructive" />
+                                    </Button>
                                   </div>
                                 </div>
                               </div>
 
-                            {/* Expanded Thread Emails */}
-                            {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                              <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
-                                <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
-                                  {conversation.emails
-                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                    .map((email, emailIndex) => (
-                                    <div
-                                      key={email.id}
-                                      className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
-                                       onClick={(e) => handleEmailClick(email, conversation)}
-                                     >
-                                      <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                                        <div className="min-w-0 overflow-hidden">
-                                          <div className="flex items-center gap-2 mb-1 min-w-0">
-                                            <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                              {email.from.split('<')[0].trim() || email.from}
+                              {/* Expanded conversation view */}
+                              {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
+                                <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
+                                  <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
+                                    {conversation.emails
+                                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                      .map((email, emailIndex) => (
+                                      <div
+                                        key={email.id}
+                                        className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
+                                         onClick={(e) => handleEmailClick(email, conversation)}
+                                       >
+                                        <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                          <div className="min-w-0 overflow-hidden">
+                                            <div className="flex items-center gap-2 mb-1 min-w-0">
+                                              <p className="text-xs font-medium truncate flex-1 min-w-0">
+                                                {email.from.split('<')[0].trim() || email.from}
+                                              </p>
+                                               {email.unread && (
+                                                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                               )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {email.snippet}
                                             </p>
-                                             {email.unread && (
-                                               <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                             )}
+                                            <p className="text-xs text-muted-foreground">
+                                              {formatDate(email.date)}
+                                            </p>
                                           </div>
-                                          <p className="text-xs text-muted-foreground truncate">
-                                            {email.snippet}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {formatDate(email.date)}
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              deleteEmail(email.id, conversation.id);
-                                            }}
-                                            title="Delete email"
-                                          >
-                                            <Trash2 className="w-3 h-3 text-destructive" />
-                                          </Button>
-                                           <Button
-                                             variant="ghost"
-                                             size="sm"
-                                             className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleReplyClick(email, conversation);
+                                                deleteEmail(email.id, conversation.id);
                                               }}
-                                              title="Reply to email"
+                                              title="Delete email"
                                             >
-                                             <Reply className="w-3 h-3" />
-                                           </Button>
+                                              <Trash2 className="w-3 h-3 text-destructive" />
+                                            </Button>
+                                            {currentView === 'drafts' ? (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  editDraft(email);
+                                                }}
+                                                title="Edit draft"
+                                              >
+                                                <Reply className="w-3 h-3" />
+                                              </Button>
+                                            ) : (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                                 onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   handleReplyClick(email, conversation);
+                                                 }}
+                                                 title="Reply to email"
+                                               >
+                                                <Reply className="w-3 h-3" />
+                                              </Button>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
+                              )}
+
+                              {index < filteredConversations.length - 1 && <Separator />}
                               </div>
-                            )}
-
-                            {index < filteredConversations.length - 1 && <Separator />}
-                            </div>
-                          );
-                        })}
-                    </div>
-                    
-                    {currentPageToken && !currentAllEmailsLoaded && (
-                      <div className="p-4 border-t">
-                        <Button 
-                          variant="outline" 
-                          onClick={loadMoreEmails}
-                          disabled={emailLoading}
-                          className="w-full"
-                        >
-                          {emailLoading ? 'Loading...' : 'Load More Emails'}
-                        </Button>
+                            );
+                          })}
                       </div>
-                    )}
-                    
-                    {currentAllEmailsLoaded && currentConversations.length > 5 && (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-muted-foreground">
-                          All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                      
+                      {currentPageToken && !currentAllEmailsLoaded && (
+                        <div className="p-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            onClick={loadMoreEmails}
+                            disabled={emailLoading}
+                            className="w-full"
+                          >
+                            {emailLoading ? 'Loading...' : 'Load More Emails'}
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {currentAllEmailsLoaded && currentConversations.length > 5 && (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-muted-foreground">
+                            All {currentView === 'sent' ? 'sent emails' : currentView === 'drafts' ? 'drafts' : 'emails'} loaded
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
 
-          {/* Email/Thread Content */}
-          <Card className="lg:col-span-2 min-w-0 overflow-hidden">
-            <CardContent className="p-0">
-              {selectedConversation ? (
-                <div className="h-[calc(100vh-10rem)]">
-                  <div className="p-6 border-b">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
-                        {selectedConversation.messageCount > 1 && !selectedEmail && (
-                          <Badge variant="secondary" className="text-xs mt-1">
-                            {selectedConversation.messageCount} messages
+            {/* Email/Thread Content */}
+            <Card className="lg:col-span-2 min-w-0 overflow-hidden">
+              <CardContent className="p-0">
+                {selectedConversation ? (
+                  <div className="h-[calc(100vh-10rem)]">
+                    <div className="p-6 border-b">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
+                          {selectedConversation.messageCount > 1 && !selectedEmail && (
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {selectedConversation.messageCount} messages
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {selectedEmail ? (
+                            <>
+                              {currentView !== 'drafts' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleReplyClick(selectedEmail, selectedConversation)}
+                                  className="text-xs"
+                                >
+                                  <Reply className="w-3 h-3 mr-1" />
+                                  Reply
+                                </Button>
+                              )}
+                              {currentView === 'drafts' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => editDraft(selectedEmail)}
+                                  className="text-xs"
+                                >
+                                  <Reply className="w-3 h-3 mr-1" />
+                                  Edit Draft
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
+                                className="text-xs"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedEmail(null)}
+                                className="text-xs"
+                              >
+                                View Full Thread
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteConversation(selectedConversation)}
+                              className="text-xs"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete {currentView === 'drafts' ? 'Drafts' : 'Conversation'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          <span>{selectedConversation.participants.map(p => p.split('<')[0].trim()).join(', ')}</span>
+                        </div>
+                        {selectedConversation.unreadCount > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {selectedConversation.unreadCount} unread
                           </Badge>
                         )}
                       </div>
-                       <div className="flex items-center gap-2">
-                         {selectedEmail ? (
-                           <>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() => handleReplyClick(selectedEmail, selectedConversation)}
-                               className="text-xs"
-                             >
-                               <Reply className="w-3 h-3 mr-1" />
-                               Reply
-                             </Button>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() => deleteEmail(selectedEmail.id, selectedConversation.id)}
-                               className="text-xs"
-                             >
-                               <Trash2 className="w-3 h-3 mr-1" />
-                               Delete
-                             </Button>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={() => setSelectedEmail(null)}
-                               className="text-xs"
-                             >
-                               View Full Thread
-                             </Button>
-                           </>
-                         ) : (
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => deleteConversation(selectedConversation)}
-                             className="text-xs"
-                           >
-                             <Trash2 className="w-3 h-3 mr-1" />
-                             Delete Conversation
-                           </Button>
-                         )}
-                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        <span>{selectedConversation.participants.map(p => p.split('<')[0].trim()).join(', ')}</span>
-                      </div>
-                      {selectedConversation.unreadCount > 0 && (
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <ScrollArea className="flex-1">
+                      {selectedEmail ? (
+                        <EmailContent 
+                          key={selectedEmail.id}
+                          email={selectedEmail}
+                          conversation={selectedConversation}
+                        />
+                      ) : (
+                        selectedConversation.emails
+                          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                          .map(email => (
+                            <EmailContent 
+                              key={email.id}
+                              email={email}
+                              conversation={selectedConversation}
+                            />
+                          ))
                       )}
+                    </ScrollArea>
+                  </div>
+                ) : (
+                  <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
+                    <div className="text-center">
+                      <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">Select a conversation to view its content</p>
                     </div>
                   </div>
-                  <ScrollArea className="h-[calc(100vh-18rem)]">
-                    {selectedEmail ? (
-                      // Show single selected email
-                      <EmailContent 
-                        conversation={{
-                          ...selectedConversation,
-                          emails: [selectedEmail]
-                        }}
-                      />
-                    ) : (
-                      // Show full conversation thread
-                      <EmailContent 
-                        conversation={selectedConversation}
-                      />
-                    )}
-                  </ScrollArea>
-                </div>
-              ) : (
-                <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
-                  <div className="text-center">
-                    <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Select a conversation to view its content</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
-  );
-};
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  };
 
-export default Mailbox;
+  export default Mailbox;

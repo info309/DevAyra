@@ -7,19 +7,20 @@ const corsHeaders = {
 };
 
 interface GmailRequest {
-  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent' | 'delete' | 'reply';
+  action: 'list' | 'get' | 'send' | 'search' | 'markRead' | 'sent' | 'delete' | 'reply' | 'drafts' | 'saveDraft' | 'deleteDraft';
   userId: string;
   messageId?: string;
   attachmentId?: string;
   maxResults?: number;
   pageToken?: string;
   query?: string; // Gmail search query
-  mailbox?: 'inbox' | 'sent'; // Add mailbox type
+  mailbox?: 'inbox' | 'sent' | 'drafts'; // Add drafts mailbox type
   to?: string;
   subject?: string;
   body?: string;
   threadId?: string; // For reply threading
   replyToMessageId?: string; // Original message being replied to
+  draftId?: string; // For draft operations
 }
 
 interface ProcessedAttachment {
@@ -55,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, mailbox = 'inbox', to, subject, body, threadId, replyToMessageId }: GmailRequest = await req.json();
+    const { action, userId, messageId, attachmentId, maxResults = 50, pageToken, query, mailbox = 'inbox', to, subject, body, threadId, replyToMessageId, draftId }: GmailRequest = await req.json();
     
     if (!userId) {
       throw new Error('User ID is required');
@@ -165,6 +166,19 @@ const handler = async (req: Request): Promise<Response> => {
         console.error('Quoted-printable decode error:', error);
         return str;
       }
+    };
+
+    const findTextPart = (parts: any[]): any => {
+      for (const part of parts) {
+        if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
+          return part;
+        }
+        if (part.parts) {
+          const found = findTextPart(part.parts);
+          if (found) return found;
+        }
+      }
+      return null;
     };
 
     const detectAndDecodeContent = (bodyData: string, headers: any[]): string => {
@@ -728,6 +742,183 @@ const handler = async (req: Request): Promise<Response> => {
         const result = await response.json();
 
         return new Response(JSON.stringify({ success: true, messageId: result.id }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'drafts': {
+        console.log('Fetching drafts for user');
+        
+        let url = `https://gmail.googleapis.com/gmail/v1/users/me/drafts?maxResults=${maxResults}`;
+        if (pageToken) {
+          url += `&pageToken=${pageToken}`;
+        }
+
+        const response = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch drafts:', response.status);
+          throw new Error('Failed to fetch drafts');
+        }
+
+        const data = await response.json();
+        const drafts = data.drafts || [];
+
+        if (drafts.length === 0) {
+          return new Response(JSON.stringify({ messages: [], nextPageToken: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        }
+
+        // Fetch full draft details
+        const draftDetails = await Promise.all(
+          drafts.map(async (draft: any) => {
+            try {
+              const draftResponse = await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draft.id}`,
+                {
+                  headers: { 'Authorization': `Bearer ${accessToken}` }
+                }
+              );
+
+              if (!draftResponse.ok) {
+                console.error(`Failed to fetch draft ${draft.id}`);
+                return null;
+              }
+
+              const draftData = await draftResponse.json();
+              const message = draftData.message;
+
+              const headers = message.payload.headers || [];
+              const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+
+              let content = '';
+              if (message.payload.body?.data) {
+                content = detectAndDecodeContent(message.payload.body.data, headers);
+              } else if (message.payload.parts) {
+                const textPart = findTextPart(message.payload.parts);
+                if (textPart?.body?.data) {
+                  content = detectAndDecodeContent(textPart.body.data, headers);
+                }
+              }
+
+              return {
+                id: message.id,
+                draftId: draft.id,
+                threadId: message.threadId,
+                snippet: message.snippet || '',
+                subject: getHeader('Subject') || '(No Subject)',
+                from: getHeader('From') || 'Draft',
+                to: getHeader('To') || '',
+                date: new Date(parseInt(message.internalDate)).toISOString(),
+                unread: false,
+                content: content,
+                isDraft: true,
+                attachments: []
+              };
+            } catch (error) {
+              console.error(`Error processing draft ${draft.id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        const validDrafts = draftDetails.filter(draft => draft !== null);
+
+        return new Response(JSON.stringify({
+          messages: validDrafts,
+          nextPageToken: data.nextPageToken || null
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'saveDraft': {
+        if (!to || !subject || !body) {
+          throw new Error('To, subject, and body are required for drafts');
+        }
+
+        console.log('Saving draft');
+
+        const email = [
+          `To: ${to}`,
+          `Subject: ${subject}`,
+          'Content-Type: text/html; charset=utf-8',
+          '',
+          body
+        ].join('\n');
+
+        const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        let url = 'https://gmail.googleapis.com/gmail/v1/users/me/drafts';
+        let method = 'POST';
+        let requestBody: any = {
+          message: {
+            raw: encodedEmail
+          }
+        };
+
+        // If updating existing draft
+        if (draftId) {
+          url = `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`;
+          method = 'PUT';
+        }
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to save draft:', response.status, errorText);
+          throw new Error(`Failed to save draft: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Successfully saved draft:', result.id);
+
+        return new Response(JSON.stringify({ success: true, draftId: result.id }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      case 'deleteDraft': {
+        if (!draftId) {
+          throw new Error('Draft ID is required');
+        }
+
+        console.log(`Attempting to delete draft: ${draftId}`);
+
+        const response = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to delete draft:', response.status, errorText);
+          throw new Error(`Failed to delete draft: ${response.status}`);
+        }
+
+        console.log('Successfully deleted draft:', draftId);
+
+        return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
