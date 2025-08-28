@@ -1047,7 +1047,7 @@ const Mailbox: React.FC = () => {
                         placeholder="recipient@example.com"
                         autoComplete="email"
                         name="compose-to"
-                        className="text-base"
+                        className="text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
                     <div>
@@ -1057,7 +1057,7 @@ const Mailbox: React.FC = () => {
                         value={composeForm.subject}
                         onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
                         placeholder="Email subject"
-                        className="text-base"
+                        className="text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
                     <div>
@@ -1066,9 +1066,13 @@ const Mailbox: React.FC = () => {
                         id="content"
                         value={composeForm.content}
                         onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
+                        onFocus={(e) => {
+                          e.preventDefault();
+                          e.target.focus({ preventScroll: true });
+                        }}
                         placeholder="Write your message here..."
                         rows={15}
-                        className="min-h-[300px] resize-none text-base"
+                        className="min-h-[300px] resize-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
                     
