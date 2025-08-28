@@ -558,7 +558,7 @@ const Mailbox: React.FC = () => {
     try {
       const { error } = await supabase.functions.invoke('gmail-api', {
         body: { 
-          action: 'permanentDeleteThread',
+          action: 'deleteThread',
           threadId: conversation.id
         }
       });

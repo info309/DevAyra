@@ -503,21 +503,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     switch (action) {
       case 'getEmails': {
-        // Build Gmail search query with label filtering
+        // Build Gmail search query with label filtering, always exclude trash
         let searchQuery = '';
         
         if (query && query.includes('in:sent')) {
-          // Fetch sent emails only
-          searchQuery = encodeURIComponent('in:sent');
+          // Fetch sent emails only, excluding trash
+          searchQuery = encodeURIComponent('in:sent -in:trash');
         } else if (query && query.includes('in:drafts')) {
-          // Fetch drafts
-          searchQuery = encodeURIComponent('in:drafts');
+          // Fetch drafts, excluding trash
+          searchQuery = encodeURIComponent('in:drafts -in:trash');
         } else if (query) {
-          // Custom search query
-          searchQuery = encodeURIComponent(query);
+          // Custom search query, always exclude trash
+          const customQuery = query.includes('-in:trash') ? query : `${query} -in:trash`;
+          searchQuery = encodeURIComponent(customQuery);
         } else {
-          // Default to inbox excluding sent
-          searchQuery = encodeURIComponent('in:inbox -in:sent');
+          // Default to inbox excluding sent and trash
+          searchQuery = encodeURIComponent('in:inbox -in:sent -in:trash');
         }
         
         // Use threads endpoint for proper conversation grouping
@@ -652,8 +653,10 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('Search query is required');
         }
 
-        const searchQuery = encodeURIComponent(query);
-        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}&q=${searchQuery}`;
+        // Always exclude trash from search results
+        const searchQuery = query.includes('-in:trash') ? query : `${query} -in:trash`;
+        const encodedSearchQuery = encodeURIComponent(searchQuery);
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}&q=${encodedSearchQuery}`;
         
         const response = await fetch(url, {
           headers: {
@@ -1135,53 +1138,6 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      case 'permanentDeleteThread': {
-        if (!threadId) {
-          throw new Error('Thread ID is required');
-        }
-
-        console.log(`Attempting to permanently delete thread: ${threadId}`);
-
-        // Get all messages in the thread first
-        const threadResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        if (!threadResponse.ok) {
-          throw new Error('Failed to fetch thread');
-        }
-
-        const threadData = await threadResponse.json();
-        
-        // Permanently delete all messages in the thread
-        const deletePromises = threadData.messages.map((message: any) =>
-          fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          })
-        );
-
-        const results = await Promise.all(deletePromises);
-        const failures = results.filter(r => !r.ok);
-        
-        if (failures.length > 0) {
-          throw new Error('Failed to permanently delete some messages in thread');
-        }
-
-        console.log('Successfully permanently deleted thread:', threadId);
-
-        return new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      }
 
       case 'downloadAttachment': {
         if (!messageId || !attachmentId) {
@@ -1254,36 +1210,6 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      case 'permanentDeleteMessage': {
-        if (!messageId) {
-          throw new Error('Message ID is required');
-        }
-
-        console.log(`Attempting to permanently delete message: ${messageId}`);
-
-        const response = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Failed to permanently delete email:', response.status, errorText);
-          throw new Error(`Failed to permanently delete email: ${response.status}`);
-        }
-
-        console.log('Successfully permanently deleted message:', messageId);
-
-        return new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      }
 
       default:
         return new Response('Invalid action', { status: 400, headers: corsHeaders });
