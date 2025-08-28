@@ -636,9 +636,14 @@ const Mailbox: React.FC = () => {
     try {
       setSendingEmail(true);
       
-      console.log('Sending email with:', {
+      console.log('Starting email send process...');
+      console.log('Compose form state:', {
+        to: composeForm.to,
+        subject: composeForm.subject,
+        hasContent: !!composeForm.content,
         fileAttachments: composeForm.attachments?.length || 0,
-        documentAttachments: composeForm.documentAttachments?.length || 0
+        documentAttachments: composeForm.documentAttachments?.length || 0,
+        documentNames: composeForm.documentAttachments?.map(d => d.name) || []
       });
       
       // Convert file attachments to base64 for sending
@@ -661,48 +666,67 @@ const Mailbox: React.FC = () => {
       );
 
       // Convert document attachments to base64 for sending
-      const documentAttachmentsData = await Promise.all(
-        (composeForm.documentAttachments || []).map(async (doc) => {
-          try {
-            console.log('Downloading document:', doc.name, 'from path:', doc.file_path);
-            
-            const { data, error } = await supabase.storage
-              .from('documents')
-              .download(doc.file_path);
+      let documentAttachmentsData = [];
+      
+      if (composeForm.documentAttachments && composeForm.documentAttachments.length > 0) {
+        console.log('Processing document attachments:', composeForm.documentAttachments.length);
+        
+        try {
+          documentAttachmentsData = await Promise.all(
+            composeForm.documentAttachments.map(async (doc) => {
+              try {
+                console.log('Downloading document:', doc.name, 'from path:', doc.file_path);
+                
+                const { data, error } = await supabase.storage
+                  .from('documents')
+                  .download(doc.file_path);
 
-            if (error) {
-              console.error('Storage download error:', error);
-              throw error;
-            }
+                if (error) {
+                  console.error('Storage download error:', error);
+                  throw error;
+                }
 
-            if (!data) {
-              throw new Error('No data received from storage');
-            }
+                if (!data) {
+                  throw new Error('No data received from storage');
+                }
 
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const base64 = (reader.result as string).split(',')[1];
-                console.log('Successfully converted document to base64:', doc.name);
-                resolve({
-                  filename: doc.name,
-                  content: base64,
-                  contentType: doc.mime_type || 'application/octet-stream',
-                  size: doc.file_size || 0
+                return new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64 = (reader.result as string).split(',')[1];
+                    console.log('Successfully converted document to base64:', doc.name);
+                    resolve({
+                      filename: doc.name,
+                      content: base64,
+                      contentType: doc.mime_type || 'application/octet-stream',
+                      size: doc.file_size || 0
+                    });
+                  };
+                  reader.onerror = () => {
+                    console.error('FileReader error for document:', doc.name);
+                    reject(new Error(`Failed to read file: ${doc.name}`));
+                  };
+                  reader.readAsDataURL(data);
                 });
-              };
-              reader.onerror = () => {
-                console.error('FileReader error for document:', doc.name);
-                reject(new Error(`Failed to read file: ${doc.name}`));
-              };
-              reader.readAsDataURL(data);
-            });
-          } catch (error) {
-            console.error(`Failed to download document ${doc.name}:`, error);
-            throw new Error(`Failed to attach document: ${doc.name}. Error: ${error.message}`);
-          }
-        })
-      );
+              } catch (error) {
+                console.error(`Failed to download document ${doc.name}:`, error);
+                throw new Error(`Failed to attach document: ${doc.name}. Error: ${error.message}`);
+              }
+            })
+          );
+          console.log('Successfully processed all document attachments:', documentAttachmentsData.length);
+        } catch (error) {
+          console.error('Document attachment processing failed:', error);
+          toast({
+            title: "Document Attachment Error",
+            description: `Failed to attach documents: ${error.message}`,
+            variant: "destructive"
+          });
+          return; // Exit early if document processing fails
+        }
+      } else {
+        console.log('No document attachments to process');
+      }
 
       const allAttachments = [...fileAttachmentsData, ...documentAttachmentsData];
       
