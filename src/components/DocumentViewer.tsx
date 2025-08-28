@@ -148,7 +148,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             src={previewUrl}
             alt={document.name}
             className="max-w-full max-h-full object-contain rounded shadow-lg"
-            style={{ maxHeight: 'calc(95vh - 200px)' }}
+            style={{ 
+              maxHeight: 'calc(95vh - 200px)',
+              width: 'auto',
+              height: 'auto'
+            }}
             onError={() => {
               console.error('Failed to load image preview');
               setPreviewUrl(null);
@@ -161,11 +165,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // PDF preview
     if (document.mime_type?.includes('pdf')) {
       return (
-        <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden">
+        <div className="flex-1 bg-gray-50 rounded-lg overflow-hidden p-2">
           <iframe
-            src={`${previewUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-            className="w-full h-full border-0 rounded"
-            style={{ minHeight: 'calc(95vh - 200px)' }}
+            src={`${previewUrl}#toolbar=1&navpanes=1&scrollbar=1&view=Fit&zoom=page-fit`}
+            className="w-full h-full border-0 rounded shadow-lg"
+            style={{ 
+              height: 'calc(95vh - 200px)',
+              minHeight: '600px'
+            }}
             title={`Preview of ${document.name}`}
             onError={() => {
               console.error('Failed to load PDF preview');
@@ -180,11 +187,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (document.mime_type?.startsWith('text/') || 
         document.mime_type?.includes('plain')) {
       return (
-        <div className="flex-1 bg-white rounded-lg border overflow-hidden">
+        <div className="flex-1 bg-white rounded-lg border overflow-hidden p-2">
           <iframe
             src={previewUrl}
-            className="w-full h-full border-0 rounded"
-            style={{ minHeight: 'calc(95vh - 200px)' }}
+            className="w-full h-full border-0 rounded shadow-lg"
+            style={{ 
+              height: 'calc(95vh - 200px)',
+              minHeight: '600px'
+            }}
             title={`Preview of ${document.name}`}
           />
         </div>
@@ -265,8 +275,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="flex-1 p-6 overflow-auto bg-gray-50">
-          <div className="h-full max-w-none mx-auto">
+        <div className="flex-1 p-6 overflow-hidden bg-gray-50">
+          <div className="h-full w-full flex items-center justify-center">
             {renderPreview()}
           </div>
         </div>
