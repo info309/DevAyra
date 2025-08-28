@@ -517,7 +517,8 @@ const handler = async (req: Request): Promise<Response> => {
           searchQuery = encodeURIComponent('in:inbox -in:sent');
         }
         
-        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}&q=${searchQuery}`;
+        // Use threads endpoint for proper conversation grouping
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}${pageToken ? `&pageToken=${pageToken}` : ''}&q=${searchQuery}`;
         
         const response = await fetch(url, {
           headers: {
@@ -526,16 +527,16 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch messages');
+          throw new Error('Failed to fetch threads');
         }
 
-        const messages = await response.json();
+        const threadsResponse = await response.json();
         
-        // Get detailed info for each message including content for search
-        const detailedMessages = await Promise.all(
-          (messages.messages || []).map(async (message: any) => {
-            const messageResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`,
+        // Get detailed thread info
+        const conversations = await Promise.all(
+          (threadsResponse.threads || []).map(async (thread: any) => {
+            const threadResponse = await fetch(
+              `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`,
               {
                 headers: {
                   'Authorization': `Bearer ${accessToken}`,
@@ -543,78 +544,100 @@ const handler = async (req: Request): Promise<Response> => {
               }
             );
             
-            if (messageResponse.ok) {
-              const messageData = await messageResponse.json();
-              const headers = messageData.payload?.headers || [];
+            if (threadResponse.ok) {
+              const threadData = await threadResponse.json();
+              const messages = threadData.messages || [];
               
-              // Process content and attachments for search
-              const { content, attachments } = processEmailContent(messageData.payload);
-              
-              // Process attachments with download URLs
-              const processedAttachments = await Promise.all(
-                attachments.map(async (attachment) => {
-                  try {
-                    const downloadUrl = await downloadAndStoreAttachment(
-                      messageData.id,
-                      attachment.attachmentId,
-                      attachment.filename,
-                      userId
-                    );
-                    return { ...attachment, downloadUrl };
-                  } catch (error) {
-                    console.error(`Failed to process attachment ${attachment.filename}:`, error);
-                    return attachment; // Return without download URL if failed
-                  }
+              // Process all messages in the thread
+              const processedEmails = await Promise.all(
+                messages.map(async (messageData: any) => {
+                  const headers = messageData.payload?.headers || [];
+                  
+                  // Process content and attachments
+                  const { content, attachments } = processEmailContent(messageData.payload);
+                  
+                  // Process attachments with download URLs
+                  const processedAttachments = await Promise.all(
+                    attachments.map(async (attachment) => {
+                      try {
+                        const downloadUrl = await downloadAndStoreAttachment(
+                          messageData.id,
+                          attachment.attachmentId,
+                          attachment.filename,
+                          userId
+                        );
+                        return { ...attachment, downloadUrl };
+                      } catch (error) {
+                        console.error(`Failed to process attachment ${attachment.filename}:`, error);
+                        return attachment; // Return without download URL if failed
+                      }
+                    })
+                  );
+                  
+                  return {
+                    id: messageData.id,
+                    threadId: messageData.threadId,
+                    snippet: messageData.snippet,
+                    subject: headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject',
+                    from: headers.find((h: any) => h.name === 'From')?.value || 'Unknown',
+                    to: headers.find((h: any) => h.name === 'To')?.value || '',
+                    date: headers.find((h: any) => h.name === 'Date')?.value || '',
+                    unread: messageData.labelIds?.includes('UNREAD') || false,
+                    content: content,
+                    attachments: processedAttachments
+                  };
                 })
               );
+
+              // Get the latest email for conversation metadata
+              const sortedEmails = processedEmails.sort((a, b) => 
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+              );
               
+              const latestEmail = sortedEmails[0];
+              const unreadCount = processedEmails.filter(email => email.unread).length;
+              
+              // Get all unique participants
+              const allParticipants = new Set();
+              processedEmails.forEach(email => {
+                if (email.from) allParticipants.add(email.from);
+                if (email.to) allParticipants.add(email.to);
+              });
+
               return {
-                id: messageData.id,
-                threadId: messageData.threadId,
-                snippet: messageData.snippet,
-                subject: headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject',
-                from: headers.find((h: any) => h.name === 'From')?.value || 'Unknown',
-                to: headers.find((h: any) => h.name === 'To')?.value || '',
-                date: headers.find((h: any) => h.name === 'Date')?.value || '',
-                unread: messageData.labelIds?.includes('UNREAD') || false,
-                content: content,
-                attachments: processedAttachments
+                id: thread.id,
+                subject: latestEmail?.subject || 'No Subject',
+                emails: processedEmails,
+                messageCount: processedEmails.length,
+                lastDate: latestEmail?.date || '',
+                unreadCount: unreadCount,
+                participants: Array.from(allParticipants)
               };
             }
             return null;
           })
         );
 
-        const validMessages = detailedMessages.filter(Boolean);
+        const validConversations = conversations.filter(Boolean);
 
-        // Group messages into conversations  
-        const conversations = validMessages.reduce((acc: any, message: any) => {
-          const existing = acc.find((conv: any) => conv.id === message.threadId);
-          if (existing) {
-            existing.emails.push(message);
-            existing.messageCount++;
-            existing.unreadCount += message.unread ? 1 : 0;
-            if (new Date(message.date) > new Date(existing.lastDate)) {
-              existing.lastDate = message.date;
-            }
-          } else {
-            acc.push({
-              id: message.threadId,
-              subject: message.subject,
-              emails: [message],
-              messageCount: 1,
-              lastDate: message.date,
-              unreadCount: message.unread ? 1 : 0,
-              participants: [message.from, message.to].filter(Boolean)
-            });
-          }
-          return acc;
-        }, []);
+        // Log threading information for debugging
+        console.log('Threading debug info (using threads endpoint):', {
+          totalThreads: threadsResponse.threads?.length || 0,
+          validConversations: validConversations.length,
+          threadsWithMultipleMessages: validConversations.filter(c => c.messageCount > 1).length,
+          sampleConversations: validConversations.slice(0, 3).map(c => ({
+            threadId: c.id,
+            subject: c.subject,
+            messageCount: c.messageCount,
+            emailIds: c.emails.map((e: any) => e.id)
+          })),
+          queryType: query
+        });
 
         return new Response(JSON.stringify({
-          conversations: conversations,
-          nextPageToken: messages.nextPageToken,
-          allEmailsLoaded: !messages.nextPageToken
+          conversations: validConversations,
+          nextPageToken: threadsResponse.nextPageToken,
+          allEmailsLoaded: !threadsResponse.nextPageToken
         }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
