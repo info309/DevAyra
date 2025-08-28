@@ -14,8 +14,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { EmailContent } from '@/components/EmailContent';
-import { DocumentPicker } from '@/components/DocumentPicker';
+import EmailContent from '@/components/EmailContent';
+import DocumentPicker from '@/components/DocumentPicker';
 import { useEmailPreloader } from '@/hooks/useEmailPreloader';
 
 interface EmailConversation {
@@ -552,7 +552,7 @@ const Mailbox = () => {
                       )}
                     </div>
                     
-                    <EmailContent content={email.content} />
+                    <EmailContent conversation={selectedEmail} />
                     
                     {email.attachments && email.attachments.length > 0 && (
                       <div className="mt-3 pt-3 border-t">
@@ -601,7 +601,7 @@ const Mailbox = () => {
             <DialogTitle>Select Documents to Attach</DialogTitle>
           </DialogHeader>
           <DocumentPicker
-            onSelect={handleDocumentSelect}
+            onDocumentsSelected={handleDocumentSelect}
             multiple={true}
           />
         </DialogContent>
