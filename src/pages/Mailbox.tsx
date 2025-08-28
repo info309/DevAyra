@@ -1191,8 +1191,8 @@ const Mailbox: React.FC = () => {
         <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
           {/* Email List */}
           <Card className="lg:col-span-1 min-w-0">
-            <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-6rem)] w-full">
+            <CardContent className="p-0 overflow-hidden rounded-lg">
+              <ScrollArea className="h-[calc(100vh-6rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
@@ -1216,7 +1216,7 @@ const Mailbox: React.FC = () => {
                             <div key={conversation.id}>
                               <div
                                 className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
-                                  isSelected ? 'bg-accent rounded-t-lg' : 'hover:bg-accent/50'
+                                  isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
