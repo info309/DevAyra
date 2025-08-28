@@ -890,7 +890,7 @@ const Mailbox: React.FC = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-2">
         {/* Desktop Header - Logo and Menu */}
-        <div className="hidden lg:flex items-center justify-center py-4 mb-6">
+        <div className="hidden lg:flex items-center justify-start pl-8 py-4 mb-6">
           <div className="flex items-center gap-3">
             {/* Logo */}
             <h1 className="text-3xl font-bold">/Ayra</h1>
