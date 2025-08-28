@@ -357,26 +357,50 @@ const Mailbox = () => {
     setSelectedConversation(conversation);
     setSelectedEmail(null); // Reset individual email selection
     
-    // Mark as read logic...
-    // ... keep existing code
+    // Mark all emails in conversation as read
+    markConversationAsRead(conversation);
   };
 
   const handleEmailClick = (email: Email, conversation: Conversation) => {
     console.log('Selecting individual email:', email.id);
     setSelectedConversation(conversation);
     setSelectedEmail(email);
+    
+    // Mark this specific email as read
+    markEmailAsRead(email.id, conversation.id);
   };
 
-  const selectConversation = async (conversation: Conversation) => {
-    setSelectedConversation(conversation);
-    
-    // Load content for all emails in conversation that don't have content yet
-    const emailsWithoutContent = conversation.emails.filter(email => !email.content);
-    
-    for (const email of emailsWithoutContent) {
-      await fetchEmailContent(email.id);
-    }
+  const markEmailAsRead = (emailId: string, conversationId: string) => {
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === conversationId) {
+        const updatedEmails = conv.emails.map(email => 
+          email.id === emailId ? { ...email, unread: false } : email
+        );
+        const unreadCount = updatedEmails.filter(email => email.unread).length;
+        
+        return {
+          ...conv,
+          emails: updatedEmails,
+          unreadCount
+        };
+      }
+      return conv;
+    }));
   };
+
+  const markConversationAsRead = (conversation: Conversation) => {
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === conversation.id) {
+        return {
+          ...conv,
+          emails: conv.emails.map(email => ({ ...email, unread: false })),
+          unreadCount: 0
+        };
+      }
+      return conv;
+    }));
+  };
+
 
   const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -391,11 +415,6 @@ const Mailbox = () => {
     });
   };
 
-  const selectEmailFromThread = async (email: Email, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await fetchEmailContent(email.id);
-    setSelectedConversation(prev => prev ? { ...prev, emails: prev.emails } : null);
-  };
 
   const sendEmail = async (isDraft = false) => {
     if (!user || !to || !subject || !body) {
