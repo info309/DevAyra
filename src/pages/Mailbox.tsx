@@ -627,8 +627,8 @@ const Mailbox: React.FC = () => {
     // Clean the original email content by removing HTML wrapper and converting to plain text
     const cleanContent = cleanEmailContentForReply(email.content || '');
 
-    // Format the original email content for quoting
-    const quotedContent = `\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
+    // Format the original email content for quoting with more space for writing
+    const quotedContent = `\n\n\n\n\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
 
     setComposeForm({
       to: replyToEmail,
