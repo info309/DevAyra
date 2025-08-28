@@ -769,32 +769,57 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       case 'markAsRead': {
-        if (!messageId) {
-          throw new Error('Message ID is required');
-        }
+        if (threadId) {
+          // Mark entire thread as read
+          const response = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                removeLabelIds: ['UNREAD']
+              })
+            }
+          );
 
-        const response = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              removeLabelIds: ['UNREAD']
-            })
+          if (!response.ok) {
+            throw new Error('Failed to mark thread as read');
           }
-        );
 
-        if (!response.ok) {
-          throw new Error('Failed to mark message as read');
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        } else if (messageId) {
+          // Mark individual message as read
+          const response = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                removeLabelIds: ['UNREAD']
+              })
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error('Failed to mark message as read');
+          }
+
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        } else {
+          throw new Error('Either threadId or messageId is required');
         }
-
-        return new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
       }
 
       case 'sendEmail': {
