@@ -108,18 +108,24 @@ const Mailbox = () => {
       }
 
       // Open OAuth popup
-      window.open(data.authUrl, 'gmail-auth', 'width=500,height=600');
+      const popup = window.open(data.authUrl, 'gmail-auth', 'width=500,height=600,scrollbars=yes,resizable=yes');
       
       // Listen for popup completion
       const handleMessage = (event: MessageEvent) => {
+        console.log('Received message:', event.data);
+        
         if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
+          console.log('Gmail auth success received');
+          popup?.close();
           fetchGmailConnections();
           toast({
             title: "Success!",
-            description: "Gmail account connected successfully"
+            description: `Gmail account (${event.data.data?.email || 'Unknown'}) connected successfully`
           });
           window.removeEventListener('message', handleMessage);
         } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
+          console.log('Gmail auth error received:', event.data.error);
+          popup?.close();
           toast({
             variant: "destructive",
             title: "Connection Failed",
@@ -130,6 +136,14 @@ const Mailbox = () => {
       };
 
       window.addEventListener('message', handleMessage);
+      
+      // Also check if popup was closed manually
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 1000);
     } catch (error: any) {
       console.error('Gmail connection error:', error);
       toast({
