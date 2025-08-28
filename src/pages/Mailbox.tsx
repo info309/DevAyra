@@ -789,22 +789,15 @@ const Mailbox: React.FC = () => {
           {/* Search and controls - Right side */}
           <div className="flex flex-col sm:flex-row gap-2 items-end">
             {/* Search Controls */}
-            <div className="flex gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 placeholder="Search emails..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-64"
+                className="w-64 pl-10"
               />
-              <Button 
-                variant="outline" 
-                onClick={handleSearch}
-                disabled={searchLoading}
-                size="sm"
-              >
-                <Search className="w-4 h-4" />
-              </Button>
             </div>
 
             {/* Action Controls */}
