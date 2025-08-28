@@ -627,16 +627,16 @@ const Mailbox = () => {
                       return (
                         <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
                           <div
-                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-visible min-h-[68px] ${
+                            className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden h-[68px] flex-shrink-0 ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="flex justify-between items-start gap-3 w-full max-w-full">
+                            <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden h-[44px]">
                               {/* Left side content */}
-                              <div className="min-w-0 space-y-1 flex-1">
+                              <div className="min-w-0 space-y-1 overflow-hidden flex-1 h-[44px]">
                                 {/* Email address and unread badge */}
-                                <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 h-4">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
                                     {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
                                   </p>
@@ -648,14 +648,14 @@ const Mailbox = () => {
                                 </div>
                                 
                                 {/* Subject */}
-                                <div className="w-full">
+                                <div className="w-full overflow-hidden h-3">
                                   <p className="text-xs text-muted-foreground font-medium truncate">
                                     {conversation.subject}
                                   </p>
                                 </div>
                                 
                                 {/* Snippet with proper ellipsis */}
-                                <div className="w-full">
+                                <div className="w-full overflow-hidden h-3">
                                   <p className="text-xs text-muted-foreground/80 truncate">
                                     {conversation.emails[0]?.snippet}
                                   </p>
@@ -663,7 +663,7 @@ const Mailbox = () => {
                               </div>
                               
                               {/* Right side content */}
-                              <div className="flex flex-col items-end justify-between min-h-[52px] flex-shrink-0 w-24">
+                              <div className="flex flex-col items-end justify-between h-[44px] flex-shrink-0 w-24">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
