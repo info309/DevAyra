@@ -1345,24 +1345,24 @@ const Mailbox = () => {
                           
                           return (
                             <div key={conversation.id}>
-                              <div
-                                className={`p-4 cursor-pointer transition-colors group ${
-                                  isSelected ? 'bg-accent' : 'hover:bg-accent/50'
-                                }`}
-                                onClick={() => handleConversationClick(conversation)}
-                              >
-                                <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                                  <div className="min-w-0 flex-1 space-y-1">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <p className="font-medium truncate flex-1">
+                               <div
+                                 className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
+                                   isSelected ? 'bg-accent' : 'hover:bg-accent/50'
+                                 }`}
+                                 onClick={() => handleConversationClick(conversation)}
+                               >
+                                <div className="flex items-center justify-between gap-2 w-full min-w-0 overflow-hidden">
+                                  <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
+                                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                                      <p className="font-medium truncate flex-1 min-w-0 max-w-[180px] overflow-hidden">
                                         {firstEmail.from.split('<')[0].trim() || firstEmail.from}
                                       </p>
                                       {conversation.unreadCount > 0 && (
                                         <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                                       )}
                                     </div>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="font-medium text-sm truncate flex-1">
+                                    <div className="flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+                                      <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
                                         {conversation.subject}
                                       </p>
                                       {conversation.messageCount > 1 && (
@@ -1371,14 +1371,14 @@ const Mailbox = () => {
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate">
+                                    <p className="text-xs text-muted-foreground truncate max-w-[240px] overflow-hidden">
                                       {firstEmail.snippet}
                                     </p>
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-xs text-muted-foreground">
+                                    <div className="flex items-center justify-between min-w-0 overflow-hidden">
+                                      <p className="text-xs text-muted-foreground truncate flex-1 min-w-0 max-w-[160px] overflow-hidden">
                                         {formatDate(conversation.lastDate)}
                                       </p>
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-1 flex-shrink-0">
                                         {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
                                           <Paperclip className="w-3 h-3 text-muted-foreground" />
                                         )}
@@ -1386,7 +1386,7 @@ const Mailbox = () => {
                                     </div>
                                   </div>
                                   
-                                  <div className="flex flex-col gap-1 flex-shrink-0 items-end ml-2">
+                                  <div className="flex flex-col gap-1 flex-shrink-0 items-end ml-2 w-6">
                                     {conversation.messageCount > 1 && (
                                       <Button
                                         variant="ghost"
