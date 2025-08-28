@@ -747,29 +747,41 @@ const Mailbox: React.FC = () => {
   // REMOVED: All draft-related functions and state have been removed
 
   const handleReplyClick = (email: Email, conversation: Conversation) => {
-    const replyToEmail = email.from.includes('<') ? 
-      email.from.split('<')[1].replace('>', '') : 
-      email.from;
-    
-    const replySubject = email.subject.startsWith('Re: ') ? 
-      email.subject : 
-      `Re: ${email.subject}`;
+    if (currentView === 'sent') {
+      // Handle "Send Again" for sent emails
+      setComposeForm({
+        to: email.to,
+        subject: email.subject,
+        content: cleanEmailContentForReply(email.content || ''),
+        attachments: [],
+        documentAttachments: []
+      });
+    } else {
+      // Handle normal reply for inbox emails
+      const replyToEmail = email.from.includes('<') ? 
+        email.from.split('<')[1].replace('>', '') : 
+        email.from;
+      
+      const replySubject = email.subject.startsWith('Re: ') ? 
+        email.subject : 
+        `Re: ${email.subject}`;
 
-    // Clean the original email content by removing HTML wrapper and converting to plain text
-    const cleanContent = cleanEmailContentForReply(email.content || '');
+      // Clean the original email content by removing HTML wrapper and converting to plain text
+      const cleanContent = cleanEmailContentForReply(email.content || '');
 
-    // Format the original email content for quoting with plain text line breaks for textarea
-    const quotedContent = `\n\n\n\n\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
+      // Format the original email content for quoting with plain text line breaks for textarea
+      const quotedContent = `\n\n\n\n\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
 
-    setComposeForm({
-      to: replyToEmail,
-      subject: replySubject,
-      content: quotedContent,
-      replyTo: email.id,
-      threadId: conversation.id,
-      attachments: [],
-      documentAttachments: []
-    });
+      setComposeForm({
+        to: replyToEmail,
+        subject: replySubject,
+        content: quotedContent,
+        replyTo: email.id,
+        threadId: conversation.id,
+        attachments: [],
+        documentAttachments: []
+      });
+    }
     
     setShowComposeDialog(true);
   };
