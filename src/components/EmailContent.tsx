@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import IsolatedEmailContent from './IsolatedEmailContent';
 
 interface Attachment {
   filename: string;
@@ -193,34 +194,15 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
 
             {/* Email Content */}
             <div 
-              className="email-content prose prose-sm max-w-none dark:prose-invert prose-img:rounded-lg prose-img:shadow-md"
               style={{
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word',
-                maxWidth: '100%',
-                lineHeight: 1.6
+                isolation: 'isolate',
+                contain: 'layout style paint',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                overflow: 'hidden'
               }}
             >
-              <div 
-                dangerouslySetInnerHTML={{ 
-                  __html: email.content || '<p class="text-muted-foreground italic">No content available</p>'
-                }}
-              />
-              <style>{`
-                .email-content img {
-                  max-width: 100% !important;
-                  height: auto !important;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                }
-                .email-content a {
-                  color: hsl(var(--primary)) !important;
-                  text-decoration: underline !important;
-                }
-                .email-content a:hover {
-                  text-decoration-color: transparent !important;
-                }
-              `}</style>
+              <IsolatedEmailContent content={email.content || ''} />
             </div>
 
             {/* Separator between emails in thread */}
