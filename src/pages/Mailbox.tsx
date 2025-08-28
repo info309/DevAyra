@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, Save, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EmailContent from '@/components/EmailContent';
@@ -66,6 +66,7 @@ const Mailbox = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [allEmailsLoaded, setAllEmailsLoaded] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [expandedConversations, setExpandedConversations] = useState<Set<string>>(new Set());
   
   // Compose form state
   const [to, setTo] = useState('');
@@ -361,6 +362,25 @@ const Mailbox = () => {
     }
   };
 
+  const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedConversations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(conversationId)) {
+        newSet.delete(conversationId);
+      } else {
+        newSet.add(conversationId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectEmailFromThread = async (email: Email, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await fetchEmailContent(email.id);
+    setSelectedConversation(prev => prev ? { ...prev, emails: prev.emails } : null);
+  };
+
   const sendEmail = async (isDraft = false) => {
     if (!user || !to || !subject || !body) {
       toast({
@@ -607,23 +627,39 @@ const Mailbox = () => {
                           onClick={() => selectConversation(conversation)}
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium text-sm truncate">
-                                  {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {conversation.messageCount > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-1 h-6 w-6 hover:bg-accent-foreground/10"
+                                  onClick={(e) => toggleConversationExpansion(conversation.id, e)}
+                                >
+                                  {expandedConversations.has(conversation.id) ? (
+                                    <ChevronDown className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-medium text-sm truncate">
+                                    {conversation.participants.map(p => p.split('<')[0].trim()).join(', ')}
+                                  </p>
+                                  {conversation.messageCount > 1 && (
+                                    <div className="flex items-center gap-1">
+                                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                      <Badge variant="outline" className="text-xs px-1 py-0">
+                                        {conversation.messageCount}
+                                      </Badge>
+                                    </div>
+                                  )}
+                                </div>
+                                <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
+                                  {conversation.subject}
                                 </p>
-                                {conversation.messageCount > 1 && (
-                                  <div className="flex items-center gap-1">
-                                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                                    <Badge variant="outline" className="text-xs px-1 py-0">
-                                      {conversation.messageCount}
-                                    </Badge>
-                                  </div>
-                                )}
                               </div>
-                              <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>
-                                {conversation.subject}
-                              </p>
                             </div>
                             <div className="flex flex-col items-end gap-1">
                               {conversation.unreadCount > 0 && (
@@ -642,6 +678,58 @@ const Mailbox = () => {
                             </p>
                           </div>
                         </div>
+
+                        {/* Expanded Thread Emails */}
+                        {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-accent/50 z-10 rounded-b-lg shadow-lg border border-border/50">
+                              <div className="p-2 space-y-1">
+                                {conversation.emails
+                                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                  .map((email, emailIndex) => (
+                                  <div
+                                    key={email.id}
+                                    className="p-3 hover:bg-background/80 rounded-md cursor-pointer transition-colors group"
+                                    onClick={(e) => selectEmailFromThread(email, e)}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <p className="text-xs font-medium truncate">
+                                            {email.from.split('<')[0].trim() || email.from}
+                                          </p>
+                                          {email.unread && (
+                                            <Badge variant="default" className="text-xs py-0 px-1">
+                                              New
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {email.snippet}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatDate(email.date)}
+                                        </p>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          selectEmailFromThread(email, e);
+                                        }}
+                                      >
+                                        <Reply className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {index < conversations.length - 1 && <Separator />}
                       </div>
                     ))}
