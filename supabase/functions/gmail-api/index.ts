@@ -834,12 +834,15 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log('Saving draft');
 
+        // Convert plain text line breaks to HTML for Gmail
+        const htmlContent = content.replace(/\n/g, '<br>');
+
         const email = [
           `To: ${to}`,
           `Subject: ${subject}`,
           'Content-Type: text/html; charset=utf-8',
           '',
-          content
+          htmlContent
         ].join('\n');
 
         const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
