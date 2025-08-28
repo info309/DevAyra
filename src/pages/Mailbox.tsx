@@ -135,40 +135,86 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  // Function to clean email content by removing ALL HTML and converting to plain text
+  // Function to aggressively clean email content by removing ALL HTML, CSS, and styling
   const cleanEmailContentForReply = (htmlContent: string): string => {
     if (!htmlContent) return '';
     
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
+    let cleaned = htmlContent;
     
-    // Get plain text content only
-    let textContent = tempDiv.innerText || tempDiv.textContent || '';
+    // First, remove all style blocks and their contents
+    cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     
-    // Remove any remaining HTML tags that might have slipped through
-    textContent = textContent.replace(/<[^>]*>/g, '');
+    // Remove all script blocks and their contents
+    cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    
+    // Remove HTML comments
+    cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
+    
+    // Remove DOCTYPE declarations
+    cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+    
+    // Remove XML declarations
+    cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
+    
+    // Remove all HTML tags completely
+    cleaned = cleaned.replace(/<[^>]*>/g, ' ');
     
     // Clean up HTML entities
-    textContent = textContent
+    cleaned = cleaned
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      .replace(/&hellip;/g, '...');
+      .replace(/&apos;/g, "'")
+      .replace(/&hellip;/g, '...')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      .replace(/&#\d+;/g, ' '); // Remove any remaining numeric entities
     
-    // Clean up excessive whitespace and normalize line breaks
-    textContent = textContent
-      .replace(/\r\n/g, '\n')  // Normalize line endings
-      .replace(/\r/g, '\n')    // Convert remaining \r to \n
-      .replace(/\n{3,}/g, '\n\n')  // Limit to maximum 2 consecutive line breaks
-      .replace(/[ \t]+/g, ' ')     // Normalize spaces and tabs
-      .replace(/[ \t]*\n[ \t]*/g, '\n')  // Clean up spaces around line breaks
-      .trim();
+    // Remove CSS properties and selectors that might have leaked through
+    cleaned = cleaned.replace(/[a-zA-Z-]+\s*:\s*[^;]+;/g, ' ');
+    cleaned = cleaned.replace(/@[a-zA-Z-]+[^{]*\{[^}]*\}/g, ' ');
+    cleaned = cleaned.replace(/\.[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
+    cleaned = cleaned.replace(/#[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
     
-    return textContent;
+    // Remove URLs that are not part of meaningful text
+    cleaned = cleaned.replace(/https?:\/\/[^\s<>"']{20,}/g, ' ');
+    
+    // Clean up whitespace and line breaks
+    cleaned = cleaned
+      .replace(/\r\n/g, '\n')           // Normalize line endings
+      .replace(/\r/g, '\n')            // Convert remaining \r to \n
+      .replace(/\n{4,}/g, '\n\n\n')    // Limit to maximum 3 consecutive line breaks
+      .replace(/[ \t]{2,}/g, ' ')      // Collapse multiple spaces/tabs to single space
+      .replace(/[ \t]*\n[ \t]*/g, '\n') // Clean up spaces around line breaks
+      .replace(/^\s+|\s+$/g, '')       // Trim start and end
+      .split('\n')                     // Split into lines
+      .map(line => line.trim())        // Trim each line
+      .filter(line => line.length > 0 && !line.match(/^[^a-zA-Z0-9]*$/)) // Remove empty or symbol-only lines
+      .join('\n')                      // Rejoin
+      .replace(/\n{3,}/g, '\n\n');     // Final cleanup of excessive line breaks
+    
+    // If the result is still very long or seems to contain CSS/HTML artifacts, try a more aggressive approach
+    if (cleaned.length > 2000 || cleaned.match(/[{}@#\.]/)) {
+      // Try to extract only sentences and readable text
+      const sentences = cleaned.match(/[A-Z][^.!?]*[.!?]/g) || [];
+      if (sentences.length > 0) {
+        cleaned = sentences.join(' ').trim();
+      }
+    }
+    
+    // Final safety check - if it still looks like code/CSS, return a simple message
+    if (cleaned.match(/[{}@#]{3,}/) || cleaned.length < 10) {
+      return '[Original message content cannot be cleanly displayed as text]';
+    }
+    
+    return cleaned.trim();
   };
 
   const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
