@@ -460,7 +460,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabaseClient.storage
-        .from('email-attachments')
+        .from('documents')
         .upload(storagePath, fileBytes, {
           contentType: 'application/octet-stream',
           upsert: false
@@ -473,7 +473,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Generate signed URL for download
       const { data: urlData, error: urlError } = await supabaseClient.storage
-        .from('email-attachments')
+        .from('documents')
         .createSignedUrl(storagePath, 3600); // 1 hour expiry
 
       if (urlError) {
