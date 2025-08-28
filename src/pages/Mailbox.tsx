@@ -854,20 +854,20 @@ const Mailbox: React.FC = () => {
                     </div>
                   </div>
                   <DrawerFooter>
-                    <div className="flex gap-2 w-full">
-                      <Button 
-                        onClick={sendEmail}
-                        disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                        className="gap-2 flex-1"
-                      >
-                        <Send className="w-4 h-4" />
-                        {sendingEmail ? 'Sending...' : 'Send'}
-                      </Button>
+                    <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => {
                         setShowComposeDialog(false);
                         setComposeForm({ to: '', subject: '', content: '' });
-                      }} className="flex-1">
+                      }}>
                         Cancel
+                      </Button>
+                      <Button 
+                        onClick={sendEmail}
+                        disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                        className="gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        {sendingEmail ? 'Sending...' : 'Send'}
                       </Button>
                     </div>
                   </DrawerFooter>
