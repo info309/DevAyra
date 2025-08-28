@@ -239,7 +239,10 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
                       className={`hover:shadow-sm transition-all cursor-pointer ${
                         isSelected ? 'ring-2 ring-primary bg-accent/50' : ''
                       }`}
-                      onClick={() => handleDocumentToggle(doc)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDocumentToggle(doc);
+                      }}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center gap-3">
@@ -291,11 +294,20 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
 
           {/* Actions */}
           <div className="flex justify-between items-center pt-4 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button 
-              onClick={handleConfirm} 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleConfirm();
+              }}
               disabled={localSelection.length === 0}
             >
               Attach {localSelection.length} Document{localSelection.length !== 1 ? 's' : ''}
