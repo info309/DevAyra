@@ -8,6 +8,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Mailbox from "./pages/Mailbox";
+import GmailCallback from "./pages/GmailCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,12 @@ const App = () => (
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/mailbox" element={
+              <ProtectedRoute>
+                <Mailbox />
+              </ProtectedRoute>
+            } />
+            <Route path="/gmail-callback" element={<GmailCallback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
