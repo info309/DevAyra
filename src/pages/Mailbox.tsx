@@ -874,7 +874,19 @@ const Mailbox: React.FC = () => {
           </div>
 
           {/* Second row - Mobile/Tablet search and toggle */}
-          <div className="flex flex-col sm:flex-row gap-4 lg:hidden items-start">
+          <div className="flex flex-col gap-4 lg:hidden items-start">
+            {/* Mobile/Tablet search */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search emails..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full pl-10"
+              />
+            </div>
+
             {/* View Toggle - Mobile/Tablet */}
             <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
               <button
@@ -899,18 +911,6 @@ const Mailbox: React.FC = () => {
                 <Send className="w-4 h-4" />
                 Sent
               </button>
-            </div>
-
-            {/* Mobile/Tablet search */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search emails..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10"
-              />
             </div>
           </div>
         </div>
