@@ -29,6 +29,7 @@ interface Email {
     mimeType: string;
     size: number;
     attachmentId: string;
+    downloadUrl?: string;
   }>;
 }
 

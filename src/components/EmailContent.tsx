@@ -9,6 +9,7 @@ interface Attachment {
   mimeType: string;
   size: number;
   attachmentId: string;
+  downloadUrl?: string;
 }
 
 interface EmailContentProps {
@@ -29,56 +30,47 @@ const EmailContent: React.FC<EmailContentProps> = ({ content, attachments = [], 
   };
 
   const handleAttachmentDownload = (attachment: Attachment) => {
-    // Note: This would need to call a Gmail API endpoint to download the attachment
-    toast({
-      title: "Download Attachment",
-      description: `Downloading ${attachment.filename}...`,
-    });
-  };
-
-  const processContent = (htmlContent: string) => {
-    // Convert URLs to clickable links if they aren't already
-    const linkRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/gi;
-    
-    let processedContent = htmlContent.replace(linkRegex, (url) => {
-      // Don't replace if already within an <a> tag
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${url}</a>`;
-    });
-
-    // Style existing links
-    processedContent = processedContent.replace(
-      /<a([^>]*)>/gi, 
-      '<a$1 class="text-primary hover:underline" target="_blank" rel="noopener noreferrer">'
-    );
-
-    return processedContent;
+    if (attachment.downloadUrl) {
+      // Open download URL in new tab
+      window.open(attachment.downloadUrl, '_blank');
+      toast({
+        title: "Download Started",
+        description: `Downloading ${attachment.filename}`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Download Unavailable",
+        description: `Download link not available for ${attachment.filename}`,
+      });
+    }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Attachments */}
       {attachments.length > 0 && (
-        <div className="border-b pb-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="border-b border-border pb-4">
+          <div className="flex items-center gap-2 mb-3">
             <Paperclip className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-sm font-medium text-foreground">
               {attachments.length} Attachment{attachments.length > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="grid gap-2">
             {attachments.map((attachment, index) => (
               <div 
                 key={index}
-                className="flex items-center justify-between p-2 border rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="flex-shrink-0">
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs font-mono">
                       {attachment.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
                     </Badge>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{attachment.filename}</p>
+                    <p className="text-sm font-medium truncate text-foreground">{attachment.filename}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatFileSize(attachment.size)}
                     </p>
@@ -88,6 +80,8 @@ const EmailContent: React.FC<EmailContentProps> = ({ content, attachments = [], 
                   variant="ghost"
                   size="sm"
                   onClick={() => handleAttachmentDownload(attachment)}
+                  disabled={!attachment.downloadUrl}
+                  className="flex-shrink-0"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -98,16 +92,18 @@ const EmailContent: React.FC<EmailContentProps> = ({ content, attachments = [], 
       )}
 
       {/* Email Content */}
-      <div 
-        className="prose prose-sm max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
-        dangerouslySetInnerHTML={{ 
-          __html: processContent(content || 'No content available')
-        }}
-        style={{
-          wordWrap: 'break-word',
-          overflowWrap: 'break-word'
-        }}
-      />
+      <div className="prose prose-sm max-w-none dark:prose-invert">
+        <div 
+          dangerouslySetInnerHTML={{ 
+            __html: content || '<p class="text-muted-foreground italic">No content available</p>'
+          }}
+          style={{
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+            maxWidth: '100%'
+          }}
+        />
+      </div>
     </div>
   );
 };

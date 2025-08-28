@@ -6,19 +6,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EmailRequest {
-  action: 'list' | 'get' | 'send' | 'draft';
+interface GmailRequest {
+  action: 'list' | 'get' | 'send' | 'download-attachment';
   userId: string;
   messageId?: string;
+  attachmentId?: string;
+  maxResults?: number;
+  pageToken?: string;
   to?: string;
   subject?: string;
   body?: string;
-  maxResults?: number;
-  pageToken?: string;
+}
+
+interface ProcessedAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  attachmentId: string;
+  downloadUrl?: string;
+}
+
+interface ProcessedEmail {
+  id: string;
+  threadId: string;
+  subject: string;
+  from: string;
+  to: string;
+  date: string;
+  content: string;
+  attachments: ProcessedAttachment[];
+  unread: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,22 +51,22 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, userId, messageId, to, subject, body, maxResults = 10, pageToken }: EmailRequest = await req.json();
-
+    const { action, userId, messageId, attachmentId, maxResults = 10, pageToken, to, subject, body }: GmailRequest = await req.json();
+    
     if (!userId) {
       throw new Error('User ID is required');
     }
 
-    // Get user's Gmail connection
-    const { data: connections, error: connectionError } = await supabaseClient
+    // Get Gmail connection
+    const { data: connections, error: connError } = await supabaseClient
       .from('gmail_connections')
       .select('*')
       .eq('user_id', userId)
       .eq('is_active', true)
       .limit(1);
 
-    if (connectionError) {
-      throw connectionError;
+    if (connError) {
+      throw connError;
     }
 
     if (!connections || connections.length === 0) {
@@ -88,7 +108,6 @@ const handler = async (req: Request): Promise<Response> => {
         const newTokens = await refreshResponse.json();
         accessToken = newTokens.access_token;
 
-        // Update the database with the new token
         await supabaseClient
           .from('gmail_connections')
           .update({ access_token: accessToken })
@@ -97,6 +116,202 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     await refreshTokenIfNeeded();
+
+    // Helper functions for decoding
+    const base64UrlDecode = (str: string): string => {
+      try {
+        // Convert Base64URL to Base64
+        let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+        
+        // Add padding if necessary
+        while (base64.length % 4) {
+          base64 += '=';
+        }
+        
+        return atob(base64);
+      } catch (error) {
+        console.error('Base64URL decode error:', error);
+        return str;
+      }
+    };
+
+    const decodeQuotedPrintable = (str: string): string => {
+      if (!str) return '';
+      
+      try {
+        return str
+          // Decode =XX hex sequences
+          .replace(/=([0-9A-F]{2})/gi, (match, hex) => {
+            return String.fromCharCode(parseInt(hex, 16));
+          })
+          // Remove soft line breaks
+          .replace(/=\r?\n/g, '')
+          // Clean up common artifacts
+          .replace(/=3D/g, '=')
+          .replace(/=20/g, ' ')
+          .replace(/=\s*$/gm, '');
+      } catch (error) {
+        console.error('Quoted-printable decode error:', error);
+        return str;
+      }
+    };
+
+    const processEmailContent = (payload: any): { content: string; attachments: ProcessedAttachment[] } => {
+      let htmlContent = '';
+      let textContent = '';
+      const attachments: ProcessedAttachment[] = [];
+
+      const processPart = (part: any) => {
+        const { mimeType, filename, body, parts } = part;
+
+        // Handle attachments
+        if (filename && filename.length > 0 && body?.attachmentId) {
+          attachments.push({
+            filename: filename,
+            mimeType: mimeType || 'application/octet-stream',
+            size: body.size || 0,
+            attachmentId: body.attachmentId
+          });
+          return;
+        }
+
+        // Handle content parts
+        if (body?.data) {
+          const rawContent = base64UrlDecode(body.data);
+          let decodedContent = rawContent;
+          
+          // Apply quoted-printable decoding if needed
+          if (rawContent.includes('=20') || rawContent.includes('=3D') || rawContent.includes('=\n')) {
+            decodedContent = decodeQuotedPrintable(rawContent);
+          }
+
+          if (mimeType === 'text/html') {
+            htmlContent += decodedContent;
+          } else if (mimeType === 'text/plain') {
+            textContent += decodedContent;
+          }
+        }
+
+        // Process nested parts
+        if (parts && Array.isArray(parts)) {
+          parts.forEach(processPart);
+        }
+      };
+
+      processPart(payload);
+
+      // Prefer HTML, fallback to plain text
+      let finalContent = htmlContent || textContent;
+      
+      // Convert plain text to HTML if no HTML version exists
+      if (!htmlContent && textContent) {
+        finalContent = textContent
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>')
+          .replace(/\r/g, '');
+      }
+
+      // Clean and sanitize HTML
+      if (finalContent) {
+        finalContent = cleanHtmlContent(finalContent);
+      }
+
+      return { content: finalContent, attachments };
+    };
+
+    const cleanHtmlContent = (html: string): string => {
+      if (!html) return '';
+      
+      let cleaned = html;
+      
+      // Remove DOCTYPE and XML declarations
+      cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+      cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
+      cleaned = cleaned.replace(/xmlns[^=]*="[^"]*"/gi, '');
+      
+      // Remove tracking pixels
+      cleaned = cleaned.replace(/<img[^>]*width=["']1["'][^>]*height=["']1["'][^>]*>/gi, '');
+      cleaned = cleaned.replace(/<img[^>]*height=["']1["'][^>]*width=["']1["'][^>]*>/gi, '');
+      
+      // Fix malformed URLs and make links functional
+      cleaned = cleaned.replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+      
+      // Ensure all existing links have proper attributes
+      cleaned = cleaned.replace(/<a([^>]*href=["'][^"']*["'][^>]*)>/gi, (match, attrs) => {
+        if (!attrs.includes('target=')) {
+          attrs += ' target="_blank" rel="noopener noreferrer"';
+        }
+        return `<a${attrs}>`;
+      });
+      
+      // Clean up whitespace and formatting artifacts
+      cleaned = cleaned.replace(/\s+/g, ' ');
+      cleaned = cleaned.replace(/>\s+</g, '><');
+      
+      // Wrap in container for consistent styling
+      cleaned = `<div style="max-width: 100%; word-wrap: break-word; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333;">${cleaned}</div>`;
+      
+      return cleaned.trim();
+    };
+
+    const downloadAndStoreAttachment = async (messageId: string, attachmentId: string, filename: string, userId: string): Promise<string> => {
+      // Download attachment from Gmail
+      const attachmentResponse = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!attachmentResponse.ok) {
+        throw new Error('Failed to download attachment');
+      }
+
+      const attachmentData = await attachmentResponse.json();
+      const fileData = base64UrlDecode(attachmentData.data);
+      
+      // Convert to Uint8Array for upload
+      const fileBytes = new Uint8Array(fileData.length);
+      for (let i = 0; i < fileData.length; i++) {
+        fileBytes[i] = fileData.charCodeAt(i);
+      }
+
+      // Generate unique filename with path
+      const timestamp = Date.now();
+      const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `${userId}/${messageId}/${timestamp}_${sanitizedFilename}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        .from('email-attachments')
+        .upload(storagePath, fileBytes, {
+          contentType: 'application/octet-stream',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Failed to store attachment: ${uploadError.message}`);
+      }
+
+      // Generate signed URL for download
+      const { data: urlData, error: urlError } = await supabaseClient.storage
+        .from('email-attachments')
+        .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+      if (urlError) {
+        console.error('Signed URL error:', urlError);
+        throw new Error(`Failed to generate download URL: ${urlError.message}`);
+      }
+
+      return urlData.signedUrl;
+    };
 
     switch (action) {
       case 'list': {
@@ -118,7 +333,7 @@ const handler = async (req: Request): Promise<Response> => {
         const detailedMessages = await Promise.all(
           (messages.messages || []).map(async (message: any) => {
             const messageResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`,
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata`,
               {
                 headers: {
                   'Authorization': `Bearer ${accessToken}`,
@@ -172,145 +387,30 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const message = await response.json();
-        
-        // Extract email content and attachments with proper decoding
-        const getEmailParts = (part: any): { content: string; attachments: any[] } => {
-          let htmlContent = '';
-          let textContent = '';
-          let attachments: any[] = [];
-
-          const processPart = (p: any) => {
-            // Check if this part has an attachment
-            if (p.filename && p.filename.length > 0 && p.body?.attachmentId) {
-              attachments.push({
-                filename: p.filename,
-                mimeType: p.mimeType,
-                size: p.body.size,
-                attachmentId: p.body.attachmentId
-              });
-            }
-            // Extract HTML content (preferred)
-            else if (p.mimeType === 'text/html' && p.body?.data) {
-              const rawContent = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-              htmlContent += decodeQuotedPrintable(rawContent);
-            }
-            // Extract plain text content (fallback)
-            else if (p.mimeType === 'text/plain' && p.body?.data) {
-              const rawContent = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-              textContent += decodeQuotedPrintable(rawContent);
-            }
-            // Process nested parts
-            else if (p.parts) {
-              p.parts.forEach(processPart);
-            }
-          };
-
-          // Helper function to decode quoted-printable encoding
-          const decodeQuotedPrintable = (str: string): string => {
-            return str
-              // Decode =XX hex sequences
-              .replace(/=([0-9A-F]{2})/gi, (match, hex) => {
-                return String.fromCharCode(parseInt(hex, 16));
-              })
-              // Remove soft line breaks (=\r\n or =\n)
-              .replace(/=\r?\n/g, '')
-              // Decode common UTF-8 sequences
-              .replace(/=C2=A0/g, ' ') // Non-breaking space
-              .replace(/=E2=80=93/g, '–') // En dash
-              .replace(/=E2=80=94/g, '—') // Em dash
-              .replace(/=E2=80=99/g, "'") // Right single quotation mark
-              .replace(/=E2=80=9C/g, '"') // Left double quotation mark
-              .replace(/=E2=80=9D/g, '"') // Right double quotation mark
-              .replace(/=E2=80=A6/g, '…') // Horizontal ellipsis
-              .replace(/=3D/g, '=') // Equals sign
-              .replace(/=20/g, ' '); // Space
-          };
-
-          processPart(part);
-          
-          // Prefer HTML content, fallback to text, convert text to HTML if needed
-          let finalContent = htmlContent || textContent;
-          
-          if (!htmlContent && textContent) {
-            // Convert plain text to HTML
-            finalContent = textContent
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/\n/g, '<br>');
-          }
-          
-          // Clean up malformed HTML and improve readability
-          if (finalContent) {
-            finalContent = cleanHtmlContent(finalContent);
-          }
-          
-          return { content: finalContent, attachments };
-        };
-
-        // Helper function to clean HTML content
-        const cleanHtmlContent = (html: string): string => {
-          let cleaned = html;
-          
-          // Remove DOCTYPE and XML declarations
-          cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
-          cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
-          cleaned = cleaned.replace(/xmlns[^=]*="[^"]*"/gi, '');
-          
-          // Remove weird spacing characters that appear in emails
-          cleaned = cleaned.replace(/âÍ/g, '');
-          cleaned = cleaned.replace(/Â­/g, '');
-          cleaned = cleaned.replace(/â\s/g, '');
-          
-          // Fix broken image tags - convert malformed img syntax to proper format
-          cleaned = cleaned.replace(/([^>])https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)"[^>]*>/gi, (match, before, ext) => {
-            const urlMatch = match.match(/https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)/i);
-            if (urlMatch) {
-              return `${before}<img src="${urlMatch[0]}" style="max-width: 100%; height: auto;" alt="Image">`;
-            }
-            return before;
-          });
-          
-          // Fix broken link tags - ensure proper href attributes
-          cleaned = cleaned.replace(/([^>])https:\/\/[^"]*" target="_blank"/gi, (match, before) => {
-            const urlMatch = match.match(/https:\/\/[^"]*/);
-            if (urlMatch) {
-              return `${before}<a href="${urlMatch[0]}" target="_blank" rel="noopener noreferrer">`;
-            }
-            return before;
-          });
-          
-          // Clean up malformed image references
-          cleaned = cleaned.replace(/(\w+)https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)">/gi, (match, text, ext) => {
-            const urlMatch = match.match(/https:\/\/[^"]*\.(png|jpg|jpeg|gif|webp)/i);
-            if (urlMatch) {
-              return `<div><img src="${urlMatch[0]}" alt="${text}" style="max-width: 100%; height: auto;"><p>${text}</p></div>`;
-            }
-            return text;
-          });
-          
-          // Remove tracking pixels and 1x1 images
-          cleaned = cleaned.replace(/<img[^>]*width="1"[^>]*height="1"[^>]*>/gi, '');
-          cleaned = cleaned.replace(/<img[^>]*height="1"[^>]*width="1"[^>]*>/gi, '');
-          
-          // Fix standalone URLs that should be links
-          cleaned = cleaned.replace(/([^">])(https?:\/\/[^\s<>"]+)/gi, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
-          
-          // Clean up excessive whitespace and broken formatting
-          cleaned = cleaned.replace(/\s+/g, ' ');
-          cleaned = cleaned.replace(/>\s+</g, '><');
-          cleaned = cleaned.replace(/â+/g, '');
-          
-          // Wrap in a container for better styling
-          cleaned = `<div style="max-width: 100%; word-wrap: break-word; font-family: Arial, sans-serif; line-height: 1.4;">${cleaned}</div>`;
-          
-          return cleaned.trim();
-        };
-
         const headers = message.payload?.headers || [];
-        const { content, attachments } = getEmailParts(message.payload);
+        
+        // Process email content and attachments
+        const { content, attachments } = processEmailContent(message.payload);
+        
+        // Download and store attachments, add download URLs
+        const processedAttachments = await Promise.all(
+          attachments.map(async (attachment) => {
+            try {
+              const downloadUrl = await downloadAndStoreAttachment(
+                messageId,
+                attachment.attachmentId,
+                attachment.filename,
+                userId
+              );
+              return { ...attachment, downloadUrl };
+            } catch (error) {
+              console.error(`Failed to process attachment ${attachment.filename}:`, error);
+              return attachment; // Return without download URL if failed
+            }
+          })
+        );
 
-        const emailData = {
+        const emailData: ProcessedEmail = {
           id: message.id,
           threadId: message.threadId,
           subject: headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject',
@@ -318,7 +418,7 @@ const handler = async (req: Request): Promise<Response> => {
           to: headers.find((h: any) => h.name === 'To')?.value || '',
           date: headers.find((h: any) => h.name === 'Date')?.value || '',
           content: content,
-          attachments: attachments,
+          attachments: processedAttachments,
           unread: message.labelIds?.includes('UNREAD') || false,
         };
 
@@ -330,18 +430,18 @@ const handler = async (req: Request): Promise<Response> => {
 
       case 'send': {
         if (!to || !subject || !body) {
-          throw new Error('To, subject, and body are required for sending emails');
+          throw new Error('To, subject, and body are required');
         }
 
-        const rawMessage = [
+        const email = [
           `To: ${to}`,
           `Subject: ${subject}`,
           'Content-Type: text/html; charset=utf-8',
           '',
-          body,
+          body
         ].join('\n');
 
-        const encodedMessage = btoa(rawMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const encodedEmail = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
         const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
           method: 'POST',
@@ -350,7 +450,7 @@ const handler = async (req: Request): Promise<Response> => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            raw: encodedMessage,
+            raw: encodedEmail
           }),
         });
 
@@ -359,53 +459,15 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const result = await response.json();
+
         return new Response(JSON.stringify({ success: true, messageId: result.id }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
       }
 
-      case 'draft': {
-        if (!to || !subject || !body) {
-          throw new Error('To, subject, and body are required for creating drafts');
-        }
-
-        const rawMessage = [
-          `To: ${to}`,
-          `Subject: ${subject}`,
-          'Content-Type: text/html; charset=utf-8',
-          '',
-          body,
-        ].join('\n');
-
-        const encodedMessage = btoa(rawMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-        const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: {
-              raw: encodedMessage,
-            },
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create draft');
-        }
-
-        const result = await response.json();
-        return new Response(JSON.stringify({ success: true, draftId: result.id }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      }
-
       default:
-        throw new Error('Invalid action');
+        return new Response('Invalid action', { status: 400, headers: corsHeaders });
     }
 
   } catch (error: any) {
