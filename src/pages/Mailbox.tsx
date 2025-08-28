@@ -315,6 +315,7 @@ const Mailbox = () => {
   const fetchEmailContent = async (emailId: string) => {
     if (!user) return;
     
+    console.log('Fetching content for email:', emailId);
     try {
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: {
@@ -327,6 +328,7 @@ const Mailbox = () => {
       if (error) throw error;
 
       const emailWithContent = data as Email;
+      console.log('Email content received, length:', emailWithContent.content?.length || 0);
       
       // Update the email in the list with content
       setEmails(prev => prev.map(email => 
@@ -352,10 +354,12 @@ const Mailbox = () => {
   };
 
   const selectConversation = async (conversation: Conversation) => {
+    console.log('Selecting conversation:', conversation.id, conversation.subject);
     setSelectedConversation(conversation);
     
     // Load content for all emails in conversation that don't have content yet
     const emailsWithoutContent = conversation.emails.filter(email => !email.content);
+    console.log('Emails without content:', emailsWithoutContent.length);
     
     for (const email of emailsWithoutContent) {
       await fetchEmailContent(email.id);
