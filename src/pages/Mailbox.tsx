@@ -705,24 +705,24 @@ const Mailbox = () => {
 
                         {/* Expanded Thread Emails */}
                         {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                          <div className="bg-accent/30 border-l-2 border-primary/20 ml-4">
-                            <div className="p-2 space-y-1">
+                          <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
+                            <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
                               {conversation.emails
                                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                 .map((email, emailIndex) => (
                                 <div
                                   key={email.id}
-                                  className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30"
+                                  className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
                                   onClick={(e) => selectEmailFromThread(email, e)}
                                 >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-xs font-medium truncate">
+                                  <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                    <div className="min-w-0 overflow-hidden">
+                                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                                        <p className="text-xs font-medium truncate flex-1 min-w-0">
                                           {email.from.split('<')[0].trim() || email.from}
                                         </p>
                                         {email.unread && (
-                                          <Badge variant="default" className="text-xs py-0 px-1">
+                                          <Badge variant="default" className="text-xs py-0 px-1 flex-shrink-0">
                                             New
                                           </Badge>
                                         )}
@@ -737,7 +737,7 @@ const Mailbox = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         selectEmailFromThread(email, e);
