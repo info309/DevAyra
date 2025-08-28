@@ -996,8 +996,8 @@ const Mailbox: React.FC = () => {
                 />
               </div>
               
-              <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4" />
+              <Button onClick={() => refreshCurrentView()} variant="outline" size="sm" disabled={emailLoading}>
+                <RefreshCw className={`w-4 h-4 ${emailLoading ? 'animate-spin' : ''}`} />
               </Button>
               <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
                 <DrawerTrigger asChild>
