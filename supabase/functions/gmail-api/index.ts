@@ -673,13 +673,20 @@ const handler = async (req: Request): Promise<Response> => {
         );
 
         if (!attachmentResponse.ok) {
-          throw new Error('Failed to download attachment');
+          const error = await attachmentResponse.text();
+          console.error('Gmail API attachment error:', error);
+          throw new Error(`Failed to download attachment: ${attachmentResponse.status}`);
         }
 
         const attachmentData = await attachmentResponse.json();
+        
+        if (!attachmentData.data) {
+          throw new Error('No attachment data received from Gmail API');
+        }
 
         return new Response(JSON.stringify({
-          attachmentData: attachmentData.data // Base64-encoded data
+          attachmentData: attachmentData.data,
+          size: attachmentData.size || 0
         }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
