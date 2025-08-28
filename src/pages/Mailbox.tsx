@@ -597,15 +597,15 @@ const Mailbox = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-18rem)] min-w-0">
           {/* Inbox List */}
-          <Card className="lg:col-span-1 min-w-0 overflow-hidden">
+          <Card className="lg:col-span-1 w-full max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg">Inbox</CardTitle>
               <CardDescription>
                 {conversations.length} conversations, {emails.length} total emails
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-22rem)] w-full overflow-hidden">
+            <CardContent className="p-0 w-full max-w-full overflow-hidden">
+              <ScrollArea className="h-[calc(100vh-22rem)] w-full max-w-full overflow-hidden">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -625,16 +625,16 @@ const Mailbox = () => {
                       );
                       
                       return (
-                        <div key={conversation.id} className="border-b border-border last:border-b-0 max-w-full overflow-hidden">
+                        <div key={conversation.id} className="border-b border-border last:border-b-0 w-full max-w-full overflow-hidden">
                           <div
                             className={`p-3 cursor-pointer hover:bg-accent transition-colors w-full max-w-full overflow-hidden ${
                               selectedConversation?.id === conversation.id ? 'bg-accent' : ''
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden">
+                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                               {/* Left side content */}
-                              <div className="flex-1 min-w-0 space-y-1 pr-2 overflow-hidden">
+                              <div className="min-w-0 space-y-1 overflow-hidden">
                                 {/* Email address and unread badge */}
                                 <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
@@ -663,7 +663,7 @@ const Mailbox = () => {
                               </div>
                               
                               {/* Right side content */}
-                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-20 sm:w-24 md:w-28 lg:w-32">
+                              <div className="flex flex-col items-end justify-between h-16 flex-shrink-0 w-24">
                                 {/* Top right: Date */}
                                 <p className="text-xs text-muted-foreground whitespace-nowrap">
                                   {new Date(conversation.lastDate).toLocaleDateString()}
