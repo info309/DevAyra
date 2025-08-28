@@ -32,15 +32,15 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
                 box-sizing: border-box;
               }
               
-              /* Base styles with proper design system colors */
+              /* Base styles */
               body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
                 font-size: 14px;
                 line-height: 1.6;
-                color: hsl(20, 14%, 9%); /* --foreground */
-                background: hsl(28, 100%, 98%); /* --card */
+                color: #374151;
+                background: #ffffff;
                 margin: 0;
-                padding: 24px;
+                padding: 20px;
                 overflow-wrap: break-word;
                 word-wrap: break-word;
                 min-height: 100vh;
@@ -48,45 +48,41 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
                 -moz-osx-font-smoothing: grayscale;
               }
               
-              /* Typography with design system colors */
+              /* Typography */
               p { 
                 margin-bottom: 16px; 
                 line-height: 1.6;
-                color: hsl(20, 14%, 9%);
               }
               h1, h2, h3, h4, h5, h6 { 
                 margin-bottom: 16px; 
                 font-weight: 600; 
                 line-height: 1.3;
-                color: hsl(20, 14%, 9%); /* --foreground */
               }
-              h1 { font-size: 24px; }
-              h2 { font-size: 20px; }
-              h3 { font-size: 18px; }
-              h4 { font-size: 16px; }
+              h1 { font-size: 24px; color: #1f2937; }
+              h2 { font-size: 20px; color: #1f2937; }
+              h3 { font-size: 18px; color: #1f2937; }
+              h4 { font-size: 16px; color: #1f2937; }
               
-              /* Links with primary color */
+              /* Links */
               a {
-                color: hsl(20, 83%, 38%); /* --primary */
+                color: #3b82f6;
                 text-decoration: underline;
-                transition: all 0.2s ease;
+                transition: color 0.2s ease;
               }
               a:hover {
-                color: hsl(20, 83%, 32%);
+                color: #1d4ed8;
                 text-decoration: none;
-                opacity: 0.8;
               }
               
-              /* Images with refined styling */
+              /* Images with better handling */
               img {
                 max-width: 100% !important;
                 height: auto !important;
-                border-radius: 12px;
+                border-radius: 6px;
                 display: block;
-                margin: 16px auto;
-                box-shadow: 0 4px 12px hsla(20, 14%, 9%, 0.08);
-                transition: all 0.3s ease;
-                border: 1px solid hsl(25, 25%, 85%); /* --border */
+                margin: 12px auto;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: opacity 0.3s ease;
               }
               
               /* Handle broken images */
@@ -94,32 +90,39 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
                 display: none !important;
               }
               
-              /* Tables with design system colors */
+              /* Image error handling */
+              img::before {
+                content: "";
+                display: block;
+                width: 100%;
+                height: 100px;
+                background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+                border-radius: 6px;
+                position: relative;
+              }
+              
+              /* Tables */
               table {
                 border-collapse: collapse;
                 width: 100%;
-                margin: 20px 0;
-                border-radius: 12px;
+                margin: 16px 0;
+                border-radius: 6px;
                 overflow: hidden;
-                box-shadow: 0 2px 8px hsla(20, 14%, 9%, 0.06);
-                background: hsl(28, 100%, 98%); /* --card */
-                border: 1px solid hsl(25, 25%, 85%); /* --border */
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                background: #ffffff;
               }
               
               td, th {
-                padding: 16px 20px;
+                padding: 12px 16px;
                 text-align: left;
-                border-bottom: 1px solid hsl(25, 25%, 85%); /* --border */
+                border-bottom: 1px solid #f3f4f6;
                 vertical-align: top;
               }
               
               th {
-                background: hsl(25, 30%, 92%); /* --muted */
+                background: #f9fafb;
                 font-weight: 600;
-                color: hsl(20, 14%, 9%); /* --foreground */
-                font-size: 13px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
+                color: #374151;
               }
               
               tr:last-child td {
@@ -127,95 +130,62 @@ const IsolatedEmailContent: React.FC<IsolatedEmailContentProps> = ({ content }) 
               }
               
               tr:hover {
-                background: hsl(30, 100%, 85%); /* --accent */
+                background: #f9fafb;
               }
               
-              /* Lists with proper spacing */
+              /* Lists */
               ul, ol {
-                margin: 18px 0;
-                padding-left: 28px;
+                margin: 16px 0;
+                padding-left: 24px;
               }
               
               li {
                 margin-bottom: 8px;
                 line-height: 1.6;
-                color: hsl(20, 14%, 9%);
               }
               
-              /* Block elements with design system colors */
+              /* Block elements */
               blockquote {
-                margin: 20px 0;
-                padding: 20px 24px;
-                border-left: 4px solid hsl(20, 83%, 38%); /* --primary */
-                background: hsl(25, 30%, 92%); /* --muted */
-                border-radius: 0 12px 12px 0;
+                margin: 16px 0;
+                padding: 16px 20px;
+                border-left: 4px solid #3b82f6;
+                background: #f8fafc;
+                border-radius: 0 6px 6px 0;
                 font-style: italic;
-                color: hsl(20, 8%, 46%); /* --muted-foreground */
-                position: relative;
+                color: #64748b;
               }
               
-              blockquote::before {
-                content: '"';
-                font-size: 48px;
-                color: hsl(20, 83%, 38%);
-                position: absolute;
-                top: -8px;
-                left: 16px;
-                font-family: Georgia, serif;
-                opacity: 0.3;
-              }
-              
-              /* Code blocks with design system colors */
+              /* Code blocks */
               pre, code {
-                font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-                background: hsl(25, 30%, 92%); /* --muted */
-                border-radius: 8px;
-                padding: 4px 8px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                background: #f1f5f9;
+                border-radius: 4px;
+                padding: 2px 6px;
                 font-size: 13px;
-                color: hsl(20, 14%, 9%);
-                border: 1px solid hsl(25, 25%, 85%);
               }
               
               pre {
-                padding: 20px;
-                margin: 20px 0;
+                padding: 16px;
+                margin: 16px 0;
                 overflow-x: auto;
-                line-height: 1.4;
+                border: 1px solid #e2e8f0;
               }
               
-              /* Dividers with design system colors */
+              /* Dividers */
               hr {
                 margin: 32px 0;
                 border: none;
                 height: 1px;
-                background: linear-gradient(to right, transparent, hsl(25, 25%, 85%), transparent);
+                background: linear-gradient(to right, transparent, #e2e8f0, transparent);
               }
               
               /* Email-specific elements */
               .email-signature {
                 margin-top: 32px;
-                padding-top: 20px;
-                border-top: 2px solid hsl(25, 25%, 85%);
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
                 font-size: 13px;
-                color: hsl(20, 8%, 46%); /* --muted-foreground */
-                background: hsl(25, 30%, 92%);
-                padding: 20px;
-                border-radius: 12px;
-              }
-              
-              /* Enhanced content structure */
-              .email-content {
-                max-width: 100%;
-                margin: 0 auto;
-              }
-              
-              /* Better spacing for email elements */
-              .email-content > *:first-child {
-                margin-top: 0;
-              }
-              
-              .email-content > *:last-child {
-                margin-bottom: 0;
+                color: #6b7280;
               }
               
               /* Outlook/Exchange specific fixes */
