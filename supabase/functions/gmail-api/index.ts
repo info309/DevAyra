@@ -662,6 +662,32 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('Message ID and Attachment ID are required');
         }
 
+        // First check if attachment is already stored
+        const storagePath = `${userId}/attachments/${messageId}/${attachmentId}`;
+        
+        const { data: existingFile, error: storageError } = await supabaseClient.storage
+          .from('documents')
+          .list(`${userId}/attachments/${messageId}`, {
+            search: attachmentId
+          });
+
+        if (!storageError && existingFile && existingFile.length > 0) {
+          // File already exists, return signed URL
+          const { data: urlData, error: urlError } = await supabaseClient.storage
+            .from('documents')
+            .createSignedUrl(`${userId}/attachments/${messageId}/${existingFile[0].name}`, 3600);
+
+          if (!urlError && urlData) {
+            return new Response(JSON.stringify({
+              storageUrl: urlData.signedUrl,
+              fromStorage: true
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            });
+          }
+        }
+
         // Download attachment from Gmail
         const attachmentResponse = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
@@ -684,9 +710,58 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error('No attachment data received from Gmail API');
         }
 
+        // Convert base64 to bytes for storage
+        const byteCharacters = atob(attachmentData.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const fileBytes = new Uint8Array(byteNumbers);
+
+        // Store in documents bucket
+        const fileName = `${attachmentId}_${Date.now()}`;
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+          .from('documents')
+          .upload(`${userId}/attachments/${messageId}/${fileName}`, fileBytes, {
+            contentType: 'application/octet-stream',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          // Fallback to returning base64 data
+          return new Response(JSON.stringify({
+            attachmentData: attachmentData.data,
+            size: attachmentData.size || 0,
+            fromStorage: false
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        }
+
+        // Generate signed URL for the stored file
+        const { data: urlData, error: urlError } = await supabaseClient.storage
+          .from('documents')
+          .createSignedUrl(`${userId}/attachments/${messageId}/${fileName}`, 3600);
+
+        if (urlError) {
+          console.error('Signed URL error:', urlError);
+          // Fallback to returning base64 data
+          return new Response(JSON.stringify({
+            attachmentData: attachmentData.data,
+            size: attachmentData.size || 0,
+            fromStorage: false
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        }
+
         return new Response(JSON.stringify({
-          attachmentData: attachmentData.data,
-          size: attachmentData.size || 0
+          storageUrl: urlData.signedUrl,
+          size: attachmentData.size || 0,
+          fromStorage: true
         }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },

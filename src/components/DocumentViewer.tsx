@@ -80,28 +80,37 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         throw new Error(error.message || 'Failed to fetch attachment');
       }
 
-      if (!data?.attachmentData) {
+      if (data?.storageUrl) {
+        // Use the storage URL directly
+        console.log('Using storage URL for preview');
+        setAttachmentData(data.storageUrl);
+      } else if (data?.attachmentData) {
+        // Fallback to base64 data
+        console.log('Using base64 data for preview');
+        const byteCharacters = atob(data.attachmentData);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: attachment.mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        setAttachmentData(blobUrl);
+      } else {
         throw new Error('No attachment data received');
       }
 
-      console.log('Received attachment data, size:', data.size);
-      
-      // Convert base64 to blob
-      const byteCharacters = atob(data.attachmentData);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: attachment.mimeType });
-      const blobUrl = URL.createObjectURL(blob);
-      
-      setAttachmentData(blobUrl);
-
-      // For Word documents, try to extract text content
+      // For Word documents, try to extract text content if we have blob data
       if (attachment.mimeType.includes('officedocument.wordprocessingml') || 
           attachment.mimeType.includes('application/msword')) {
-        await extractWordContent(byteArray);
+        if (data?.attachmentData) {
+          const byteCharacters = atob(data.attachmentData);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          await extractWordContent(new Uint8Array(byteNumbers));
+        }
       }
       
     } catch (error: any) {
