@@ -1101,14 +1101,15 @@ const Mailbox: React.FC = () => {
                     </div>
                   </div>
                   <DrawerFooter>
-                    <div className="flex gap-2 justify-between">
-                      <div className="flex gap-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                      {/* Attachment buttons - Stack on mobile, side by side on larger screens */}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => document.getElementById('attachments')?.click()}
-                          className="gap-2"
+                          className="gap-2 w-full sm:w-auto"
                         >
                           <Paperclip className="w-4 h-4" />
                           Add Files
@@ -1128,7 +1129,7 @@ const Mailbox: React.FC = () => {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="gap-2"
+                              className="gap-2 w-full sm:w-auto"
                             >
                               <FolderOpen className="w-4 h-4" />
                               From Documents
@@ -1137,17 +1138,22 @@ const Mailbox: React.FC = () => {
                         />
                       </div>
                       
-                      <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => {
-                          setShowComposeDialog(false);
-                          setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
-                        }}>
+                      {/* Action buttons - Stack on mobile, side by side on larger screens */}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowComposeDialog(false);
+                            setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+                          }}
+                          className="w-full sm:w-auto"
+                        >
                           Cancel
                         </Button>
                         <Button 
                           onClick={sendEmail}
                           disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                          className="gap-2"
+                          className="gap-2 w-full sm:w-auto"
                         >
                           <Send className="w-4 h-4" />
                           {sendingEmail ? 'Sending...' : 
