@@ -1517,9 +1517,12 @@ const Mailbox: React.FC = () => {
                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
                                                 {email.from.split('<')[0].trim() || email.from}
                                               </p>
-                                               {email.unread && (
-                                                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                               )}
+                                              {email.attachments && email.attachments.length > 0 && (
+                                                <Paperclip className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                              )}
+                                              {email.unread && (
+                                                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                              )}
                                             </div>
                                             <p className="text-xs text-muted-foreground truncate">
                                               {email.snippet}
