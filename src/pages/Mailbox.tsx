@@ -129,9 +129,21 @@ const Mailbox: React.FC = () => {
   // Click outside handler for add files menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (addFilesMenuRef.current && !addFilesMenuRef.current.contains(event.target as Node)) {
-        setShowAddFilesMenu(false);
+      const target = event.target as Node;
+      
+      // Don't close if clicking inside the menu
+      if (addFilesMenuRef.current && addFilesMenuRef.current.contains(target)) {
+        return;
       }
+      
+      // Don't close if clicking on DocumentPicker dialog elements
+      const dialogElement = document.querySelector('[role="dialog"]');
+      if (dialogElement && dialogElement.contains(target)) {
+        return;
+      }
+      
+      // Close the menu for other clicks
+      setShowAddFilesMenu(false);
     };
 
     if (showAddFilesMenu) {
@@ -1239,10 +1251,12 @@ const Mailbox: React.FC = () => {
                               </Button>
                               <DocumentPicker
                                 onDocumentsSelected={(documents) => {
+                                  console.log('Documents selected in Mailbox:', documents.map(d => d.name));
                                   setComposeForm(prev => ({
                                     ...prev,
                                     documentAttachments: documents
                                   }));
+                                  // Only close the dropdown after documents are confirmed
                                   setShowAddFilesMenu(false);
                                 }}
                                 selectedDocuments={composeForm.documentAttachments || []}
@@ -1251,6 +1265,10 @@ const Mailbox: React.FC = () => {
                                     type="button"
                                     variant="ghost"
                                     className="w-full justify-start gap-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Don't close the dropdown when opening DocumentPicker
+                                    }}
                                   >
                                     <FolderOpen className="w-4 h-4" />
                                     From Documents
