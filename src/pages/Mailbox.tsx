@@ -768,21 +768,21 @@ const Mailbox: React.FC = () => {
         {/* Navigation and Search Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* View Toggle */}
-          <div className="flex gap-2">
+          <div className="flex rounded-md border border-input bg-background">
             <Button
-              variant={currentView === 'inbox' ? 'default' : 'outline'}
+              variant={currentView === 'inbox' ? 'secondary' : 'ghost'}
               onClick={() => setCurrentView('inbox')}
               size="sm"
-              className="gap-2"
+              className="gap-2 rounded-l-md rounded-r-none border-0"
             >
               <Mail className="w-4 h-4" />
               Inbox
             </Button>
             <Button
-              variant={currentView === 'sent' ? 'default' : 'outline'}
+              variant={currentView === 'sent' ? 'secondary' : 'ghost'}
               onClick={() => setCurrentView('sent')}
               size="sm"
-              className="gap-2"
+              className="gap-2 rounded-r-md rounded-l-none border-0"
             >
               <Send className="w-4 h-4" />
               Sent
