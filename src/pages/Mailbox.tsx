@@ -758,17 +758,10 @@ const Mailbox: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Button>
-        </div>
-
-        {/* Navigation and Search Controls */}
-        <div className="flex flex-col gap-4 mb-6">
-          {/* View Toggle - Mobile Optimized */}
-          <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit mx-auto sm:mx-0">
+        {/* Header with controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          {/* View Toggle - Left side */}
+          <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
             <button
               onClick={() => setCurrentView('inbox')}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
@@ -793,15 +786,16 @@ const Mailbox: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search and controls - Right side */}
+          <div className="flex flex-col sm:flex-row gap-2 items-end">
             {/* Search Controls */}
-            <div className="flex-1 flex gap-2 max-w-md">
+            <div className="flex gap-2">
               <Input 
                 placeholder="Search emails..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="flex-1"
+                className="w-64"
               />
               <Button 
                 variant="outline" 
@@ -809,7 +803,7 @@ const Mailbox: React.FC = () => {
                 disabled={searchLoading}
                 size="sm"
               >
-                {searchLoading ? 'Searching...' : 'Search'}
+                <Search className="w-4 h-4" />
               </Button>
             </div>
 
@@ -832,6 +826,7 @@ const Mailbox: React.FC = () => {
                     setComposeForm({ to: '', subject: '', content: '' });
                   }} size="sm">
                     <Plus className="w-4 h-4" />
+                    Compose
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
