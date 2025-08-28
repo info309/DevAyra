@@ -191,14 +191,14 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
   }
 
   return (
-    <div className={`email-renderer-container ${className}`}>
+    <div className={`email-renderer-container ${className}`} style={{ overflow: 'visible' }}>
       <iframe
         ref={iframeRef}
         className="w-full border-0 bg-transparent"
         style={{ 
           height: `${iframeHeight}px`,
           minHeight: '300px',
-          overflow: 'hidden',
+          overflow: 'visible',
           display: 'block'
         }}
         sandbox="allow-same-origin"
