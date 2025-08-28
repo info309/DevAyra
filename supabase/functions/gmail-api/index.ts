@@ -467,7 +467,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attachmentData = await attachmentResponse.json();
       const fileData = base64UrlDecode(attachmentData.data);
       
-      // fileData is already a Uint8Array from base64UrlDecode
+      // fileData is already a Uint8Array, no need to convert
       const fileBytes = fileData;
 
       // Generate unique filename with path
@@ -846,7 +846,6 @@ const handler = async (req: Request): Promise<Response> => {
             `To: ${to}`,
             `Subject: ${subject}`,
             `Content-Type: multipart/mixed; boundary="${boundary}"`,
-            `MIME-Version: 1.0`
           ];
 
           // Add threading headers if this is a reply
@@ -855,35 +854,34 @@ const handler = async (req: Request): Promise<Response> => {
             headers.push(`References: <${replyTo}@gmail.com>`);
           }
 
-          let bodyParts = [];
+          const parts: string[] = [];
           
           // Add email content part
           const htmlContent = content.replace(/\n/g, '<br>');
-          bodyParts.push([
+          parts.push([
             `--${boundary}`,
             'Content-Type: text/html; charset=utf-8',
-            'Content-Transfer-Encoding: quoted-printable',
+            'Content-Transfer-Encoding: base64',
             '',
-            htmlContent
-          ].join('\r\n'));
+            btoa(htmlContent)
+          ].join('\n'));
 
           // Add attachment parts
           for (const attachment of attachments) {
             console.log('Adding attachment:', attachment.filename, 'size:', attachment.size);
-            bodyParts.push([
+            parts.push([
               `--${boundary}`,
               `Content-Type: ${attachment.contentType}; name="${attachment.filename}"`,
               'Content-Transfer-Encoding: base64',
               `Content-Disposition: attachment; filename="${attachment.filename}"`,
               '',
               attachment.content
-            ].join('\r\n'));
+            ].join('\n'));
           }
 
-          // Close boundary
-          bodyParts.push(`--${boundary}--`);
+          parts.push(`--${boundary}--`);
 
-          emailBody = headers.join('\r\n') + '\r\n\r\n' + bodyParts.join('\r\n');
+          emailBody = [...headers, '', parts.join('\n')].join('\n');
         } else {
           console.log('Creating simple email without attachments');
           // Create simple email without attachments
