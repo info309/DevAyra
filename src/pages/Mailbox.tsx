@@ -632,9 +632,9 @@ const Mailbox = () => {
                             }`}
                             onClick={() => selectConversation(conversation)}
                           >
-                            <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                  <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden">
                               {/* Left side content */}
-                              <div className="min-w-0 space-y-1 overflow-hidden">
+                              <div className="flex-1 min-w-0 space-y-1 overflow-hidden">
                                 {/* Email address and unread badge */}
                                 <div className="flex items-center gap-2 min-w-0">
                                   <p className="font-medium text-sm truncate flex-1 min-w-0">
@@ -717,8 +717,8 @@ const Mailbox = () => {
                                   className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
                                   onClick={(e) => selectEmailFromThread(email, e)}
                                 >
-                                  <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                                    <div className="min-w-0 overflow-hidden">
+                                  <div className="flex justify-between items-start gap-3 w-full max-w-full overflow-hidden">
+                                    <div className="flex-1 min-w-0 overflow-hidden">
                                       <div className="flex items-center gap-2 mb-1 min-w-0">
                                         <p className="text-xs font-medium truncate flex-1 min-w-0">
                                           {email.from.split('<')[0].trim() || email.from}
