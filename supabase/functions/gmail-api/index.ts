@@ -311,48 +311,106 @@ const handler = async (req: Request): Promise<Response> => {
       cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
       cleaned = cleaned.replace(/xmlns[^=]*="[^"]*"/gi, '');
       
-      // Remove tracking pixels and 1x1 images
-      cleaned = cleaned.replace(/<img[^>]*width=["']1["'][^>]*height=["']1["'][^>]*>/gi, '');
-      cleaned = cleaned.replace(/<img[^>]*height=["']1["'][^>]*width=["']1["'][^>]*>/gi, '');
+      // Fix broken HTML tags that are split across lines
+      cleaned = cleaned.replace(/(<[^>]+)\s*\n\s*/g, '$1 ');
+      cleaned = cleaned.replace(/\s*\n\s*([^<>]*>)/g, ' $1');
       
-      // Fix broken image tags and make them responsive
+      // Fix incomplete link tags and malformed anchor tags
+      cleaned = cleaned.replace(/<a\s+href=\s*([^>\s]*)\s*([^>]*)>/gi, (match, href, rest) => {
+        // Clean up the href if it's malformed
+        let cleanHref = href.replace(/["']/g, '');
+        if (!cleanHref.startsWith('http')) {
+          cleanHref = '';
+        }
+        
+        if (cleanHref) {
+          return `<a href="${cleanHref}" target="_blank" rel="noopener noreferrer"${rest ? ' ' + rest : ''}>`;
+        } else {
+          return ''; // Remove broken link tags
+        }
+      });
+      
+      // Fix broken image tags with very long tracking URLs
+      cleaned = cleaned.replace(/(<img[^>]*src=["']?)([^"'>\s]+)([^>]*>)/gi, (match, prefix, src, suffix) => {
+        // Handle tracking URLs and proxy services
+        let cleanSrc = src;
+        
+        // Skip obviously broken or too long URLs
+        if (src.length > 500 || src.includes('api.mimecast.com') || src.includes('tracking')) {
+          return '<!-- Image removed: tracking URL -->';
+        }
+        
+        // Ensure proper URL format
+        if (cleanSrc && (cleanSrc.startsWith('http') || cleanSrc.startsWith('data:'))) {
+          return `${prefix}${cleanSrc}" style="max-width: 100%; height: auto; border-radius: 4px;"${suffix}`;
+        } else {
+          return '<!-- Image removed: invalid URL -->';
+        }
+      });
+      
+      // Remove malformed or incomplete tags
+      cleaned = cleaned.replace(/<[^>]*$/g, ''); // Remove incomplete tags at end
+      cleaned = cleaned.replace(/^[^<]*>/g, ''); // Remove incomplete tags at start
+      cleaned = cleaned.replace(/<\s*\/?\s*>/g, ''); // Remove empty tags
+      
+      // Fix broken link structures - convert malformed links to plain text
+      cleaned = cleaned.replace(/(<a href=)([^>]*$)/gi, (match, prefix, rest) => {
+        return rest; // Just show the URL as text if the tag is broken
+      });
+      
+      // Remove tracking pixels and 1x1 images
+      cleaned = cleaned.replace(/<img[^>]*width=["']?1["']?[^>]*height=["']?1["']?[^>]*>/gi, '');
+      cleaned = cleaned.replace(/<img[^>]*height=["']?1["']?[^>]*width=["']?1["']?[^>]*>/gi, '');
+      
+      // Enhance remaining images with proper attributes
       cleaned = cleaned.replace(/<img([^>]*?)>/gi, (match, attrs) => {
-        // Ensure images have proper styling
         if (!attrs.includes('style=')) {
-          attrs += ' style="max-width: 100%; height: auto; display: block;"';
+          attrs += ' style="max-width: 100%; height: auto; display: block; border-radius: 4px; margin: 8px 0;"';
         }
         if (!attrs.includes('loading=')) {
           attrs += ' loading="lazy"';
         }
+        if (!attrs.includes('alt=')) {
+          attrs += ' alt="Email Image"';
+        }
         return `<img${attrs}>`;
       });
       
-      // Enhance links with proper attributes
+      // Enhance links with proper attributes and fix broken ones
       cleaned = cleaned.replace(/<a([^>]*?)>/gi, (match, attrs) => {
+        if (!attrs.includes('href=')) {
+          return ''; // Remove links without href
+        }
+        
         if (!attrs.includes('target=')) {
           attrs += ' target="_blank"';
         }
         if (!attrs.includes('rel=')) {
           attrs += ' rel="noopener noreferrer"';
         }
-        // Add link styling
         if (!attrs.includes('style=')) {
           attrs += ' style="color: hsl(var(--primary)); text-decoration: underline;"';
         }
         return `<a${attrs}>`;
       });
       
-      // Convert standalone URLs to links
+      // Convert standalone URLs to links (but be careful not to break existing HTML)
       cleaned = cleaned.replace(
-        /(?<!href=["']|src=["'])(https?:\/\/[^\s<>"'\)]+)/gi,
+        /(?<!href=["']|src=["'])(?<!>)(https?:\/\/[^\s<>"'\)]{10,200})(?![^<]*>)/gi,
         '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: hsl(var(--primary)); text-decoration: underline;">$1</a>'
       );
       
-      // Clean up excessive whitespace
+      // Clean up excessive whitespace and broken formatting
       cleaned = cleaned.replace(/\s+/g, ' ');
       cleaned = cleaned.replace(/>\s+</g, '><');
+      cleaned = cleaned.replace(/\s+>/g, '>');
+      cleaned = cleaned.replace(/<\s+/g, '<');
       
-      // Wrap in styled container
+      // Remove common email artifacts
+      cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, ''); // Remove HTML comments
+      cleaned = cleaned.replace(/&nbsp;{3,}/g, ' '); // Replace multiple nbsp with single space
+      
+      // Wrap in styled container with better email-specific CSS
       cleaned = `
         <div style="
           max-width: 100%; 
@@ -360,6 +418,8 @@ const handler = async (req: Request): Promise<Response> => {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
           line-height: 1.6; 
           color: hsl(var(--foreground));
+          overflow-wrap: break-word;
+          word-break: break-word;
         ">
           ${cleaned}
         </div>
