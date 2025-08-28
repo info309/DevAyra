@@ -1047,6 +1047,7 @@ const Mailbox: React.FC = () => {
                         placeholder="recipient@example.com"
                         autoComplete="email"
                         name="compose-to"
+                        className="text-base"
                       />
                     </div>
                     <div>
@@ -1056,6 +1057,7 @@ const Mailbox: React.FC = () => {
                         value={composeForm.subject}
                         onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
                         placeholder="Email subject"
+                        className="text-base"
                       />
                     </div>
                     <div>
@@ -1066,7 +1068,7 @@ const Mailbox: React.FC = () => {
                         onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Write your message here..."
                         rows={15}
-                        className="min-h-[300px] resize-none text-base md:text-sm"
+                        className="min-h-[300px] resize-none text-base"
                       />
                     </div>
                     
