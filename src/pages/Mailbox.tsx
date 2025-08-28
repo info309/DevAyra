@@ -61,8 +61,6 @@ const Mailbox = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-  const [autoLoading, setAutoLoading] = useState(false);
-  const [scrollTimeout, setScrollTimeout] = useState<NodeJS.Timeout | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -82,14 +80,6 @@ const Mailbox = () => {
       fetchGmailConnections();
     }
   }, [user]);
-
-  useEffect(() => {
-    return () => {
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-      }
-    };
-  }, [scrollTimeout]);
 
   useEffect(() => {
     if (connections.length > 0) {
@@ -201,7 +191,7 @@ const Mailbox = () => {
       const requestBody = {
         action,
         userId: user.id,
-        maxResults: 50, // Load 50 emails at a time
+        maxResults: 100, // Load more emails at once
         pageToken: loadMore ? nextPageToken : undefined,
         query: searchQuery
       };
@@ -320,37 +310,8 @@ const Mailbox = () => {
   };
 
   const loadMoreEmails = async () => {
-    if (!nextPageToken || allEmailsLoaded || autoLoading) return;
-    setAutoLoading(true);
+    if (!nextPageToken || allEmailsLoaded) return;
     await fetchEmails(searchQuery || undefined, true);
-    setAutoLoading(false);
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    // Clear existing timeout
-    if (scrollTimeout) {
-      clearTimeout(scrollTimeout);
-    }
-    
-    // Debounce scroll events
-    const timeout = setTimeout(() => {
-      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      
-      console.log('Scroll debug:', { scrollTop, scrollHeight, clientHeight, diff: scrollHeight - (scrollTop + clientHeight) });
-      
-      // Only trigger when truly at the bottom (less than 1px remaining)
-      const remainingScroll = scrollHeight - (scrollTop + clientHeight);
-      const isAtBottom = remainingScroll < 1;
-      
-      console.log('Is at bottom:', isAtBottom, 'Remaining:', remainingScroll);
-      
-      if (isAtBottom && !allEmailsLoaded && !autoLoading && nextPageToken && filteredConversations.length > 0) {
-        console.log('Triggering auto load');
-        loadMoreEmails();
-      }
-    }, 100); // 100ms debounce
-    
-    setScrollTimeout(timeout);
   };
 
   const fetchEmailContent = async (emailId: string) => {
@@ -394,29 +355,20 @@ const Mailbox = () => {
 
   const handleConversationClick = (conversation: Conversation) => {
     console.log('Selecting conversation:', conversation.id, conversation.subject);
-    
-    // Mark previously selected conversation as read if it was unread
-    if (selectedConversation && selectedConversation.id !== conversation.id && selectedConversation.unreadCount > 0) {
-      markConversationAsRead(selectedConversation);
-    }
-    
     setSelectedConversation(conversation);
     setSelectedEmail(null); // Reset individual email selection
+    
+    // Mark all emails in conversation as read
+    markConversationAsRead(conversation);
   };
 
   const handleEmailClick = (email: Email, conversation: Conversation) => {
     console.log('Selecting individual email:', email.id);
-    
-    // Mark previously selected email as read if it was unread
-    if (selectedEmail && selectedEmail.id !== email.id && selectedEmail.unread) {
-      markEmailAsRead(selectedEmail.id, selectedConversation?.id || '');
-    } else if (selectedConversation && selectedConversation.id !== conversation.id && selectedConversation.unreadCount > 0) {
-      // If switching conversations, mark the previous one as read
-      markConversationAsRead(selectedConversation);
-    }
-    
     setSelectedConversation(conversation);
     setSelectedEmail(email);
+    
+    // Mark this specific email as read
+    markEmailAsRead(email.id, conversation.id);
   };
 
   const markEmailAsRead = (emailId: string, conversationId: string) => {
@@ -711,10 +663,7 @@ const Mailbox = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0 w-full max-w-full overflow-hidden">
-              <ScrollArea 
-                className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden"
-                onScrollCapture={handleScroll}
-              >
+              <ScrollArea className="h-[calc(100vh-24rem)] w-full max-w-full overflow-hidden">
                 {emailLoading ? (
                   <div className="p-4 text-center">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -868,20 +817,23 @@ const Mailbox = () => {
                         </div>
                       );
                     })}
-                    {/* Auto-loading indicator */}
-                    {autoLoading && (
-                      <div className="p-4 text-center border-t">
-                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Loading more emails...</span>
-                        </div>
-                      </div>
-                    )}
                     
-                    {/* End of results indicator */}
-                    {allEmailsLoaded && !autoLoading && filteredConversations.length > 0 && (
-                      <div className="p-4 text-center text-muted-foreground">
-                        <span className="text-sm">No more emails to load</span>
+                    {/* Load More Button */}
+                    {!allEmailsLoaded && nextPageToken && (
+                      <div className="p-4 border-t">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={loadMoreEmails}
+                          disabled={emailLoading}
+                        >
+                          {emailLoading ? (
+                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Plus className="w-4 h-4 mr-2" />
+                          )}
+                          Load More Emails
+                        </Button>
                       </div>
                     )}
                   </>
