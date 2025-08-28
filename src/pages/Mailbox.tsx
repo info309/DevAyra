@@ -1451,11 +1451,20 @@ const Mailbox: React.FC = () => {
                                   </div>
                                   
                                   <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
-                                    {/* Top right - Paperclip icon */}
+                                    {/* Top right - Bin icon */}
                                     <div className="flex justify-end">
-                                      {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
-                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteConversation(conversation);
+                                        }}
+                                        title={`Delete conversation`}
+                                      >
+                                        <Trash2 className="w-3 h-3 text-destructive" />
+                                      </Button>
                                     </div>
                                     
                                     {/* Middle right - Unread dot */}
@@ -1467,6 +1476,10 @@ const Mailbox: React.FC = () => {
                                     
                                     {/* Bottom right - Action buttons */}
                                     <div className="flex gap-1 items-center">
+                                      {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                      )}
+                                      
                                       {conversation.messageCount > 1 && (
                                         <Button
                                           variant="ghost"
@@ -1481,19 +1494,6 @@ const Mailbox: React.FC = () => {
                                           }
                                         </Button>
                                       )}
-                                      
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteConversation(conversation);
-                                        }}
-                                        title={`Delete conversation`}
-                                      >
-                                        <Trash2 className="w-3 h-3 text-destructive" />
-                                      </Button>
                                     </div>
                                   </div>
                                 </div>
