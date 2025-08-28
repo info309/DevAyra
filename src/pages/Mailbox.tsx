@@ -757,126 +757,152 @@ const Mailbox: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
+      <div className="container mx-auto p-3 sm:p-6">
+        <div className="flex items-center mb-4 sm:mb-6">
+          <Button variant="ghost" onClick={() => navigate('/')} className="gap-2 text-xs sm:text-sm">
             <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
         </div>
 
         {/* Navigation and Search Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* View Toggle */}
-          <div className="flex rounded-md border border-input bg-background">
-            <Button
-              variant={currentView === 'inbox' ? 'secondary' : 'ghost'}
-              onClick={() => setCurrentView('inbox')}
-              size="sm"
-              className="gap-2 rounded-l-md rounded-r-none border-0"
-            >
-              <Mail className="w-4 h-4" />
-              Inbox
-            </Button>
-            <Button
-              variant={currentView === 'sent' ? 'secondary' : 'ghost'}
-              onClick={() => setCurrentView('sent')}
-              size="sm"
-              className="gap-2 rounded-r-md rounded-l-none border-0"
-            >
-              <Send className="w-4 h-4" />
-              Sent
-            </Button>
-          </div>
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+          {/* Mobile: Stack everything vertically */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* View Toggle */}
+            <div className="flex rounded-md border border-input bg-background self-start">
+              <Button
+                variant={currentView === 'inbox' ? 'secondary' : 'ghost'}
+                onClick={() => setCurrentView('inbox')}
+                size="sm"
+                className="gap-1 sm:gap-2 rounded-l-md rounded-r-none border-0 text-xs sm:text-sm px-2 sm:px-3"
+              >
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                Inbox
+              </Button>
+              <Button
+                variant={currentView === 'sent' ? 'secondary' : 'ghost'}
+                onClick={() => setCurrentView('sent')}
+                size="sm"
+                className="gap-1 sm:gap-2 rounded-r-md rounded-l-none border-0 text-xs sm:text-sm px-2 sm:px-3"
+              >
+                <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                Sent
+              </Button>
+            </div>
 
-          {/* Search Controls */}
-          <div className="flex-1 flex gap-2 max-w-md">
-            <Input 
-              placeholder="Search emails..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-            />
-            <Button 
-              variant="outline" 
-              onClick={handleSearch}
-              disabled={searchLoading}
-              size="sm"
-            >
-              {searchLoading ? 'Searching...' : 'Search'}
-            </Button>
+            {/* Search Controls */}
+            <div className="flex gap-2 flex-1 max-w-none sm:max-w-md">
+              <Input 
+                placeholder="Search emails..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
+              />
+              <Button 
+                variant="outline" 
+                onClick={handleSearch}
+                disabled={searchLoading}
+                size="sm"
+                className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
+              >
+                <span className="hidden sm:inline">{searchLoading ? 'Searching...' : 'Search'}</span>
+                <span className="sm:hidden">Go</span>
+              </Button>
+            </div>
           </div>
 
           {/* Action Controls */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant={showOnlyUnread ? "default" : "outline"}
               size="sm"
               onClick={() => setShowOnlyUnread(!showOnlyUnread)}
+              className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
             >
-              {showOnlyUnread ? 'Show All' : 'Unread Only'}
+              <span className="hidden sm:inline">{showOnlyUnread ? 'Show All' : 'Unread Only'}</span>
+              <span className="sm:hidden">{showOnlyUnread ? 'All' : 'Unread'}</span>
             </Button>
-            <Button onClick={() => refreshCurrentView()} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4" />
+            <Button 
+              onClick={() => refreshCurrentView()} 
+              variant="outline" 
+              size="sm"
+              className="h-8 sm:h-9 w-8 sm:w-9 p-0"
+              title="Refresh"
+            >
+              <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
             <Dialog open={showComposeDialog} onOpenChange={setShowComposeDialog}>
               <DialogTrigger asChild>
-                <Button className="gap-2" onClick={() => {
-                  // Reset form to empty state for new email
-                  setComposeForm({ to: '', subject: '', content: '' });
-                }} size="sm">
-                  <Plus className="w-4 h-4" />
+                <Button 
+                  onClick={() => {
+                    // Reset form to empty state for new email
+                    setComposeForm({ to: '', subject: '', content: '' });
+                  }} 
+                  size="sm"
+                  className="h-8 sm:h-9 w-8 sm:w-9 p-0"
+                  title="Compose"
+                >
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Compose Email</DialogTitle>
-                  <DialogDescription>
+                  <DialogTitle className="text-lg sm:text-xl">Compose Email</DialogTitle>
+                  <DialogDescription className="text-sm">
                     Send a new email
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="to">To</Label>
+                    <Label htmlFor="to" className="text-sm">To</Label>
                     <Input
                       id="to"
                       value={composeForm.to}
                       onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
                       placeholder="recipient@example.com"
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="subject">Subject</Label>
+                    <Label htmlFor="subject" className="text-sm">Subject</Label>
                     <Input
                       id="subject"
                       value={composeForm.subject}
                       onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
                       placeholder="Email subject"
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="content">Message</Label>
+                    <Label htmlFor="content" className="text-sm">Message</Label>
                     <Textarea
                       id="content"
                       value={composeForm.content}
                       onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
                       placeholder="Write your message here..."
-                      rows={10}
+                      rows={8}
+                      className="text-sm resize-none"
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    setShowComposeDialog(false);
-                    setComposeForm({ to: '', subject: '', content: '' });
-                  }}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowComposeDialog(false);
+                      setComposeForm({ to: '', subject: '', content: '' });
+                    }}
+                    className="w-full sm:w-auto text-sm"
+                  >
                     Cancel
                   </Button>
                   <Button 
                     onClick={sendEmail}
                     disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto text-sm"
                   >
                     <Send className="w-4 h-4" />
                     {sendingEmail ? 'Sending...' : 'Send'}
@@ -887,29 +913,31 @@ const Mailbox: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* Email Layout - Mobile: Stack, Desktop: Side by side */}
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-3 sm:gap-6">
           {/* Email List */}
-          <Card className="lg:col-span-1 min-w-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Conversations
+          <Card className="lg:col-span-1 min-w-0 order-2 lg:order-1">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Conversations</span>
+                <span className="sm:hidden">Emails</span>
                 {filteredConversations.length > 0 && (
-                  <Badge variant="secondary">{filteredConversations.length}</Badge>
+                  <Badge variant="secondary" className="text-xs">{filteredConversations.length}</Badge>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-16rem)] w-full">
+              <ScrollArea className="h-[40vh] sm:h-[50vh] lg:h-[calc(100vh-16rem)] w-full">
                 {emailLoading && filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">Loading emails...</p>
+                  <div className="p-4 sm:p-6 text-center">
+                    <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 mx-auto animate-spin text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground text-sm">Loading emails...</p>
                   </div>
                 ) : filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
+                  <div className="p-4 sm:p-6 text-center">
+                    <Mail className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground text-sm">
                       {searchQuery ? 'No emails found for your search.' : `No ${currentView} emails found.`}
                     </p>
                   </div>
@@ -923,32 +951,32 @@ const Mailbox: React.FC = () => {
                           return (
                             <div key={conversation.id}>
                               <div
-                                className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
+                                className={`p-3 sm:p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
                                   isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
-                                <div className="flex items-start justify-between gap-3 w-full min-w-0 overflow-hidden">
+                                <div className="flex items-start justify-between gap-2 sm:gap-3 w-full min-w-0 overflow-hidden">
                                   <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
+                                      <p className="font-medium truncate flex-1 min-w-0 text-sm sm:text-base">
                                         {firstEmail.from.split('<')[0].trim() || firstEmail.from}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[220px] overflow-hidden">
+                                      <p className="font-medium text-xs sm:text-sm truncate flex-1 min-w-0">
                                         {conversation.subject}
                                       </p>
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate max-w-[260px] overflow-hidden">
+                                    <p className="text-xs text-muted-foreground truncate">
                                       {firstEmail.snippet}
                                     </p>
-                                    <p className="text-xs text-muted-foreground truncate max-w-[180px] overflow-hidden">
+                                    <p className="text-xs text-muted-foreground truncate">
                                       {formatDate(conversation.lastDate)}
                                     </p>
                                   </div>
                                   
-                                  <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
+                                  <div className="flex flex-col justify-between h-full min-h-[60px] sm:min-h-[80px] flex-shrink-0 items-end w-6 sm:w-8">
                                     {/* Top right - Paperclip icon */}
                                     <div className="flex justify-end">
                                       {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
@@ -969,7 +997,7 @@ const Mailbox: React.FC = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="p-1 h-5 w-5 opacity-100 transition-opacity"
+                                          className="p-1 h-4 w-4 sm:h-5 sm:w-5 opacity-100 transition-opacity"
                                           onClick={(e) => toggleConversationExpansion(conversation.id, e)}
                                           title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
                                         >
@@ -983,7 +1011,7 @@ const Mailbox: React.FC = () => {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                        className="p-1 h-4 w-4 sm:h-5 sm:w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           deleteConversation(conversation);
@@ -999,17 +1027,17 @@ const Mailbox: React.FC = () => {
 
                               {/* Expanded conversation view */}
                               {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                                <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
+                                <div className="bg-accent/30 border-l-2 border-primary/20 ml-2 sm:ml-4 w-full max-w-full overflow-hidden">
                                   <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
                                     {conversation.emails
                                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                       .map((email, emailIndex) => (
                                       <div
                                         key={email.id}
-                                        className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
+                                        className="p-2 sm:p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
                                          onClick={(e) => handleEmailClick(email, conversation)}
                                        >
-                                        <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
+                                        <div className="grid grid-cols-[1fr,auto] gap-2 sm:gap-3 w-full max-w-full overflow-hidden items-start">
                                           <div className="min-w-0 overflow-hidden">
                                             <div className="flex items-center gap-2 mb-1 min-w-0">
                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
@@ -1030,7 +1058,7 @@ const Mailbox: React.FC = () => {
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                              className="p-1 h-5 w-5 sm:h-6 sm:w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 deleteEmail(email.id, conversation.id);
@@ -1042,7 +1070,7 @@ const Mailbox: React.FC = () => {
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                              className="p-1 h-5 w-5 sm:h-6 sm:w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                                onClick={(e) => {
                                                  e.stopPropagation();
                                                  handleReplyClick(email, conversation);
@@ -1066,12 +1094,12 @@ const Mailbox: React.FC = () => {
                       </div>
                       
                       {currentPageToken && !currentAllEmailsLoaded && (
-                        <div className="p-4 border-t">
+                        <div className="p-3 sm:p-4 border-t">
                           <Button 
                             variant="outline" 
                             onClick={loadMoreEmails}
                             disabled={emailLoading}
-                            className="w-full"
+                            className="w-full text-sm"
                           >
                             {emailLoading ? 'Loading...' : 'Load More Emails'}
                           </Button>
@@ -1080,7 +1108,7 @@ const Mailbox: React.FC = () => {
                       
                       {currentAllEmailsLoaded && currentConversations.length > 5 && (
                         <div className="text-center py-4">
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
                           </p>
                         </div>
@@ -1092,76 +1120,76 @@ const Mailbox: React.FC = () => {
             </Card>
 
             {/* Email/Thread Content */}
-            <Card className="lg:col-span-2 min-w-0 overflow-hidden">
+            <Card className="lg:col-span-2 min-w-0 overflow-hidden order-1 lg:order-2">
               <CardContent className="p-0">
                 {selectedConversation ? (
-                  <div className="h-[calc(100vh-10rem)]">
-                    <div className="p-6 border-b">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
-                          {selectedConversation.messageCount > 1 && !selectedEmail && (
-                            <Badge variant="secondary" className="text-xs mt-1">
-                              {selectedConversation.messageCount} messages
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleReplyClick(
-                              selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                              selectedConversation
+                  <div className="h-[50vh] sm:h-[60vh] lg:h-[calc(100vh-10rem)]">
+                    <div className="p-3 sm:p-6 border-b">
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                          <div>
+                            <h2 className="text-base sm:text-lg font-semibold break-words">{selectedConversation.subject}</h2>
+                            {selectedConversation.messageCount > 1 && !selectedEmail && (
+                              <Badge variant="secondary" className="text-xs mt-1">
+                                {selectedConversation.messageCount} messages
+                              </Badge>
                             )}
-                            className="gap-2"
-                          >
-                            <Reply className="w-4 h-4" />
-                            Reply
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteConversation(selectedConversation)}
-                            className="gap-2 hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                            Delete
-                          </Button>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReplyClick(
+                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
+                                selectedConversation
+                              )}
+                              className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
+                            >
+                              <Reply className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline">Reply</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteConversation(selectedConversation)}
+                              className="gap-1 sm:gap-2 hover:bg-destructive/10 text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9"
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-destructive" />
+                              <span className="hidden sm:inline">Delete</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                      
+                      <ScrollArea className="h-[calc(50vh-8rem)] sm:h-[calc(60vh-10rem)] lg:h-[calc(100vh-18rem)]">
+                        {selectedEmail ? (
+                          // Show only the selected email
+                          <EmailContent 
+                            key={selectedEmail.id}
+                            conversation={{
+                              ...selectedConversation,
+                              emails: [selectedEmail]  // Only show the selected email
+                            }}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        ) : (
+                          // Show all emails in the conversation thread
+                          <EmailContent 
+                            key={selectedConversation.id}
+                            conversation={selectedConversation}
+                            onSaveAttachment={handleSaveAttachmentToDocuments}
+                          />
+                        )}
+                      </ScrollArea>
                     </div>
-                    
-                    <ScrollArea className="h-[calc(100vh-18rem)]">
-                      {selectedEmail ? (
-                        // Show only the selected email
-                        <EmailContent 
-                          key={selectedEmail.id}
-                          conversation={{
-                            ...selectedConversation,
-                            emails: [selectedEmail]  // Only show the selected email
-                          }}
-                          onSaveAttachment={handleSaveAttachmentToDocuments}
-                        />
-                      ) : (
-                        // Show all emails in the conversation thread
-                        <EmailContent 
-                          key={selectedConversation.id}
-                          conversation={selectedConversation}
-                          onSaveAttachment={handleSaveAttachmentToDocuments}
-                        />
-                      )}
-                    </ScrollArea>
-                  </div>
-                ) : (
-                  <div className="h-[calc(100vh-10rem)] flex items-center justify-center">
-                    <div className="text-center">
-                      <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No email selected</h3>
-                      <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                  ) : (
+                    <div className="h-[50vh] sm:h-[60vh] lg:h-[calc(100vh-10rem)] flex items-center justify-center p-4">
+                      <div className="text-center">
+                        <Mail className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-base sm:text-lg font-medium mb-2">No email selected</h3>
+                        <p className="text-muted-foreground text-sm">Select an email from the list to view its content</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </CardContent>
             </Card>
           </div>
