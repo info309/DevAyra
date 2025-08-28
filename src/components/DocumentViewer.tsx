@@ -142,19 +142,27 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
+      console.log('Rendering image preview on mobile');
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg p-2">
+        <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg p-1">
           <img
             src={previewUrl}
             alt={document.name}
-            className="max-w-full max-h-full object-contain rounded shadow-lg"
+            className="object-contain rounded shadow-lg"
             style={{ 
-              maxHeight: '250px',
-              maxWidth: 'calc(100vw - 60px)'
+              width: '100%',
+              height: '100%',
+              maxHeight: '200px',
+              maxWidth: '280px'
             }}
             onError={() => {
               console.error('Failed to load image preview');
               setPreviewUrl(null);
+            }}
+            onLoad={(e) => {
+              const img = e.target as HTMLImageElement;
+              console.log('Image loaded - Natural size:', img.naturalWidth, 'x', img.naturalHeight);
+              console.log('Image displayed size:', img.width, 'x', img.height);
             }}
           />
         </div>
@@ -163,16 +171,22 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // PDF preview
     if (document.mime_type?.includes('pdf')) {
+      console.log('Rendering PDF preview on mobile');
       return (
         <div className="w-full h-full bg-gray-50 rounded-lg overflow-hidden">
           <iframe
-            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitV&zoom=page-width`}
+            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-width`}
             className="w-full h-full border-0"
             style={{ 
-              height: '250px',
-              width: 'calc(100vw - 60px)'
+              height: '200px',
+              width: '280px',
+              transform: 'scale(1)',
+              transformOrigin: 'top left'
             }}
             title={`Preview of ${document.name}`}
+            onLoad={() => {
+              console.log('PDF iframe loaded');
+            }}
             onError={() => {
               console.error('Failed to load PDF preview');
               setPreviewUrl(null);
@@ -274,8 +288,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        <div className="p-3 overflow-hidden bg-gray-50" style={{ height: '300px' }}>
-          <div className="w-full h-full">
+        <div className="p-2 overflow-hidden bg-gray-50" style={{ height: '240px' }}>
+          <div className="w-full h-full border border-red-500" style={{ maxWidth: '300px', maxHeight: '220px' }}>
+            {/* Debug info */}
+            {(() => { console.log('Render preview container size - Mobile viewport'); return null; })()}
             {renderPreview()}
           </div>
         </div>
