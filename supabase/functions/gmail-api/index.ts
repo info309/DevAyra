@@ -467,7 +467,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attachmentData = await attachmentResponse.json();
       const fileData = base64UrlDecode(attachmentData.data);
       
-      // fileData is already a Uint8Array, no need to convert
+      // fileData is already a Uint8Array from base64UrlDecode
       const fileBytes = fileData;
 
       // Generate unique filename with path
