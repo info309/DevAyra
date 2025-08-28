@@ -1066,7 +1066,7 @@ const Mailbox: React.FC = () => {
                         onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Write your message here..."
                         rows={15}
-                        className="min-h-[300px] resize-none"
+                        className="min-h-[300px] resize-none text-sm"
                       />
                     </div>
                     
