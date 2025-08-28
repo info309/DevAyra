@@ -898,11 +898,17 @@ const Mailbox = () => {
                           ...selectedConversation,
                           emails: [selectedEmail]
                         }}
+                        conversations={conversations}
+                        setConversations={setConversations}
+                        fetchEmailContent={fetchEmailContent}
                       />
                     ) : (
                       // Show full conversation thread
                       <EmailContent 
                         conversation={selectedConversation}
+                        conversations={conversations}
+                        setConversations={setConversations}
+                        fetchEmailContent={fetchEmailContent}
                       />
                     )}
                   </ScrollArea>

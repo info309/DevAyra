@@ -39,9 +39,12 @@ interface Conversation {
 
 interface EmailContentProps {
   conversation: Conversation;
+  conversations: Conversation[];
+  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  fetchEmailContent: (emailId: string) => Promise<void>;
 }
 
-const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
+const EmailContent: React.FC<EmailContentProps> = ({ conversation, conversations, setConversations, fetchEmailContent }) => {
   const { toast } = useToast();
 
   const formatFileSize = (bytes: number) => {
@@ -72,19 +75,49 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
     }
   };
 
-  const handleAttachmentPreview = (attachment: Attachment) => {
+  const handleAttachmentPreview = async (attachment: Attachment) => {
     if (attachment.downloadUrl) {
+      // If we already have the download URL, use it
       window.open(attachment.downloadUrl, '_blank');
       toast({
         title: "Opening Preview",
         description: `Previewing ${attachment.filename}`,
       });
     } else {
-      toast({
-        variant: "destructive",
-        title: "Preview Unavailable", 
-        description: `Preview not available for ${attachment.filename}`,
-      });
+      // If no download URL, we need to fetch the full email to get attachment URLs
+      const email = conversation.emails.find(e => 
+        e.attachments?.some(a => a.filename === attachment.filename)
+      );
+      
+      if (email && !email.attachments?.find(a => a.filename === attachment.filename)?.downloadUrl) {
+        // Fetch full email content to get attachment URLs
+        await fetchEmailContent(email.id);
+        
+        // After fetching, find the updated attachment
+        const updatedConversation = conversations.find(c => c.id === conversation.id);
+        const updatedEmail = updatedConversation?.emails.find(e => e.id === email.id);
+        const updatedAttachment = updatedEmail?.attachments?.find(a => a.filename === attachment.filename);
+        
+        if (updatedAttachment?.downloadUrl) {
+          window.open(updatedAttachment.downloadUrl, '_blank');
+          toast({
+            title: "Opening Preview",
+            description: `Previewing ${attachment.filename}`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Preview Unavailable", 
+            description: `Could not generate preview for ${attachment.filename}`,
+          });
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Preview Unavailable", 
+          description: `Preview not available for ${attachment.filename}`,
+        });
+      }
     }
   };
 
@@ -152,7 +185,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleAttachmentPreview(attachment)}
-                          disabled={!attachment.downloadUrl}
                           className="flex-shrink-0"
                           title="Preview document"
                         >
@@ -208,7 +240,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleAttachmentPreview(image)}
-                          disabled={!image.downloadUrl}
                           className="flex-shrink-0"
                           title="Preview image"
                         >
