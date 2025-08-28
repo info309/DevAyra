@@ -19,8 +19,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'recoleta': ['Recoleta', 'serif'],
-				'opensauce': ['Open Sauce One', 'sans-serif'],
+				'heading': ['Recoleta', 'serif'],
+				'body': ['Open Sauce One', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

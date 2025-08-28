@@ -8,35 +8,36 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 32 80% 92%; /* #fff4ec */
-    --foreground: 222.2 84% 4.9%;
+    /* Ayra Brand Colors with #fff4ec background */
+    --background: 28 100% 96%; /* #fff4ec */
+    --foreground: 20 14% 9%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 28 100% 98%;
+    --card-foreground: 20 14% 9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 28 100% 98%;
+    --popover-foreground: 20 14% 9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 20 83% 38%; /* Warm brown/orange */
+    --primary-foreground: 28 100% 96%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 25 50% 88%;
+    --secondary-foreground: 20 14% 9%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 25 30% 92%;
+    --muted-foreground: 20 8% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 30 100% 85%;
+    --accent-foreground: 20 14% 9%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 28 100% 96%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 25 25% 85%;
+    --input: 25 25% 90%;
+    --ring: 20 83% 38%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +101,10 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
   }
 }
