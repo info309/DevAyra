@@ -815,7 +815,7 @@ const Mailbox: React.FC = () => {
                     Compose
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="max-w-none h-[80vh]">
+                <DrawerContent className="max-w-none h-[90vh]">
                   <DrawerHeader>
                     <DrawerTitle>Compose Email</DrawerTitle>
                     <DrawerDescription>
