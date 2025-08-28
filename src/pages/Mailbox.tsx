@@ -1312,7 +1312,7 @@ const Mailbox = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Email List */}
-          <Card className="lg:col-span-1">
+          <Card className="lg:col-span-1 min-w-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
@@ -1323,7 +1323,7 @@ const Mailbox = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-16rem)]">
+              <ScrollArea className="h-[calc(100vh-16rem)] w-full">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
                     <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
@@ -1338,7 +1338,7 @@ const Mailbox = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border min-w-0">
                       {filteredConversations.map((conversation, index) => {
                           const firstEmail = conversation.emails[0];
                           const isSelected = selectedConversation?.id === conversation.id;
@@ -1351,32 +1351,22 @@ const Mailbox = () => {
                                 }`}
                                 onClick={() => handleConversationClick(conversation)}
                               >
-                                <div className="flex items-start justify-between gap-3 w-full">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <p className="font-medium truncate">
-                                          {firstEmail.from.split('<')[0].trim() || firstEmail.from}
-                                        </p>
-                                        {conversation.unreadCount > 0 && (
-                                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-1 flex-shrink-0">
-                                        {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
-                                          <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                        )}
-                                        <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                          {formatDate(conversation.lastDate)}
-                                        </p>
-                                      </div>
+                                <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                                  <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <p className="font-medium truncate flex-1">
+                                        {firstEmail.from.split('<')[0].trim() || firstEmail.from}
+                                      </p>
+                                      {conversation.unreadCount > 0 && (
+                                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                      )}
                                     </div>
-                                    <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center justify-between gap-2">
                                       <p className="font-medium text-sm truncate flex-1">
                                         {conversation.subject}
                                       </p>
                                       {conversation.messageCount > 1 && (
-                                        <Badge variant="outline" className="text-xs flex-shrink-0 ml-2">
+                                        <Badge variant="outline" className="text-xs flex-shrink-0">
                                           {conversation.messageCount}
                                         </Badge>
                                       )}
@@ -1384,9 +1374,19 @@ const Mailbox = () => {
                                     <p className="text-xs text-muted-foreground truncate">
                                       {firstEmail.snippet}
                                     </p>
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatDate(conversation.lastDate)}
+                                      </p>
+                                      <div className="flex items-center gap-1">
+                                        {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                          <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                   
-                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                  <div className="flex flex-col gap-1 flex-shrink-0 items-end ml-2">
                                     {conversation.messageCount > 1 && (
                                       <Button
                                         variant="ghost"
