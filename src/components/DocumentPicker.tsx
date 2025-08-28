@@ -221,11 +221,9 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
           </div>
 
           {/* Selection Counter */}
-          {localSelection.length > 0 && (
-            <div className="text-sm text-muted-foreground">
-              {localSelection.length} document{localSelection.length !== 1 ? 's' : ''} selected
-            </div>
-          )}
+          <div className="text-sm text-muted-foreground">
+            {localSelection.length} document{localSelection.length !== 1 ? 's' : ''} selected
+          </div>
 
           {/* Document List */}
           <ScrollArea className="flex-1 min-h-0">
