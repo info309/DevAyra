@@ -545,6 +545,11 @@ const Mailbox: React.FC = () => {
     try {
       setSendingEmail(true);
       
+      console.log('Sending email with:', {
+        fileAttachments: composeForm.attachments?.length || 0,
+        documentAttachments: composeForm.documentAttachments?.length || 0
+      });
+      
       // Convert file attachments to base64 for sending
       const fileAttachmentsData = await Promise.all(
         (composeForm.attachments || []).map(async (file) => {
@@ -597,6 +602,13 @@ const Mailbox: React.FC = () => {
 
       const allAttachments = [...fileAttachmentsData, ...documentAttachmentsData];
       
+      console.log('Total attachments processed:', allAttachments.length);
+      console.log('Attachment data:', allAttachments.map(att => ({ 
+        filename: (att as any).filename, 
+        size: (att as any).size,
+        hasContent: !!(att as any).content 
+      })));
+      
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
           action: 'sendEmail',
@@ -608,6 +620,8 @@ const Mailbox: React.FC = () => {
           attachments: allAttachments.length > 0 ? allAttachments : undefined
         }
       });
+      
+      console.log('Gmail API response:', { data, error });
 
       if (error) {
         console.error('Error sending email:', error);
