@@ -573,10 +573,6 @@ const Mailbox: React.FC = () => {
         setSelectedEmail(null);
       }
 
-      toast({
-        title: "Success",
-        description: "Conversation deleted successfully."
-      });
       
     } catch (error) {
       console.error('Error deleting conversation:', error);
