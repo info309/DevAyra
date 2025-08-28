@@ -39,9 +39,10 @@ interface Conversation {
 
 interface EmailContentProps {
   conversation: Conversation;
+  onSaveAttachment?: (attachment: Attachment, email: Email) => void;
 }
 
-const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
+const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
 
   const formatFileSize = (bytes: number) => {
@@ -148,6 +149,17 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                         </div>
                       </div>
                       <div className="flex gap-1">
+                        {onSaveAttachment && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSaveAttachment(attachment, email)}
+                            className="flex-shrink-0"
+                            title="Save to Documents"
+                          >
+                            Save
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -204,6 +216,17 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation }) => {
                         </div>
                       </div>
                       <div className="flex gap-1">
+                        {onSaveAttachment && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSaveAttachment(image, email)}
+                            className="flex-shrink-0"
+                            title="Save to Documents"
+                          >
+                            Save
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"

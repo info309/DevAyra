@@ -245,6 +245,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_documents: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_favorite: boolean | null
+          mime_type: string | null
+          name: string
+          source_email_id: string | null
+          source_email_subject: string | null
+          source_type: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          mime_type?: string | null
+          name: string
+          source_email_id?: string | null
+          source_email_subject?: string | null
+          source_type?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          mime_type?: string | null
+          name?: string
+          source_email_id?: string | null
+          source_email_subject?: string | null
+          source_type?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

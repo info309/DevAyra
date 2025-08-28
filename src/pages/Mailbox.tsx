@@ -741,6 +741,73 @@ const Mailbox: React.FC = () => {
     setShowComposeDialog(true);
   };
 
+  const handleSaveAttachmentToDocuments = async (attachment: Attachment, email: Email) => {
+    try {
+      if (!attachment.downloadUrl) {
+        toast({
+          title: "Error",
+          description: "Attachment download URL not available",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Download the attachment file
+      const response = await fetch(attachment.downloadUrl);
+      if (!response.ok) {
+        throw new Error('Failed to download attachment');
+      }
+
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Generate a unique file path for storage
+      const timestamp = Date.now();
+      const sanitizedFilename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `${user?.id}/documents/${timestamp}_${sanitizedFilename}`;
+
+      // Upload to Supabase Storage
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, uint8Array, {
+          contentType: attachment.mimeType,
+          upsert: false
+        });
+
+      if (storageError) throw storageError;
+
+      // Save document record to database
+      const { error: dbError } = await supabase
+        .from('user_documents')
+        .insert({
+          user_id: user?.id,
+          name: attachment.filename,
+          file_path: filePath,
+          file_size: attachment.size,
+          mime_type: attachment.mimeType,
+          source_type: 'email_attachment',
+          source_email_id: email.id,
+          source_email_subject: email.subject,
+          description: `Saved from email: ${email.subject}`
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Success",
+        description: `Attachment "${attachment.filename}" saved to Documents`,
+      });
+    } catch (error) {
+      console.error('Error saving attachment to documents:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save attachment to documents",
+        variant: "destructive",
+      });
+    }
+  };
+
   const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedConversations(prev => {
@@ -1229,12 +1296,14 @@ const Mailbox: React.FC = () => {
                             ...selectedConversation,
                             emails: [selectedEmail]  // Only show the selected email
                           }}
+                          onSaveAttachment={handleSaveAttachmentToDocuments}
                         />
                       ) : (
                         // Show all emails in the conversation thread
                         <EmailContent 
                           key={selectedConversation.id}
                           conversation={selectedConversation}
+                          onSaveAttachment={handleSaveAttachmentToDocuments}
                         />
                       )}
                     </ScrollArea>
