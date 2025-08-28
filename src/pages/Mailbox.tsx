@@ -449,20 +449,7 @@ const Mailbox: React.FC = () => {
 
   const handleConversationClick = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    
-    // Automatically select the latest email in the conversation for immediate viewing
-    const latestEmail = conversation.emails.sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    )[0];
-    
-    if (latestEmail) {
-      setSelectedEmail(latestEmail);
-      
-      // Mark email as read if unread
-      if (latestEmail.unread) {
-        markEmailAsRead(latestEmail.id, conversation.id);
-      }
-    }
+    setSelectedEmail(null);
   
     // Mark conversation as read if it has unread messages
     if (conversation.unreadCount > 0) {
