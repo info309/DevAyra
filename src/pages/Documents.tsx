@@ -333,9 +333,9 @@ const Documents = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card px-4 p-4 lg:px-8">
+      <div className="bg-background border-b px-4 py-3 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Mobile/Tablet Back Arrow and Logo - Left side */}
               <div className="flex lg:hidden items-center gap-4">
@@ -379,7 +379,7 @@ const Documents = () => {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Upload Area */}
