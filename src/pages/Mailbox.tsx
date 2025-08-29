@@ -174,7 +174,7 @@ const Mailbox: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user && gmailConnected) {
+    if (user && gmailConnected === true) {
       // Preload both inbox and sent views for instant switching
       loadEmailsForView('inbox', null, true); // Force refresh on initial load
       loadEmailsForView('sent', null, true);
@@ -183,7 +183,7 @@ const Mailbox: React.FC = () => {
 
   // Add periodic refresh for the current view to catch new emails
   useEffect(() => {
-    if (!user) return;
+    if (!user || !gmailConnected) return;
 
     const refreshInterval = setInterval(async () => {
       // Silently check for new emails without disrupting the UI
@@ -225,16 +225,16 @@ const Mailbox: React.FC = () => {
     }, 30000); // Check every 30 seconds
 
     return () => clearInterval(refreshInterval);
-  }, [user, currentView, viewLoading, viewCache]);
+  }, [user, gmailConnected, currentView, viewLoading, viewCache]);
 
   // Handle view switching with instant cache access
   useEffect(() => {
-    if (user && viewCache[currentView]) {
+    if (user && gmailConnected && viewCache[currentView]) {
       // Immediately show cached data
       setCurrentConversations(viewCache[currentView]!);
       setEmailLoading(false);
     }
-  }, [currentView, viewCache]);
+  }, [currentView, viewCache, gmailConnected]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -455,7 +455,7 @@ const Mailbox: React.FC = () => {
   };
 
   const loadEmailsForView = async (view = currentView, pageToken?: string | null, forceRefresh = false) => {
-    if (!user || !gmailConnected) return;
+    if (!user || gmailConnected !== true) return;
 
     // If we already have cached data and this is not a pagination request or force refresh, return early
     if (!pageToken && !forceRefresh && viewCache[view] && viewCache[view]!.length > 0) {
@@ -1188,6 +1188,18 @@ const Mailbox: React.FC = () => {
       )
     );
   });
+
+  // Show loading screen while checking Gmail connection
+  if (gmailConnected === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking Gmail connection...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show Gmail connection screen if not connected
   if (gmailConnected === false) {
