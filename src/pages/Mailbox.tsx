@@ -1121,7 +1121,7 @@ const Mailbox: React.FC = () => {
             </div>
 
             {/* Action Controls - Right side on all screens */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-end ml-auto">
               {/* Desktop Search next to refresh button */}
               <div className="hidden lg:flex relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1146,7 +1146,8 @@ const Mailbox: React.FC = () => {
                     setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                   }} size="sm">
                     <Plus className="w-4 h-4" />
-                    Compose
+                    <span className="hidden sm:inline">Compose</span>
+                    <span className="sm:hidden">+</span>
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent className="max-w-none h-[90vh]">
