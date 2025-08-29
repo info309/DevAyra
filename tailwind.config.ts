@@ -19,8 +19,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'heading': ['Playfair Display', 'Georgia', 'serif'],
-				'body': ['Open Sauce One', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+				'heading': ['Recoleta', 'serif'],
+				'body': ['Open Sauce One', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
