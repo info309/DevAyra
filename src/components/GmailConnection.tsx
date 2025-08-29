@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mail, CheckCircle, XCircle, ExternalLink, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { supabase } from '@/integrations/supabase/client';
 
 interface GmailConnectionData {
@@ -18,12 +19,13 @@ interface GmailConnectionData {
 const GmailConnection: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isDrawerView = useIsDrawerView();
   const [connection, setConnection] = useState<GmailConnectionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       checkGmailConnection();
     }
@@ -208,17 +210,17 @@ const GmailConnection: React.FC = () => {
         <div className="space-y-4">
           {connection ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className={`flex ${isDrawerView ? 'flex-col gap-3' : 'items-center justify-between'} p-4 border rounded-lg`}>
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="font-medium">{connection.email_address}</p>
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{connection.email_address}</p>
                     <p className="text-sm text-muted-foreground">
                       Connected on {new Date(connection.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
+                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
                   <CheckCircle className="w-3 h-3 mr-1" />
                   Connected
                 </Badge>
@@ -230,6 +232,7 @@ const GmailConnection: React.FC = () => {
                   onClick={disconnectGmail}
                   disabled={disconnecting}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  size={isDrawerView ? "default" : "default"}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   {disconnecting ? 'Disconnecting...' : 'Disconnect'}
@@ -238,9 +241,9 @@ const GmailConnection: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 border rounded-lg border-dashed">
-                <XCircle className="w-5 h-5 text-muted-foreground" />
-                <div>
+              <div className={`flex ${isDrawerView ? 'flex-col gap-3' : 'items-center'} gap-3 p-4 border rounded-lg border-dashed`}>
+                <XCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
                   <p className="font-medium text-muted-foreground">No Gmail account connected</p>
                   <p className="text-sm text-muted-foreground">
                     Connect your Gmail to access email features
@@ -252,6 +255,7 @@ const GmailConnection: React.FC = () => {
                 onClick={connectGmail}
                 disabled={connecting}
                 className="w-full"
+                size={isDrawerView ? "default" : "default"}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {connecting ? 'Connecting...' : 'Connect Gmail Account'}
