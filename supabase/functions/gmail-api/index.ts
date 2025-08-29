@@ -222,11 +222,28 @@ class GmailService {
             const messages = threadData.messages || [];
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
+            // Transform to match UI expectations
+            const firstEmail = processedMessages[0];
             return {
+              id: thread.id,
               threadId: thread.id,
-              messages: processedMessages,
-              snippet: thread.snippet || processedMessages[0]?.snippet || '',
-              historyId: threadData.historyId
+              subject: firstEmail?.subject || 'No Subject',
+              emails: processedMessages.map(msg => ({
+                id: msg.id,
+                threadId: msg.threadId,
+                snippet: msg.snippet,
+                subject: msg.subject,
+                from: msg.from,
+                to: msg.to,
+                date: msg.date,
+                content: msg.content,
+                unread: !msg.isRead,
+                attachments: msg.attachments
+              })),
+              messageCount: processedMessages.length,
+              lastDate: firstEmail?.date || new Date().toISOString(),
+              unreadCount: processedMessages.filter(msg => !msg.isRead).length,
+              participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
             };
           } catch (error) {
             console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
