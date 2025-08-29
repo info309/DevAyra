@@ -43,8 +43,19 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const isPreviewable = (document: UserDocument | null): boolean => {
+    if (!document?.mime_type) return false;
+    
+    return (
+      document.mime_type.startsWith('image/') ||
+      document.mime_type.includes('pdf') ||
+      document.mime_type.startsWith('text/') ||
+      document.mime_type.includes('plain')
+    );
+  };
+
   useEffect(() => {
-    if (document && isOpen) {
+    if (document && isOpen && isPreviewable(document)) {
       generatePreview();
     }
     
@@ -56,7 +67,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   }, [document, isOpen]);
 
   const generatePreview = async () => {
-    if (!document || !document.file_path) return;
+    if (!document || !document.file_path || !isPreviewable(document)) return;
 
     try {
       setLoading(true);
@@ -70,21 +81,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       
       if (error) {
         console.error('Error creating signed URL:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load document preview",
-          variant: "destructive",
-        });
+        // Only show error toast for previewable documents
       } else if (data) {
         setPreviewUrl(data.signedUrl);
       }
     } catch (error) {
       console.error('Error generating preview:', error);
-      toast({
-        title: "Error", 
-        description: "An unexpected error occurred while loading the preview",
-        variant: "destructive",
-      });
+      // Only show error for previewable documents that actually fail
     } finally {
       setLoading(false);
     }
@@ -198,27 +201,33 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   };
 
   const renderPreview = () => {
-    // Always show the A4 icon for non-image documents when no preview available
-    if (!document || !previewUrl) {
-      if (document?.mime_type?.startsWith('image/')) {
-        return (
-          <div className="flex items-center justify-center h-full bg-background">
-            <div className="text-center">
-              <SimpleA4Icon extension="IMG" />
-              <p className="text-muted-foreground mt-4">
-                {loading ? 'Loading image...' : 'Image preview not available'}
-              </p>
-            </div>
+    // For non-previewable documents, show download interface
+    if (!document || !isPreviewable(document)) {
+      return (
+        <div className="flex items-center justify-center h-full bg-background">
+          <div className="text-center max-w-sm p-6">
+            <SimpleA4Icon extension={getFileExtension()} />
+            <h3 className="text-lg font-medium mb-2 mt-6">{document.name}</h3>
+            <p className="text-muted-foreground mb-4">
+              Click download to open this document
+            </p>
+            <Button onClick={handleDownload} className="gap-2">
+              <Download className="w-4 h-4" />
+              Download to View
+            </Button>
           </div>
-        );
-      }
-      
+        </div>
+      );
+    }
+
+    // For previewable documents without URL yet
+    if (!previewUrl) {
       return (
         <div className="flex items-center justify-center h-full bg-background">
           <div className="text-center">
             <SimpleA4Icon extension={getFileExtension()} />
             <p className="text-muted-foreground mt-4">
-              {loading ? 'Loading preview...' : 'Document preview'}
+              {loading ? 'Loading preview...' : 'Preview not available'}
             </p>
           </div>
         </div>
@@ -273,7 +282,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
 
-    // Other document types - show simple A4 icon with download option
+    // Fallback for other types
     return (
       <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center max-w-sm p-6">
