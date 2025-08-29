@@ -160,10 +160,22 @@ const Mailbox: React.FC = () => {
   useEffect(() => {
     if (user) {
       // Preload both inbox and sent views for instant switching
-      loadEmailsForView('inbox');
-      loadEmailsForView('sent');
+      loadEmailsForView('inbox', null, true); // Force refresh on initial load
+      loadEmailsForView('sent', null, true);
     }
   }, [user]);
+
+  // Add periodic refresh for the current view to catch new emails
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(() => {
+      // Silently refresh current view in background
+      loadEmailsForView(currentView, null, true);
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user, currentView]);
 
   // Handle view switching with instant cache access
   useEffect(() => {
@@ -307,11 +319,11 @@ const Mailbox: React.FC = () => {
     return cleaned || htmlContent; // Return original if cleaning results in empty string
   };
 
-  const loadEmailsForView = async (view = currentView, pageToken?: string | null) => {
+  const loadEmailsForView = async (view = currentView, pageToken?: string | null, forceRefresh = false) => {
     if (!user) return;
 
-    // If we already have cached data and this is not a pagination request, return early
-    if (!pageToken && viewCache[view] && viewCache[view]!.length > 0) {
+    // If we already have cached data and this is not a pagination request or force refresh, return early
+    if (!pageToken && !forceRefresh && viewCache[view] && viewCache[view]!.length > 0) {
       if (view === currentView) {
         setCurrentConversations(viewCache[view]!);
         setEmailLoading(false);
@@ -400,8 +412,8 @@ const Mailbox: React.FC = () => {
     // Reset page token
     setCurrentPageToken(null);
     setCurrentAllEmailsLoaded(false);
-    // Load fresh data
-    loadEmailsForView();
+    // Load fresh data with force refresh
+    loadEmailsForView(currentView, null, true);
   };
 
   const loadMoreEmails = () => {
