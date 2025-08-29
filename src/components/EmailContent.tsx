@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
-import AttachmentPreview from './AttachmentPreview';
 
 interface Attachment {
   filename: string;
@@ -45,12 +44,6 @@ interface EmailContentProps {
 
 const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
-  
-  // State for attachment preview
-  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
-  const [previewMessageId, setPreviewMessageId] = useState<string>('');
-  const [previewEmailSubject, setPreviewEmailSubject] = useState<string>('');
-  const [showPreview, setShowPreview] = useState(false);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -105,7 +98,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     }
   };
 
-  const handleAttachmentPreview = (attachment: Attachment, email: Email) => {
+  const handleAttachmentPreview = async (attachment: Attachment, email: Email) => {
     if (!attachment.attachmentId) {
       toast({
         variant: "destructive",
@@ -115,10 +108,77 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
       return;
     }
 
-    setPreviewAttachment(attachment);
-    setPreviewMessageId(email.id);
-    setPreviewEmailSubject(email.subject);
-    setShowPreview(true);
+    try {
+      // Import gmailApi here to avoid circular dependency
+      const { gmailApi } = await import('@/utils/gmailApi');
+      const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
+      
+      // Create blob and open in new tab for viewing
+      const blob = new Blob([data.data], { type: attachment.mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      // Open in new tab/window
+      window.open(url, '_blank');
+      
+      // Clean up URL after a delay to allow opening
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      toast({
+        title: "Opened",
+        description: `${attachment.filename} opened in new tab`
+      });
+    } catch (error) {
+      console.error('Preview failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Preview Error",
+        description: `Failed to preview ${attachment.filename}`,
+      });
+    }
+  };
+
+  const handleAttachmentSave = async (attachment: Attachment, email: Email) => {
+    if (!attachment.attachmentId) {
+      toast({
+        variant: "destructive",
+        title: "Save Unavailable", 
+        description: `No attachment ID available for ${attachment.filename}`,
+      });
+      return;
+    }
+
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase.functions.invoke('save-attachment', {
+        body: {
+          messageId: email.id,
+          attachmentId: attachment.attachmentId,
+          filename: attachment.filename,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          emailSubject: email.subject,
+          description: `Email attachment from ${email.from}`,
+          category: 'email_attachment',
+          tags: ['email', 'attachment']
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Saved",
+        description: `${attachment.filename} saved to your documents`
+      });
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to save attachment to documents",
+        variant: "destructive"
+      });
+    }
   };
 
   const sortedEmails = [...conversation.emails].sort((a, b) => 
@@ -186,11 +246,11 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           </p>
                         </div>
                       </div>
-                       <div className="flex gap-1 flex-shrink-0">
+                        <div className="flex gap-1 flex-shrink-0">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentPreview(attachment, email)}
+                            onClick={() => handleAttachmentSave(attachment, email)}
                             disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
                             title="Save to Documents"
@@ -217,7 +277,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           >
                             <Download className="w-4 h-4" />
                           </Button>
-                      </div>
+                       </div>
                     </div>
                   ))}
                 </div>
@@ -252,39 +312,37 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {onSaveAttachment && (
+                       <div className="flex gap-1 flex-shrink-0">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onSaveAttachment(image, email)}
+                            onClick={() => handleAttachmentSave(image, email)}
                             className="flex-shrink-0"
                             title="Save to Documents"
                           >
                             Save
                           </Button>
-                        )}
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleAttachmentPreview(image, email)}
-                           disabled={!image.attachmentId}
-                           className="flex-shrink-0"
-                           title="Preview image"
-                         >
-                           <Eye className="w-4 h-4" />
-                         </Button>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleAttachmentDownload(image, email)}
-                           disabled={!image.attachmentId}
-                           className="flex-shrink-0"
-                           title="Download image"
-                         >
-                           <Download className="w-4 h-4" />
-                         </Button>
-                      </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentPreview(image, email)}
+                            disabled={!image.attachmentId}
+                            className="flex-shrink-0"
+                            title="Preview image"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentDownload(image, email)}
+                            disabled={!image.attachmentId}
+                            className="flex-shrink-0"
+                            title="Download image"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                       </div>
                     </div>
                   ))}
                 </div>
@@ -306,15 +364,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
           </div>
         );
       })}
-
-      {/* Attachment Preview Dialog */}
-      <AttachmentPreview
-        attachment={previewAttachment}
-        messageId={previewMessageId}
-        emailSubject={previewEmailSubject}
-        open={showPreview}
-        onOpenChange={setShowPreview}
-      />
     </div>
   );
 };
