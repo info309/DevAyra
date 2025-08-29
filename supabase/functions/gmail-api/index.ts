@@ -801,14 +801,31 @@ const handler = async (req: Request): Promise<Response> => {
             emailContent += `\r\n`;
             emailContent += `${content}\r\n`;
             
-            // Add attachments (placeholder - full implementation would require file processing)
+            // Process and add attachments
             for (const attachment of attachments) {
               emailContent += `--${boundary}\r\n`;
-              emailContent += `Content-Type: ${attachment.mimeType || 'application/octet-stream'}; name="${attachment.filename}"\r\n`;
+              emailContent += `Content-Type: ${attachment.type || attachment.mimeType || 'application/octet-stream'}; name="${attachment.name || attachment.filename}"\r\n`;
               emailContent += `Content-Transfer-Encoding: base64\r\n`;
-              emailContent += `Content-Disposition: attachment; filename="${attachment.filename}"\r\n`;
+              emailContent += `Content-Disposition: attachment; filename="${attachment.name || attachment.filename}"\r\n`;
               emailContent += `\r\n`;
-              emailContent += `${attachment.data || ''}\r\n`;
+              
+              // Convert file data to base64
+              let base64Data = '';
+              if (attachment.data) {
+                // If data is already base64 string
+                if (typeof attachment.data === 'string') {
+                  base64Data = attachment.data;
+                } else if (attachment.data instanceof ArrayBuffer) {
+                  // Convert ArrayBuffer to base64
+                  const uint8Array = new Uint8Array(attachment.data);
+                  base64Data = btoa(String.fromCharCode(...uint8Array));
+                } else if (attachment.data.buffer instanceof ArrayBuffer) {
+                  // Handle Uint8Array or similar
+                  base64Data = btoa(String.fromCharCode(...attachment.data));
+                }
+              }
+              
+              emailContent += `${base64Data}\r\n`;
             }
             
             emailContent += `--${boundary}--\r\n`;
@@ -886,14 +903,31 @@ const handler = async (req: Request): Promise<Response> => {
             emailContent += `\r\n`;
             emailContent += `${content || 'This email has no content.'}\r\n`;
             
-            // Add attachments (placeholder - full implementation would require file processing)
+            // Process and add attachments
             for (const attachment of attachments) {
               emailContent += `--${boundary}\r\n`;
-              emailContent += `Content-Type: ${attachment.mimeType || 'application/octet-stream'}; name="${attachment.filename}"\r\n`;
+              emailContent += `Content-Type: ${attachment.type || attachment.mimeType || 'application/octet-stream'}; name="${attachment.name || attachment.filename}"\r\n`;
               emailContent += `Content-Transfer-Encoding: base64\r\n`;
-              emailContent += `Content-Disposition: attachment; filename="${attachment.filename}"\r\n`;
+              emailContent += `Content-Disposition: attachment; filename="${attachment.name || attachment.filename}"\r\n`;
               emailContent += `\r\n`;
-              emailContent += `${attachment.data || ''}\r\n`;
+              
+              // Convert file data to base64
+              let base64Data = '';
+              if (attachment.data) {
+                // If data is already base64 string
+                if (typeof attachment.data === 'string') {
+                  base64Data = attachment.data;
+                } else if (attachment.data instanceof ArrayBuffer) {
+                  // Convert ArrayBuffer to base64
+                  const uint8Array = new Uint8Array(attachment.data);
+                  base64Data = btoa(String.fromCharCode(...uint8Array));
+                } else if (attachment.data.buffer instanceof ArrayBuffer) {
+                  // Handle Uint8Array or similar
+                  base64Data = btoa(String.fromCharCode(...attachment.data));
+                }
+              }
+              
+              emailContent += `${base64Data}\r\n`;
             }
             
             emailContent += `--${boundary}--\r\n`;
