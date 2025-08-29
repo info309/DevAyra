@@ -181,7 +181,7 @@ const Mailbox: React.FC = () => {
       if (!viewLoading[currentView] && viewCache[currentView]) {
         try {
           const query = currentView === 'inbox' ? 'in:inbox' : 'in:sent';
-          const data = await gmailApi.getEmails(query);
+          const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
 
           if (data?.conversations) {
             const existingEmails = viewCache[currentView] || [];
@@ -203,8 +203,10 @@ const Mailbox: React.FC = () => {
             }
           }
         } catch (error) {
-          // Silently fail - don't disrupt user experience
-          console.debug('Background refresh failed:', error);
+          // Silently fail for aborted requests and other background errors
+          if (error.name !== 'AbortError') {
+            console.debug('Background refresh failed:', error);
+          }
         }
       }
     }, 30000); // Check every 30 seconds
@@ -368,6 +370,9 @@ const Mailbox: React.FC = () => {
 
     if (viewLoading[view]) return;
 
+    // Create AbortController for this request
+    const abortController = new AbortController();
+
     try {
       setViewLoading(prev => ({ ...prev, [view]: true }));
       
@@ -380,7 +385,7 @@ const Mailbox: React.FC = () => {
       
       console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
       
-      const data = await gmailApi.getEmails(query, pageToken || undefined);
+      const data = await gmailApi.getEmails(query, pageToken || undefined, abortController.signal);
 
       console.log('Gmail API response for', view, ':', { data });
 
@@ -418,6 +423,12 @@ const Mailbox: React.FC = () => {
       }
       
     } catch (error) {
+      // Ignore aborted requests
+      if (error.name === 'AbortError') {
+        console.debug('Request aborted for view:', view);
+        return;
+      }
+
       console.error('Error loading emails:', error);
       if (view === currentView) {
         if (error instanceof GmailApiError) {

@@ -155,6 +155,13 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               text-decoration-color: transparent;
             }
             
+            /* Force auth and external links to open in new tab */
+            a[href*="auth"], a[href*="login"], a[href*="signin"], a[href*="oauth"], 
+            a[href^="http"], a[href^="https"] {
+              target: "_blank";
+              rel: "noopener noreferrer";
+            }
+            
             /* Text elements */
             p, div, span, h1, h2, h3, h4, h5, h6 {
               max-width: 100% !important;
@@ -224,6 +231,18 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               }
             }, true);
             
+            // Force external links to open in new tab
+            document.addEventListener('DOMContentLoaded', function() {
+              const links = document.querySelectorAll('a[href]');
+              links.forEach(function(link) {
+                const href = link.getAttribute('href');
+                if (href && (href.startsWith('http') || href.includes('auth') || href.includes('login') || href.includes('signin') || href.includes('oauth'))) {
+                  link.setAttribute('target', '_blank');
+                  link.setAttribute('rel', 'noopener noreferrer');
+                }
+              });
+            });
+            
             // Update on window resize
             window.addEventListener('resize', updateHeight);
           </script>
@@ -272,7 +291,7 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
           overflow: 'visible',
           display: 'block'
         }}
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-top-navigation-by-user-activation"
         title="Email Content"
       />
     </div>
