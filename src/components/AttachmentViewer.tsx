@@ -106,11 +106,24 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
         throw new Error('No data received from download');
       }
       
-      // Ensure we have a Uint8Array for proper blob creation
+      // Handle different data formats from Gmail API
       let uint8Data: Uint8Array;
+      
+      console.log('AttachmentViewer: Raw data type check:', {
+        isUint8Array: data.data instanceof Uint8Array,
+        isArrayBuffer: data.data instanceof ArrayBuffer,
+        isString: typeof data.data === 'string',
+        isArray: Array.isArray(data.data),
+        constructor: data.data?.constructor?.name,
+        firstFewBytes: data.data instanceof Uint8Array ? Array.from(data.data.slice(0, 10)) : 'not Uint8Array'
+      });
+      
       if (data.data instanceof Uint8Array) {
         uint8Data = data.data;
       } else if (data.data instanceof ArrayBuffer) {
+        uint8Data = new Uint8Array(data.data);
+      } else if (Array.isArray(data.data)) {
+        // If it's a regular array of numbers, convert to Uint8Array
         uint8Data = new Uint8Array(data.data);
       } else if (typeof data.data === 'string') {
         // If it's a base64 string, decode it
@@ -121,10 +134,17 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
             uint8Data[i] = binaryString.charCodeAt(i);
           }
         } catch (e) {
+          console.error('AttachmentViewer: Failed to decode base64:', e);
           throw new Error('Failed to decode base64 data');
         }
       } else {
-        throw new Error('Unsupported data format received');
+        console.error('AttachmentViewer: Unsupported data format:', {
+          type: typeof data.data,
+          constructor: data.data?.constructor?.name,
+          isNull: data.data === null,
+          isUndefined: data.data === undefined
+        });
+        throw new Error(`Unsupported data format received: ${typeof data.data}`);
       }
       
       // Create blob from the binary data
