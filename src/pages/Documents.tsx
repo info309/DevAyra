@@ -610,47 +610,31 @@ const Documents = () => {
                   onTouchEnd={handleTouchEnd}
                 >
                   {/* Preview/Icon Area */}
-                  <div className="w-full aspect-[4/5] mb-2 rounded-lg overflow-hidden bg-background border border-border shadow-sm">
+                  <div className="w-full aspect-[4/5] mb-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center relative">
-                        {/* Modern 3D Blue Folder Icon */}
-                        <div className="relative w-16 h-16">
-                          <svg viewBox="0 0 120 120" className="w-full h-full">
-                            <defs>
-                              <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#60a5fa" />
-                                <stop offset="50%" stopColor="#3b82f6" />
-                                <stop offset="100%" stopColor="#2563eb" />
-                              </linearGradient>
-                              <linearGradient id={`folderTop-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#93c5fd" />
-                                <stop offset="100%" stopColor="#60a5fa" />
-                              </linearGradient>
-                              <filter id={`shadow-${doc.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                                <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#1e3a8a" floodOpacity="0.3"/>
-                              </filter>
-                            </defs>
-                            
-                            {/* Folder body */}
-                            <path
-                              d="M15 40 L15 85 C15 90 20 95 25 95 L95 95 C100 95 105 90 105 85 L105 40 Z"
-                              fill={`url(#folderGrad-${doc.id})`}
-                              filter={`url(#shadow-${doc.id})`}
-                            />
-                            
-                            {/* Folder tab */}
-                            <path
-                              d="M15 25 C15 20 20 15 25 15 L40 15 L50 25 L95 25 C100 25 105 30 105 35 L105 40 L15 40 Z"
-                              fill={`url(#folderTop-${doc.id})`}
-                            />
-                            
-                            {/* Highlight */}
-                            <path
-                              d="M20 35 L100 35 L100 80 C100 82 98 84 96 84 L24 84 C22 84 20 82 20 80 Z"
-                              fill="rgba(255,255,255,0.1)"
-                            />
-                          </svg>
-                        </div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        {/* Simple Large Blue Folder Icon */}
+                        <svg viewBox="0 0 120 96" className="w-20 h-16 drop-shadow-sm">
+                          <defs>
+                            <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#60a5fa" />
+                              <stop offset="100%" stopColor="#3b82f6" />
+                            </linearGradient>
+                          </defs>
+                          
+                          {/* Folder body */}
+                          <path
+                            d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
+                            fill={`url(#folderGrad-${doc.id})`}
+                            rx="4"
+                          />
+                          
+                          {/* Folder tab */}
+                          <path
+                            d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
+                            fill="#93c5fd"
+                          />
+                        </svg>
                       </div>
                     ) : (
                       <DocumentPreview 
