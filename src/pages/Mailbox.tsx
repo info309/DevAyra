@@ -968,7 +968,24 @@ const Mailbox: React.FC = () => {
   // REMOVED: editDraft function - no longer supporting drafts
 
   const handleSaveAttachmentToDocuments = async (attachment: Attachment, email: Email) => {
+    if (!attachment.attachmentId) {
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: "Attachment data is not available for saving."
+      });
+      return;
+    }
+
     try {
+      console.log('Saving attachment to documents:', attachment.filename);
+      
+      // Show loading toast
+      toast({
+        title: "Saving attachment...",
+        description: `Downloading ${attachment.filename}`
+      });
+
       // Download the attachment data using Gmail API
       const { data, error } = await supabase.functions.invoke("gmail-api", {
         body: {
@@ -978,17 +995,29 @@ const Mailbox: React.FC = () => {
         },
       });
 
-      if (error || !data?.success) {
-        throw new Error(error?.message || 'Failed to download attachment');
+      if (error) {
+        console.error('Gmail API error:', error);
+        throw new Error(error.message || 'Failed to download attachment from Gmail');
       }
 
-      // Convert base64 data to Uint8Array
-      const base64Data = data.data;
-      const binaryString = atob(base64Data);
-      const uint8Array = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i);
+      if (!data?.results?.[0]?.downloadUrl) {
+        throw new Error('No download URL received from Gmail API');
       }
+
+      const downloadUrl = data.results[0].downloadUrl;
+      console.log('Got download URL, fetching attachment data...');
+
+      // Download the file from the signed URL
+      const fileResponse = await fetch(downloadUrl);
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to download file: ${fileResponse.status}`);
+      }
+
+      const blob = await fileResponse.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      console.log('Uploading to Supabase storage...');
 
       // Generate a unique file path for storage
       const timestamp = Date.now();
@@ -1003,7 +1032,12 @@ const Mailbox: React.FC = () => {
           upsert: false
         });
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Storage error:', storageError);
+        throw new Error(`Storage error: ${storageError.message}`);
+      }
+
+      console.log('Saving to database...');
 
       // Save document record to database
       const { error: dbError } = await supabase
@@ -1020,18 +1054,24 @@ const Mailbox: React.FC = () => {
           description: `Saved from email: ${email.subject}`
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
 
+      console.log('Successfully saved attachment');
+      
       toast({
-        title: "Success",
-        description: `Attachment "${attachment.filename}" saved to Documents`,
+        title: "Attachment Saved",
+        description: `${attachment.filename} has been saved to your documents.`
       });
+
     } catch (error) {
-      console.error('Error saving attachment to documents:', error);
+      console.error('Error saving attachment:', error);
       toast({
-        title: "Error",
-        description: "Failed to save attachment to documents",
         variant: "destructive",
+        title: "Save Failed",
+        description: error.message || 'Failed to save attachment to documents.'
       });
     }
   };

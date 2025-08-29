@@ -498,35 +498,46 @@ const handler = async (req: Request): Promise<Response> => {
 
           console.log(`[${requestId}] Processing ${threads.length} threads for query: ${query}`);
 
-          const conversations = await Promise.all(
-            threads.map(async (thread: any) => {
-              try {
-                const threadResponse = await fetch(
-                  `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`,
-                  { headers: { 'Authorization': `Bearer ${gmailToken}` } }
-                );
+          // Process threads in batches to avoid rate limiting
+          const batchSize = 5; // Process only 5 threads at a time
+          const conversations = [];
+          
+          for (let i = 0; i < threads.length; i += batchSize) {
+            const batch = threads.slice(i, i + batchSize);
+            console.log(`[${requestId}] Processing batch ${i/batchSize + 1}/${Math.ceil(threads.length/batchSize)} (${batch.length} threads)`);
+            
+            const batchResults = await Promise.all(
+              batch.map(async (thread: any) => {
+                try {
+                  // Add small delay to avoid hitting rate limits
+                  await new Promise(resolve => setTimeout(resolve, 100 * (i % batchSize)));
+                  
+                  const threadResponse = await fetch(
+                    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`,
+                    { headers: { 'Authorization': `Bearer ${gmailToken}` } }
+                  );
 
-                if (!threadResponse.ok) {
-                  response.errors!.push({
-                    item: `thread-${thread.id}`,
-                    error: `Failed to fetch: ${threadResponse.status}`
-                  });
-                  return null;
-                }
+                  if (!threadResponse.ok) {
+                    response.errors!.push({
+                      item: `thread-${thread.id}`,
+                      error: `Failed to fetch: ${threadResponse.status}`
+                    });
+                    return null;
+                  }
 
-                const threadData = await threadResponse.json();
-                const messages = threadData.messages || [];
-                
-                const processedEmails = await Promise.all(
-                  messages.map(async (message: any) => {
-                    try {
-                      const headers = message.payload.headers || [];
-                      const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
-                      const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown';
-                      const to = headers.find((h: any) => h.name === 'To')?.value || 'Unknown';
-                      const date = headers.find((h: any) => h.name === 'Date')?.value || new Date().toISOString();
+                  const threadData = await threadResponse.json();
+                  const messages = threadData.messages || [];
+                  
+                  const processedEmails = await Promise.all(
+                    messages.map(async (message: any) => {
+                      try {
+                        const headers = message.payload.headers || [];
+                        const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
+                        const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown';
+                        const to = headers.find((h: any) => h.name === 'To')?.value || 'Unknown';
+                        const date = headers.find((h: any) => h.name === 'Date')?.value || new Date().toISOString();
 
-                      const { content, attachments } = await processEmailContent(message.payload);
+                        const { content, attachments } = await processEmailContent(message.payload);
                       
                       // For getEmails, only process attachments for recent emails to save resources
                       let attachmentMetadata = [];
@@ -643,18 +654,22 @@ const handler = async (req: Request): Promise<Response> => {
                   unreadCount,
                   participants
                 };
-              } catch (error) {
-                console.error(`[${requestId}] Error processing thread ${thread.id}:`, error);
-                response.errors!.push({
-                  item: `thread-${thread.id}`,
-                  error: error.message || 'Processing failed'
-                });
-                return null;
-              }
-            })
-          );
+                } catch (error) {
+                  console.error(`[${requestId}] Error processing thread ${thread.id}:`, error);
+                  response.errors!.push({
+                    item: `thread-${thread.id}`,
+                    error: error.message || 'Processing failed'
+                  });
+                  return null;
+                }
+              })
+            );
+            
+            // Add valid conversations from this batch
+            conversations.push(...batchResults.filter(conv => conv !== null));
+          }
 
-          response.conversations = conversations.filter(conv => conv !== null);
+          response.conversations = conversations;
           response.nextPageToken = threadsData.nextPageToken;
           response.allEmailsLoaded = !threadsData.nextPageToken;
           response.partialSuccess = response.errors!.length > 0;
