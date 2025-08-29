@@ -213,11 +213,19 @@ class GmailService {
       }
     }
 
-    // Choose content format: prefer text/plain converted to HTML-safe, fallback to text/html
+    // Choose content format: prefer HTML for marketing emails, text/plain for regular emails
     let finalContent = '';
     
-    if (textContent.trim()) {
-      // Convert text/plain to HTML-safe format
+    // Check if this looks like a marketing email with tracking links
+    const isMarketingEmail = textContent.includes('link.') || textContent.includes('track') || 
+                           textContent.includes('click?') || textContent.includes('[https://') ||
+                           htmlContent.includes('link.') || htmlContent.includes('track');
+    
+    if (htmlContent.trim() && isMarketingEmail) {
+      // Use HTML content for marketing emails (better formatting)
+      finalContent = htmlContent.trim();
+    } else if (textContent.trim()) {
+      // Convert text/plain to HTML-safe format for regular emails
       finalContent = textContent
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -226,7 +234,7 @@ class GmailService {
         .replace(/\n/g, '<br>')
         .trim();
     } else if (htmlContent.trim()) {
-      // Use HTML content as-is for proper rendering
+      // Fallback to HTML content
       finalContent = htmlContent.trim();
     }
 
