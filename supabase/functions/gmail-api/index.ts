@@ -8,86 +8,49 @@ const corsHeaders = {
 }
 
 // Request validation schemas
-const getEmailsSchema = z.object({
-  action: z.literal('getEmails'),
-  query: z.string().optional(),
-  maxResults: z.number().min(1).max(100).optional(),
-  pageToken: z.string().optional()
-})
-
-const searchEmailsSchema = z.object({
-  action: z.literal('searchEmails'),
-  query: z.string().min(1)
-})
-
-const markAsReadSchema = z.object({
-  action: z.literal('markAsRead'),
-  messageId: z.string().optional(),
-  threadId: z.string().optional()
-})
-
-const sendEmailSchema = z.object({
-  action: z.literal('sendEmail'),
-  to: z.string().min(1),
-  subject: z.string(),
-  content: z.string(),
-  replyTo: z.string().optional(),
-  threadId: z.string().optional(),
-  attachments: z.array(z.any()).optional()
-})
-
-const downloadAttachmentSchema = z.object({
-  action: z.literal('downloadAttachment'),
-  messageId: z.string().min(1),
-  attachmentId: z.string().min(1)
-})
-
-const trashSchema = z.object({
-  action: z.enum(['trashThread', 'trashMessage']),
-  threadId: z.string().optional(),
-  messageId: z.string().optional()
-})
-
-const deleteSchema = z.object({
-  action: z.enum(['deleteThread', 'deleteMessage']),
-  threadId: z.string().optional(),
-  messageId: z.string().optional()
-})
-
-const replySchema = z.object({
-  action: z.literal('reply'),
-  threadId: z.string().min(1),
-  to: z.string().min(1),
-  subject: z.string(),
-  content: z.string(),
-  attachments: z.array(z.any()).optional()
-})
-
-const healthSchema = z.object({
-  action: z.literal('health')
-})
-
 const requestSchema = z.discriminatedUnion('action', [
-  getEmailsSchema,
-  searchEmailsSchema,
-  markAsReadSchema,
-  sendEmailSchema,
-  downloadAttachmentSchema,
-  trashSchema,
-  deleteSchema,
-  replySchema,
-  healthSchema
+  z.object({
+    action: z.literal('getEmails'),
+    query: z.string().optional(),
+    maxResults: z.number().min(1).max(100).optional(),
+    pageToken: z.string().optional()
+  }),
+  z.object({
+    action: z.literal('searchEmails'),
+    query: z.string().min(1)
+  }),
+  z.object({
+    action: z.literal('markAsRead'),
+    messageId: z.string().optional(),
+    threadId: z.string().optional()
+  }),
+  z.object({
+    action: z.literal('sendEmail'),
+    to: z.string().min(1),
+    subject: z.string(),
+    content: z.string(),
+    threadId: z.string().optional(),
+    attachments: z.array(z.any()).optional()
+  }),
+  z.object({
+    action: z.literal('downloadAttachment'),
+    messageId: z.string().min(1),
+    attachmentId: z.string().min(1)
+  }),
+  z.object({
+    action: z.enum(['trashThread', 'trashMessage']),
+    threadId: z.string().optional(),
+    messageId: z.string().optional()
+  }),
+  z.object({
+    action: z.enum(['deleteThread', 'deleteMessage']),
+    threadId: z.string().optional(),
+    messageId: z.string().optional()
+  }),
+  z.object({
+    action: z.literal('health')
+  })
 ])
-
-interface ProcessedAttachment {
-  filename: string;
-  mimeType: string;
-  size: number;
-  downloadUrl?: string;
-  attachmentId?: string;
-  isInline?: boolean;
-  cid?: string;
-}
 
 interface ProcessedEmail {
   id: string;
@@ -98,219 +61,391 @@ interface ProcessedEmail {
   to: string;
   date: string;
   content: string;
-  unread: boolean;
+  labels: string[];
+  isRead: boolean;
   attachments: ProcessedAttachment[];
 }
 
-interface ApiResponse {
-  conversations?: any[];
-  results?: any[];
-  partialSuccess?: boolean;
-  errors?: Array<{ item: string; error: string }>;
-  nextPageToken?: string;
-  allEmailsLoaded?: boolean;
+interface ProcessedAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  downloadUrl?: string;
+  attachmentId?: string;
 }
 
-// Concurrency control for attachment downloads
-const attachmentSemaphore = {
-  available: 3,
-  waiting: [] as Array<() => void>,
-  acquire(): Promise<void> {
-    return new Promise((resolve) => {
-      if (this.available > 0) {
-        this.available--;
-        resolve();
-      } else {
-        this.waiting.push(resolve);
+class GmailApiError extends Error {
+  constructor(message: string, public status: number = 500) {
+    super(message);
+    this.name = 'GmailApiError';
+  }
+}
+
+class GmailService {
+  private token: string;
+  private requestId: string;
+
+  constructor(token: string, requestId: string) {
+    this.token = token;
+    this.requestId = requestId;
+  }
+
+  private async makeGmailRequest(url: string, options?: RequestInit) {
+    console.log(`[${this.requestId}] Gmail API request: ${url}`);
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+        ...options?.headers
       }
     });
-  },
-  release() {
-    this.available++;
-    if (this.waiting.length > 0) {
-      const next = this.waiting.shift()!;
-      next();
-    }
-  }
-};
 
-function generateRequestId(): string {
-  return Math.random().toString(36).substring(2, 15);
-}
-
-function base64UrlDecode(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
-    base64 += '=';
-  }
-  return atob(base64);
-}
-
-function decodeQuotedPrintable(str: string): string {
-  return str.replace(/=([A-F0-9]{2})/gi, (match, hex) => 
-    String.fromCharCode(parseInt(hex, 16))
-  );
-}
-
-function detectAndDecodeContent(content: string, encoding?: string): string {
-  if (!content) return '';
-  
-  try {
-    if (encoding === 'base64') {
-      return base64UrlDecode(content);
-    } else if (encoding === 'quoted-printable') {
-      return decodeQuotedPrintable(content);
-    }
-    return content;
-  } catch (error) {
-    console.error('Content decoding error:', error);
-    return content;
-  }
-}
-
-function fixCommonEncodingIssues(text: string): string {
-  return text
-    .replace(/â€™/g, "'")
-    .replace(/â€œ/g, '"')
-    .replace(/â€/g, '"')
-    .replace(/â€¢/g, '•')
-    .replace(/â€"/g, '—')
-    .replace(/Ã¡/g, 'á')
-    .replace(/Ã©/g, 'é')
-    .replace(/Ã­/g, 'í')
-    .replace(/Ã³/g, 'ó')
-    .replace(/Ãº/g, 'ú')
-    .replace(/Ã±/g, 'ñ');
-}
-
-async function processEmailContent(payload: any): Promise<{ content: string; attachments: ProcessedAttachment[] }> {
-  console.log('Processing email payload structure:', {
-    hasParts: !!payload.parts,
-    hasBody: !!payload.body,
-    mimeType: payload.mimeType,
-    partsCount: payload.parts?.length || 0
-  });
-  
-  const attachments: ProcessedAttachment[] = [];
-  let textContent = '';
-  let htmlContent = '';
-
-  function extractParts(part: any) {
-    console.log(`Processing part - mimeType: ${part.mimeType}, filename: ${part.filename}, hasBody: ${!!part.body}, hasAttachmentId: ${!!part.body?.attachmentId}`);
-    
-    if (part.parts) {
-      part.parts.forEach(extractParts);
-    } else if (part.body) {
-      const mimeType = part.mimeType;
-      const filename = part.filename;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[${this.requestId}] Gmail API error:`, response.status, errorText);
       
-      // Improved attachment detection - include more cases
-      if (filename || (part.body.attachmentId && part.body.size > 0)) {
-        console.log(`Found attachment: ${filename || 'unnamed'}, mimeType: ${mimeType}, size: ${part.body.size}, attachmentId: ${part.body.attachmentId}`);
+      if (response.status === 401) {
+        throw new GmailApiError('Gmail authentication expired', 401);
+      }
+      if (response.status === 429) {
+        throw new GmailApiError('Rate limit exceeded', 429);
+      }
+      
+      throw new GmailApiError(`Gmail API error: ${response.status} ${errorText}`, response.status);
+    }
+
+    return response.json();
+  }
+
+  private decodeContent(content: string, encoding?: string): string {
+    if (!content) return '';
+    
+    try {
+      if (encoding === 'base64') {
+        const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        return atob(padded);
+      }
+      return content;
+    } catch (error) {
+      console.error(`[${this.requestId}] Content decode error:`, error);
+      return content;
+    }
+  }
+
+  private extractEmailContent(payload: any): { content: string; attachments: ProcessedAttachment[] } {
+    const attachments: ProcessedAttachment[] = [];
+    let content = '';
+
+    const processPart = (part: any) => {
+      if (part.filename && part.body?.attachmentId) {
         attachments.push({
-          filename: filename || `attachment_${attachments.length + 1}`,
-          mimeType: mimeType || 'application/octet-stream',
+          filename: part.filename,
+          mimeType: part.mimeType,
           size: part.body.size || 0,
-          attachmentId: part.body.attachmentId,
-          isInline: mimeType?.startsWith('image/') && part.headers?.some((h: any) => 
-            h.name.toLowerCase() === 'content-disposition' && 
-            h.value.toLowerCase().includes('inline')
-          ),
-          cid: part.headers?.find((h: any) => h.name.toLowerCase() === 'content-id')?.value?.replace(/[<>]/g, '')
+          attachmentId: part.body.attachmentId
         });
-      } else if (part.body.data) {
-        const encoding = part.body.data ? 'base64' : undefined;
-        const content = detectAndDecodeContent(part.body.data || '', encoding);
-        const fixedContent = fixCommonEncodingIssues(content);
-        
-        if (mimeType === 'text/plain') {
-          textContent += fixedContent + '\n';
-        } else if (mimeType === 'text/html') {
-          htmlContent += fixedContent;
+        return;
+      }
+
+      if (part.body?.data) {
+        const decoded = this.decodeContent(part.body.data, part.body.encoding);
+        if (part.mimeType === 'text/html' || part.mimeType === 'text/plain') {
+          content += decoded + '\n';
         }
       }
-    }
-  }
 
-  if (payload.parts) {
-    payload.parts.forEach(extractParts);
-  } else if (payload.body && payload.body.data) {
-    const encoding = payload.body.data ? 'base64' : undefined;
-    const content = detectAndDecodeContent(payload.body.data, encoding);
-    const fixedContent = fixCommonEncodingIssues(content);
-    
-    if (payload.mimeType === 'text/html') {
-      htmlContent = fixedContent;
-    } else {
-      textContent = fixedContent;
-    }
-  }
-
-  const finalContent = htmlContent || textContent || 'No content available';
-  
-  return { content: finalContent, attachments };
-}
-
-async function downloadAndStoreAttachment(
-  gmailToken: string, 
-  messageId: string, 
-  attachmentId: string, 
-  filename: string, 
-  mimeType: string,
-  supabaseClient: any,
-  userId: string,
-  requestId: string
-): Promise<string> {
-  await attachmentSemaphore.acquire();
-  
-  try {
-    const attachmentResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
-      {
-        headers: { 'Authorization': `Bearer ${gmailToken}` }
+      if (part.parts) {
+        part.parts.forEach(processPart);
       }
-    );
+    };
 
-    if (!attachmentResponse.ok) {
-      throw new Error(`Gmail API error: ${attachmentResponse.status}`);
+    if (payload.parts) {
+      payload.parts.forEach(processPart);
+    } else if (payload.body?.data) {
+      content = this.decodeContent(payload.body.data, payload.body.encoding);
     }
 
-    const attachmentData = await attachmentResponse.json();
-    const fileData = base64UrlDecode(attachmentData.data);
-    const blob = new Blob([new Uint8Array([...fileData].map(c => c.charCodeAt(0)))], { type: mimeType });
-    
-    const filePath = `attachments/${userId}/${messageId}_${attachmentId}_${filename}`;
-    
-    const { data: uploadData, error: uploadError } = await supabaseClient.storage
-      .from('email-attachments')
-      .upload(filePath, blob, {
-        contentType: mimeType,
-        upsert: true
-      });
+    return { content: content.trim(), attachments };
+  }
 
-    if (uploadError && uploadError.statusCode !== '409') {
-      console.error(`[${requestId}] Storage upload error:`, uploadError);
-      throw new Error(`Failed to store attachment: ${uploadError.message}`);
+  private processMessage(message: any): ProcessedEmail {
+    const headers = message.payload?.headers || [];
+    const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+    
+    const { content, attachments } = this.extractEmailContent(message.payload);
+    
+    return {
+      id: message.id,
+      threadId: message.threadId,
+      snippet: message.snippet || '',
+      subject: getHeader('Subject'),
+      from: getHeader('From'),
+      to: getHeader('To'),
+      date: getHeader('Date'),
+      content,
+      labels: message.labelIds || [],
+      isRead: !message.labelIds?.includes('UNREAD'),
+      attachments
+    };
+  }
+
+  async getEmails(query: string = 'in:inbox', maxResults: number = 50, pageToken?: string) {
+    try {
+      // Get threads
+      let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
+      if (pageToken) threadsUrl += `&pageToken=${pageToken}`;
+      
+      const threadsData = await this.makeGmailRequest(threadsUrl);
+      const threads = threadsData.threads || [];
+      
+      if (threads.length === 0) {
+        return { conversations: [], nextPageToken: threadsData.nextPageToken };
+      }
+
+      console.log(`[${this.requestId}] Processing ${threads.length} threads`);
+
+      // Process threads in smaller batches to avoid timeouts
+      const batchSize = 3;
+      const conversations = [];
+      
+      for (let i = 0; i < threads.length; i += batchSize) {
+        const batch = threads.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (thread) => {
+          try {
+            const threadData = await this.makeGmailRequest(
+              `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
+            );
+            
+            const messages = threadData.messages || [];
+            const processedMessages = messages.map(msg => this.processMessage(msg));
+            
+            return {
+              threadId: thread.id,
+              messages: processedMessages,
+              snippet: thread.snippet || processedMessages[0]?.snippet || '',
+              historyId: threadData.historyId
+            };
+          } catch (error) {
+            console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
+            return null;
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        conversations.push(...batchResults.filter(Boolean));
+        
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < threads.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      return {
+        conversations,
+        nextPageToken: threadsData.nextPageToken,
+        allEmailsLoaded: !threadsData.nextPageToken
+      };
+    } catch (error) {
+      console.error(`[${this.requestId}] getEmails error:`, error);
+      throw error;
     }
+  }
 
-    const { data: signedUrlData } = await supabaseClient.storage
-      .from('email-attachments')
-      .createSignedUrl(filePath, 3600);
+  async downloadAttachment(messageId: string, attachmentId: string) {
+    try {
+      const attachmentData = await this.makeGmailRequest(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`
+      );
 
-    return signedUrlData?.signedUrl || '';
-  } finally {
-    attachmentSemaphore.release();
+      return {
+        data: attachmentData.data,
+        size: attachmentData.size
+      };
+    } catch (error) {
+      console.error(`[${this.requestId}] downloadAttachment error:`, error);
+      throw error;
+    }
+  }
+
+  async markAsRead(messageId?: string, threadId?: string) {
+    try {
+      const labels = { removeLabelIds: ['UNREAD'] };
+      
+      if (threadId) {
+        await this.makeGmailRequest(
+          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(labels)
+          }
+        );
+      } else if (messageId) {
+        await this.makeGmailRequest(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(labels)
+          }
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.requestId}] markAsRead error:`, error);
+      throw error;
+    }
+  }
+
+  async sendEmail(to: string, subject: string, content: string, threadId?: string) {
+    try {
+      const emailContent = [
+        `To: ${to}`,
+        `Subject: ${subject}`,
+        'Content-Type: text/html; charset=utf-8',
+        '',
+        content
+      ].join('\r\n');
+
+      const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      
+      const requestBody: any = { raw: encodedEmail };
+      if (threadId) {
+        requestBody.threadId = threadId;
+      }
+
+      const result = await this.makeGmailRequest(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+
+      return { success: true, messageId: result.id };
+    } catch (error) {
+      console.error(`[${this.requestId}] sendEmail error:`, error);
+      throw error;
+    }
+  }
+
+  async trashMessage(messageId: string) {
+    try {
+      await this.makeGmailRequest(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
+        { method: 'POST' }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.requestId}] trashMessage error:`, error);
+      throw error;
+    }
+  }
+
+  async trashThread(threadId: string) {
+    try {
+      await this.makeGmailRequest(
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/trash`,
+        { method: 'POST' }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.requestId}] trashThread error:`, error);
+      throw error;
+    }
+  }
+
+  async deleteMessage(messageId: string) {
+    try {
+      await this.makeGmailRequest(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
+        { method: 'DELETE' }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.requestId}] deleteMessage error:`, error);
+      throw error;
+    }
+  }
+
+  async deleteThread(threadId: string) {
+    try {
+      await this.makeGmailRequest(
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`,
+        { method: 'DELETE' }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(`[${this.requestId}] deleteThread error:`, error);
+      throw error;
+    }
   }
 }
 
-function cleanSubjectPrefixes(subject: string): string {
-  return subject
-    .replace(/^(Re:|RE:|Fwd:|FWD:|Fw:)\s*/i, '')
-    .trim();
+async function authenticateAndGetToken(userId: string): Promise<string> {
+  const serviceRoleClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Get Gmail connection
+  const { data: connection, error: connectionError } = await serviceRoleClient
+    .from('gmail_connections')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single();
+
+  if (connectionError || !connection) {
+    throw new GmailApiError('No active Gmail connection found. Please reconnect your account.', 401);
+  }
+
+  let gmailToken = connection.access_token;
+
+  // Test token validity
+  const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    headers: { 'Authorization': `Bearer ${gmailToken}` }
+  });
+
+  // Refresh token if expired
+  if (testResponse.status === 401) {
+    console.log('Token expired, refreshing...');
+    
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
+        refresh_token: connection.refresh_token,
+        grant_type: 'refresh_token'
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account.', 401);
+    }
+
+    const tokenData = await tokenResponse.json();
+    gmailToken = tokenData.access_token;
+
+    // Update token in database
+    await serviceRoleClient
+      .from('gmail_connections')
+      .update({ access_token: gmailToken, updated_at: new Date().toISOString() })
+      .eq('id', connection.id);
+  }
+
+  return gmailToken;
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  const requestId = generateRequestId();
+  const requestId = Math.random().toString(36).substring(2, 15);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -319,942 +454,112 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] Gmail API request received`);
     
+    // Authenticate user
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Get user from verified JWT token
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error(`[${requestId}] Missing or invalid authorization header`);
-      return new Response(
-        JSON.stringify({ error: 'Authorization header is required' }),
-        { status: 401, headers: corsHeaders }
-      );
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new GmailApiError('Authorization header required', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log(`[${requestId}] Attempting to verify JWT token`);
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
-      console.error(`[${requestId}] JWT verification failed:`, {
-        error: userError?.message,
-        hasUser: !!user,
-        tokenLength: token?.length
-      });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Session expired or invalid. Please log out and log back in.',
-          details: userError?.message 
-        }),
-        { status: 401, headers: corsHeaders }
-      );
+      console.error(`[${requestId}] Auth error:`, userError);
+      throw new GmailApiError('Invalid authentication token', 401);
     }
 
-    const userId = user.id;
-    console.log(`[${requestId}] Authenticated user:`, userId);
-
-    // Parse and validate request body
-    let requestBody;
-    try {
-      requestBody = await req.json();
-    } catch (error) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Validate request schema
+    // Parse request
+    const requestBody = await req.json();
     const validation = requestSchema.safeParse(requestBody);
+    
     if (!validation.success) {
       console.error(`[${requestId}] Validation error:`, validation.error);
+      throw new GmailApiError('Invalid request format', 400);
+    }
+
+    const request = validation.data;
+    console.log(`[${requestId}] Action: ${request.action}`);
+
+    // Health check
+    if (request.action === 'health') {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request format',
-          details: validation.error.errors
-        }),
-        { status: 400, headers: corsHeaders }
+        JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }),
+        { status: 200, headers: corsHeaders }
       );
     }
 
-    const validatedRequest = validation.data;
-    console.log(`[${requestId}] Action: ${validatedRequest.action}`);
+    // Get Gmail token
+    const gmailToken = await authenticateAndGetToken(user.id);
+    const gmailService = new GmailService(gmailToken, requestId);
 
-    // Health check endpoint
-    if (validatedRequest.action === 'health') {
-      try {
-        // Test database connectivity
-        const { error: dbError } = await supabaseClient
-          .from('gmail_connections')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1);
-
-        if (dbError) {
-          throw new Error(`Database error: ${dbError.message}`);
-        }
-
-        return new Response(
-          JSON.stringify({ 
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            userId: userId
-          }),
-          { status: 200, headers: corsHeaders }
+    // Handle actions
+    let result;
+    switch (request.action) {
+      case 'getEmails':
+        result = await gmailService.getEmails(
+          request.query || 'in:inbox',
+          request.maxResults || 50,
+          request.pageToken
         );
-      } catch (error) {
-        console.error(`[${requestId}] Health check failed:`, error);
-        return new Response(
-          JSON.stringify({ 
-            status: 'unhealthy',
-            error: error.message,
-            timestamp: new Date().toISOString()
-          }),
-          { status: 503, headers: corsHeaders }
+        break;
+
+      case 'downloadAttachment':
+        result = await gmailService.downloadAttachment(request.messageId, request.attachmentId);
+        break;
+
+      case 'markAsRead':
+        result = await gmailService.markAsRead(request.messageId, request.threadId);
+        break;
+
+      case 'sendEmail':
+        result = await gmailService.sendEmail(
+          request.to,
+          request.subject,
+          request.content,
+          request.threadId
         );
-      }
-    }
-
-    // Get Gmail connection using service role for database access
-    const serviceRoleClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { data: connection, error: connectionError } = await serviceRoleClient
-      .from('gmail_connections')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .single();
-
-    if (connectionError || !connection) {
-      console.error(`[${requestId}] Gmail connection lookup failed:`, {
-        error: connectionError?.message,
-        hasConnection: !!connection,
-        userId: userId
-      });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Gmail connection not found. Please reconnect your Gmail account from the Account page.',
-          needsReconnection: true
-        }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    let gmailToken = connection.access_token;
-
-    // Test token validity and refresh if needed
-    const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
-      headers: { 'Authorization': `Bearer ${gmailToken}` }
-    });
-
-    if (testResponse.status === 401) {
-      console.log(`[${requestId}] Token expired, refreshing...`);
-      
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
-          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
-          refresh_token: connection.refresh_token,
-          grant_type: 'refresh_token'
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error(`[${requestId}] Token refresh failed:`, errorText);
-        return new Response(
-          JSON.stringify({ error: 'Gmail token expired and needs to be reconnected. Please reconnect your Gmail account.' }),
-          { status: 401, headers: corsHeaders }
-        );
-      }
-
-      const tokenData = await tokenResponse.json();
-      gmailToken = tokenData.access_token;
-
-      await serviceRoleClient
-        .from('gmail_connections')
-        .update({ access_token: gmailToken, updated_at: new Date().toISOString() })
-        .eq('id', connection.id);
-    }
-
-    const response: ApiResponse = {
-      partialSuccess: false,
-      errors: []
-    };
-
-    // Handle different actions
-    switch (validatedRequest.action) {
-      case 'getEmails': {
-        const { query = 'in:inbox', maxResults = 50, pageToken } = validatedRequest;
-        
-        try {
-          let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
-          if (pageToken) {
-            threadsUrl += `&pageToken=${pageToken}`;
-          }
-
-          const threadsResponse = await fetch(threadsUrl, {
-            headers: { 'Authorization': `Bearer ${gmailToken}` }
-          });
-
-          if (!threadsResponse.ok) {
-            throw new Error(`Gmail API threads error: ${threadsResponse.status}`);
-          }
-
-          const threadsData = await threadsResponse.json();
-          const threads = threadsData.threads || [];
-
-          console.log(`[${requestId}] Processing ${threads.length} threads for query: ${query}`);
-
-          // Process threads in batches to avoid rate limiting
-          const batchSize = 5; // Process only 5 threads at a time
-          const conversations = [];
-          
-          for (let i = 0; i < threads.length; i += batchSize) {
-            const batch = threads.slice(i, i + batchSize);
-            console.log(`[${requestId}] Processing batch ${i/batchSize + 1}/${Math.ceil(threads.length/batchSize)} (${batch.length} threads)`);
-            
-            const batchResults = await Promise.all(
-              batch.map(async (thread: any) => {
-                try {
-                  // Add small delay to avoid hitting rate limits
-                  await new Promise(resolve => setTimeout(resolve, 100 * (i % batchSize)));
-                  
-                  const threadResponse = await fetch(
-                    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`,
-                    { headers: { 'Authorization': `Bearer ${gmailToken}` } }
-                  );
-
-                  if (!threadResponse.ok) {
-                    response.errors!.push({
-                      item: `thread-${thread.id}`,
-                      error: `Failed to fetch: ${threadResponse.status}`
-                    });
-                    return null;
-                  }
-
-                  const threadData = await threadResponse.json();
-                  const messages = threadData.messages || [];
-                  
-                  const processedEmails = await Promise.all(
-                    messages.map(async (message: any) => {
-                      try {
-                        const headers = message.payload.headers || [];
-                        const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
-                        const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown';
-                        const to = headers.find((h: any) => h.name === 'To')?.value || 'Unknown';
-                        const date = headers.find((h: any) => h.name === 'Date')?.value || new Date().toISOString();
-
-                        const { content, attachments } = await processEmailContent(message.payload);
-                      
-                      // For getEmails, only process attachments for recent emails to save resources
-                      let attachmentMetadata = [];
-                      
-                      if (attachments.length > 0) {
-                        // Skip attachment processing entirely for sent emails to avoid resource issues
-                        const isSentQuery = query.includes('in:sent');
-                        const emailDate = new Date(date);
-                        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                        const shouldProcessAttachments = !isSentQuery && (emailDate > weekAgo || attachments.length <= 3);
-                        
-                        if (shouldProcessAttachments) {
-                          console.log(`[${requestId}] Processing ${attachments.length} attachments for recent email ${message.id}`);
-                          
-                          attachmentMetadata = await Promise.all(
-                            attachments.slice(0, 5).map(async (att) => { // Limit to 5 attachments max
-                              console.log(`[${requestId}] Processing attachment: ${att.filename}, ID: ${att.attachmentId}`);
-                              try {
-                                if (att.attachmentId) {
-                                  const downloadUrl = await downloadAndStoreAttachment(
-                                    gmailToken,
-                                    message.id,
-                                    att.attachmentId,
-                                    att.filename,
-                                    att.mimeType,
-                                    serviceRoleClient,
-                                    userId,
-                                    requestId
-                                  );
-                                  console.log(`[${requestId}] Generated download URL for ${att.filename}: ${downloadUrl ? 'SUCCESS' : 'FAILED'}`);
-                                  return {
-                                    filename: att.filename,
-                                    mimeType: att.mimeType,
-                                    size: att.size,
-                                    attachmentId: att.attachmentId,
-                                    isInline: att.isInline,
-                                    cid: att.cid,
-                                    downloadUrl
-                                  };
-                                }
-                                return {
-                                  filename: att.filename,
-                                  mimeType: att.mimeType,
-                                  size: att.size,
-                                  attachmentId: att.attachmentId,
-                                  isInline: att.isInline,
-                                  cid: att.cid
-                                };
-                              } catch (error) {
-                                console.warn(`[${requestId}] Failed to process attachment ${att.filename}:`, error);
-                                return {
-                                  filename: att.filename,
-                                  mimeType: att.mimeType,
-                                  size: att.size,
-                                  attachmentId: att.attachmentId,
-                                  isInline: att.isInline,
-                                  cid: att.cid
-                                };
-                              }
-                            })
-                          );
-                        } else {
-                          console.log(`[${requestId}] Skipping attachment processing for ${isSentQuery ? 'sent' : 'older'} email ${message.id} with ${attachments.length} attachments`);
-                          // Just return metadata without download URLs for older/sent emails
-                          attachmentMetadata = attachments.map(att => ({
-                            filename: att.filename,
-                            mimeType: att.mimeType,
-                            size: att.size,
-                            attachmentId: att.attachmentId,
-                            isInline: att.isInline,
-                            cid: att.cid
-                          }));
-                        }
-                      }
-
-                      console.log(`[${requestId}] Final attachment metadata:`, attachmentMetadata);
-
-                       return {
-                         id: message.id,
-                         threadId: thread.id,
-                         snippet: message.snippet || '',
-                         subject: cleanSubjectPrefixes(subject),
-                         from,
-                         to,
-                         date,
-                         content,
-                         unread: message.labelIds?.includes('UNREAD') || false,
-                         attachments: attachmentMetadata
-                       };
-                    } catch (error) {
-                      console.error(`[${requestId}] Error processing message ${message.id}:`, error);
-                      response.errors!.push({
-                        item: `message-${message.id}`,
-                        error: error.message || 'Processing failed'
-                      });
-                      return null;
-                    }
-                  })
-                );
-
-                const validEmails = processedEmails.filter(email => email !== null);
-                if (validEmails.length === 0) return null;
-
-                const lastEmail = validEmails[validEmails.length - 1];
-                const unreadCount = validEmails.filter(email => email.unread).length;
-                const participants = [...new Set(validEmails.flatMap(email => [email.from, email.to]))];
-
-                return {
-                  id: thread.id,
-                  subject: lastEmail.subject,
-                  emails: validEmails,
-                  messageCount: validEmails.length,
-                  lastDate: lastEmail.date,
-                  unreadCount,
-                  participants
-                };
-                } catch (error) {
-                  console.error(`[${requestId}] Error processing thread ${thread.id}:`, error);
-                  response.errors!.push({
-                    item: `thread-${thread.id}`,
-                    error: error.message || 'Processing failed'
-                  });
-                  return null;
-                }
-              })
-            );
-            
-            // Add valid conversations from this batch
-            conversations.push(...batchResults.filter(conv => conv !== null));
-          }
-
-          response.conversations = conversations;
-          response.nextPageToken = threadsData.nextPageToken;
-          response.allEmailsLoaded = !threadsData.nextPageToken;
-          response.partialSuccess = response.errors!.length > 0;
-
-          console.log(`[${requestId}] Processed ${response.conversations.length} conversations, ${response.errors!.length} errors`);
-
-        } catch (error) {
-          console.error(`[${requestId}] GetEmails error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to fetch emails' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
         break;
-      }
 
-      case 'downloadAttachment': {
-        const { messageId, attachmentId } = validatedRequest;
-        
-        try {
-          // Get message to find attachment details
-          const messageResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
-            { headers: { 'Authorization': `Bearer ${gmailToken}` } }
-          );
-
-          if (!messageResponse.ok) {
-            throw new Error(`Failed to fetch message: ${messageResponse.status}`);
-          }
-
-          const messageData = await messageResponse.json();
-          const { attachments } = await processEmailContent(messageData.payload);
-          
-          const attachment = attachments.find(att => att.attachmentId === attachmentId);
-          if (!attachment) {
-            throw new Error('Attachment not found');
-          }
-
-          const downloadUrl = await downloadAndStoreAttachment(
-            gmailToken,
-            messageId,
-            attachmentId,
-            attachment.filename,
-            attachment.mimeType,
-            serviceRoleClient,
-            userId,
-            requestId
-          );
-
-          response.results = [{ downloadUrl, filename: attachment.filename }];
-
-        } catch (error) {
-          console.error(`[${requestId}] DownloadAttachment error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to download attachment' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
+      case 'trashMessage':
+        result = await gmailService.trashMessage(request.messageId!);
         break;
-      }
 
-      case 'searchEmails': {
-        const { query } = validatedRequest;
-        
-        try {
-          const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`;
-          
-          const searchResponse = await fetch(searchUrl, {
-            headers: { 'Authorization': `Bearer ${gmailToken}` }
-          });
-
-          if (!searchResponse.ok) {
-            throw new Error(`Gmail API search error: ${searchResponse.status}`);
-          }
-
-          const searchData = await searchResponse.json();
-          const messages = searchData.messages || [];
-
-          console.log(`[${requestId}] Processing ${messages.length} search results for query: ${query}`);
-
-          const results = await Promise.all(
-            messages.map(async (message: any) => {
-              try {
-                const messageResponse = await fetch(
-                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`,
-                  { headers: { 'Authorization': `Bearer ${gmailToken}` } }
-                );
-
-                if (!messageResponse.ok) {
-                  response.errors!.push({
-                    item: `message-${message.id}`,
-                    error: `Failed to fetch: ${messageResponse.status}`
-                  });
-                  return null;
-                }
-
-                const messageData = await messageResponse.json();
-                const headers = messageData.payload.headers || [];
-                const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'No Subject';
-                const from = headers.find((h: any) => h.name === 'From')?.value || 'Unknown';
-                const to = headers.find((h: any) => h.name === 'To')?.value || 'Unknown';
-                const date = headers.find((h: any) => h.name === 'Date')?.value || new Date().toISOString();
-
-                const { content, attachments } = await processEmailContent(messageData.payload);
-
-                return {
-                  id: message.id,
-                  threadId: messageData.threadId,
-                  snippet: messageData.snippet || '',
-                  subject: cleanSubjectPrefixes(subject),
-                  from,
-                  to,
-                  date,
-                  content,
-                  unread: messageData.labelIds?.includes('UNREAD') || false,
-                  attachments: attachments.map(att => ({
-                    filename: att.filename,
-                    mimeType: att.mimeType,
-                    size: att.size,
-                    attachmentId: att.attachmentId,
-                    isInline: att.isInline,
-                    cid: att.cid
-                  }))
-                };
-              } catch (error) {
-                console.error(`[${requestId}] Error processing search result ${message.id}:`, error);
-                response.errors!.push({
-                  item: `message-${message.id}`,
-                  error: error.message || 'Processing failed'
-                });
-                return null;
-              }
-            })
-          );
-
-          response.results = results.filter(result => result !== null);
-          response.partialSuccess = response.errors!.length > 0;
-
-          console.log(`[${requestId}] Processed ${response.results.length} search results, ${response.errors!.length} errors`);
-
-        } catch (error) {
-          console.error(`[${requestId}] SearchEmails error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to search emails' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
+      case 'trashThread':
+        result = await gmailService.trashThread(request.threadId!);
         break;
-      }
 
-      case 'markAsRead': {
-        const { messageId, threadId } = validatedRequest;
-        
-        try {
-          if (messageId) {
-            const modifyResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${gmailToken}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  removeLabelIds: ['UNREAD']
-                })
-              }
-            );
-
-            if (!modifyResponse.ok) {
-              throw new Error(`Failed to mark message as read: ${modifyResponse.status}`);
-            }
-          } else if (threadId) {
-            const modifyResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${gmailToken}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  removeLabelIds: ['UNREAD']
-                })
-              }
-            );
-
-            if (!modifyResponse.ok) {
-              throw new Error(`Failed to mark thread as read: ${modifyResponse.status}`);
-            }
-          } else {
-            throw new Error('Either messageId or threadId is required');
-          }
-
-          response.results = [{ success: true }];
-
-        } catch (error) {
-          console.error(`[${requestId}] MarkAsRead error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to mark as read' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
+      case 'deleteMessage':
+        result = await gmailService.deleteMessage(request.messageId!);
         break;
-      }
 
-      case 'sendEmail': {
-        const { to, subject, content, replyTo, threadId, attachments } = validatedRequest;
-        
-        try {
-          // Create proper MIME message format
-          const boundary = `----=_Part_${Math.random().toString(36).substring(2, 15)}_${Date.now().toString(36)}`;
-          
-          let emailContent = `MIME-Version: 1.0\r\n`;
-          emailContent += `To: ${to}\r\n`;
-          emailContent += `Subject: ${subject}\r\n`;
-          if (replyTo) {
-            emailContent += `Reply-To: ${replyTo}\r\n`;
-          }
-          
-          if (attachments && attachments.length > 0) {
-            // Multipart message with attachments
-            emailContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `--${boundary}\r\n`;
-            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `${content}\r\n`;
-            
-            // Process and add attachments
-            for (const attachment of attachments) {
-              emailContent += `--${boundary}\r\n`;
-              emailContent += `Content-Type: ${attachment.type || attachment.mimeType || 'application/octet-stream'}; name="${attachment.name || attachment.filename}"\r\n`;
-              emailContent += `Content-Transfer-Encoding: base64\r\n`;
-              emailContent += `Content-Disposition: attachment; filename="${attachment.name || attachment.filename}"\r\n`;
-              emailContent += `\r\n`;
-              
-              // Convert file data to base64
-              let base64Data = '';
-              if (attachment.data) {
-                // If data is already base64 string
-                if (typeof attachment.data === 'string') {
-                  base64Data = attachment.data;
-                } else if (attachment.data instanceof ArrayBuffer) {
-                  // Convert ArrayBuffer to base64
-                  const uint8Array = new Uint8Array(attachment.data);
-                  base64Data = btoa(String.fromCharCode(...uint8Array));
-                } else if (attachment.data.buffer instanceof ArrayBuffer) {
-                  // Handle Uint8Array or similar
-                  base64Data = btoa(String.fromCharCode(...attachment.data));
-                }
-              }
-              
-              emailContent += `${base64Data}\r\n`;
-            }
-            
-            emailContent += `--${boundary}--\r\n`;
-          } else {
-            // Simple text/html message
-            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `${content || 'This email has no content.'}\r\n`;
-          }
-
-          const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-          const sendData: any = {
-            raw: encodedEmail
-          };
-
-          if (threadId) {
-            sendData.threadId = threadId;
-          }
-
-          const sendResponse = await fetch(
-            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${gmailToken}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(sendData)
-            }
-          );
-
-          if (!sendResponse.ok) {
-            const errorText = await sendResponse.text();
-            throw new Error(`Failed to send email: ${sendResponse.status} - ${errorText}`);
-          }
-
-          const sentMessage = await sendResponse.json();
-          response.results = [{ messageId: sentMessage.id, threadId: sentMessage.threadId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] SendEmail error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to send email' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
+      case 'deleteThread':
+        result = await gmailService.deleteThread(request.threadId!);
         break;
-      }
-
-      case 'reply': {
-        const { threadId, to, subject, content, attachments } = validatedRequest;
-        
-        try {
-          // Create proper MIME message format  
-          const boundary = `----=_Part_${Math.random().toString(36).substring(2, 15)}_${Date.now().toString(36)}`;
-          
-          let emailContent = `MIME-Version: 1.0\r\n`;
-          emailContent += `To: ${to}\r\n`;
-          emailContent += `Subject: Re: ${subject}\r\n`;
-          emailContent += `In-Reply-To: <${threadId}@gmail.com>\r\n`;
-          emailContent += `References: <${threadId}@gmail.com>\r\n`;
-          
-          if (attachments && attachments.length > 0) {
-            // Multipart message with attachments
-            emailContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `--${boundary}\r\n`;
-            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `${content || 'This email has no content.'}\r\n`;
-            
-            // Process and add attachments
-            for (const attachment of attachments) {
-              emailContent += `--${boundary}\r\n`;
-              emailContent += `Content-Type: ${attachment.type || attachment.mimeType || 'application/octet-stream'}; name="${attachment.name || attachment.filename}"\r\n`;
-              emailContent += `Content-Transfer-Encoding: base64\r\n`;
-              emailContent += `Content-Disposition: attachment; filename="${attachment.name || attachment.filename}"\r\n`;
-              emailContent += `\r\n`;
-              
-              // Convert file data to base64
-              let base64Data = '';
-              if (attachment.data) {
-                // If data is already base64 string
-                if (typeof attachment.data === 'string') {
-                  base64Data = attachment.data;
-                } else if (attachment.data instanceof ArrayBuffer) {
-                  // Convert ArrayBuffer to base64
-                  const uint8Array = new Uint8Array(attachment.data);
-                  base64Data = btoa(String.fromCharCode(...uint8Array));
-                } else if (attachment.data.buffer instanceof ArrayBuffer) {
-                  // Handle Uint8Array or similar
-                  base64Data = btoa(String.fromCharCode(...attachment.data));
-                }
-              }
-              
-              emailContent += `${base64Data}\r\n`;
-            }
-            
-            emailContent += `--${boundary}--\r\n`;
-          } else {
-            // Simple text/html message
-            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
-            emailContent += `\r\n`;
-            emailContent += `${content || 'This email has no content.'}\r\n`;
-          }
-
-          const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-          const sendResponse = await fetch(
-            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${gmailToken}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                raw: encodedEmail,
-                threadId: threadId
-              })
-            }
-          );
-
-          if (!sendResponse.ok) {
-            const errorText = await sendResponse.text();
-            throw new Error(`Failed to send reply: ${sendResponse.status} - ${errorText}`);
-          }
-
-          const sentMessage = await sendResponse.json();
-          response.results = [{ messageId: sentMessage.id, threadId: sentMessage.threadId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] Reply error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to send reply' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-        break;
-      }
-
-      case 'trashThread': {
-        const { threadId } = validatedRequest;
-        
-        if (!threadId) {
-          return new Response(
-            JSON.stringify({ error: 'threadId is required for trashThread action' }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        try {
-          const trashResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/trash`,
-            {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${gmailToken}` }
-            }
-          );
-
-          if (!trashResponse.ok) {
-            throw new Error(`Failed to trash thread: ${trashResponse.status}`);
-          }
-
-          response.results = [{ success: true, threadId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] TrashThread error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to trash thread' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-        break;
-      }
-
-      case 'trashMessage': {
-        const { messageId } = validatedRequest;
-        
-        if (!messageId) {
-          return new Response(
-            JSON.stringify({ error: 'messageId is required for trashMessage action' }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        try {
-          const trashResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
-            {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${gmailToken}` }
-            }
-          );
-
-          if (!trashResponse.ok) {
-            throw new Error(`Failed to trash message: ${trashResponse.status}`);
-          }
-
-          response.results = [{ success: true, messageId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] TrashMessage error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to trash message' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-        break;
-      }
-
-      case 'deleteThread': {
-        const { threadId } = validatedRequest;
-        
-        if (!threadId) {
-          return new Response(
-            JSON.stringify({ error: 'threadId is required for deleteThread action' }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        try {
-          const deleteResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`,
-            {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${gmailToken}` }
-            }
-          );
-
-          if (!deleteResponse.ok) {
-            throw new Error(`Failed to delete thread: ${deleteResponse.status}`);
-          }
-
-          response.results = [{ success: true, threadId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] DeleteThread error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to delete thread' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-        break;
-      }
-
-      case 'deleteMessage': {
-        const { messageId } = validatedRequest;
-        
-        if (!messageId) {
-          return new Response(
-            JSON.stringify({ error: 'messageId is required for deleteMessage action' }),
-            { status: 400, headers: corsHeaders }
-          );
-        }
-
-        try {
-          const deleteResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
-            {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${gmailToken}` }
-            }
-          );
-
-          if (!deleteResponse.ok) {
-            throw new Error(`Failed to delete message: ${deleteResponse.status}`);
-          }
-
-          response.results = [{ success: true, messageId }];
-
-        } catch (error) {
-          console.error(`[${requestId}] DeleteMessage error:`, error);
-          return new Response(
-            JSON.stringify({ error: error.message || 'Failed to delete message' }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-        break;
-      }
 
       default:
-        return new Response(
-          JSON.stringify({ error: `Unknown action: ${(validatedRequest as any).action}` }),
-          { status: 400, headers: corsHeaders }
-        );
+        throw new GmailApiError('Unsupported action', 400);
     }
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.log(`[${requestId}] Action completed successfully`);
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error(`[${requestId}] Unhandled error:`, error);
+    console.error(`[${requestId}] Handler error:`, error);
+    
+    const status = error instanceof GmailApiError ? error.status : 500;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        requestId 
-      }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ error: message }),
+      { status, headers: corsHeaders }
     );
   }
 };
