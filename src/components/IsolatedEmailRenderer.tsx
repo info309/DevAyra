@@ -194,86 +194,76 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
           ${content || '<p style="color: #9ca3af; font-style: italic;">No content available</p>'}
           
           <script>
-            // Auto-resize iframe based on content height
+            // Auto-resize iframe based on content height with debouncing
+            let isUpdating = false;
+            let lastHeight = 0;
+            let updateTimeout = null;
+            
             function updateHeight() {
-              // Get individual height measurements
-              const bodyScrollHeight = document.body.scrollHeight || 0;
-              const bodyOffsetHeight = document.body.offsetHeight || 0;
-              const docClientHeight = document.documentElement.clientHeight || 0;
-              const docScrollHeight = document.documentElement.scrollHeight || 0;
-              const docOffsetHeight = document.documentElement.offsetHeight || 0;
+              // Prevent recursive calls
+              if (isUpdating) return;
+              isUpdating = true;
               
-              // Debug logging to identify runaway heights
-              console.log('Height measurements:', {
-                bodyScrollHeight,
-                bodyOffsetHeight,
-                docClientHeight,
-                docScrollHeight,
-                docOffsetHeight
-              });
-              
-              // Filter out unreasonably large values (likely browser bugs)
-              const MAX_REASONABLE_HEIGHT = 5000; // 5000px should be more than enough for any email
-              const validHeights = [
-                bodyScrollHeight,
-                bodyOffsetHeight,
-                docScrollHeight,
-                docOffsetHeight
-              ].filter(h => h > 0 && h < MAX_REASONABLE_HEIGHT);
-              
-              // Use viewport height as fallback if no valid heights
-              const viewportHeight = window.innerHeight || 400;
-              
-              let calculatedHeight;
-              if (validHeights.length > 0) {
-                calculatedHeight = Math.max(...validHeights);
-              } else {
-                // Fallback: measure actual content
-                const contentElements = document.querySelectorAll('body > *');
-                let contentHeight = 0;
-                contentElements.forEach(el => {
-                  const rect = el.getBoundingClientRect();
-                  contentHeight = Math.max(contentHeight, rect.bottom);
-                });
-                calculatedHeight = contentHeight > 0 ? contentHeight : 300;
+              // Clear any pending updates
+              if (updateTimeout) {
+                clearTimeout(updateTimeout);
               }
               
-              // Apply reasonable bounds
-              const finalHeight = Math.min(
-                Math.max(calculatedHeight + 40, 300), // Minimum 300px
-                MAX_REASONABLE_HEIGHT // Maximum 5000px
-              );
-              
-              console.log('Final height calculation:', {
-                calculatedHeight,
-                finalHeight,
-                applied: 'bounded'
-              });
-              
-              parent.postMessage({
-                type: 'resize',
-                height: finalHeight
-              }, '*');
+              updateTimeout = setTimeout(() => {
+                try {
+                  // Simple, reliable height calculation
+                  const bodyRect = document.body.getBoundingClientRect();
+                  const contentHeight = Math.max(
+                    bodyRect.height,
+                    document.body.scrollHeight
+                  );
+                  
+                  // Apply reasonable bounds (300px min, 3000px max)
+                  const boundedHeight = Math.min(Math.max(contentHeight + 40, 300), 3000);
+                  
+                  // Only update if height changed significantly (prevent micro-adjustments)
+                  if (Math.abs(boundedHeight - lastHeight) > 10) {
+                    console.log('Height update:', { contentHeight, boundedHeight, lastHeight });
+                    lastHeight = boundedHeight;
+                    
+                    parent.postMessage({
+                      type: 'resize',
+                      height: boundedHeight
+                    }, '*');
+                  }
+                } catch (error) {
+                  console.error('Height calculation error:', error);
+                  // Fallback to reasonable default
+                  parent.postMessage({
+                    type: 'resize',
+                    height: 400
+                  }, '*');
+                } finally {
+                  isUpdating = false;
+                }
+              }, 100); // Debounce updates
             }
             
-            // Initial height calculation
-            setTimeout(updateHeight, 50);
+            // Initial height calculation after content loads
+            document.addEventListener('DOMContentLoaded', function() {
+              setTimeout(updateHeight, 200);
+            });
             
-            // Watch for content changes (images loading, etc.)
-            if (window.ResizeObserver) {
-              const observer = new ResizeObserver(updateHeight);
-              observer.observe(document.body);
-            }
-            
-            // Listen for image load events and errors
-            document.addEventListener('load', updateHeight, true);
-            document.addEventListener('DOMContentLoaded', updateHeight);
+            // Handle image loading (but debounced)
+            let imageLoadTimeout = null;
+            document.addEventListener('load', function(e) {
+              if (e.target && e.target.tagName === 'IMG') {
+                if (imageLoadTimeout) clearTimeout(imageLoadTimeout);
+                imageLoadTimeout = setTimeout(updateHeight, 300);
+              }
+            }, true);
             
             // Handle broken images
             document.addEventListener('error', function(e) {
               if (e.target && e.target.tagName === 'IMG') {
                 e.target.style.display = 'none';
-                updateHeight();
+                if (imageLoadTimeout) clearTimeout(imageLoadTimeout);
+                imageLoadTimeout = setTimeout(updateHeight, 300);
               }
             }, true);
             
@@ -288,9 +278,6 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
                 }
               });
             });
-            
-            // Update on window resize
-            window.addEventListener('resize', updateHeight);
           </script>
         </body>
       </html>
