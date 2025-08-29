@@ -82,22 +82,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       
       if (error) {
         console.error('DocumentViewer: Error creating signed URL for', document.file_path, ':', error);
-        toast({
-          title: "Preview Error",
-          description: `Cannot load preview: ${error.message}`,
-          variant: "destructive",
-        });
+        // Don't show error toast - just log it and continue with fallback
       } else if (data) {
         console.log('DocumentViewer: Signed URL created successfully:', data.signedUrl);
         setPreviewUrl(data.signedUrl);
       }
     } catch (error) {
       console.error('DocumentViewer: Error generating preview:', error);
-      toast({
-        title: "Preview Error", 
-        description: "Failed to generate document preview",
-        variant: "destructive",
-      });
+      // Don't show error toast - just log it and continue with fallback
     } finally {
       setLoading(false);
     }
