@@ -1056,14 +1056,22 @@ const Mailbox: React.FC = () => {
   return (
     <div className="h-screen bg-background overflow-hidden">
       <div className="container mx-auto p-2 lg:px-8 h-full flex flex-col">
-        {/* Desktop Header - Logo and Menu */}
+        {/* Desktop Header - Logo and Back Arrow */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
           <div className="flex items-center gap-4">
+            {/* Back Arrow */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+              className="gap-2 hover:bg-accent"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Dashboard
+            </Button>
+            
             {/* Logo */}
             <h1 className="text-3xl font-bold">/Ayra</h1>
-            
-            {/* Menu Icon */}
-            <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
           </div>
         </div>
 
@@ -1071,10 +1079,18 @@ const Mailbox: React.FC = () => {
         <div className="flex flex-col gap-4 mb-2">
           {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
           <div className="flex justify-between items-center lg:justify-between">
-            {/* Mobile/Tablet Logo and Menu - Left side */}
+            {/* Mobile/Tablet Back Arrow and Logo - Left side */}
             <div className="flex lg:hidden items-center gap-4 pl-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="gap-2 hover:bg-accent"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
               <h1 className="text-2xl font-bold">/Ayra</h1>
-              <Menu className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
             </div>
 
             {/* View Toggle - Desktop */}
