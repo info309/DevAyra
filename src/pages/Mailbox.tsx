@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
+import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 
 interface Email {
   id: string;
@@ -180,15 +181,9 @@ const Mailbox: React.FC = () => {
       if (!viewLoading[currentView] && viewCache[currentView]) {
         try {
           const query = currentView === 'inbox' ? 'in:inbox' : 'in:sent';
-          const { data, error } = await supabase.functions.invoke('gmail-api', {
-            body: { 
-              action: 'getEmails',
-              query,
-              pageToken: undefined
-            }
-          });
+          const data = await gmailApi.getEmails(query);
 
-          if (!error && data?.conversations) {
+          if (data?.conversations) {
             const existingEmails = viewCache[currentView] || [];
             const newConversations = data.conversations;
             
@@ -385,45 +380,18 @@ const Mailbox: React.FC = () => {
       
       console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
       
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'getEmails',
-          query,
-          pageToken: pageToken || undefined
-        }
-      });
+      const data = await gmailApi.getEmails(query, pageToken || undefined);
 
-      console.log('Gmail API response for', view, ':', { data, error });
+      console.log('Gmail API response for', view, ':', { data });
 
-      if (error) {
-        console.error('Error loading emails:', error);
-        if (view === currentView) {
-          // Check if this is a token expiration error that requires reconnection
-          if (error.message && error.message.includes('expired and needs to be reconnected')) {
-            toast({
-              title: "Gmail Connection Expired",
-              description: error.message,
-              variant: "destructive",
-              action: (
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="px-3 py-1 bg-white text-black rounded text-sm"
-                  >
-                    Refresh Page
-                  </button>
-                </div>
-              )
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: `Failed to load emails: ${error.message || 'Please try again. If this is your first connection, it may take a moment to sync your emails.'}`,
-              variant: "destructive"
-            });
-          }
-        }
-        return;
+      // Show partial success warnings if any
+      if (data.partialSuccess && data.errors?.length && view === currentView) {
+        console.warn('Some emails had processing errors:', data.errors);
+        toast({
+          title: "Partial Load",
+          description: `Loaded emails with ${data.errors.length} item(s) skipped due to processing errors.`,
+          variant: "default"
+        });
       }
 
       const { conversations: newConversations, nextPageToken, allEmailsLoaded } = data;
@@ -452,11 +420,38 @@ const Mailbox: React.FC = () => {
     } catch (error) {
       console.error('Error loading emails:', error);
       if (view === currentView) {
-        toast({
-          title: "Error",
-          description: "Failed to load emails. Please try again.",
-          variant: "destructive"
-        });
+        if (error instanceof GmailApiError) {
+          // Check if this is a token expiration error that requires reconnection
+          if (error.message && error.message.includes('expired and needs to be reconnected')) {
+            toast({
+              title: "Gmail Connection Expired",
+              description: error.message,
+              variant: "destructive",
+              action: (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="px-3 py-1 bg-white text-black rounded text-sm"
+                  >
+                    Refresh Page
+                  </button>
+                </div>
+              )
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: `Failed to load emails: ${error.message || 'Please try again. If this is your first connection, it may take a moment to sync your emails.'}`,
+              variant: "destructive"
+            });
+          }
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load emails. Please try again.",
+            variant: "destructive"
+          });
+        }
       }
     } finally {
       setViewLoading(prev => ({ ...prev, [view]: false }));
@@ -491,32 +486,35 @@ const Mailbox: React.FC = () => {
     try {
       setSearchLoading(true);
       
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'searchEmails',
-          query: searchQuery
-        }
-      });
+      const data = await gmailApi.searchEmails(searchQuery);
 
-      if (error) {
-        console.error('Error searching emails:', error);
+      // Show partial success warnings if any
+      if (data.partialSuccess && data.errors?.length) {
+        console.warn('Some search results had processing errors:', data.errors);
         toast({
-          title: "Error",
-          description: "Failed to search emails. Please try again.",
-          variant: "destructive"
+          title: "Partial Search Results",
+          description: `Search completed with ${data.errors.length} item(s) skipped due to processing errors.`,
+          variant: "default"
         });
-        return;
       }
 
-      setCurrentConversations(data.conversations);
+      setCurrentConversations(data.conversations || []);
       
     } catch (error) {
       console.error('Error searching emails:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to search emails. Please try again.",
-        variant: "destructive"
-      });
+      if (error instanceof GmailApiError) {
+        toast({
+          title: "Error",
+          description: `Failed to search emails: ${error.message || 'Please try again.'}`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error", 
+          description: "Failed to search emails. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setSearchLoading(false);
     }
