@@ -196,17 +196,63 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
           <script>
             // Auto-resize iframe based on content height
             function updateHeight() {
-              const height = Math.max(
-                document.body.scrollHeight,
-                document.body.offsetHeight,
-                document.documentElement.clientHeight,
-                document.documentElement.scrollHeight,
-                document.documentElement.offsetHeight
+              // Get individual height measurements
+              const bodyScrollHeight = document.body.scrollHeight || 0;
+              const bodyOffsetHeight = document.body.offsetHeight || 0;
+              const docClientHeight = document.documentElement.clientHeight || 0;
+              const docScrollHeight = document.documentElement.scrollHeight || 0;
+              const docOffsetHeight = document.documentElement.offsetHeight || 0;
+              
+              // Debug logging to identify runaway heights
+              console.log('Height measurements:', {
+                bodyScrollHeight,
+                bodyOffsetHeight,
+                docClientHeight,
+                docScrollHeight,
+                docOffsetHeight
+              });
+              
+              // Filter out unreasonably large values (likely browser bugs)
+              const MAX_REASONABLE_HEIGHT = 5000; // 5000px should be more than enough for any email
+              const validHeights = [
+                bodyScrollHeight,
+                bodyOffsetHeight,
+                docScrollHeight,
+                docOffsetHeight
+              ].filter(h => h > 0 && h < MAX_REASONABLE_HEIGHT);
+              
+              // Use viewport height as fallback if no valid heights
+              const viewportHeight = window.innerHeight || 400;
+              
+              let calculatedHeight;
+              if (validHeights.length > 0) {
+                calculatedHeight = Math.max(...validHeights);
+              } else {
+                // Fallback: measure actual content
+                const contentElements = document.querySelectorAll('body > *');
+                let contentHeight = 0;
+                contentElements.forEach(el => {
+                  const rect = el.getBoundingClientRect();
+                  contentHeight = Math.max(contentHeight, rect.bottom);
+                });
+                calculatedHeight = contentHeight > 0 ? contentHeight : 300;
+              }
+              
+              // Apply reasonable bounds
+              const finalHeight = Math.min(
+                Math.max(calculatedHeight + 40, 300), // Minimum 300px
+                MAX_REASONABLE_HEIGHT // Maximum 5000px
               );
+              
+              console.log('Final height calculation:', {
+                calculatedHeight,
+                finalHeight,
+                applied: 'bounded'
+              });
               
               parent.postMessage({
                 type: 'resize',
-                height: Math.max(height + 40, 300)
+                height: finalHeight
               }, '*');
             }
             
