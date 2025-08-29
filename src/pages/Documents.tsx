@@ -502,7 +502,7 @@ const Documents = () => {
                     New Folder
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="h-[95vh]">
+                <DrawerContent>
                   <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
                       <DrawerTitle>Create New Folder</DrawerTitle>
