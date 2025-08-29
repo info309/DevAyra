@@ -41,6 +41,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
         
         if (error) {
           console.error('Error creating signed URL:', error);
+          setPreviewUrl(null);
         } else if (data) {
           console.log('Signed URL created:', data.signedUrl);
           setPreviewUrl(data.signedUrl);
@@ -53,13 +54,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
           };
           img.onerror = (e) => {
             console.error('Error loading image:', e);
+            setPreviewUrl(null);
           };
           img.src = data.signedUrl;
         }
       }
       
       // For PDFs, create a signed URL for preview
-      if (document.mime_type?.includes('pdf')) {
+      else if (document.mime_type?.includes('pdf')) {
         console.log('Creating signed URL for PDF:', document.file_path);
         const { data, error } = await supabase.storage
           .from('documents')
@@ -67,14 +69,21 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
         
         if (error) {
           console.error('Error creating PDF signed URL:', error);
+          setPreviewUrl(null);
         } else if (data) {
           console.log('PDF signed URL created:', data.signedUrl);
           setPreviewUrl(data.signedUrl);
         }
       }
       
+      // For other documents, don't generate preview URL
+      else {
+        setPreviewUrl(null);
+      }
+      
     } catch (error) {
       console.error('Error generating preview:', error);
+      setPreviewUrl(null);
     } finally {
       setLoading(false);
     }
@@ -186,65 +195,69 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // If it's an image and we have a preview, show the actual image
   if (document.mime_type?.startsWith('image/') && previewUrl) {
     return (
-      <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
+      <div className={`${className} bg-muted/20 rounded-lg overflow-hidden shadow-md border border-border relative`}>
         <img
           src={previewUrl}
           alt={document.name}
-          className="w-full h-full object-contain"
-          style={{ minHeight: '120px' }}
+          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
           onError={(e) => {
             console.error('Image failed to load:', previewUrl);
             setPreviewUrl(null); // Fallback to document preview
           }}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
     );
   }
 
-  // For PDFs, show a document-like preview
+  // For PDFs, show a document-like preview with better styling
   if (document.mime_type?.includes('pdf')) {
     return (
-      <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
-        <div className="w-full h-full bg-card relative">
-          {/* PDF icon and preview */}
-          <div className="p-4 h-full flex flex-col items-center justify-center">
-            <div className="bg-red-500 text-white px-3 py-2 rounded-lg mb-3 font-medium text-sm">
-              PDF
-            </div>
-            <div className="space-y-2 w-full max-w-[80%]">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`bg-muted rounded h-2 ${i % 3 === 0 ? 'w-3/4' : i % 3 === 1 ? 'w-full' : 'w-5/6'}`} 
-                />
-              ))}
-            </div>
+      <div className={`${className} bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 rounded-lg overflow-hidden shadow-md border border-border relative group`}>
+        <div className="w-full h-full relative p-4 flex flex-col items-center justify-center">
+          {/* PDF Icon */}
+          <div className="bg-red-500 text-white px-3 py-2 rounded-lg mb-3 font-bold text-xs shadow-lg group-hover:scale-110 transition-transform duration-200">
+            PDF
           </div>
+          {/* Document lines */}
+          <div className="space-y-2 w-full max-w-[70%]">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`bg-red-200/60 dark:bg-red-800/40 rounded h-1.5 transition-all duration-200 ${
+                  i % 3 === 0 ? 'w-3/4' : i % 3 === 1 ? 'w-full' : 'w-5/6'
+                }`} 
+              />
+            ))}
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         </div>
       </div>
     );
   }
 
-  // For all other documents, show document-like preview
+  // For all other documents, show enhanced document-like preview
   return (
-    <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
-      <div className="w-full h-full bg-card relative p-4">
+    <div className={`${className} bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg overflow-hidden shadow-md border border-border relative group`}>
+      <div className="w-full h-full relative p-4 flex flex-col items-center justify-center">
         {/* Document lines simulation */}
-        <div className="space-y-2 mb-4">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="space-y-2 mb-4 w-full max-w-[70%]">
+          {Array.from({ length: 4 }).map((_, i) => (
             <div 
               key={i} 
-              className={`bg-muted rounded h-2 ${i % 3 === 0 ? 'w-2/3' : i % 3 === 1 ? 'w-full' : 'w-4/5'}`} 
+              className={`bg-blue-200/60 dark:bg-blue-800/40 rounded h-1.5 transition-all duration-200 ${
+                i % 3 === 0 ? 'w-2/3' : i % 3 === 1 ? 'w-full' : 'w-4/5'
+              }`} 
             />
           ))}
         </div>
         
-        {/* File extension in center */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg font-medium text-sm shadow-lg">
-            {getFileExtension()}
-          </div>
+        {/* File extension badge */}
+        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg font-bold text-xs shadow-lg group-hover:scale-110 transition-transform duration-200">
+          {getFileExtension()}
         </div>
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
     </div>
   );

@@ -610,7 +610,7 @@ const Documents = () => {
                   onTouchEnd={handleTouchEnd}
                 >
                   {/* Preview/Icon Area */}
-                  <div className="w-full aspect-[3/4] mb-2 rounded-lg overflow-hidden">
+                  <div className="w-full aspect-[4/5] mb-2 rounded-lg overflow-hidden bg-background border border-border shadow-sm">
                     {doc.is_folder ? (
                       <div className="w-full h-full flex items-center justify-center relative">
                         {/* Modern 3D Blue Folder Icon */}
