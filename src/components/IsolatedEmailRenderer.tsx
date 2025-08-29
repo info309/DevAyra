@@ -76,31 +76,73 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             img {
               max-width: 100% !important;
               height: auto !important;
-              border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               display: block;
-              margin: 10px auto;
+              margin: 8px auto;
               -ms-interpolation-mode: bicubic;
               object-fit: contain;
-              max-height: 500px;
+              border-radius: 4px;
             }
             
-            /* Handle broken images */
-            img[src=""], img:not([src]), img[src*="data:"] {
+            /* Company logos and small branding images */
+            img[width="1"], img[height="1"], img[style*="width:1px"], img[style*="height:1px"],
+            img[src*="tracking"], img[src*="pixel"], img[src*="beacon"] {
               display: none !important;
             }
             
-            /* Fallback for missing images */
-            img[alt]:after {
-              content: "📷 " attr(alt);
-              display: block;
+            /* Logo optimization - detect common logo patterns */
+            img[alt*="logo" i], img[src*="logo" i], img[alt*="brand" i], 
+            img[class*="logo"], img[id*="logo"], img[style*="logo"] {
+              max-width: 200px !important;
+              max-height: 80px !important;
+              margin: 12px auto !important;
+              border-radius: 0 !important;
+              box-shadow: none !important;
+            }
+            
+            /* Content images */
+            img:not([alt*="logo" i]):not([src*="logo" i]):not([alt*="brand" i]) {
+              max-height: 400px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            /* Handle broken/missing images */
+            img[src=""], img:not([src]) {
+              display: none !important;
+            }
+            
+            /* CID (Content-ID) images - try to decode inline attachments */
+            img[src^="cid:"] {
+              background: #f8f9fa;
+              border: 1px solid #e9ecef;
               padding: 20px;
-              background: #f3f4f6;
-              border: 2px dashed #d1d5db;
               border-radius: 8px;
+              position: relative;
+            }
+            
+            img[src^="cid:"]:before {
+              content: "📎 Attachment: " attr(alt);
+              display: block;
+              color: #6c757d;
+              font-size: 12px;
               text-align: center;
-              color: #6b7280;
-              font-style: italic;
+            }
+            
+            /* Mobile optimizations */
+            @media screen and (max-width: 480px) {
+              img {
+                max-height: 250px !important;
+                margin: 6px auto !important;
+              }
+              
+              img[alt*="logo" i], img[src*="logo" i], img[alt*="brand" i] {
+                max-width: 150px !important;
+                max-height: 60px !important;
+                margin: 8px auto !important;
+              }
+              
+              body {
+                padding: 12px !important;
+              }
             }
             
             /* Links */
