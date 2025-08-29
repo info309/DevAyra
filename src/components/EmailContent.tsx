@@ -186,38 +186,37 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {onSaveAttachment && (
+                       <div className="flex gap-1 flex-shrink-0">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onSaveAttachment(attachment, email)}
+                            onClick={() => handleAttachmentPreview(attachment, email)}
+                            disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
                             title="Save to Documents"
                           >
                             Save
                           </Button>
-                        )}
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleAttachmentPreview(attachment, email)}
-                           disabled={!attachment.attachmentId}
-                           className="flex-shrink-0"
-                           title="Preview document"
-                         >
-                           <Eye className="w-4 h-4" />
-                         </Button>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleAttachmentDownload(attachment, email)}
-                           disabled={!attachment.attachmentId}
-                           className="flex-shrink-0"
-                           title="Download attachment"
-                         >
-                           <Download className="w-4 h-4" />
-                         </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentPreview(attachment, email)}
+                            disabled={!attachment.attachmentId}
+                            className="flex-shrink-0"
+                            title="Preview document"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentDownload(attachment, email)}
+                            disabled={!attachment.attachmentId}
+                            className="flex-shrink-0"
+                            title="Download attachment"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                       </div>
                     </div>
                   ))}
