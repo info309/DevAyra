@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] 📝 Processing save attachment request`);
     
-    // Authenticate user
+    // Authenticate user and create service role client for database operations
     console.log(`[${requestId}] 🔐 Authenticating user...`);
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -61,6 +61,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     console.log(`[${requestId}] ✅ User authenticated: ${user.email}`);
+
+    // Create service role client for database operations to bypass RLS
+    const supabaseServiceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Parse request
     console.log(`[${requestId}] 📋 Parsing request body...`);
@@ -125,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Upload to Supabase Storage
     console.log(`[${requestId}] ☁️ Uploading to storage bucket 'documents', path: ${filePath}, size: ${bytes.length} bytes...`);
-    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+    const { data: uploadData, error: uploadError } = await supabaseServiceClient.storage
       .from('documents')
       .upload(filePath, bytes, {
         contentType: request.mimeType,
@@ -141,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log(`[${requestId}] ✅ Upload successful:`, uploadData);
 
-    // Create document record
+    // Create document record using service role client to bypass RLS
     console.log(`[${requestId}] 📝 Creating document record for user ${user.id}...`);
     const documentRecord = {
       user_id: user.id,
@@ -160,7 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log(`[${requestId}] 📋 Document record to insert:`, documentRecord);
     
-    const { data: documentData, error: documentError } = await supabaseClient
+    const { data: documentData, error: documentError } = await supabaseServiceClient
       .from('user_documents')
       .insert(documentRecord)
       .select()
@@ -172,7 +178,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error(`[${requestId}] ❌ Document creation failed:`, documentError);
       
       // Clean up uploaded file if document creation failed
-      await supabaseClient.storage
+      await supabaseServiceClient.storage
         .from('documents')
         .remove([filePath]);
         
