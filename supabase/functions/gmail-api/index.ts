@@ -532,10 +532,11 @@ const handler = async (req: Request): Promise<Response> => {
                       let attachmentMetadata = [];
                       
                       if (attachments.length > 0) {
-                        // Only process attachments for emails from the last 7 days or if there are fewer than 3 attachments
+                        // Skip attachment processing entirely for sent emails to avoid resource issues
+                        const isSentQuery = query.includes('in:sent');
                         const emailDate = new Date(date);
                         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                        const shouldProcessAttachments = emailDate > weekAgo || attachments.length <= 3;
+                        const shouldProcessAttachments = !isSentQuery && (emailDate > weekAgo || attachments.length <= 3);
                         
                         if (shouldProcessAttachments) {
                           console.log(`[${requestId}] Processing ${attachments.length} attachments for recent email ${message.id}`);
@@ -588,8 +589,8 @@ const handler = async (req: Request): Promise<Response> => {
                             })
                           );
                         } else {
-                          console.log(`[${requestId}] Skipping attachment processing for older email ${message.id} with ${attachments.length} attachments`);
-                          // Just return metadata without download URLs for older emails
+                          console.log(`[${requestId}] Skipping attachment processing for ${isSentQuery ? 'sent' : 'older'} email ${message.id} with ${attachments.length} attachments`);
+                          // Just return metadata without download URLs for older/sent emails
                           attachmentMetadata = attachments.map(att => ({
                             filename: att.filename,
                             mimeType: att.mimeType,
