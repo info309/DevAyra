@@ -611,94 +611,129 @@ const Mailbox: React.FC = () => {
       setSelectedEmail(null);
     }
 
-    try {
-      const { error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'deleteThread',
-          threadId: conversation.id
-        }
-      });
+    // Show immediate success feedback
+    toast({
+      title: "Success",
+      description: "Email moved to trash."
+    });
 
+    // Make Gmail API call in the background - don't await it
+    supabase.functions.invoke('gmail-api', {
+      body: { 
+        action: 'deleteThread',
+        threadId: conversation.id
+      }
+    }).then(({ error }) => {
       if (error) {
-        console.error('Error deleting conversation:', error);
-        // Restore the conversation on error
+        console.error('Background delete failed:', error);
+        // Silently restore the conversation on error
         setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
           new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
         ));
         toast({
           title: "Error",
-          description: "Failed to delete conversation. Please try again.",
+          description: "Failed to delete email from Gmail. Email restored.",
           variant: "destructive"
         });
-        return;
       }
-      
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
-      // Restore the conversation on error
+    }).catch(error => {
+      console.error('Background delete error:', error);
+      // Silently restore the conversation on error
       setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
         new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
       ));
       toast({
-        title: "Error",
-        description: "Failed to delete conversation. Please try again.",
+        title: "Error", 
+        description: "Failed to delete email from Gmail. Email restored.",
         variant: "destructive"
       });
-    }
+    });
   };
 
   const deleteEmail = async (emailId: string, conversationId: string) => {
     if (!user) return;
 
-    try {
-      const { error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'deleteMessage',
-          messageId: emailId
-        }
-      });
+    // Store the original email and conversation for potential restoration
+    const originalConversation = currentConversations.find(conv => conv.id === conversationId);
+    const originalEmail = originalConversation?.emails.find(email => email.id === emailId);
+    
+    if (!originalConversation || !originalEmail) return;
 
+    // Optimistic update - remove email from UI immediately
+    setCurrentConversations(prev => 
+      prev.map(conv => 
+        conv.id === conversationId 
+          ? { 
+              ...conv,
+              emails: conv.emails.filter(email => email.id !== emailId),
+              messageCount: conv.messageCount - 1
+            }
+          : conv
+      ).filter(conv => conv.emails.length > 0) // Remove conversations with no emails
+    );
+
+    // Clear selection if deleted email was selected
+    if (selectedEmail?.id === emailId) {
+      setSelectedEmail(null);
+    }
+
+    // Show immediate success feedback
+    toast({
+      title: "Success",
+      description: "Email moved to trash."
+    });
+
+    // Make Gmail API call in the background - don't await it
+    supabase.functions.invoke('gmail-api', {
+      body: { 
+        action: 'deleteMessage',
+        messageId: emailId
+      }
+    }).then(({ error }) => {
       if (error) {
-        console.error('Error deleting email:', error);
+        console.error('Background email delete failed:', error);
+        // Restore the email on error
+        setCurrentConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationId 
+              ? { 
+                  ...conv,
+                  emails: [...conv.emails, originalEmail].sort((a, b) => 
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                  ),
+                  messageCount: conv.messageCount + 1
+                }
+              : conv
+          )
+        );
         toast({
           title: "Error",
-          description: "Failed to delete email. Please try again.",
+          description: "Failed to delete email from Gmail. Email restored.",
           variant: "destructive"
         });
-        return;
       }
-
-      // Update local state
+    }).catch(error => {
+      console.error('Background email delete error:', error);
+      // Restore the email on error
       setCurrentConversations(prev => 
         prev.map(conv => 
           conv.id === conversationId 
             ? { 
                 ...conv,
-                emails: conv.emails.filter(email => email.id !== emailId),
-                messageCount: conv.messageCount - 1
+                emails: [...conv.emails, originalEmail].sort((a, b) => 
+                  new Date(b.date).getTime() - new Date(a.date).getTime()
+                ),
+                messageCount: conv.messageCount + 1
               }
             : conv
-        ).filter(conv => conv.emails.length > 0) // Remove conversations with no emails
+        )
       );
-
-      // Clear selection if deleted email was selected
-      if (selectedEmail?.id === emailId) {
-        setSelectedEmail(null);
-      }
-
-      toast({
-        title: "Success",
-        description: "Email deleted successfully."
-      });
-      
-    } catch (error) {
-      console.error('Error deleting email:', error);
       toast({
         title: "Error",
-        description: "Failed to delete email. Please try again.",
+        description: "Failed to delete email from Gmail. Email restored.",
         variant: "destructive"
       });
-    }
+    });
   };
 
   const sendEmail = async () => {
