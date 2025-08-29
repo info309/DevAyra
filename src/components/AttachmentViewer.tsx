@@ -362,17 +362,6 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                 <span className="truncate text-xs">From: {email.from.split('<')[0].trim()}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <Button onClick={handleSave} size="sm" className="gap-1 px-2 sm:px-3">
-                <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{isCalendarInvite(attachment) ? "Save Invite" : "Save"}</span>
-              </Button>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="sm" className="px-2">
-                  <X className="w-4 h-4" />
-                </Button>
-              </DrawerClose>
-            </div>
           </div>
         </DrawerHeader>
         
