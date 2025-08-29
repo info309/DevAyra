@@ -184,30 +184,41 @@ function fixCommonEncodingIssues(text: string): string {
 }
 
 async function processEmailContent(payload: any): Promise<{ content: string; attachments: ProcessedAttachment[] }> {
+  console.log('Processing email payload structure:', {
+    hasParts: !!payload.parts,
+    hasBody: !!payload.body,
+    mimeType: payload.mimeType,
+    partsCount: payload.parts?.length || 0
+  });
+  
   const attachments: ProcessedAttachment[] = [];
   let textContent = '';
   let htmlContent = '';
 
   function extractParts(part: any) {
+    console.log(`Processing part - mimeType: ${part.mimeType}, filename: ${part.filename}, hasBody: ${!!part.body}, hasAttachmentId: ${!!part.body?.attachmentId}`);
+    
     if (part.parts) {
       part.parts.forEach(extractParts);
-    } else if (part.body && part.body.data) {
+    } else if (part.body) {
       const mimeType = part.mimeType;
       const filename = part.filename;
       
-      if (filename && part.body.attachmentId) {
+      // Improved attachment detection - include more cases
+      if (filename || (part.body.attachmentId && part.body.size > 0)) {
+        console.log(`Found attachment: ${filename || 'unnamed'}, mimeType: ${mimeType}, size: ${part.body.size}, attachmentId: ${part.body.attachmentId}`);
         attachments.push({
-          filename,
-          mimeType,
+          filename: filename || `attachment_${attachments.length + 1}`,
+          mimeType: mimeType || 'application/octet-stream',
           size: part.body.size || 0,
           attachmentId: part.body.attachmentId,
-          isInline: mimeType.startsWith('image/') && part.headers?.some((h: any) => 
+          isInline: mimeType?.startsWith('image/') && part.headers?.some((h: any) => 
             h.name.toLowerCase() === 'content-disposition' && 
             h.value.toLowerCase().includes('inline')
           ),
           cid: part.headers?.find((h: any) => h.name.toLowerCase() === 'content-id')?.value?.replace(/[<>]/g, '')
         });
-      } else {
+      } else if (part.body.data) {
         const encoding = part.body.data ? 'base64' : undefined;
         const content = detectAndDecodeContent(part.body.data || '', encoding);
         const fixedContent = fixCommonEncodingIssues(content);
@@ -570,20 +581,18 @@ const handler = async (req: Request): Promise<Response> => {
 
                       console.log(`[${requestId}] Final attachment metadata:`, attachmentMetadata);
 
-                      return {
-                        id: message.id,
-                        threadId: thread.id,
-                        snippet: message.snippet || '',
-                        subject: cleanSubjectPrefixes(subject),
-                        from,
-                        to,
-                        date,
-                        content,
-                        unread: message.labelIds?.includes('UNREAD') || false,
-                        attachments: attachmentMetadata
-                      };
-                      
-                      console.log(`[${requestId}] Email ${message.id} has ${attachmentMetadata.length} attachments`);
+                       return {
+                         id: message.id,
+                         threadId: thread.id,
+                         snippet: message.snippet || '',
+                         subject: cleanSubjectPrefixes(subject),
+                         from,
+                         to,
+                         date,
+                         content,
+                         unread: message.labelIds?.includes('UNREAD') || false,
+                         attachments: attachmentMetadata
+                       };
                     } catch (error) {
                       console.error(`[${requestId}] Error processing message ${message.id}:`, error);
                       response.errors!.push({
