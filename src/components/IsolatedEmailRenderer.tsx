@@ -82,25 +82,63 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               margin: 10px auto;
               -ms-interpolation-mode: bicubic;
               object-fit: contain;
-              max-height: 500px;
+              max-height: 400px;
+              min-height: 40px;
+              background: #f8f9fa;
+              border: 1px solid #e9ecef;
             }
             
-            /* Handle broken images */
-            img[src=""], img:not([src]), img[src*="data:"] {
+            /* Handle specific image types */
+            img[width] {
+              width: auto !important;
+              max-width: min(100%, attr(width, px)) !important;
+            }
+            
+            img[height] {
+              height: auto !important;
+              max-height: min(400px, attr(height, px)) !important;
+            }
+            
+            /* Handle broken/missing images */
+            img:not([src]), 
+            img[src=""], 
+            img[src*="cid:"],
+            img[src*="data:image/"][src*="base64,"]:not([src*="data:image/"]) {
               display: none !important;
             }
             
-            /* Fallback for missing images */
-            img[alt]:after {
-              content: "📷 " attr(alt);
-              display: block;
-              padding: 20px;
-              background: #f3f4f6;
-              border: 2px dashed #d1d5db;
-              border-radius: 8px;
-              text-align: center;
-              color: #6b7280;
-              font-style: italic;
+            /* Style for images that fail to load */
+            img[alt] {
+              position: relative;
+            }
+            
+            /* Loading placeholder */
+            img:not([src*="data:"]):not([complete]) {
+              background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+              background-size: 200% 100%;
+              animation: loading 1.5s infinite;
+            }
+            
+            @keyframes loading {
+              0% { background-position: 200% 0; }
+              100% { background-position: -200% 0; }
+            }
+            
+            /* Company logos and branding */
+            img[alt*="logo" i], 
+            img[alt*="brand" i],
+            img[src*="logo" i] {
+              max-height: 80px !important;
+              width: auto !important;
+              object-fit: contain;
+            }
+            
+            /* Email signatures */
+            img[width="1"], 
+            img[height="1"],
+            img[style*="width:1px"],
+            img[style*="height:1px"] {
+              display: none !important;
             }
             
             /* Links */
@@ -120,7 +158,7 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               overflow-wrap: break-word !important;
             }
             
-            /* Responsive handling */
+            /* Responsive handling for mobile */
             @media screen and (max-width: 600px) {
               table {
                 width: 100% !important;
@@ -130,6 +168,18 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               td {
                 width: 100% !important;
                 display: block !important;
+                padding: 8px !important;
+              }
+              
+              img {
+                max-width: 100% !important;
+                max-height: 300px !important;
+                margin: 5px auto !important;
+              }
+              
+              /* Hide tracking pixels on mobile */
+              img[width="1"], img[height="1"] {
+                display: none !important;
               }
             }
             
@@ -174,15 +224,72 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             document.addEventListener('load', updateHeight, true);
             document.addEventListener('DOMContentLoaded', updateHeight);
             
-            // Handle broken images
+            // Handle broken images and improve loading
             document.addEventListener('error', function(e) {
               if (e.target && e.target.tagName === 'IMG') {
-                e.target.style.display = 'none';
+                const img = e.target;
+                // Hide broken images
+                img.style.display = 'none';
+                
+                // Try to show alt text if available
+                if (img.alt && img.alt.trim()) {
+                  const fallback = document.createElement('div');
+                  fallback.style.cssText = 
+                    'padding: 10px;' +
+                    'background: #f8f9fa;' +
+                    'border: 1px dashed #dee2e6;' +
+                    'border-radius: 8px;' +
+                    'text-align: center;' +
+                    'color: #6c757d;' +
+                    'font-style: italic;' +
+                    'margin: 10px auto;' +
+                    'max-width: 300px;';
+                  fallback.textContent = '📷 ' + img.alt;
+                  img.parentNode?.insertBefore(fallback, img);
+                }
                 updateHeight();
               }
             }, true);
             
-            // Update on window resize
+            // Handle successful image loads
+            document.addEventListener('load', function(e) {
+              if (e.target && e.target.tagName === 'IMG') {
+                updateHeight();
+              }
+            }, true);
+            
+            // Clean up common email tracking elements
+            setTimeout(() => {
+              // Remove tracking pixels and invisible images
+              const trackingImages = document.querySelectorAll('img[width="1"], img[height="1"]');
+              trackingImages.forEach(img => img.remove());
+              
+              // Fix images with missing or invalid src
+              const brokenImages = document.querySelectorAll('img:not([src]), img[src=""], img[src*="cid:"]');
+              brokenImages.forEach(img => {
+                if (img.alt && img.alt.trim()) {
+                  const placeholder = document.createElement('div');
+                  placeholder.style.cssText = 
+                    'padding: 15px;' +
+                    'background: #f8f9fa;' +
+                    'border: 2px dashed #dee2e6;' +
+                    'border-radius: 8px;' +
+                    'text-align: center;' +
+                    'color: #6c757d;' +
+                    'font-style: italic;' +
+                    'margin: 10px auto;' +
+                    'max-width: 200px;';
+                  placeholder.textContent = '📷 ' + img.alt;
+                  img.parentNode?.replaceChild(placeholder, img);
+                } else {
+                  img.remove();
+                }
+              });
+              
+              updateHeight();
+            }, 100);
+            
+            document.addEventListener('DOMContentLoaded', updateHeight);
             window.addEventListener('resize', updateHeight);
           </script>
         </body>
