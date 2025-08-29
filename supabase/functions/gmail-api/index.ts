@@ -27,6 +27,9 @@ interface GmailRequest {
   }[];
 }
 
+// Maximum content length for emails to prevent timeouts (500KB)
+const MAX_EMAIL_CONTENT_LENGTH = 500000;
+
 interface ProcessedAttachment {
   filename: string;
   mimeType: string;
@@ -358,6 +361,12 @@ const handler = async (req: Request): Promise<Response> => {
       // Clean and enhance HTML
       if (finalContent) {
         finalContent = cleanAndEnhanceHtml(finalContent);
+      }
+
+      // Truncate content if too large to prevent timeouts
+      if (finalContent && finalContent.length > MAX_EMAIL_CONTENT_LENGTH) {
+        console.log(`Truncating email content from ${finalContent.length} to ${MAX_EMAIL_CONTENT_LENGTH} chars`);
+        finalContent = finalContent.substring(0, MAX_EMAIL_CONTENT_LENGTH) + '\n\n<p style="color: #666; font-style: italic;">Email content truncated due to size...</p>';
       }
 
       return { content: finalContent, attachments };
