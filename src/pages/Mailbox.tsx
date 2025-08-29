@@ -169,13 +169,47 @@ const Mailbox: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const refreshInterval = setInterval(() => {
-      // Silently refresh current view in background
-      loadEmailsForView(currentView, null, true);
-    }, 30000); // Refresh every 30 seconds
+    const refreshInterval = setInterval(async () => {
+      // Silently check for new emails without disrupting the UI
+      if (!viewLoading[currentView] && viewCache[currentView]) {
+        try {
+          const query = currentView === 'inbox' ? 'in:inbox' : 'in:sent';
+          const { data, error } = await supabase.functions.invoke('gmail-api', {
+            body: { 
+              action: 'getEmails',
+              query,
+              pageToken: undefined
+            }
+          });
+
+          if (!error && data?.conversations) {
+            const existingEmails = viewCache[currentView] || [];
+            const newConversations = data.conversations;
+            
+            // Only update if we have new conversations (different count or different IDs)
+            const existingIds = new Set(existingEmails.map(c => c.id));
+            const hasNewEmails = newConversations.some(c => !existingIds.has(c.id)) || 
+                               newConversations.length !== existingEmails.length;
+            
+            if (hasNewEmails) {
+              // Merge new emails with existing ones, preserving order
+              const mergedConversations = [...newConversations];
+              
+              setViewCache(prev => ({ ...prev, [currentView]: mergedConversations }));
+              if (currentView === currentView) {
+                setCurrentConversations(mergedConversations);
+              }
+            }
+          }
+        } catch (error) {
+          // Silently fail - don't disrupt user experience
+          console.debug('Background refresh failed:', error);
+        }
+      }
+    }, 30000); // Check every 30 seconds
 
     return () => clearInterval(refreshInterval);
-  }, [user, currentView]);
+  }, [user, currentView, viewLoading, viewCache]);
 
   // Handle view switching with instant cache access
   useEffect(() => {
@@ -505,14 +539,19 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      // Update local state
-      setCurrentConversations(prev => 
-        prev.map(conv => 
-          conv.id === conversation.id 
-            ? { ...conv, unreadCount: 0, emails: conv.emails.map(email => ({ ...email, unread: false })) }
-            : conv
-        )
-      );
+      // Update local state in both current conversations and cache
+      const updateConversation = (conv: Conversation) => 
+        conv.id === conversation.id 
+          ? { ...conv, unreadCount: 0, emails: conv.emails.map(email => ({ ...email, unread: false })) }
+          : conv;
+
+      setCurrentConversations(prev => prev.map(updateConversation));
+      
+      // Also update the cache to prevent the change from being lost on refresh
+      setViewCache(prev => ({
+        ...prev,
+        [currentView]: prev[currentView]?.map(updateConversation) || []
+      }));
       
     } catch (error) {
       console.error('Error marking conversation as read:', error);
@@ -535,20 +574,25 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      // Update local state
-      setCurrentConversations(prev => 
-        prev.map(conv => 
-          conv.id === conversationId 
-            ? { 
-                ...conv, 
-                unreadCount: Math.max(0, conv.unreadCount - 1),
-                emails: conv.emails.map(email => 
-                  email.id === emailId ? { ...email, unread: false } : email
-                )
-              }
-            : conv
-        )
-      );
+      // Update local state in both current conversations and cache
+      const updateEmail = (conv: Conversation) => 
+        conv.id === conversationId 
+          ? { 
+              ...conv, 
+              unreadCount: Math.max(0, conv.unreadCount - 1),
+              emails: conv.emails.map(email => 
+                email.id === emailId ? { ...email, unread: false } : email
+              )
+            }
+          : conv;
+
+      setCurrentConversations(prev => prev.map(updateEmail));
+      
+      // Also update the cache to prevent the change from being lost on refresh
+      setViewCache(prev => ({
+        ...prev,
+        [currentView]: prev[currentView]?.map(updateEmail) || []
+      }));
       
     } catch (error) {
       console.error('Error marking email as read:', error);
