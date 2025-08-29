@@ -513,14 +513,15 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] Gmail API request received`);
     
-    // Authenticate user
+    // Authenticate user using service role for robust token validation
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
+      console.error(`[${requestId}] Missing Authorization header`);
       throw new GmailApiError('Authorization header required', 401);
     }
 
@@ -528,9 +529,11 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
-      console.error(`[${requestId}] Auth error:`, userError);
-      throw new GmailApiError('Invalid authentication token', 401);
+      console.error(`[${requestId}] Auth validation failed:`, userError?.message || 'No user found');
+      throw new GmailApiError('Invalid or expired authentication token', 401);
     }
+
+    console.log(`[${requestId}] User authenticated: ${user.email}`);
 
     // Parse request
     const requestBody = await req.json();

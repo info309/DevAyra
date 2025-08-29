@@ -83,7 +83,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error (continuing anyway):', error);
+      }
+    } catch (error) {
+      console.error('Logout failed (continuing anyway):', error);
+    } finally {
+      // Always clear local state and storage regardless of API response
+      localStorage.clear();
+      setSession(null);
+      setUser(null);
+      window.location.href = '/auth';
+    }
   };
 
   const value = {

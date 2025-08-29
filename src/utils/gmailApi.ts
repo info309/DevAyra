@@ -87,10 +87,34 @@ export const gmailApi = {
           continue;
         }
 
-        // Handle specific error types
+        // Handle 401 errors with session refresh and retry
+        if (error.status === 401 && attempt < retries) {
+          console.log(`Authentication failed on attempt ${attempt + 1}, refreshing session and retrying...`);
+          
+          try {
+            const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError || !refreshedSession.session) {
+              console.error('Session refresh failed:', refreshError);
+              // Clear local storage and redirect to auth
+              localStorage.clear();
+              window.location.href = '/auth';
+              throw new GmailApiError('Session expired. Please log in again.', 401);
+            }
+            
+            console.log('Session refreshed successfully, retrying...');
+            continue; // Retry with refreshed session
+          } catch (refreshErr) {
+            console.error('Session refresh error:', refreshErr);
+            localStorage.clear();
+            window.location.href = '/auth';
+            throw new GmailApiError('Session expired. Please log in again.', 401);
+          }
+        }
+        
+        // If we've exhausted retries or it's not a 401, handle as before
         if (error.status === 401) {
-          console.error('Authentication failed - redirecting to login');
-          // Clear local storage and redirect to auth
+          console.error('Authentication failed after retries - redirecting to login');
           localStorage.clear();
           window.location.href = '/auth';
           throw new GmailApiError('Session expired. Please log in again.', 401);
