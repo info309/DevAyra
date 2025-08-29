@@ -262,6 +262,7 @@ export type Database = {
           source_email_subject: string | null
           source_type: string | null
           tags: string[] | null
+          thumbnail_path: string | null
           updated_at: string
           user_id: string
         }
@@ -281,6 +282,7 @@ export type Database = {
           source_email_subject?: string | null
           source_type?: string | null
           tags?: string[] | null
+          thumbnail_path?: string | null
           updated_at?: string
           user_id: string
         }
@@ -300,6 +302,7 @@ export type Database = {
           source_email_subject?: string | null
           source_type?: string | null
           tags?: string[] | null
+          thumbnail_path?: string | null
           updated_at?: string
           user_id?: string
         }

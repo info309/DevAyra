@@ -63,6 +63,9 @@ verify_jwt = false
 [functions.gmail-api]
 verify_jwt = false
 
+[functions.generate-thumbnail]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 ip_version = "ipv4"

@@ -8,6 +8,7 @@ interface DocumentPreviewProps {
     file_path: string;
     mime_type: string | null;
     file_size: number | null;
+    thumbnail_path?: string | null;
   };
   className?: string;
 }
@@ -22,22 +23,46 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   }, [document]);
 
   const generatePreview = async () => {
-    if (!document.mime_type || !document.file_path) {
-      console.log('No mime type or file path for document:', document.name);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
-      console.log('Generating preview for:', document.name, 'Type:', document.mime_type);
+      console.log('Generating preview for:', document.name);
+      
+      // First, try to load thumbnail if available
+      if (document.thumbnail_path) {
+        console.log('Loading thumbnail:', document.thumbnail_path);
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(document.thumbnail_path, 3600, {
+            download: false
+          });
+        
+        if (!error && data) {
+          console.log('Thumbnail loaded successfully');
+          setPreviewUrl(data.signedUrl);
+          setLoading(false);
+          return;
+        } else {
+          console.log('Failed to load thumbnail, falling back to original logic');
+        }
+      }
+      
+      // Fallback to original preview logic if no thumbnail
+      if (!document.mime_type || !document.file_path) {
+        console.log('No mime type or file path for document:', document.name);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fallback preview for:', document.name, 'Type:', document.mime_type);
       
       // For images, generate direct preview
       if (document.mime_type.startsWith('image/')) {
         console.log('Creating signed URL for image:', document.file_path);
         const { data, error } = await supabase.storage
           .from('documents')
-          .createSignedUrl(document.file_path, 3600); // 1 hour expiry
+          .createSignedUrl(document.file_path, 3600, {
+            download: false
+          });
         
         if (error) {
           console.error('Error creating signed URL:', error);
@@ -57,22 +82,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
             setPreviewUrl(null);
           };
           img.src = data.signedUrl;
-        }
-      }
-      
-      // For PDFs, create a signed URL for preview
-      else if (document.mime_type?.includes('pdf')) {
-        console.log('Creating signed URL for PDF:', document.file_path);
-        const { data, error } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(document.file_path, 3600);
-        
-        if (error) {
-          console.error('Error creating PDF signed URL:', error);
-          setPreviewUrl(null);
-        } else if (data) {
-          console.log('PDF signed URL created:', data.signedUrl);
-          setPreviewUrl(data.signedUrl);
         }
       }
       
@@ -192,8 +201,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
     );
   }
 
-  // If it's an image and we have a preview, show the actual image
-  if (document.mime_type?.startsWith('image/') && previewUrl) {
+  // If we have a preview URL (either thumbnail or original), show it
+  if (previewUrl) {
     return (
       <div className={`${className} bg-muted/30 rounded-xl overflow-hidden`}>
         <img
@@ -201,15 +210,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
           alt={document.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            console.error('Image failed to load:', previewUrl);
-            setPreviewUrl(null); // Fallback to document preview
+            console.error('Preview failed to load:', previewUrl);
+            setPreviewUrl(null); // Fallback to document icon
           }}
         />
       </div>
     );
   }
 
-  // For PDFs, show a simple document preview
+  // For PDFs without thumbnails, show a simple document preview
   if (document.mime_type?.includes('pdf')) {
     return (
       <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
@@ -224,7 +233,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
     );
   }
 
-  // For all other documents, show simple document preview
+  // For all other documents without thumbnails, show document icon
   return (
     <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
       <div className="w-8 h-10 mb-3 flex items-center justify-center">

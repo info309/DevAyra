@@ -168,6 +168,34 @@ serve(async (req) => {
       });
     }
 
+    // Trigger thumbnail generation asynchronously (don't wait for completion)
+    if (document) {
+      console.log('Triggering thumbnail generation for document:', document.id);
+      
+      // Create service role client for internal function calls
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      // Call thumbnail generation function asynchronously
+      serviceClient.functions.invoke('generate-thumbnail', {
+        body: {
+          documentId: document.id,
+          filePath: filePath,
+          mimeType: file.type
+        }
+      }).then((result) => {
+        if (result.error) {
+          console.error('Thumbnail generation failed:', result.error);
+        } else {
+          console.log('Thumbnail generation triggered successfully');
+        }
+      }).catch((error) => {
+        console.error('Error calling thumbnail generation:', error);
+      });
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       document,
