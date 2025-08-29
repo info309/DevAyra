@@ -303,18 +303,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               <DrawerTitle className="text-lg font-semibold truncate mb-1 text-left">
                 {document.name}
               </DrawerTitle>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3 h-3" />
-                  <span>{formatDate(document.created_at)}</span>
-                </div>
-                {document.file_size && (
-                  <span className="sm:before:content-['•'] sm:before:mr-2">
-                    {formatFileSize(document.file_size)}
-                  </span>
-                )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(document.created_at)}</span>
               </div>
             </div>
+            
+            {document.file_size && (
+              <div className="text-sm text-muted-foreground">
+                {formatFileSize(document.file_size)}
+              </div>
+            )}
           </div>
         </DrawerHeader>
         
