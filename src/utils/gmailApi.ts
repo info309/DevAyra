@@ -89,7 +89,11 @@ export const gmailApi = {
 
         // Handle specific error types
         if (error.status === 401) {
-          throw new GmailApiError('Authentication failed. Please log in again.', 401);
+          console.error('Authentication failed - redirecting to login');
+          // Clear local storage and redirect to auth
+          localStorage.clear();
+          window.location.href = '/auth';
+          throw new GmailApiError('Session expired. Please log in again.', 401);
         }
         
         throw new GmailApiError(

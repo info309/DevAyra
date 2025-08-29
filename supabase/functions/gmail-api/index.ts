@@ -327,6 +327,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Get user from verified JWT token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error(`[${requestId}] Missing or invalid authorization header`);
       return new Response(
         JSON.stringify({ error: 'Authorization header is required' }),
         { status: 401, headers: corsHeaders }
@@ -334,12 +335,20 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log(`[${requestId}] Attempting to verify JWT token`);
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
-      console.error(`[${requestId}] Auth error:`, userError);
+      console.error(`[${requestId}] JWT verification failed:`, {
+        error: userError?.message,
+        hasUser: !!user,
+        tokenLength: token?.length
+      });
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
+        JSON.stringify({ 
+          error: 'Session expired or invalid. Please log out and log back in.',
+          details: userError?.message 
+        }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -423,9 +432,16 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (connectionError || !connection) {
-      console.error(`[${requestId}] No active Gmail connection found:`, connectionError);
+      console.error(`[${requestId}] Gmail connection lookup failed:`, {
+        error: connectionError?.message,
+        hasConnection: !!connection,
+        userId: userId
+      });
       return new Response(
-        JSON.stringify({ error: 'No active Gmail connection found. Please reconnect your account.' }),
+        JSON.stringify({ 
+          error: 'Gmail connection not found. Please reconnect your Gmail account from the Account page.',
+          needsReconnection: true
+        }),
         { status: 401, headers: corsHeaders }
       );
     }
