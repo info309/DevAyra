@@ -299,7 +299,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {/* Clean header */}
         <DrawerHeader className="border-b px-4 py-3 bg-background">
           <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0 mr-4 text-left">
+            <div className="flex-1 min-w-0 text-left">
               <DrawerTitle className="text-lg font-semibold truncate mb-1 text-left">
                 {document.name}
               </DrawerTitle>
@@ -314,33 +314,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </span>
                 )}
               </div>
-            </div>
-            
-            {/* Action buttons */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onToggleFavorite(document)}
-                className={`h-8 w-8 ${document.is_favorite ? "text-yellow-500" : "text-muted-foreground"}`}
-              >
-                <Star className={`w-4 h-4 ${document.is_favorite ? 'fill-current' : ''}`} />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleDownload} 
-                className="h-8 w-8 text-muted-foreground"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-              
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                  <X className="w-4 h-4" />
-                </Button>
-              </DrawerClose>
             </div>
           </div>
         </DrawerHeader>
