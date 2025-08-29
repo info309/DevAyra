@@ -517,15 +517,52 @@ const handler = async (req: Request): Promise<Response> => {
 
                       const { content, attachments } = await processEmailContent(message.payload);
                       
-                      // For getEmails, don't download attachments immediately - just return metadata
-                      const attachmentMetadata = attachments.map(att => ({
-                        filename: att.filename,
-                        mimeType: att.mimeType,
-                        size: att.size,
-                        attachmentId: att.attachmentId,
-                        isInline: att.isInline,
-                        cid: att.cid
-                      }));
+                      // For getEmails, generate download URLs for attachments
+                      const attachmentMetadata = await Promise.all(
+                        attachments.map(async (att) => {
+                          try {
+                            if (att.attachmentId) {
+                              const downloadUrl = await downloadAndStoreAttachment(
+                                gmailToken,
+                                message.id,
+                                att.attachmentId,
+                                att.filename,
+                                att.mimeType,
+                                serviceRoleClient,
+                                userId,
+                                requestId
+                              );
+                              return {
+                                filename: att.filename,
+                                mimeType: att.mimeType,
+                                size: att.size,
+                                attachmentId: att.attachmentId,
+                                isInline: att.isInline,
+                                cid: att.cid,
+                                downloadUrl
+                              };
+                            }
+                            return {
+                              filename: att.filename,
+                              mimeType: att.mimeType,
+                              size: att.size,
+                              attachmentId: att.attachmentId,
+                              isInline: att.isInline,
+                              cid: att.cid
+                            };
+                          } catch (error) {
+                            console.warn(`[${requestId}] Failed to process attachment ${att.filename}:`, error);
+                            return {
+                              filename: att.filename,
+                              mimeType: att.mimeType,
+                              size: att.size,
+                              attachmentId: att.attachmentId,
+                              isInline: att.isInline,
+                              cid: att.cid
+                            };
+                          }
+                        })
+                      );
 
                       return {
                         id: message.id,
