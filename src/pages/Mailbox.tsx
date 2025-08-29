@@ -1062,7 +1062,7 @@ const Mailbox: React.FC = () => {
             variant="ghost"
             size="sm"
             onClick={() => navigate('/dashboard')}
-            className="gap-2 hover:bg-accent mr-2"
+            className="gap-2 hover:bg-accent mr-2 pl-0"
           >
             <ArrowLeft className="w-5 h-5" />
             Back to Dashboard
@@ -1075,12 +1075,12 @@ const Mailbox: React.FC = () => {
           {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
           <div className="flex justify-between items-center lg:justify-between">
             {/* Mobile/Tablet Back Arrow and Logo - Left side */}
-            <div className="flex lg:hidden items-center pl-4">
+            <div className="flex lg:hidden items-center">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/dashboard')}
-                className="gap-2 hover:bg-accent mr-2"
+                className="gap-2 hover:bg-accent mr-2 pl-0"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span className="hidden sm:inline">Back</span>
