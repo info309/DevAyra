@@ -496,17 +496,6 @@ const Documents = () => {
                   <ArrowLeft className="w-4 h-4" />
                   Dashboard
                 </Button>
-                {currentFolder && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCurrentFolder(null)}
-                    className="gap-2"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                  </Button>
-                )}
                 <h1 className="text-2xl font-bold">
                   {currentFolder ? currentFolder.name : 'Documents'}
                 </h1>
