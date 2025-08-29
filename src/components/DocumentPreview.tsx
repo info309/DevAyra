@@ -212,27 +212,27 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // For PDFs, show a simple document preview
   if (document.mime_type?.includes('pdf')) {
     return (
-      <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
-        <div className="w-8 h-10 mb-3 flex items-center justify-center">
+      <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-3`}>
+        <div className="w-6 h-7 mb-1 flex items-center justify-center">
           <svg viewBox="0 0 24 24" className="w-full h-full text-red-500 fill-current">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
             <path d="M6.5,15.25L7.5,15.25L7.5,16.75L6.5,16.75L6.5,15.25M6.5,12.25L10.5,12.25L10.5,13.75L6.5,13.75L6.5,12.25M6.5,9.25L10.5,9.25L10.5,10.75L6.5,10.75L6.5,9.25Z" />
           </svg>
         </div>
-        <div className="text-xs text-muted-foreground font-medium">PDF</div>
+        <div className="text-[10px] text-muted-foreground font-medium">PDF</div>
       </div>
     );
   }
 
   // For all other documents, show simple document preview
   return (
-    <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
-      <div className="w-8 h-10 mb-3 flex items-center justify-center">
+    <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-3`}>
+      <div className="w-6 h-7 mb-1 flex items-center justify-center">
         <svg viewBox="0 0 24 24" className="w-full h-full text-primary fill-current">
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
         </svg>
       </div>
-      <div className="text-xs text-muted-foreground font-medium">
+      <div className="text-[10px] text-muted-foreground font-medium">
         {getFileExtension()}
       </div>
     </div>
