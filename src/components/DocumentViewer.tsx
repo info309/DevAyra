@@ -306,14 +306,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-3 h-3" />
                 <span>{formatDate(document.created_at)}</span>
+                {document.file_size && (
+                  <>
+                    <span>•</span>
+                    <span>{formatFileSize(document.file_size)}</span>
+                  </>
+                )}
               </div>
             </div>
-            
-            {document.file_size && (
-              <div className="text-sm text-muted-foreground">
-                {formatFileSize(document.file_size)}
-              </div>
-            )}
           </div>
         </DrawerHeader>
         
