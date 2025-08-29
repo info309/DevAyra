@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
+import { Paperclip, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
 import AttachmentViewer from './AttachmentViewer';
@@ -85,46 +85,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     return new Date(dateString).toLocaleString();
   };
 
-  const handleAttachmentDownload = async (attachment: Attachment, email: Email) => {
-    if (!attachment.attachmentId) {
-      toast({
-        variant: "destructive",
-        title: "Download Unavailable", 
-        description: `No attachment ID available for ${attachment.filename}`,
-      });
-      return;
-    }
-
-    try {
-      // Import gmailApi here to avoid circular dependency
-      const { gmailApi } = await import('@/utils/gmailApi');
-      const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
-      
-      // Create blob and download
-      const blob = new Blob([data.data], { type: attachment.mimeType });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Downloaded",
-        description: `${attachment.filename} has been downloaded`
-      });
-    } catch (error) {
-      console.error('Download failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download attachment",
-        variant: "destructive"
-      });
-    }
-  };
 
   const isCalendarInvite = (attachment: Attachment) => {
     return attachment.mimeType === 'text/calendar' || 
@@ -145,14 +105,11 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     return handleAttachmentSave(attachment, email);
   };
 
-  const handleAttachmentAction = async (attachment: Attachment, email: Email, action: 'save' | 'download') => {
-    if (action === 'save') {
-      if (isCalendarInvite(attachment)) {
-        return handleCalendarInvite(attachment, email);
-      }
-      return handleAttachmentSave(attachment, email);
+  const handleAttachmentAction = async (attachment: Attachment, email: Email, action: 'save') => {
+    if (isCalendarInvite(attachment)) {
+      return handleCalendarInvite(attachment, email);
     }
-    return handleAttachmentDownload(attachment, email);
+    return handleAttachmentSave(attachment, email);
   };
 
   const handleAttachmentSave = async (attachment: Attachment, email: Email) => {
@@ -332,16 +289,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           >
                             {isCalendarInvite(attachment) ? "Save Invite" : "Save"}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAttachmentAction(attachment, email, 'download')}
-                            disabled={!attachment.attachmentId}
-                            className="flex-shrink-0"
-                            title="Download attachment"
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
                        </div>
                     </div>
                   ))}
@@ -396,16 +343,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           >
                             Save
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAttachmentAction(image, email, 'download')}
-                            disabled={!image.attachmentId}
-                            className="flex-shrink-0"
-                            title="Download image"
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
                        </div>
                     </div>
                   ))}
@@ -436,7 +373,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
         isOpen={!!selectedAttachment}
         onClose={() => setSelectedAttachment(null)}
         onSave={handleAttachmentSave}
-        onDownload={handleAttachmentDownload}
       />
     </div>
   );

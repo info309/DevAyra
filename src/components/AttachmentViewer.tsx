@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Download, Save, Eye, Calendar, FileText } from 'lucide-react';
+import { X, Save, Eye, Calendar, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
 
@@ -33,7 +33,6 @@ interface AttachmentViewerProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (attachment: Attachment, email: Email) => void;
-  onDownload: (attachment: Attachment, email: Email) => void;
 }
 
 const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
@@ -41,8 +40,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
   email,
   isOpen,
   onClose,
-  onSave,
-  onDownload
+  onSave
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -189,12 +187,6 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    if (attachment && email) {
-      onDownload(attachment, email);
-    }
-  };
-
   const getFileIcon = () => {
     if (!attachment) return <FileText className="w-8 h-8" />;
     
@@ -222,11 +214,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
             <p className="text-muted-foreground mb-4 text-sm">
               This file type cannot be previewed
             </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button onClick={handleDownload} variant="outline" className="gap-2 w-full sm:w-auto">
-                <Download className="w-4 h-4" />
-                Download
-              </Button>
+            <div className="flex justify-center">
               <Button onClick={handleSave} className="gap-2 w-full sm:w-auto">
                 <Save className="w-4 h-4" />
                 Save to Documents
@@ -332,10 +320,6 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                 Retry Preview
               </Button>
             )}
-            <Button onClick={handleDownload} variant="outline" className="gap-2 w-full sm:w-auto">
-              <Download className="w-4 h-4" />
-              Download
-            </Button>
             <Button onClick={handleSave} className="gap-2 w-full sm:w-auto">
               <Save className="w-4 h-4" />
               Save to Documents
@@ -379,10 +363,6 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <Button onClick={handleDownload} variant="outline" size="sm" className="gap-1 px-2 sm:px-3">
-                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Download</span>
-              </Button>
               <Button onClick={handleSave} size="sm" className="gap-1 px-2 sm:px-3">
                 <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">{isCalendarInvite(attachment) ? "Save Invite" : "Save"}</span>
