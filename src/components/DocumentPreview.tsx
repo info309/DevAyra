@@ -177,8 +177,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // Show loading state
   if (loading) {
     return (
-      <div className={`${className} bg-gray-100 rounded-lg overflow-hidden shadow-sm animate-pulse`}>
-        <div className="w-full h-full bg-gray-200"></div>
+      <div className={`${className} bg-muted rounded-lg overflow-hidden shadow-md animate-pulse`}>
+        <div className="w-full h-full bg-muted-foreground/20"></div>
       </div>
     );
   }
@@ -186,11 +186,12 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // If it's an image and we have a preview, show the actual image
   if (document.mime_type?.startsWith('image/') && previewUrl) {
     return (
-      <div className={`${className} bg-gray-100 rounded-lg overflow-hidden shadow-sm`}>
+      <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
         <img
           src={previewUrl}
           alt={document.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
+          style={{ minHeight: '120px' }}
           onError={(e) => {
             console.error('Image failed to load:', previewUrl);
             setPreviewUrl(null); // Fallback to document preview
@@ -203,16 +204,21 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // For PDFs, show a document-like preview
   if (document.mime_type?.includes('pdf')) {
     return (
-      <div className={`${className} bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200`}>
-        <div className="w-full h-full bg-white relative">
-          {/* Simulate document content */}
-          <div className="p-2 h-full flex flex-col">
-            <div className="flex-1 space-y-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className={`bg-gray-300 rounded h-1 ${i % 3 === 0 ? 'w-3/4' : 'w-full'}`} />
+      <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
+        <div className="w-full h-full bg-card relative">
+          {/* PDF icon and preview */}
+          <div className="p-4 h-full flex flex-col items-center justify-center">
+            <div className="bg-red-500 text-white px-3 py-2 rounded-lg mb-3 font-medium text-sm">
+              PDF
+            </div>
+            <div className="space-y-2 w-full max-w-[80%]">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`bg-muted rounded h-2 ${i % 3 === 0 ? 'w-3/4' : i % 3 === 1 ? 'w-full' : 'w-5/6'}`} 
+                />
               ))}
             </div>
-            <div className="text-[8px] text-gray-500 text-center mt-1">PDF</div>
           </div>
         </div>
       </div>
@@ -221,18 +227,21 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
 
   // For all other documents, show document-like preview
   return (
-    <div className={`${className} bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200`}>
-      <div className="w-full h-full bg-white relative p-2">
+    <div className={`${className} bg-background rounded-lg overflow-hidden shadow-md border border-border`}>
+      <div className="w-full h-full bg-card relative p-4">
         {/* Document lines simulation */}
-        <div className="space-y-1 mb-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={`bg-gray-200 rounded h-1 ${i % 3 === 0 ? 'w-2/3' : 'w-full'}`} />
+        <div className="space-y-2 mb-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div 
+              key={i} 
+              className={`bg-muted rounded h-2 ${i % 3 === 0 ? 'w-2/3' : i % 3 === 1 ? 'w-full' : 'w-4/5'}`} 
+            />
           ))}
         </div>
         
         {/* File extension in center */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-medium">
+          <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg font-medium text-sm shadow-lg">
             {getFileExtension()}
           </div>
         </div>
