@@ -98,6 +98,35 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     }
   };
 
+  const isCalendarInvite = (attachment: Attachment) => {
+    return attachment.mimeType === 'text/calendar' || 
+           attachment.mimeType === 'application/ics' ||
+           attachment.filename.toLowerCase().endsWith('.ics');
+  };
+
+  const handleCalendarInvite = async (attachment: Attachment, email: Email) => {
+    console.log('📅 Processing calendar invite:', attachment.filename);
+    
+    // For now, we'll save it as a document but could enhance to parse calendar data
+    toast({
+      title: "Calendar Invite Detected",
+      description: "Calendar invite will be saved to documents. Future updates will offer calendar integration."
+    });
+    
+    // Then proceed with normal save
+    return handleAttachmentSave(attachment, email);
+  };
+
+  const handleAttachmentAction = async (attachment: Attachment, email: Email, action: 'save' | 'download') => {
+    if (action === 'save') {
+      if (isCalendarInvite(attachment)) {
+        return handleCalendarInvite(attachment, email);
+      }
+      return handleAttachmentSave(attachment, email);
+    }
+    return handleAttachmentDownload(attachment, email);
+  };
+
   const handleAttachmentSave = async (attachment: Attachment, email: Email) => {
     console.log('🔍 Starting attachment save:', { 
       filename: attachment.filename, 
@@ -259,17 +288,17 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentSave(attachment, email)}
+                            onClick={() => handleAttachmentAction(attachment, email, 'save')}
                             disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
-                            title="Save to Documents"
+                            title={isCalendarInvite(attachment) ? "Save calendar invite to Documents" : "Save to Documents"}
                           >
-                            Save
+                            {isCalendarInvite(attachment) ? "Save Invite" : "Save"}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentDownload(attachment, email)}
+                            onClick={() => handleAttachmentAction(attachment, email, 'download')}
                             disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
                             title="Download attachment"
@@ -315,7 +344,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentSave(image, email)}
+                            onClick={() => handleAttachmentAction(image, email, 'save')}
                             className="flex-shrink-0"
                             title="Save to Documents"
                           >
@@ -324,7 +353,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentDownload(image, email)}
+                            onClick={() => handleAttachmentAction(image, email, 'download')}
                             disabled={!image.attachmentId}
                             className="flex-shrink-0"
                             title="Download image"
