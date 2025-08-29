@@ -513,13 +513,32 @@ const Mailbox: React.FC = () => {
 
       if (error) {
         console.error('Error loading emails:', error);
-        if (view === currentView) {
+      if (view === currentView) {
+        // Check if this is a token expiration error that requires reconnection
+        if (error.message && error.message.includes('expired and needs to be reconnected')) {
+          toast({
+            title: "Gmail Connection Expired",
+            description: error.message,
+            variant: "destructive",
+            action: (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-3 py-1 bg-white text-black rounded text-sm"
+                >
+                  Refresh Page
+                </button>
+              </div>
+            )
+          });
+        } else {
           toast({
             title: "Error",
             description: `Failed to load emails: ${error.message || 'Please try again. If this is your first connection, it may take a moment to sync your emails.'}`,
             variant: "destructive"
           });
         }
+      }
         return;
       }
 
