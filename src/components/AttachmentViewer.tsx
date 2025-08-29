@@ -88,13 +88,11 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       setLoading(true);
       setPreviewUrl(null);
       setTextContent(null);
-      console.log('AttachmentViewer: Generating preview for:', attachment.filename, 'Type:', attachment.mimeType);
       
-      // Download the attachment data
       const { gmailApi } = await import('@/utils/gmailApi');
       const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
       
-      console.log('AttachmentViewer: Downloaded data:', {
+      console.log('AttachmentViewer: Downloaded response:', {
         hasData: !!data.data,
         dataType: typeof data.data,
         dataLength: data.data?.length || data.data?.byteLength || 'unknown',
@@ -107,46 +105,14 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
         throw new Error('No data received from download');
       }
       
-      // Handle different data formats from Gmail API
-      let uint8Data: Uint8Array;
+      // The data is already a Uint8Array from the Gmail API
+      const uint8Data = data.data;
       
-      console.log('AttachmentViewer: Raw data type check:', {
-        isUint8Array: data.data instanceof Uint8Array,
-        isArrayBuffer: data.data instanceof ArrayBuffer,
-        isString: typeof data.data === 'string',
-        isArray: Array.isArray(data.data),
-        constructor: data.data?.constructor?.name,
-        firstFewBytes: data.data instanceof Uint8Array ? Array.from(data.data.slice(0, 10)) : 'not Uint8Array'
+      console.log('AttachmentViewer: Using data directly:', {
+        isUint8Array: uint8Data instanceof Uint8Array,
+        dataLength: uint8Data.length,
+        firstFewBytes: Array.from(uint8Data.slice(0, 10))
       });
-      
-      if (data.data instanceof Uint8Array) {
-        uint8Data = data.data;
-      } else if (data.data instanceof ArrayBuffer) {
-        uint8Data = new Uint8Array(data.data);
-      } else if (Array.isArray(data.data)) {
-        // If it's a regular array of numbers, convert to Uint8Array
-        uint8Data = new Uint8Array(data.data);
-      } else if (typeof data.data === 'string') {
-        // If it's a base64 string, decode it
-        try {
-          const binaryString = atob(data.data);
-          uint8Data = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            uint8Data[i] = binaryString.charCodeAt(i);
-          }
-        } catch (e) {
-          console.error('AttachmentViewer: Failed to decode base64:', e);
-          throw new Error('Failed to decode base64 data');
-        }
-      } else {
-        console.error('AttachmentViewer: Unsupported data format:', {
-          type: typeof data.data,
-          constructor: data.data?.constructor?.name,
-          isNull: data.data === null,
-          isUndefined: data.data === undefined
-        });
-        throw new Error(`Unsupported data format received: ${typeof data.data}`);
-      }
       
       // Create blob from the binary data
       const blob = new Blob([uint8Data], { type: attachment.mimeType });
