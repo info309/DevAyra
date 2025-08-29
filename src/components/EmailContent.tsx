@@ -163,8 +163,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
 
       console.log('✅ Save successful:', data);
       toast({
-        title: "Saved Successfully",
-        description: `${attachment.filename} saved to your documents`
+        description: "Document is now saved in your document storage"
       });
     } catch (error) {
       console.error('❌ Save failed with error:', error);
