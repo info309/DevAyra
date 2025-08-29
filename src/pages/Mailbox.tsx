@@ -1085,7 +1085,7 @@ const Mailbox: React.FC = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => navigate('/dashboard')}
-                className="-ml-1"
+                className="ml-1"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
