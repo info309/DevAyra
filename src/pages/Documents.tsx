@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ interface UserDocument {
 }
 
 const Documents = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [documents, setDocuments] = useState<UserDocument[]>([]);
@@ -331,24 +333,42 @@ const Documents = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card p-4">
+      <header className="border-b bg-card px-4 p-4 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              {currentFolder && (
+              {/* Mobile/Tablet Back Arrow and Logo - Left side */}
+              <div className="flex lg:hidden items-center gap-4">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentFolder(null)}
-                  className="gap-2"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate('/dashboard')}
+                  className="ml-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Back
                 </Button>
-              )}
-              <h1 className="text-2xl font-bold">
-                {currentFolder ? currentFolder.name : 'Documents'}
-              </h1>
+                <h1 className="text-2xl font-bold">
+                  {currentFolder ? currentFolder.name : 'Documents'}
+                </h1>
+              </div>
+              
+              {/* Desktop Header */}
+              <div className="hidden lg:flex items-center gap-3">
+                {currentFolder && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentFolder(null)}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </Button>
+                )}
+                <h1 className="text-2xl font-bold">
+                  {currentFolder ? currentFolder.name : 'Documents'}
+                </h1>
+              </div>
             </div>
             
             <div className="flex items-center gap-2">
