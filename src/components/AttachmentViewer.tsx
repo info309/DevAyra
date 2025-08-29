@@ -105,10 +105,44 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
         throw new Error('No data received from download');
       }
       
-      // The data is already a Uint8Array from the Gmail API
-      const uint8Data = data.data;
+      // Convert the data to Uint8Array if it's not already
+      let uint8Data: Uint8Array;
       
-      console.log('AttachmentViewer: Using data directly:', {
+      console.log('AttachmentViewer: Raw data analysis:', {
+        dataType: typeof data.data,
+        constructor: data.data?.constructor?.name,
+        isUint8Array: data.data instanceof Uint8Array,
+        isArrayBuffer: data.data instanceof ArrayBuffer,
+        isArray: Array.isArray(data.data),
+        hasSliceMethod: typeof data.data?.slice === 'function',
+        dataKeys: Object.keys(data.data || {}),
+        fullDataStructure: data
+      });
+      
+      if (data.data instanceof Uint8Array) {
+        uint8Data = data.data;
+      } else if (data.data instanceof ArrayBuffer) {
+        uint8Data = new Uint8Array(data.data);
+      } else if (Array.isArray(data.data)) {
+        uint8Data = new Uint8Array(data.data);
+      } else if (typeof data.data === 'string') {
+        // Base64 decode
+        const binaryString = atob(data.data);
+        uint8Data = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          uint8Data[i] = binaryString.charCodeAt(i);
+        }
+      } else {
+        // Fallback: try to create from object values if it's an object with numeric properties
+        const keys = Object.keys(data.data || {});
+        if (keys.length > 0 && keys.every(k => !isNaN(Number(k)))) {
+          uint8Data = new Uint8Array(Object.values(data.data));
+        } else {
+          throw new Error(`Cannot process attachment data. Type: ${typeof data.data}, Constructor: ${data.data?.constructor?.name}`);
+        }
+      }
+      
+      console.log('AttachmentViewer: Converted to Uint8Array:', {
         isUint8Array: uint8Data instanceof Uint8Array,
         dataLength: uint8Data.length,
         firstFewBytes: Array.from(uint8Data.slice(0, 10))
