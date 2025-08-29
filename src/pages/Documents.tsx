@@ -27,6 +27,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Label } from '@/components/ui/label';
 import DocumentPreview from '@/components/DocumentPreview';
 import DocumentViewer from '@/components/DocumentViewer';
 
@@ -64,6 +66,8 @@ const Documents = () => {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -170,15 +174,14 @@ const Documents = () => {
   };
 
   const createFolder = async () => {
-    const folderName = prompt('Enter folder name:');
-    if (!folderName) return;
+    if (!newFolderName.trim()) return;
 
     try {
       const { error } = await supabase
         .from('user_documents')
         .insert({
           user_id: user?.id,
-          name: folderName,
+          name: newFolderName.trim(),
           file_path: '', // Empty for folders
           is_folder: true,
           folder_id: currentFolder?.id || null,
@@ -192,6 +195,8 @@ const Documents = () => {
         description: "Folder created successfully",
       });
 
+      setNewFolderName('');
+      setIsCreateFolderOpen(false);
       loadDocuments();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -490,10 +495,55 @@ const Documents = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button onClick={createFolder} variant="outline" size="sm" className="gap-2">
-                <Folder className="w-4 h-4" />
-                New Folder
-              </Button>
+              <Drawer open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Folder className="w-4 h-4" />
+                    New Folder
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="h-[95vh]">
+                  <div className="mx-auto w-full max-w-sm">
+                    <DrawerHeader>
+                      <DrawerTitle>Create New Folder</DrawerTitle>
+                      <DrawerDescription>
+                        Enter a name for your new folder.
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="p-4 pb-0">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="folder-name">Folder Name</Label>
+                          <Input
+                            id="folder-name"
+                            placeholder="Enter folder name..."
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newFolderName.trim()) {
+                                createFolder();
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <DrawerFooter>
+                      <Button 
+                        onClick={createFolder}
+                        disabled={!newFolderName.trim()}
+                        className="gap-2"
+                      >
+                        <Folder className="w-4 h-4" />
+                        Create Folder
+                      </Button>
+                      <DrawerClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DrawerClose>
+                    </DrawerFooter>
+                  </div>
+                </DrawerContent>
+              </Drawer>
             </div>
           </div>
         </div>
