@@ -27,6 +27,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Label } from '@/components/ui/label';
 import DocumentPreview from '@/components/DocumentPreview';
 import DocumentViewer from '@/components/DocumentViewer';
 
@@ -64,6 +66,8 @@ const Documents = () => {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showNewFolderDrawer, setShowNewFolderDrawer] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -170,15 +174,21 @@ const Documents = () => {
   };
 
   const createFolder = async () => {
-    const folderName = prompt('Enter folder name:');
-    if (!folderName) return;
+    if (!newFolderName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a folder name",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('user_documents')
         .insert({
           user_id: user?.id,
-          name: folderName,
+          name: newFolderName.trim(),
           file_path: '', // Empty for folders
           is_folder: true,
           folder_id: currentFolder?.id || null,
@@ -192,6 +202,8 @@ const Documents = () => {
         description: "Folder created successfully",
       });
 
+      setNewFolderName('');
+      setShowNewFolderDrawer(false);
       loadDocuments();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -490,10 +502,59 @@ const Documents = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button onClick={createFolder} variant="outline" size="sm" className="gap-2">
-                <Folder className="w-4 h-4" />
-                New Folder
-              </Button>
+              <Drawer open={showNewFolderDrawer} onOpenChange={setShowNewFolderDrawer}>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Folder className="w-4 h-4" />
+                    New Folder
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="max-w-none h-[95vh]" style={{ transform: 'translateY(-100%)', top: 0, bottom: 'auto' }}>
+                  <DrawerHeader className="border-b px-6 py-4">
+                    <DrawerTitle>Create New Folder</DrawerTitle>
+                    <DrawerDescription>
+                      Enter a name for your new folder{currentFolder ? ` in "${currentFolder.name}"` : ''}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-6 py-8 space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="folder-name">Folder Name</Label>
+                      <Input
+                        id="folder-name"
+                        placeholder="Enter folder name..."
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            createFolder();
+                          }
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <DrawerFooter className="border-t px-6 py-4">
+                    <div className="flex gap-3 justify-end">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowNewFolderDrawer(false);
+                          setNewFolderName('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={createFolder}
+                        disabled={!newFolderName.trim()}
+                      >
+                        Create Folder
+                      </Button>
+                    </div>
+                  </DrawerFooter>
+                </DrawerContent>
+              </Drawer>
             </div>
           </div>
         </div>
