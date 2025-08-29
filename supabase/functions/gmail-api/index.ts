@@ -528,56 +528,78 @@ const handler = async (req: Request): Promise<Response> => {
 
                       const { content, attachments } = await processEmailContent(message.payload);
                       
-                      console.log(`[${requestId}] Processing ${attachments.length} attachments for message ${message.id}`);
+                      // For getEmails, only process attachments for recent emails to save resources
+                      let attachmentMetadata = [];
                       
-                      // For getEmails, generate download URLs for attachments
-                      const attachmentMetadata = await Promise.all(
-                        attachments.map(async (att) => {
-                          console.log(`[${requestId}] Processing attachment: ${att.filename}, ID: ${att.attachmentId}`);
-                          try {
-                            if (att.attachmentId) {
-                              const downloadUrl = await downloadAndStoreAttachment(
-                                gmailToken,
-                                message.id,
-                                att.attachmentId,
-                                att.filename,
-                                att.mimeType,
-                                serviceRoleClient,
-                                userId,
-                                requestId
-                              );
-                              console.log(`[${requestId}] Generated download URL for ${att.filename}: ${downloadUrl ? 'SUCCESS' : 'FAILED'}`);
-                              return {
-                                filename: att.filename,
-                                mimeType: att.mimeType,
-                                size: att.size,
-                                attachmentId: att.attachmentId,
-                                isInline: att.isInline,
-                                cid: att.cid,
-                                downloadUrl
-                              };
-                            }
-                            return {
-                              filename: att.filename,
-                              mimeType: att.mimeType,
-                              size: att.size,
-                              attachmentId: att.attachmentId,
-                              isInline: att.isInline,
-                              cid: att.cid
-                            };
-                          } catch (error) {
-                            console.warn(`[${requestId}] Failed to process attachment ${att.filename}:`, error);
-                            return {
-                              filename: att.filename,
-                              mimeType: att.mimeType,
-                              size: att.size,
-                              attachmentId: att.attachmentId,
-                              isInline: att.isInline,
-                              cid: att.cid
-                            };
-                          }
-                        })
-                      );
+                      if (attachments.length > 0) {
+                        // Only process attachments for emails from the last 7 days or if there are fewer than 3 attachments
+                        const emailDate = new Date(date);
+                        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                        const shouldProcessAttachments = emailDate > weekAgo || attachments.length <= 3;
+                        
+                        if (shouldProcessAttachments) {
+                          console.log(`[${requestId}] Processing ${attachments.length} attachments for recent email ${message.id}`);
+                          
+                          attachmentMetadata = await Promise.all(
+                            attachments.slice(0, 5).map(async (att) => { // Limit to 5 attachments max
+                              console.log(`[${requestId}] Processing attachment: ${att.filename}, ID: ${att.attachmentId}`);
+                              try {
+                                if (att.attachmentId) {
+                                  const downloadUrl = await downloadAndStoreAttachment(
+                                    gmailToken,
+                                    message.id,
+                                    att.attachmentId,
+                                    att.filename,
+                                    att.mimeType,
+                                    serviceRoleClient,
+                                    userId,
+                                    requestId
+                                  );
+                                  console.log(`[${requestId}] Generated download URL for ${att.filename}: ${downloadUrl ? 'SUCCESS' : 'FAILED'}`);
+                                  return {
+                                    filename: att.filename,
+                                    mimeType: att.mimeType,
+                                    size: att.size,
+                                    attachmentId: att.attachmentId,
+                                    isInline: att.isInline,
+                                    cid: att.cid,
+                                    downloadUrl
+                                  };
+                                }
+                                return {
+                                  filename: att.filename,
+                                  mimeType: att.mimeType,
+                                  size: att.size,
+                                  attachmentId: att.attachmentId,
+                                  isInline: att.isInline,
+                                  cid: att.cid
+                                };
+                              } catch (error) {
+                                console.warn(`[${requestId}] Failed to process attachment ${att.filename}:`, error);
+                                return {
+                                  filename: att.filename,
+                                  mimeType: att.mimeType,
+                                  size: att.size,
+                                  attachmentId: att.attachmentId,
+                                  isInline: att.isInline,
+                                  cid: att.cid
+                                };
+                              }
+                            })
+                          );
+                        } else {
+                          console.log(`[${requestId}] Skipping attachment processing for older email ${message.id} with ${attachments.length} attachments`);
+                          // Just return metadata without download URLs for older emails
+                          attachmentMetadata = attachments.map(att => ({
+                            filename: att.filename,
+                            mimeType: att.mimeType,
+                            size: att.size,
+                            attachmentId: att.attachmentId,
+                            isInline: att.isInline,
+                            cid: att.cid
+                          }));
+                        }
+                      }
 
                       console.log(`[${requestId}] Final attachment metadata:`, attachmentMetadata);
 
