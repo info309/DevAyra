@@ -279,9 +279,10 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       return (
         <div className="w-full h-full bg-background">
           <iframe
-            src={`${previewUrl}#toolbar=1`}
+            src={previewUrl}
             className="w-full h-full border-0"
             title={`Preview of ${attachment.filename}`}
+            style={{ minHeight: '100%' }}
             onError={(e) => {
               console.error('Failed to load PDF preview:', e);
               toast({
