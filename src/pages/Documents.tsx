@@ -76,13 +76,20 @@ const Documents = () => {
   }, [user, currentFolder]);
 
   const loadDocuments = async () => {
+    if (!user?.id) {
+      console.log('No user ID available, skipping document load');
+      return;
+    }
+    
     try {
       setLoading(true);
+      
+      console.log('Loading documents for user:', user.id);
       
       let query = supabase
         .from('user_documents')
         .select('*')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
       
       // If we're in a specific folder, show only items in that folder
       // If we're at root level, show items with no folder_id (loose documents) and folders at root level
@@ -96,8 +103,15 @@ const Documents = () => {
         .order('is_folder', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Documents query result:', { data, error, userContext: user.id });
+
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
+      }
+      
       setDocuments((data || []) as UserDocument[]);
+      console.log(`Loaded ${data?.length || 0} documents`);
     } catch (error) {
       console.error('Error loading documents:', error);
       toast({
