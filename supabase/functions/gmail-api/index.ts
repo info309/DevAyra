@@ -395,19 +395,83 @@ class GmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, content: string, threadId?: string) {
+  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[]) {
     try {
-      const emailContent = [
+      console.log(`[${this.requestId}] Sending email with attachments:`, attachments?.length || 0);
+      
+      // Generate boundary for multipart message
+      const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Build email headers
+      const headers = [
         `To: ${to}`,
         `Subject: ${subject}`,
-        'Content-Type: text/html; charset=utf-8',
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        `MIME-Version: 1.0`,
         '',
-        content
-      ].join('\r\n');
+        `This is a multi-part message in MIME format.`,
+        ''
+      ];
 
-      const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      // Build email body parts
+      const bodyParts = [];
       
-      const requestBody: any = { raw: encodedEmail };
+      // Add the main content part
+      bodyParts.push([
+        `--${boundary}`,
+        `Content-Type: text/html; charset=utf-8`,
+        `Content-Transfer-Encoding: quoted-printable`,
+        '',
+        content,
+        ''
+      ].join('\r\n'));
+
+      // Add attachment parts
+      if (attachments && attachments.length > 0) {
+        console.log(`[${this.requestId}] Processing ${attachments.length} attachments`);
+        
+        for (const attachment of attachments) {
+          console.log(`[${this.requestId}] Adding attachment: ${attachment.filename || attachment.name}`);
+          
+          const filename = attachment.filename || attachment.name;
+          const mimeType = attachment.mimeType || attachment.type || 'application/octet-stream';
+          const data = attachment.data || attachment.content;
+          
+          if (!data) {
+            console.warn(`[${this.requestId}] Skipping attachment ${filename} - no data`);
+            continue;
+          }
+          
+          bodyParts.push([
+            `--${boundary}`,
+            `Content-Type: ${mimeType}`,
+            `Content-Disposition: attachment; filename="${filename}"`,
+            `Content-Transfer-Encoding: base64`,
+            '',
+            data,
+            ''
+          ].join('\r\n'));
+        }
+      }
+      
+      // Close the boundary
+      bodyParts.push(`--${boundary}--`);
+      
+      // Combine headers and body
+      const emailContent = headers.join('\r\n') + bodyParts.join('\r\n');
+      
+      // Encode the entire message in base64url
+      const encodedMessage = btoa(emailContent)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      console.log(`[${this.requestId}] Email message size: ${emailContent.length} chars, encoded: ${encodedMessage.length} chars`);
+
+      const requestBody: any = {
+        raw: encodedMessage
+      };
+
       if (threadId) {
         requestBody.threadId = threadId;
       }
@@ -416,12 +480,15 @@ class GmailService {
         'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(requestBody)
         }
       );
 
-      return { success: true, messageId: result.id };
+      console.log(`[${this.requestId}] Email sent successfully with ID: ${result.id}`);
+      return { success: true, messageId: result.id, sentMessage: result };
     } catch (error) {
       console.error(`[${this.requestId}] sendEmail error:`, error);
       throw error;
@@ -618,7 +685,8 @@ const handler = async (req: Request): Promise<Response> => {
           request.to,
           request.subject,
           request.content,
-          request.threadId
+          request.threadId,
+          request.attachments
         );
         break;
 

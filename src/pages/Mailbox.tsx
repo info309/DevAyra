@@ -880,7 +880,22 @@ const Mailbox: React.FC = () => {
           date: new Date().toISOString(),
           content: composeForm.content,
           unread: false,
-          attachments: []
+          attachments: [
+            // Convert file attachments to the expected format
+            ...(composeForm.attachments || []).map(file => ({
+              filename: file.name,
+              mimeType: file.type,
+              size: file.size,
+              attachmentId: undefined // Not available for sent emails
+            })),
+            // Convert document attachments to the expected format
+            ...(composeForm.documentAttachments || []).map(doc => ({
+              filename: doc.name,
+              mimeType: doc.mime_type || 'application/octet-stream',
+              size: doc.file_size || 0,
+              attachmentId: undefined // Not available for sent emails
+            }))
+          ]
         };
 
         // Update the selected conversation with the new email
