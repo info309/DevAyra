@@ -186,8 +186,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // Show loading state
   if (loading) {
     return (
-      <div className={`${className} bg-muted rounded-lg overflow-hidden shadow-md animate-pulse`}>
-        <div className="w-full h-full bg-muted-foreground/20"></div>
+      <div className={`${className} bg-muted/30 rounded-xl animate-pulse`}>
+        <div className="w-full h-full bg-muted/50 rounded-xl"></div>
       </div>
     );
   }
@@ -195,69 +195,45 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
   // If it's an image and we have a preview, show the actual image
   if (document.mime_type?.startsWith('image/') && previewUrl) {
     return (
-      <div className={`${className} bg-muted/20 rounded-lg overflow-hidden shadow-md border border-border relative`}>
+      <div className={`${className} bg-muted/30 rounded-xl overflow-hidden`}>
         <img
           src={previewUrl}
           alt={document.name}
-          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+          className="w-full h-full object-cover"
           onError={(e) => {
             console.error('Image failed to load:', previewUrl);
             setPreviewUrl(null); // Fallback to document preview
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
     );
   }
 
-  // For PDFs, show a document-like preview with better styling
+  // For PDFs, show a simple document preview
   if (document.mime_type?.includes('pdf')) {
     return (
-      <div className={`${className} bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20 rounded-lg overflow-hidden shadow-md border border-border relative group`}>
-        <div className="w-full h-full relative p-4 flex flex-col items-center justify-center">
-          {/* PDF Icon */}
-          <div className="bg-red-500 text-white px-3 py-2 rounded-lg mb-3 font-bold text-xs shadow-lg group-hover:scale-110 transition-transform duration-200">
-            PDF
-          </div>
-          {/* Document lines */}
-          <div className="space-y-2 w-full max-w-[70%]">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div 
-                key={i} 
-                className={`bg-red-200/60 dark:bg-red-800/40 rounded h-1.5 transition-all duration-200 ${
-                  i % 3 === 0 ? 'w-3/4' : i % 3 === 1 ? 'w-full' : 'w-5/6'
-                }`} 
-              />
-            ))}
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
+        <div className="w-8 h-10 mb-3 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-full h-full text-red-500 fill-current">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+            <path d="M6.5,15.25L7.5,15.25L7.5,16.75L6.5,16.75L6.5,15.25M6.5,12.25L10.5,12.25L10.5,13.75L6.5,13.75L6.5,12.25M6.5,9.25L10.5,9.25L10.5,10.75L6.5,10.75L6.5,9.25Z" />
+          </svg>
         </div>
+        <div className="text-xs text-muted-foreground font-medium">PDF</div>
       </div>
     );
   }
 
-  // For all other documents, show enhanced document-like preview
+  // For all other documents, show simple document preview
   return (
-    <div className={`${className} bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg overflow-hidden shadow-md border border-border relative group`}>
-      <div className="w-full h-full relative p-4 flex flex-col items-center justify-center">
-        {/* Document lines simulation */}
-        <div className="space-y-2 mb-4 w-full max-w-[70%]">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div 
-              key={i} 
-              className={`bg-blue-200/60 dark:bg-blue-800/40 rounded h-1.5 transition-all duration-200 ${
-                i % 3 === 0 ? 'w-2/3' : i % 3 === 1 ? 'w-full' : 'w-4/5'
-              }`} 
-            />
-          ))}
-        </div>
-        
-        {/* File extension badge */}
-        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg font-bold text-xs shadow-lg group-hover:scale-110 transition-transform duration-200">
-          {getFileExtension()}
-        </div>
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+    <div className={`${className} bg-muted/30 rounded-xl flex flex-col items-center justify-center p-6`}>
+      <div className="w-8 h-10 mb-3 flex items-center justify-center">
+        <svg viewBox="0 0 24 24" className="w-full h-full text-primary fill-current">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+        </svg>
+      </div>
+      <div className="text-xs text-muted-foreground font-medium">
+        {getFileExtension()}
       </div>
     </div>
   );
