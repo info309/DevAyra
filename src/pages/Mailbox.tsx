@@ -1540,7 +1540,10 @@ const Mailbox: React.FC = () => {
                                   <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                                       <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
-                                        {firstEmail.from.split('<')[0].trim() || firstEmail.from}
+                                        {currentView === 'sent' 
+                                          ? (firstEmail.to.split('<')[0].trim() || firstEmail.to)
+                                          : (firstEmail.from.split('<')[0].trim() || firstEmail.from)
+                                        }
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
