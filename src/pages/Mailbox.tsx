@@ -1153,9 +1153,6 @@ const Mailbox: React.FC = () => {
                 <DrawerContent className="max-w-none h-[90vh]">
                   <DrawerHeader>
                     <DrawerTitle>Compose Email</DrawerTitle>
-                    <DrawerDescription>
-                      Send a new email
-                    </DrawerDescription>
                   </DrawerHeader>
                   <div className="px-4 pb-4 space-y-4 flex-1 overflow-y-auto">
                     <div>
