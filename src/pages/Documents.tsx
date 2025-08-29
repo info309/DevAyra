@@ -594,9 +594,9 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`group relative cursor-pointer transition-all duration-200 ${
+                  className={`group relative cursor-pointer transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
-                  } ${dropTarget === doc.id ? 'ring-2 ring-primary ring-offset-2 scale-105' : ''}`}
+                  }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
                   onClick={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
@@ -610,7 +610,9 @@ const Documents = () => {
                   onTouchEnd={handleTouchEnd}
                 >
                   {/* Preview/Icon Area */}
-                  <div className="w-full aspect-[4/5] mb-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
+                    doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
+                  }`}>
                     {doc.is_folder ? (
                       <div className="w-full h-full flex items-center justify-center">
                         {/* Simple Large Blue Folder Icon */}
