@@ -45,6 +45,32 @@ interface EmailContentProps {
 const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
 
+  // Function to decode HTML entities in email content for display
+  const decodeHtmlEntities = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    // Decode common HTML entities
+    let decoded = htmlContent
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&hellip;/g, '...')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      // Handle numeric entities like &#39;
+      .replace(/&#(\d+);/g, (match, num) => String.fromCharCode(parseInt(num, 10)));
+    
+    return decoded;
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -370,7 +396,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
             {/* Email Content */}
             <div className="space-y-4 w-full min-w-0 overflow-hidden">
               <IsolatedEmailRenderer 
-                content={email.content || ''}
+                content={decodeHtmlEntities(email.content || '')}
                 className="w-full min-w-0"
               />
             </div>
