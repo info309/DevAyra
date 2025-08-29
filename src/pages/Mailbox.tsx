@@ -1083,12 +1083,11 @@ const Mailbox: React.FC = () => {
             <div className="flex lg:hidden items-center gap-4">
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => navigate('/dashboard')}
-                className="gap-2 -ml-2"
+                className="-ml-1"
               >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="hidden sm:inline">Back</span>
+                <ArrowLeft className="w-4 h-4" />
               </Button>
               <h1 className="text-2xl font-bold">Mail</h1>
             </div>
