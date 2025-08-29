@@ -101,6 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Refresh token if needed
     const refreshTokenIfNeeded = async () => {
+      console.log('Testing token validity...');
       const testResponse = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo', {
         method: 'GET',
         headers: {
@@ -109,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (!testResponse.ok) {
-        console.log('Token expired, refreshing...');
+        console.log('Token expired, refreshing...', { status: testResponse.status, statusText: testResponse.statusText });
         
         const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
@@ -125,16 +126,46 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (!refreshResponse.ok) {
-          throw new Error('Failed to refresh token');
+          const errorText = await refreshResponse.text();
+          console.error('Token refresh failed:', { 
+            status: refreshResponse.status, 
+            statusText: refreshResponse.statusText,
+            error: errorText
+          });
+          
+          // Check if this is a permanent failure requiring re-authentication
+          if (refreshResponse.status === 400 || errorText.includes('invalid_grant')) {
+            // Mark connection as inactive and suggest re-authentication
+            await supabaseClient
+              .from('gmail_connections')
+              .update({ is_active: false })
+              .eq('id', connection.id);
+            
+            throw new Error('Gmail connection expired. Please reconnect your Gmail account.');
+          }
+          
+          throw new Error(`Failed to refresh token: ${refreshResponse.status} ${refreshResponse.statusText}. ${errorText}`);
         }
 
         const newTokens = await refreshResponse.json();
+        console.log('Token refreshed successfully');
         accessToken = newTokens.access_token;
 
-        await supabaseClient
+        const { error: updateError } = await supabaseClient
           .from('gmail_connections')
-          .update({ access_token: accessToken })
+          .update({ 
+            access_token: accessToken,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', connection.id);
+
+        if (updateError) {
+          console.error('Failed to update access token in database:', updateError);
+          throw new Error('Failed to update access token in database');
+        }
+        console.log('Access token updated in database');
+      } else {
+        console.log('Token is valid');
       }
     };
 
