@@ -499,6 +499,8 @@ const Mailbox: React.FC = () => {
       
       const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
       
+      console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
+      
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: { 
           action: 'getEmails',
@@ -507,12 +509,14 @@ const Mailbox: React.FC = () => {
         }
       });
 
+      console.log('Gmail API response for', view, ':', { data, error });
+
       if (error) {
         console.error('Error loading emails:', error);
         if (view === currentView) {
           toast({
             title: "Error",
-            description: "Failed to load emails. Please try again.",
+            description: `Failed to load emails: ${error.message || 'Please try again. If this is your first connection, it may take a moment to sync your emails.'}`,
             variant: "destructive"
           });
         }
