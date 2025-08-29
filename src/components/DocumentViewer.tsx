@@ -151,10 +151,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const renderPreview = () => {
     if (!document || !previewUrl) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-center h-full bg-background">
           <div className="text-center">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">
+            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
               {loading ? 'Loading preview...' : 'Preview not available'}
             </p>
           </div>
@@ -165,11 +165,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Image preview
     if (document.mime_type?.startsWith('image/')) {
       return (
-        <div className="w-full h-full bg-gray-50 rounded-lg overflow-auto">
+        <div className="w-full h-full bg-background overflow-auto flex items-center justify-center p-4">
           <img
             src={previewUrl}
             alt={document.name}
-            className="w-full h-auto block mx-auto shadow-lg"
+            className="max-w-full max-h-full object-contain"
             onError={() => {
               console.error('Failed to load image preview');
               setPreviewUrl(null);
@@ -182,15 +182,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // PDF preview
     if (document.mime_type?.includes('pdf')) {
       return (
-        <div className="w-full h-full bg-gray-50 rounded-lg overflow-auto">
+        <div className="w-full h-full bg-background">
           <iframe
             src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1`}
-            className="w-full border-0 shadow-lg"
-            style={{ 
-              width: '100%',
-              height: '100vh',
-              minHeight: '600px'
-            }}
+            className="w-full h-full border-0"
             title={`Preview of ${document.name}`}
             onError={() => {
               console.error('Failed to load PDF preview');
@@ -205,15 +200,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (document.mime_type?.startsWith('text/') || 
         document.mime_type?.includes('plain')) {
       return (
-        <div className="w-full h-full bg-white rounded-lg border overflow-auto">
+        <div className="w-full h-full bg-background">
           <iframe
             src={previewUrl}
-            className="w-full border-0 shadow-lg"
-            style={{ 
-              width: '100%',
-              height: '100vh',
-              minHeight: '600px'
-            }}
+            className="w-full h-full border-0"
             title={`Preview of ${document.name}`}
           />
         </div>
@@ -222,11 +212,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // Other document types - show document info
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
-        <div className="text-center max-w-sm">
-          <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+      <div className="flex items-center justify-center h-full bg-background">
+        <div className="text-center max-w-sm p-6">
+          <FileText className="w-16 h-16 text-primary mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">{document.name}</h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-muted-foreground mb-4">
             This file type cannot be previewed. Click download to open it with the appropriate application.
           </p>
           <Button onClick={handleDownload} className="gap-2">
@@ -242,51 +232,48 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="h-[85vh] md:h-[95vh] w-full max-w-none mx-auto">
-        <DrawerHeader className="border-b px-6 py-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <DrawerTitle className="text-lg font-semibold truncate">
+      <DrawerContent className="h-[95vh] w-full max-w-none mx-auto">
+        {/* Clean header */}
+        <DrawerHeader className="border-b px-4 py-3 bg-background">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0 mr-4">
+              <DrawerTitle className="text-lg font-semibold truncate mb-1">
                 {document.name}
               </DrawerTitle>
-              <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(document.created_at)}
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(document.created_at)}</span>
                 {document.file_size && (
-                  <span>{formatFileSize(document.file_size)}</span>
+                  <>
+                    <span>•</span>
+                    <span>{formatFileSize(document.file_size)}</span>
+                  </>
                 )}
-                <Badge variant="secondary">
-                  {document.source_type === 'email_attachment' ? 'From Email' : 'Uploaded'}
-                </Badge>
               </div>
-              
-              {document.source_email_subject && (
-                <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
-                  <Mail className="w-4 h-4" />
-                  From: {document.source_email_subject}
-                </div>
-              )}
             </div>
             
-            <div className="flex items-center gap-2 ml-4">
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => onToggleFavorite(document)}
-                className={document.is_favorite ? "text-yellow-500" : "text-muted-foreground"}
+                className={`h-8 w-8 ${document.is_favorite ? "text-yellow-500" : "text-muted-foreground"}`}
               >
                 <Star className={`w-4 h-4 ${document.is_favorite ? 'fill-current' : ''}`} />
               </Button>
               
-              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleDownload} 
+                className="h-8 w-8 text-muted-foreground"
+              >
                 <Download className="w-4 h-4" />
-                Download
               </Button>
               
               <DrawerClose asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
                   <X className="w-4 h-4" />
                 </Button>
               </DrawerClose>
@@ -294,9 +281,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </DrawerHeader>
         
-        
-        <div className="p-4 overflow-auto bg-gray-50" style={{ height: 'calc(95vh - 120px)' }}>
-          <div className="w-full max-w-4xl mx-auto bg-white rounded shadow-lg overflow-hidden">
+        {/* Preview content */}
+        <div className="flex-1 p-0 overflow-hidden bg-muted/20">
+          <div className="w-full h-full">
             {renderPreview()}
           </div>
         </div>
