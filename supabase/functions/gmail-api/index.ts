@@ -350,11 +350,26 @@ class GmailService {
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`
       );
 
-      // Decode the attachment data from Base64URL
-      const fileData = this.gmailB64Decode(attachmentData.data);
+      // For attachments, we need binary data, not text
+      // Convert Base64URL to binary data directly
+      let base64 = attachmentData.data.replace(/-/g, "+").replace(/_/g, "/");
+      
+      // Pad with '=' to make length divisible by 4
+      while (base64.length % 4 !== 0) {
+        base64 += "=";
+      }
+      
+      // Decode to binary data (Uint8Array)
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      
+      console.log(`[${this.requestId}] Decoded attachment: ${bytes.length} bytes`);
       
       return {
-        data: fileData,
+        data: bytes, // Return raw binary data as Uint8Array
         size: attachmentData.size,
         base64Data: attachmentData.data // Keep original for potential storage
       };

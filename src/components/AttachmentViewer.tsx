@@ -94,15 +94,46 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       const { gmailApi } = await import('@/utils/gmailApi');
       const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
       
-      console.log('AttachmentViewer: Downloaded data size:', data.data?.byteLength || 'unknown');
+      console.log('AttachmentViewer: Downloaded data:', {
+        hasData: !!data.data,
+        dataType: typeof data.data,
+        dataLength: data.data?.length || data.data?.byteLength || 'unknown',
+        isUint8Array: data.data instanceof Uint8Array,
+        isArrayBuffer: data.data instanceof ArrayBuffer
+      });
       
       if (!data.data) {
         throw new Error('No data received from download');
       }
       
-      // Create blob from the downloaded data
-      const blob = new Blob([data.data], { type: attachment.mimeType });
-      console.log('AttachmentViewer: Created blob:', blob.size, 'bytes, type:', blob.type);
+      // Ensure we have a Uint8Array for proper blob creation
+      let uint8Data: Uint8Array;
+      if (data.data instanceof Uint8Array) {
+        uint8Data = data.data;
+      } else if (data.data instanceof ArrayBuffer) {
+        uint8Data = new Uint8Array(data.data);
+      } else if (typeof data.data === 'string') {
+        // If it's a base64 string, decode it
+        try {
+          const binaryString = atob(data.data);
+          uint8Data = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            uint8Data[i] = binaryString.charCodeAt(i);
+          }
+        } catch (e) {
+          throw new Error('Failed to decode base64 data');
+        }
+      } else {
+        throw new Error('Unsupported data format received');
+      }
+      
+      // Create blob from the binary data
+      const blob = new Blob([uint8Data], { type: attachment.mimeType });
+      console.log('AttachmentViewer: Created blob:', {
+        size: blob.size,
+        type: blob.type,
+        dataSize: uint8Data.length
+      });
       
       // For text files and calendar invites, read as text
       if (attachment.mimeType.startsWith('text/') || 
@@ -238,23 +269,30 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
     if (attachment.mimeType.includes('pdf') && previewUrl) {
       return (
         <div className="w-full h-full bg-background">
-          <iframe
-            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1`}
-            className="w-full h-full border-0"
+          <object
+            data={previewUrl}
+            type="application/pdf"
+            className="w-full h-full"
             title={`Preview of ${attachment.filename}`}
-            onError={(e) => {
-              console.error('Failed to load PDF preview:', e);
-              toast({
-                title: "PDF Error", 
-                description: "Failed to display PDF",
-                variant: "destructive",
-              });
-              setPreviewUrl(null);
-            }}
-            onLoad={() => {
-              console.log('AttachmentViewer: PDF loaded successfully');
-            }}
-          />
+          >
+            <iframe
+              src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1&navpanes=0&scrollbar=1`}
+              className="w-full h-full border-0"
+              title={`Preview of ${attachment.filename}`}
+              onError={(e) => {
+                console.error('Failed to load PDF preview:', e);
+                toast({
+                  title: "PDF Error", 
+                  description: "Failed to display PDF",
+                  variant: "destructive",
+                });
+                setPreviewUrl(null);
+              }}
+              onLoad={() => {
+                console.log('AttachmentViewer: PDF loaded successfully');
+              }}
+            />
+          </object>
         </div>
       );
     }
