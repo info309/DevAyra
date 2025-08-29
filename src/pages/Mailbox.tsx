@@ -414,18 +414,24 @@ const Mailbox: React.FC = () => {
     try {
       setConnectingGmail(true);
       
-      const { data, error } = await supabase.functions.invoke('gmail-auth', {
-        body: { action: 'getAuthUrl' }
+      // Call the gmail-auth function with the user ID as a query parameter
+      const authUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/functions/v1/gmail-auth?userId=${user.id}`;
+      
+      const response = await fetch(authUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA`,
+        },
       });
 
-      if (error) {
-        console.error('Error getting Gmail auth URL:', error);
-        toast({
-          title: "Error",
-          description: "Failed to connect to Gmail. Please try again.",
-          variant: "destructive"
-        });
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to get auth URL');
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       if (data?.authUrl) {
