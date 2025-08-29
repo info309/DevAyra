@@ -1055,7 +1055,7 @@ const Mailbox: React.FC = () => {
 
   return (
     <div className="h-screen bg-background overflow-hidden">
-      <div className="container mx-auto p-2 lg:px-8 h-full flex flex-col">
+      <div className="container mx-auto px-4 p-2 lg:px-8 h-full flex flex-col">
         {/* Desktop Header - Logo and Back Arrow */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
           <div className="flex items-center gap-4">
