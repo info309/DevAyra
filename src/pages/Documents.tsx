@@ -351,10 +351,6 @@ const Documents = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `Moved ${draggedItem.name} to ${targetFolder.name}`,
-      });
 
       loadDocuments();
     } catch (error) {
@@ -421,10 +417,6 @@ const Documents = () => {
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: `Moved ${draggedItem.name} to ${targetFolder.name}`,
-        });
 
         loadDocuments();
       } catch (error) {
