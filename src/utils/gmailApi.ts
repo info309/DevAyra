@@ -140,6 +140,26 @@ export const gmailApi = {
     });
   },
 
+  async trashMessage(messageId: string, signal?: AbortSignal) {
+    return this.invoke({
+      body: { 
+        action: 'trashMessage',
+        messageId
+      },
+      signal
+    });
+  },
+
+  async trashThread(threadId: string, signal?: AbortSignal) {
+    return this.invoke({
+      body: { 
+        action: 'trashThread',
+        threadId
+      },
+      signal
+    });
+  },
+
   async deleteMessage(messageId: string, signal?: AbortSignal) {
     return this.invoke({
       body: { 

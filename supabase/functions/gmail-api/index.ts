@@ -42,6 +42,12 @@ const downloadAttachmentSchema = z.object({
   attachmentId: z.string().min(1)
 })
 
+const trashSchema = z.object({
+  action: z.enum(['trashThread', 'trashMessage']),
+  threadId: z.string().optional(),
+  messageId: z.string().optional()
+})
+
 const deleteSchema = z.object({
   action: z.enum(['deleteThread', 'deleteMessage']),
   threadId: z.string().optional(),
@@ -67,6 +73,7 @@ const requestSchema = z.discriminatedUnion('action', [
   markAsReadSchema,
   sendEmailSchema,
   downloadAttachmentSchema,
+  trashSchema,
   deleteSchema,
   replySchema,
   healthSchema
@@ -971,6 +978,76 @@ const handler = async (req: Request): Promise<Response> => {
           console.error(`[${requestId}] Reply error:`, error);
           return new Response(
             JSON.stringify({ error: error.message || 'Failed to send reply' }),
+            { status: 500, headers: corsHeaders }
+          );
+        }
+        break;
+      }
+
+      case 'trashThread': {
+        const { threadId } = validatedRequest;
+        
+        if (!threadId) {
+          return new Response(
+            JSON.stringify({ error: 'threadId is required for trashThread action' }),
+            { status: 400, headers: corsHeaders }
+          );
+        }
+
+        try {
+          const trashResponse = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/trash`,
+            {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${gmailToken}` }
+            }
+          );
+
+          if (!trashResponse.ok) {
+            throw new Error(`Failed to trash thread: ${trashResponse.status}`);
+          }
+
+          response.results = [{ success: true, threadId }];
+
+        } catch (error) {
+          console.error(`[${requestId}] TrashThread error:`, error);
+          return new Response(
+            JSON.stringify({ error: error.message || 'Failed to trash thread' }),
+            { status: 500, headers: corsHeaders }
+          );
+        }
+        break;
+      }
+
+      case 'trashMessage': {
+        const { messageId } = validatedRequest;
+        
+        if (!messageId) {
+          return new Response(
+            JSON.stringify({ error: 'messageId is required for trashMessage action' }),
+            { status: 400, headers: corsHeaders }
+          );
+        }
+
+        try {
+          const trashResponse = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
+            {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${gmailToken}` }
+            }
+          );
+
+          if (!trashResponse.ok) {
+            throw new Error(`Failed to trash message: ${trashResponse.status}`);
+          }
+
+          response.results = [{ success: true, messageId }];
+
+        } catch (error) {
+          console.error(`[${requestId}] TrashMessage error:`, error);
+          return new Response(
+            JSON.stringify({ error: error.message || 'Failed to trash message' }),
             { status: 500, headers: corsHeaders }
           );
         }

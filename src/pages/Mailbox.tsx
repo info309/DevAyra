@@ -655,33 +655,15 @@ const Mailbox: React.FC = () => {
         description: "Conversation moved to trash."
     });
 
-    // Make Gmail API call in the background - don't await it
-    gmailApi.deleteThread(conversation.id).then((response) => {
-      console.log('Delete thread response:', response);
+    // Make Gmail API call in the background - move to trash instead of delete
+    gmailApi.trashThread(conversation.id).then((response) => {
+      console.log('Trash thread response:', response);
+      // Don't restore on error - email stays removed from UI for better UX
       if (response.error || !response.results?.[0]?.success) {
-        const error = response.error || 'Delete operation failed';
-        console.error('Background delete failed:', error);
-        // Silently restore the conversation on error
-        setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
-          new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
-        ));
-        toast({
-          title: "Error",
-          description: "Failed to delete conversation from Gmail. Conversation restored.",
-          variant: "destructive"
-        });
+        console.warn('Background trash operation failed (email remains hidden):', response.error || 'Trash operation failed');
       }
     }).catch(error => {
-      console.error('Background delete error:', error);
-      // Silently restore the conversation on error
-      setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
-        new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
-      ));
-      toast({
-        title: "Error", 
-        description: "Failed to delete conversation from Gmail. Conversation restored.",
-        variant: "destructive"
-      });
+      console.warn('Background trash error (email remains hidden):', error);
     });
   };
 
@@ -718,53 +700,15 @@ const Mailbox: React.FC = () => {
       description: "Email moved to trash."
     });
 
-    // Make Gmail API call in the background - don't await it
-    gmailApi.deleteMessage(emailId).then((response) => {
-      console.log('Delete message response:', response);
+    // Make Gmail API call in the background - move to trash instead of delete
+    gmailApi.trashMessage(emailId).then((response) => {
+      console.log('Trash message response:', response);
+      // Don't restore on error - email stays removed from UI for better UX
       if (response.error || !response.results?.[0]?.success) {
-        const error = response.error || 'Delete operation failed';
-        console.error('Background email delete failed:', error);
-        // Restore the email on error
-        setCurrentConversations(prev => 
-          prev.map(conv => 
-            conv.id === conversationId 
-              ? { 
-                  ...conv,
-                  emails: [...conv.emails, originalEmail].sort((a, b) => 
-                    new Date(b.date).getTime() - new Date(a.date).getTime()
-                  ),
-                  messageCount: conv.messageCount + 1
-                }
-              : conv
-          )
-        );
-        toast({
-          title: "Error",
-          description: "Failed to delete email from Gmail. Email restored.",
-          variant: "destructive"
-        });
+        console.warn('Background trash operation failed (email remains hidden):', response.error || 'Trash operation failed');
       }
     }).catch(error => {
-      console.error('Background email delete error:', error);
-      // Restore the email on error
-      setCurrentConversations(prev => 
-        prev.map(conv => 
-          conv.id === conversationId 
-            ? { 
-                ...conv,
-                emails: [...conv.emails, originalEmail].sort((a, b) => 
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-                ),
-                messageCount: conv.messageCount + 1
-              }
-            : conv
-        )
-      );
-      toast({
-        title: "Error",
-        description: "Failed to delete email from Gmail. Email restored.",
-        variant: "destructive"
-      });
+      console.warn('Background trash error (email remains hidden):', error);
     });
   };
 
