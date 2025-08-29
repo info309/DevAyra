@@ -137,103 +137,90 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     const extension = document?.name.split('.').pop()?.toUpperCase();
     if (!extension) return 'FILE';
     
-    // Map common extensions to readable names
     const extensionMap: { [key: string]: string } = {
-      'DOCX': 'WORD',
-      'DOC': 'WORD', 
-      'PAGES': 'PAGES',
+      'DOCX': 'DOC', 'DOC': 'DOC', 'PAGES': 'DOC',
       'PDF': 'PDF',
-      'TXT': 'TEXT',
-      'RTF': 'RTF',
-      'ODT': 'ODT',
-      'XLSX': 'EXCEL',
-      'XLS': 'EXCEL',
-      'NUMBERS': 'NUMBERS',
-      'CSV': 'CSV',
-      'PPTX': 'PPT',
-      'PPT': 'PPT',
-      'KEY': 'KEY',
-      'ODP': 'ODP'
+      'TXT': 'TXT', 'RTF': 'TXT',
+      'XLSX': 'XLS', 'XLS': 'XLS', 'CSV': 'XLS',
+      'PPTX': 'PPT', 'PPT': 'PPT',
+      'JPG': 'IMG', 'JPEG': 'IMG', 'PNG': 'IMG', 'GIF': 'IMG', 'WEBP': 'IMG'
     };
     
-    return extensionMap[extension] || extension;
+    return extensionMap[extension] || extension.substring(0, 3);
   };
 
-  const A4DocumentIcon = ({ extension, size = 80 }: { extension: string; size?: number }) => {
-    const width = size * 0.6; // Portrait aspect ratio
-    const height = size;
-    
+  const SimpleA4Icon = ({ extension }: { extension: string }) => {
+    // Determine document color based on type
+    let bgColor = '#4285f4'; // Default blue
+    if (extension === 'PDF') bgColor = '#dc2626'; // Red
+    else if (extension === 'XLS') bgColor = '#16a34a'; // Green  
+    else if (extension === 'PPT') bgColor = '#ea580c'; // Orange
+    else if (extension === 'IMG') bgColor = '#7c3aed'; // Purple
+    else if (extension === 'TXT') bgColor = '#6b7280'; // Gray
+
     return (
       <div className="flex flex-col items-center justify-center">
-        <svg 
-          width={width} 
-          height={height} 
-          viewBox={`0 0 ${width} ${height}`} 
-          className="drop-shadow-lg"
+        <div 
+          className="relative bg-white border-2 border-gray-200 shadow-lg"
+          style={{ 
+            width: '160px', 
+            height: '200px', 
+            borderRadius: '4px' 
+          }}
         >
-          <defs>
-            <linearGradient id={`paperGrad-${document?.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#f8fafc" />
-            </linearGradient>
-          </defs>
-          
-          {/* Document body */}
-          <rect
-            x="2"
-            y="2"
-            width={width - 4}
-            height={height - 4}
-            fill={`url(#paperGrad-${document?.id})`}
-            stroke="#e2e8f0"
-            strokeWidth="1"
-            rx="3"
-          />
-          
-          {/* Document lines */}
-          {Array.from({ length: Math.floor(height / 12) - 2 }).map((_, i) => (
-            <line
-              key={i}
-              x1="8"
-              y1={16 + i * 8}
-              x2={width - 8}
-              y2={16 + i * 8}
-              stroke="#e2e8f0"
-              strokeWidth="1"
-            />
-          ))}
-          
-          {/* Document corner fold */}
-          <path
-            d={`M${width - 16} 2 L${width - 2} 16 L${width - 16} 16 Z`}
-            fill="#f1f5f9"
-            stroke="#e2e8f0"
-            strokeWidth="1"
-          />
-          
-          {/* Extension text */}
-          <text
-            x={width / 2}
-            y={height / 2 + 4}
-            textAnchor="middle"
-            className="fill-slate-600 text-xs font-semibold"
-            style={{ fontSize: extension.length > 4 ? '10px' : '12px' }}
+          {/* Header stripe with document color */}
+          <div 
+            className="w-full h-12 flex items-center justify-center"
+            style={{ backgroundColor: bgColor }}
           >
-            {extension}
-          </text>
-        </svg>
+            <span className="text-white font-bold text-sm">{extension}</span>
+          </div>
+          
+          {/* Document content lines */}
+          <div className="p-4 space-y-2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div 
+                key={i}
+                className="bg-gray-100 rounded"
+                style={{ 
+                  height: '3px',
+                  width: i === 0 ? '80%' : i === 11 ? '60%' : '100%'
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Corner fold */}
+          <div 
+            className="absolute top-0 right-0 border-l-[16px] border-b-[16px] border-l-gray-100 border-b-transparent"
+          />
+        </div>
       </div>
     );
   };
 
   const renderPreview = () => {
+    // Always show the A4 icon for non-image documents when no preview available
     if (!document || !previewUrl) {
+      if (document?.mime_type?.startsWith('image/')) {
+        return (
+          <div className="flex items-center justify-center h-full bg-background">
+            <div className="text-center">
+              <SimpleA4Icon extension="IMG" />
+              <p className="text-muted-foreground mt-4">
+                {loading ? 'Loading image...' : 'Image preview not available'}
+              </p>
+            </div>
+          </div>
+        );
+      }
+      
       return (
         <div className="flex items-center justify-center h-full bg-background">
           <div className="text-center">
-            <A4DocumentIcon extension={getFileExtension()} size={120} />
-            <p className="text-muted-foreground mt-6">
-              {loading ? 'Loading preview...' : 'Preview not available'}
+            <SimpleA4Icon extension={getFileExtension()} />
+            <p className="text-muted-foreground mt-4">
+              {loading ? 'Loading preview...' : 'Document preview'}
             </p>
           </div>
         </div>
@@ -288,14 +275,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
 
-    // Other document types - show beautiful document icon
+    // Other document types - show simple A4 icon with download option
     return (
       <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center max-w-sm p-6">
-          <A4DocumentIcon extension={getFileExtension()} size={120} />
+          <SimpleA4Icon extension={getFileExtension()} />
           <h3 className="text-lg font-medium mb-2 mt-6">{document.name}</h3>
           <p className="text-muted-foreground mb-4">
-            This file type cannot be previewed. Click download to open it with the appropriate application.
+            Click download to open this document
           </p>
           <Button onClick={handleDownload} className="gap-2">
             <Download className="w-4 h-4" />
