@@ -480,9 +480,7 @@ const Documents = () => {
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
-                <h1 className="text-2xl font-bold">
-                  {currentFolder ? currentFolder.name : 'Documents'}
-                </h1>
+                <h1 className="text-2xl font-bold">Documents</h1>
               </div>
               
               {/* Desktop Header */}
@@ -496,9 +494,7 @@ const Documents = () => {
                   <ArrowLeft className="w-4 h-4" />
                   Dashboard
                 </Button>
-                <h1 className="text-2xl font-bold">
-                  {currentFolder ? currentFolder.name : 'Documents'}
-                </h1>
+                <h1 className="text-2xl font-bold">Documents</h1>
               </div>
             </div>
             
@@ -552,7 +548,7 @@ const Documents = () => {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">
-              {currentFolder ? 'Contents' : 'My Documents'}
+              {currentFolder ? currentFolder.name : 'My Documents'}
             </h2>
           </div>
           
