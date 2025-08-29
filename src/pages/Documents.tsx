@@ -62,6 +62,8 @@ const Documents = () => {
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [draggedItem, setDraggedItem] = useState<UserDocument | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -365,6 +367,82 @@ const Documents = () => {
     }
   };
 
+  // Mobile touch handlers
+  const handleTouchStart = (e: React.TouchEvent, doc: UserDocument) => {
+    if (doc.is_folder) return;
+    
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+    setDraggedItem(doc);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || !draggedItem) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStart.x);
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+    
+    if (deltaX > 10 || deltaY > 10) {
+      setIsDragging(true);
+      e.preventDefault();
+    }
+
+    // Find element under touch point
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const folderElement = elementBelow?.closest('[data-folder-id]');
+    
+    if (folderElement) {
+      const folderId = folderElement.getAttribute('data-folder-id');
+      setDropTarget(folderId);
+    } else {
+      setDropTarget(null);
+    }
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    if (!isDragging || !draggedItem || !dropTarget) {
+      setTouchStart(null);
+      setDraggedItem(null);
+      setDropTarget(null);
+      setIsDragging(false);
+      return;
+    }
+
+    e.preventDefault();
+    
+    const targetFolder = documents.find(doc => doc.id === dropTarget && doc.is_folder);
+    if (targetFolder && draggedItem.id !== targetFolder.id) {
+      try {
+        const { error } = await supabase
+          .from('user_documents')
+          .update({ folder_id: targetFolder.id })
+          .eq('id', draggedItem.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `Moved ${draggedItem.name} to ${targetFolder.name}`,
+        });
+
+        loadDocuments();
+      } catch (error) {
+        console.error('Error moving document:', error);
+        toast({
+          title: "Error",
+          description: "Failed to move document",
+          variant: "destructive",
+        });
+      }
+    }
+
+    setTouchStart(null);
+    setDraggedItem(null);
+    setDropTarget(null);
+    setIsDragging(false);
+  };
+
   const getFileIcon = (mimeType: string | null) => {
     if (!mimeType) return File;
     if (mimeType.startsWith('image/')) return Image;
@@ -515,22 +593,63 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`group relative cursor-pointer transition-transform ${
+                  className={`group relative cursor-pointer transition-all duration-200 ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
-                  } ${dropTarget === doc.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                  onClick={() => handleDocumentClick(doc)}
+                  } ${dropTarget === doc.id ? 'ring-2 ring-primary ring-offset-2 scale-105' : ''}`}
+                  data-folder-id={doc.is_folder ? doc.id : undefined}
+                  onClick={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
                   onDragOver={doc.is_folder ? (e) => handleFolderDragOver(e, doc.id) : undefined}
                   onDragLeave={doc.is_folder ? handleFolderDragLeave : undefined}
                   onDrop={doc.is_folder ? (e) => handleFolderDrop(e, doc) : undefined}
+                  onTouchStart={(e) => handleTouchStart(e, doc)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                 >
                   {/* Preview/Icon Area */}
                   <div className="w-full aspect-[3/4] mb-2 rounded-lg overflow-hidden">
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
-                        <Folder className="w-12 h-12 text-primary" />
+                      <div className="w-full h-full flex items-center justify-center relative">
+                        {/* Modern 3D Blue Folder Icon */}
+                        <div className="relative w-16 h-16">
+                          <svg viewBox="0 0 120 120" className="w-full h-full">
+                            <defs>
+                              <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#60a5fa" />
+                                <stop offset="50%" stopColor="#3b82f6" />
+                                <stop offset="100%" stopColor="#2563eb" />
+                              </linearGradient>
+                              <linearGradient id={`folderTop-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#93c5fd" />
+                                <stop offset="100%" stopColor="#60a5fa" />
+                              </linearGradient>
+                              <filter id={`shadow-${doc.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                                <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#1e3a8a" floodOpacity="0.3"/>
+                              </filter>
+                            </defs>
+                            
+                            {/* Folder body */}
+                            <path
+                              d="M15 40 L15 85 C15 90 20 95 25 95 L95 95 C100 95 105 90 105 85 L105 40 Z"
+                              fill={`url(#folderGrad-${doc.id})`}
+                              filter={`url(#shadow-${doc.id})`}
+                            />
+                            
+                            {/* Folder tab */}
+                            <path
+                              d="M15 25 C15 20 20 15 25 15 L40 15 L50 25 L95 25 C100 25 105 30 105 35 L105 40 L15 40 Z"
+                              fill={`url(#folderTop-${doc.id})`}
+                            />
+                            
+                            {/* Highlight */}
+                            <path
+                              d="M20 35 L100 35 L100 80 C100 82 98 84 96 84 L24 84 C22 84 20 82 20 80 Z"
+                              fill="rgba(255,255,255,0.1)"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     ) : (
                       <DocumentPreview 
