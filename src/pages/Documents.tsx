@@ -568,7 +568,7 @@ const Documents = () => {
           </div>
           
           {/* Search */}
-          <div className="relative max-w-md mb-6">
+          <div className="relative max-w-md mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search documents and folders..."
@@ -577,6 +577,22 @@ const Documents = () => {
               className="pl-9"
             />
           </div>
+          
+          {/* Breadcrumbs */}
+          {currentFolder && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentFolder(null)}
+                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
+              >
+                Documents
+              </Button>
+              <span>/</span>
+              <span className="text-foreground font-medium">{currentFolder.name}</span>
+            </div>
+          )}
           
           {loading ? (
             <div className="flex items-center justify-center h-32">
