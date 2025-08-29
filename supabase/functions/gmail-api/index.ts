@@ -309,13 +309,19 @@ class GmailService {
 
   async downloadAttachment(messageId: string, attachmentId: string) {
     try {
+      console.log(`[${this.requestId}] Downloading attachment ${attachmentId} from message ${messageId}`);
+      
       const attachmentData = await this.makeGmailRequest(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`
       );
 
+      // Decode the attachment data from Base64URL
+      const fileData = this.gmailB64Decode(attachmentData.data);
+      
       return {
-        data: attachmentData.data,
-        size: attachmentData.size
+        data: fileData,
+        size: attachmentData.size,
+        base64Data: attachmentData.data // Keep original for potential storage
       };
     } catch (error) {
       console.error(`[${this.requestId}] downloadAttachment error:`, error);

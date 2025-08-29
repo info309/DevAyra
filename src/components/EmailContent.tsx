@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
+import AttachmentPreview from './AttachmentPreview';
 
 interface Attachment {
   filename: string;
@@ -44,6 +45,12 @@ interface EmailContentProps {
 
 const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
+  
+  // State for attachment preview
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [previewMessageId, setPreviewMessageId] = useState<string>('');
+  const [previewEmailSubject, setPreviewEmailSubject] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -57,54 +64,61 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     return new Date(dateString).toLocaleString();
   };
 
-  const handleAttachmentDownload = (attachment: Attachment) => {
-    if (attachment.downloadUrl) {
-      // Validate URL before attempting download
-      if (attachment.downloadUrl.startsWith('http') || attachment.downloadUrl.startsWith('data:')) {
-        window.open(attachment.downloadUrl, '_blank');
-        toast({
-          title: "Download Started",
-          description: `Downloading ${attachment.filename}`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Invalid Download URL", 
-          description: `Cannot download ${attachment.filename} - invalid URL`,
-        });
-      }
-    } else {
+  const handleAttachmentDownload = async (attachment: Attachment, email: Email) => {
+    if (!attachment.attachmentId) {
       toast({
         variant: "destructive",
         title: "Download Unavailable", 
-        description: `Download link not available for ${attachment.filename}`,
+        description: `No attachment ID available for ${attachment.filename}`,
+      });
+      return;
+    }
+
+    try {
+      // Import gmailApi here to avoid circular dependency
+      const { gmailApi } = await import('@/utils/gmailApi');
+      const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
+      
+      // Create blob and download
+      const blob = new Blob([data.data], { type: attachment.mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Downloaded",
+        description: `${attachment.filename} has been downloaded`
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download attachment",
+        variant: "destructive"
       });
     }
   };
 
-  const handleAttachmentPreview = (attachment: Attachment) => {
-    if (attachment.downloadUrl) {
-      // Check if URL is valid before opening
-      if (attachment.downloadUrl.startsWith('http') || attachment.downloadUrl.startsWith('data:')) {
-        window.open(attachment.downloadUrl, '_blank');
-        toast({
-          title: "Opening Preview",
-          description: `Previewing ${attachment.filename}`,
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Invalid URL", 
-          description: `Cannot preview ${attachment.filename} - invalid download URL`,
-        });
-      }
-    } else {
+  const handleAttachmentPreview = (attachment: Attachment, email: Email) => {
+    if (!attachment.attachmentId) {
       toast({
         variant: "destructive",
         title: "Preview Unavailable", 
-        description: `Preview not available for ${attachment.filename}`,
+        description: `No attachment ID available for ${attachment.filename}`,
       });
+      return;
     }
+
+    setPreviewAttachment(attachment);
+    setPreviewMessageId(email.id);
+    setPreviewEmailSubject(email.subject);
+    setShowPreview(true);
   };
 
   const sortedEmails = [...conversation.emails].sort((a, b) => 
@@ -184,26 +198,26 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                             Save
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAttachmentPreview(attachment)}
-                          disabled={!attachment.downloadUrl}
-                          className="flex-shrink-0"
-                          title="Preview document"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAttachmentDownload(attachment)}
-                          disabled={!attachment.downloadUrl}
-                          className="flex-shrink-0"
-                          title="Download attachment"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleAttachmentPreview(attachment, email)}
+                           disabled={!attachment.attachmentId}
+                           className="flex-shrink-0"
+                           title="Preview document"
+                         >
+                           <Eye className="w-4 h-4" />
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleAttachmentDownload(attachment, email)}
+                           disabled={!attachment.attachmentId}
+                           className="flex-shrink-0"
+                           title="Download attachment"
+                         >
+                           <Download className="w-4 h-4" />
+                         </Button>
                       </div>
                     </div>
                   ))}
@@ -251,26 +265,26 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                             Save
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAttachmentPreview(image)}
-                          disabled={!image.downloadUrl}
-                          className="flex-shrink-0"
-                          title="Preview image"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAttachmentDownload(image)}
-                          disabled={!image.downloadUrl}
-                          className="flex-shrink-0"
-                          title="Download image"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleAttachmentPreview(image, email)}
+                           disabled={!image.attachmentId}
+                           className="flex-shrink-0"
+                           title="Preview image"
+                         >
+                           <Eye className="w-4 h-4" />
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleAttachmentDownload(image, email)}
+                           disabled={!image.attachmentId}
+                           className="flex-shrink-0"
+                           title="Download image"
+                         >
+                           <Download className="w-4 h-4" />
+                         </Button>
                       </div>
                     </div>
                   ))}
@@ -293,6 +307,15 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
           </div>
         );
       })}
+
+      {/* Attachment Preview Dialog */}
+      <AttachmentPreview
+        attachment={previewAttachment}
+        messageId={previewMessageId}
+        emailSubject={previewEmailSubject}
+        open={showPreview}
+        onOpenChange={setShowPreview}
+      />
     </div>
   );
 };

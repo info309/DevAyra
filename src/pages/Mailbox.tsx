@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
+import AttachmentPreview from '@/components/AttachmentPreview';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 
 interface Email {
