@@ -1184,7 +1184,7 @@ const Mailbox: React.FC = () => {
                     <span className="hidden sm:inline">Compose</span>
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="max-w-none h-[90vh]">
+                <DrawerContent className="max-w-none h-[95vh]">
                   <DrawerHeader>
                     <DrawerTitle>Compose Email</DrawerTitle>
                   </DrawerHeader>
@@ -1789,7 +1789,7 @@ const Mailbox: React.FC = () => {
 
             {/* Mobile Drawer for Email Content */}
             <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-              <DrawerContent className="h-[90vh] max-w-full">
+              <DrawerContent className="h-[95vh] max-w-full">
                 <DrawerHeader className="border-b px-4 pb-3">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start justify-between w-full min-w-0">
