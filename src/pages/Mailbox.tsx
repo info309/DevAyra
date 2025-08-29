@@ -1071,7 +1071,7 @@ const Mailbox: React.FC = () => {
             </Button>
             
             {/* Logo */}
-            <h1 className="text-3xl font-bold">/Ayra</h1>
+            <h1 className="text-3xl font-bold">Mail</h1>
           </div>
         </div>
 
@@ -1090,7 +1090,7 @@ const Mailbox: React.FC = () => {
                 <ArrowLeft className="w-5 h-5" />
                 <span className="hidden sm:inline">Back</span>
               </Button>
-              <h1 className="text-2xl font-bold">/Ayra</h1>
+              <h1 className="text-2xl font-bold">Mail</h1>
             </div>
 
             {/* View Toggle - Desktop */}
