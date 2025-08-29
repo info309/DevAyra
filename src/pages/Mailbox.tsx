@@ -170,8 +170,23 @@ const Mailbox: React.FC = () => {
   useEffect(() => {
     if (user) {
       checkGmailConnection();
+    } else {
+      // Try to refresh session if user is null but we're on a protected route
+      const refreshSession = async () => {
+        try {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.log('Session refresh failed:', error);
+            navigate('/auth');
+          }
+        } catch (error) {
+          console.log('Session refresh error:', error);
+          navigate('/auth');
+        }
+      };
+      refreshSession();
     }
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     if (user && gmailConnected === true) {
