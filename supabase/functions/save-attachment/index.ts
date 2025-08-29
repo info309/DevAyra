@@ -124,13 +124,15 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[${requestId}] 📁 File path: ${filePath}`);
 
     // Upload to Supabase Storage
-    console.log(`[${requestId}] ☁️ Uploading to storage...`);
+    console.log(`[${requestId}] ☁️ Uploading to storage bucket 'documents', path: ${filePath}, size: ${bytes.length} bytes...`);
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('documents')
       .upload(filePath, bytes, {
         contentType: request.mimeType,
         duplex: 'half'
       });
+    
+    console.log(`[${requestId}] 📤 Storage upload result:`, { uploadData, uploadError });
 
     if (uploadError) {
       console.error(`[${requestId}] ❌ Upload failed:`, uploadError);
@@ -140,24 +142,31 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[${requestId}] ✅ Upload successful:`, uploadData);
 
     // Create document record
-    console.log(`[${requestId}] 📝 Creating document record...`);
+    console.log(`[${requestId}] 📝 Creating document record for user ${user.id}...`);
+    const documentRecord = {
+      user_id: user.id,
+      name: request.filename,
+      file_path: filePath,
+      file_size: request.size,
+      mime_type: request.mimeType,
+      source_type: 'email_attachment',
+      source_email_id: request.messageId,
+      source_email_subject: request.emailSubject,
+      category: request.category || 'email_attachment',
+      tags: request.tags || [],
+      description: request.description,
+      is_folder: false
+    };
+    
+    console.log(`[${requestId}] 📋 Document record to insert:`, documentRecord);
+    
     const { data: documentData, error: documentError } = await supabaseClient
       .from('user_documents')
-      .insert({
-        user_id: user.id,
-        name: request.filename,
-        file_path: filePath,
-        file_size: request.size,
-        mime_type: request.mimeType,
-        source_type: 'email_attachment',
-        source_email_id: request.messageId,
-        source_email_subject: request.emailSubject,
-        category: request.category || 'email_attachment',
-        tags: request.tags || [],
-        description: request.description
-      })
+      .insert(documentRecord)
       .select()
       .single();
+    
+    console.log(`[${requestId}] 📤 Document insert result:`, { documentData, documentError });
 
     if (documentError) {
       console.error(`[${requestId}] ❌ Document creation failed:`, documentError);

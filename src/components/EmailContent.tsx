@@ -102,7 +102,9 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     console.log('🔍 Starting attachment save:', { 
       filename: attachment.filename, 
       attachmentId: attachment.attachmentId,
-      emailId: email.id 
+      emailId: email.id,
+      size: attachment.size,
+      mimeType: attachment.mimeType
     });
 
     if (!attachment.attachmentId) {
@@ -115,40 +117,75 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
       return;
     }
 
+    if (!attachment.filename || attachment.filename.trim() === '') {
+      console.error('❌ Invalid filename');
+      toast({
+        variant: "destructive",
+        title: "Invalid File", 
+        description: "Attachment has no valid filename",
+      });
+      return;
+    }
+
     try {
       console.log('📤 Calling save-attachment function...');
       const { supabase } = await import('@/integrations/supabase/client');
+      
+      const requestPayload = {
+        messageId: email.id,
+        attachmentId: attachment.attachmentId,
+        filename: attachment.filename,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        emailSubject: email.subject,
+        description: `Email attachment from ${email.from}`,
+        category: 'email_attachment',
+        tags: ['email', 'attachment']
+      };
+      
+      console.log('📋 Request payload:', requestPayload);
+      
       const { data, error } = await supabase.functions.invoke('save-attachment', {
-        body: {
-          messageId: email.id,
-          attachmentId: attachment.attachmentId,
-          filename: attachment.filename,
-          mimeType: attachment.mimeType,
-          size: attachment.size,
-          emailSubject: email.subject,
-          description: `Email attachment from ${email.from}`,
-          category: 'email_attachment',
-          tags: ['email', 'attachment']
-        }
+        body: requestPayload
       });
 
       console.log('📥 Save function response:', { data, error });
 
       if (error) {
         console.error('❌ Save function error:', error);
-        throw error;
+        throw new Error(error.message || 'Unknown error from save function');
+      }
+
+      if (!data || !data.success) {
+        console.error('❌ Save function returned no data or success=false:', data);
+        throw new Error(data?.error || 'Save function failed');
       }
 
       console.log('✅ Save successful:', data);
       toast({
-        title: "Saved",
+        title: "Saved Successfully",
         description: `${attachment.filename} saved to your documents`
       });
     } catch (error) {
       console.error('❌ Save failed with error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('base64')) {
+          errorMessage = 'File encoding error - please try again';
+        } else if (error.message.includes('authentication')) {
+          errorMessage = 'Authentication failed - please refresh and try again';
+        } else if (error.message.includes('storage')) {
+          errorMessage = 'Storage error - please check your quota and try again';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Error", 
-        description: `Failed to save attachment: ${error.message || 'Unknown error'}`,
+        title: "Save Failed", 
+        description: errorMessage,
         variant: "destructive"
       });
     }
