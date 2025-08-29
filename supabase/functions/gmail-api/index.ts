@@ -126,17 +126,28 @@ class GmailService {
       // Convert Base64URL to standard Base64 and decode
       const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
       const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-      return atob(padded);
+      
+      // Decode and handle UTF-8 properly
+      const decoded = atob(padded);
+      // Convert to proper UTF-8 string
+      return decodeURIComponent(escape(decoded));
     } catch (error) {
       console.error(`[${this.requestId}] Content decode error:`, error);
-      // If Base64 decode fails, return original content
-      return content;
+      try {
+        // Fallback: try direct atob
+        const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        return atob(padded);
+      } catch {
+        return content;
+      }
     }
   }
 
   private extractEmailContent(payload: any): { content: string; attachments: ProcessedAttachment[] } {
     const attachments: ProcessedAttachment[] = [];
-    let content = '';
+    let textContent = '';
+    let htmlContent = '';
 
     const processPart = (part: any) => {
       if (part.filename && part.body?.attachmentId) {
@@ -151,8 +162,10 @@ class GmailService {
 
       if (part.body?.data) {
         const decoded = this.decodeContent(part.body.data, part.body.encoding);
-        if (part.mimeType === 'text/html' || part.mimeType === 'text/plain') {
-          content += decoded + '\n';
+        if (part.mimeType === 'text/html') {
+          htmlContent = decoded;
+        } else if (part.mimeType === 'text/plain') {
+          textContent = decoded;
         }
       }
 
@@ -164,10 +177,35 @@ class GmailService {
     if (payload.parts) {
       payload.parts.forEach(processPart);
     } else if (payload.body?.data) {
-      content = this.decodeContent(payload.body.data, payload.body.encoding);
+      const decoded = this.decodeContent(payload.body.data, payload.body.encoding);
+      if (payload.mimeType === 'text/html') {
+        htmlContent = decoded;
+      } else {
+        textContent = decoded;
+      }
     }
 
-    return { content: content.trim(), attachments };
+    // Prefer text content over HTML for cleaner display
+    // If text content is empty or very short, fall back to HTML
+    let finalContent = textContent.trim();
+    if (!finalContent || finalContent.length < 50) {
+      finalContent = htmlContent.trim();
+    }
+
+    // Clean up common HTML entities if we're using HTML content
+    if (finalContent === htmlContent && htmlContent) {
+      finalContent = htmlContent
+        .replace(/<[^>]*>/g, ' ')  // Remove HTML tags
+        .replace(/&nbsp;/g, ' ')   // Replace &nbsp;
+        .replace(/&quot;/g, '"')   // Replace &quot;
+        .replace(/&amp;/g, '&')    // Replace &amp;
+        .replace(/&lt;/g, '<')     // Replace &lt;
+        .replace(/&gt;/g, '>')     // Replace &gt;
+        .replace(/\s+/g, ' ')      // Normalize whitespace
+        .trim();
+    }
+
+    return { content: finalContent, attachments };
   }
 
   private processMessage(message: any): ProcessedEmail {
