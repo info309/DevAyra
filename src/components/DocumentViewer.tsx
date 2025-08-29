@@ -161,10 +161,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     return (
       <div className="flex flex-col items-center justify-center">
         <div 
-          className="relative bg-white border-2 border-gray-200 shadow-lg"
+          className="relative bg-white border-2 border-gray-200 shadow-lg w-40 h-50 sm:w-48 sm:h-60 lg:w-64 lg:h-80"
           style={{ 
-            width: '160px', 
-            height: '200px', 
             borderRadius: '4px' 
           }}
         >
