@@ -652,17 +652,14 @@ const Mailbox: React.FC = () => {
     // Show immediate success feedback
     toast({
       title: "Success",
-      description: "Email moved to trash."
+        description: "Conversation moved to trash."
     });
 
     // Make Gmail API call in the background - don't await it
-    supabase.functions.invoke('gmail-api', {
-      body: { 
-        action: 'deleteThread',
-        threadId: conversation.id
-      }
-    }).then(({ error }) => {
-      if (error) {
+    gmailApi.deleteThread(conversation.id).then((response) => {
+      console.log('Delete thread response:', response);
+      if (response.error || !response.results?.[0]?.success) {
+        const error = response.error || 'Delete operation failed';
         console.error('Background delete failed:', error);
         // Silently restore the conversation on error
         setCurrentConversations(prev => [...prev, conversation].sort((a, b) => 
@@ -670,7 +667,7 @@ const Mailbox: React.FC = () => {
         ));
         toast({
           title: "Error",
-          description: "Failed to delete email from Gmail. Email restored.",
+          description: "Failed to delete conversation from Gmail. Conversation restored.",
           variant: "destructive"
         });
       }
@@ -682,7 +679,7 @@ const Mailbox: React.FC = () => {
       ));
       toast({
         title: "Error", 
-        description: "Failed to delete email from Gmail. Email restored.",
+        description: "Failed to delete conversation from Gmail. Conversation restored.",
         variant: "destructive"
       });
     });
@@ -722,13 +719,10 @@ const Mailbox: React.FC = () => {
     });
 
     // Make Gmail API call in the background - don't await it
-    supabase.functions.invoke('gmail-api', {
-      body: { 
-        action: 'deleteMessage',
-        messageId: emailId
-      }
-    }).then(({ error }) => {
-      if (error) {
+    gmailApi.deleteMessage(emailId).then((response) => {
+      console.log('Delete message response:', response);
+      if (response.error || !response.results?.[0]?.success) {
+        const error = response.error || 'Delete operation failed';
         console.error('Background email delete failed:', error);
         // Restore the email on error
         setCurrentConversations(prev => 
