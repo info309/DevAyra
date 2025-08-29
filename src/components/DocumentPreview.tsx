@@ -58,6 +58,17 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
       // For images and PDFs, generate direct preview
       if (document.mime_type.startsWith('image/') || document.mime_type.includes('pdf')) {
         console.log('Creating signed URL for:', document.mime_type, 'at path:', document.file_path);
+        
+        // First, let's check if the file actually exists in storage
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from('documents')
+          .list(`attachments/${document.file_path.split('/')[1]}`, {
+            limit: 100,
+            search: document.name.split('_')[0] // Search by base filename
+          });
+          
+        console.log('Storage list result for', document.file_path, ':', { fileData, fileError });
+        
         const { data, error } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600, {
@@ -66,6 +77,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
         
         if (error) {
           console.error('Error creating signed URL for', document.file_path, ':', error);
+          console.log('Available files in storage:', fileData);
           setPreviewUrl(null);
         } else if (data) {
           console.log('Signed URL created successfully:', data.signedUrl);
