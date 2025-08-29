@@ -99,9 +99,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { data: fileData, base64Data } = gmailResponse.data;
 
-    // Convert base64 data to Uint8Array for storage
-    console.log(`[${requestId}] 🔄 Converting to binary data...`);
-    const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    // Convert base64URL data to Uint8Array for storage
+    console.log(`[${requestId}] 🔄 Converting base64URL to binary data...`);
+    
+    // Gmail returns base64URL format, convert to standard base64
+    let standardBase64 = base64Data.replace(/-/g, "+").replace(/_/g, "/");
+    
+    // Add padding if needed
+    while (standardBase64.length % 4 !== 0) {
+      standardBase64 += "=";
+    }
+    
+    console.log(`[${requestId}] 📋 Base64 conversion: original length ${base64Data.length}, standard length ${standardBase64.length}`);
+    
+    const bytes = Uint8Array.from(atob(standardBase64), c => c.charCodeAt(0));
 
     // Generate unique filename to avoid collisions
     const timestamp = Date.now();
