@@ -29,14 +29,18 @@ class SaveAttachmentError extends Error {
 const handler = async (req: Request): Promise<Response> => {
   const requestId = Math.random().toString(36).substring(2, 15);
   
+  console.log(`[${requestId}] ⭐ Save attachment request started`);
+  
   if (req.method === 'OPTIONS') {
+    console.log(`[${requestId}] OPTIONS request handled`);
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log(`[${requestId}] Save attachment request received`);
+    console.log(`[${requestId}] 📝 Processing save attachment request`);
     
     // Authenticate user
+    console.log(`[${requestId}] 🔐 Authenticating user...`);
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -44,6 +48,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
+      console.error(`[${requestId}] ❌ No auth header`);
       throw new SaveAttachmentError('Authorization header required', 401);
     }
 
@@ -51,22 +56,29 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
-      console.error(`[${requestId}] Auth error:`, userError);
+      console.error(`[${requestId}] ❌ Auth failed:`, userError);
       throw new SaveAttachmentError('Invalid authentication token', 401);
     }
+    
+    console.log(`[${requestId}] ✅ User authenticated: ${user.email}`);
 
     // Parse request
+    console.log(`[${requestId}] 📋 Parsing request body...`);
     const requestBody = await req.json();
+    console.log(`[${requestId}] Request body:`, requestBody);
+    
     const validation = requestSchema.safeParse(requestBody);
     
     if (!validation.success) {
-      console.error(`[${requestId}] Validation error:`, validation.error);
+      console.error(`[${requestId}] ❌ Validation failed:`, validation.error);
       throw new SaveAttachmentError('Invalid request format', 400);
     }
 
     const request = validation.data;
+    console.log(`[${requestId}] ✅ Request validated:`, request);
 
     // First, download the attachment from Gmail API
+    console.log(`[${requestId}] 📥 Downloading from Gmail API...`);
     const gmailResponse = await supabaseClient.functions.invoke('gmail-api', {
       body: {
         action: 'downloadAttachment',
@@ -79,12 +91,16 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (gmailResponse.error) {
+      console.error(`[${requestId}] ❌ Gmail API error:`, gmailResponse.error);
       throw new SaveAttachmentError(`Failed to download attachment: ${gmailResponse.error}`, 400);
     }
+    
+    console.log(`[${requestId}] ✅ Gmail download successful`);
 
     const { data: fileData, base64Data } = gmailResponse.data;
 
     // Convert base64 data to Uint8Array for storage
+    console.log(`[${requestId}] 🔄 Converting to binary data...`);
     const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
     // Generate unique filename to avoid collisions
@@ -93,8 +109,11 @@ const handler = async (req: Request): Promise<Response> => {
     const baseName = request.filename.replace(/\.[^/.]+$/, '');
     const uniqueFilename = `${baseName}_${timestamp}${fileExtension ? '.' + fileExtension : ''}`;
     const filePath = `attachments/${user.id}/${uniqueFilename}`;
+    
+    console.log(`[${requestId}] 📁 File path: ${filePath}`);
 
     // Upload to Supabase Storage
+    console.log(`[${requestId}] ☁️ Uploading to storage...`);
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('documents')
       .upload(filePath, bytes, {
@@ -103,11 +122,14 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (uploadError) {
-      console.error(`[${requestId}] Upload error:`, uploadError);
+      console.error(`[${requestId}] ❌ Upload failed:`, uploadError);
       throw new SaveAttachmentError(`Failed to save attachment: ${uploadError.message}`, 500);
     }
+    
+    console.log(`[${requestId}] ✅ Upload successful:`, uploadData);
 
     // Create document record
+    console.log(`[${requestId}] 📝 Creating document record...`);
     const { data: documentData, error: documentError } = await supabaseClient
       .from('user_documents')
       .insert({
@@ -127,7 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (documentError) {
-      console.error(`[${requestId}] Document insert error:`, documentError);
+      console.error(`[${requestId}] ❌ Document creation failed:`, documentError);
       
       // Clean up uploaded file if document creation failed
       await supabaseClient.storage
@@ -137,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new SaveAttachmentError(`Failed to create document record: ${documentError.message}`, 500);
     }
 
-    console.log(`[${requestId}] Attachment saved successfully: ${filePath}`);
+    console.log(`[${requestId}] ✅ Document created successfully:`, documentData);
     
     return new Response(JSON.stringify({
       success: true,
@@ -149,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error(`[${requestId}] Handler error:`, error);
+    console.error(`[${requestId}] ❌ Handler error:`, error);
     
     const status = error instanceof SaveAttachmentError ? error.status : 500;
     const message = error instanceof Error ? error.message : 'Internal server error';

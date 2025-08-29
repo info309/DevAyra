@@ -99,7 +99,14 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
   };
 
   const handleAttachmentSave = async (attachment: Attachment, email: Email) => {
+    console.log('🔍 Starting attachment save:', { 
+      filename: attachment.filename, 
+      attachmentId: attachment.attachmentId,
+      emailId: email.id 
+    });
+
     if (!attachment.attachmentId) {
+      console.error('❌ No attachment ID available');
       toast({
         variant: "destructive",
         title: "Save Unavailable", 
@@ -109,6 +116,7 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     }
 
     try {
+      console.log('📤 Calling save-attachment function...');
       const { supabase } = await import('@/integrations/supabase/client');
       const { data, error } = await supabase.functions.invoke('save-attachment', {
         body: {
@@ -124,19 +132,23 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
         }
       });
 
+      console.log('📥 Save function response:', { data, error });
+
       if (error) {
+        console.error('❌ Save function error:', error);
         throw error;
       }
 
+      console.log('✅ Save successful:', data);
       toast({
         title: "Saved",
         description: `${attachment.filename} saved to your documents`
       });
     } catch (error) {
-      console.error('Save failed:', error);
+      console.error('❌ Save failed with error:', error);
       toast({
         title: "Error", 
-        description: "Failed to save attachment to documents",
+        description: `Failed to save attachment: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
