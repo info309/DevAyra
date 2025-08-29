@@ -118,29 +118,30 @@ class GmailService {
     return response.json();
   }
 
-  private decodeContent(content: string, encoding?: string): string {
-    if (!content) return '';
-    
+  // Gmail Base64URL decoder - handles Gmail's quirky encoding properly
+  private gmailB64Decode(b64url: string): string {
+    if (!b64url) return "";
+
+    // 1. Convert Base64URL → standard Base64
+    let base64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+
+    // 2. Pad with '=' to make length divisible by 4
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
+    }
+
+    // 3. Decode
     try {
-      // Gmail API returns content in Base64URL encoding by default
-      // Convert Base64URL to standard Base64 and decode
-      const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-      
-      // Decode and handle UTF-8 properly
-      const decoded = atob(padded);
-      // Convert to proper UTF-8 string
-      return decodeURIComponent(escape(decoded));
-    } catch (error) {
-      console.error(`[${this.requestId}] Content decode error:`, error);
-      try {
-        // Fallback: try direct atob
-        const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-        return atob(padded);
-      } catch {
-        return content;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
       }
+      // 4. Convert to UTF-8 string
+      return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    } catch (e) {
+      console.error(`[${this.requestId}] gmailB64Decode failed:`, e);
+      return "";
     }
   }
 
@@ -161,7 +162,7 @@ class GmailService {
       }
 
       if (part.body?.data) {
-        const decoded = this.decodeContent(part.body.data, part.body.encoding);
+        const decoded = this.gmailB64Decode(part.body.data);
         if (part.mimeType === 'text/html') {
           htmlContent = decoded;
         } else if (part.mimeType === 'text/plain') {
@@ -177,7 +178,7 @@ class GmailService {
     if (payload.parts) {
       payload.parts.forEach(processPart);
     } else if (payload.body?.data) {
-      const decoded = this.decodeContent(payload.body.data, payload.body.encoding);
+      const decoded = this.gmailB64Decode(payload.body.data);
       if (payload.mimeType === 'text/html') {
         htmlContent = decoded;
       } else {
@@ -185,24 +186,21 @@ class GmailService {
       }
     }
 
-    // Prefer text content over HTML for cleaner display
-    // If text content is empty or very short, fall back to HTML
-    let finalContent = textContent.trim();
-    if (!finalContent || finalContent.length < 50) {
-      finalContent = htmlContent.trim();
-    }
-
-    // Clean up common HTML entities if we're using HTML content
-    if (finalContent === htmlContent && htmlContent) {
-      finalContent = htmlContent
-        .replace(/<[^>]*>/g, ' ')  // Remove HTML tags
-        .replace(/&nbsp;/g, ' ')   // Replace &nbsp;
-        .replace(/&quot;/g, '"')   // Replace &quot;
-        .replace(/&amp;/g, '&')    // Replace &amp;
-        .replace(/&lt;/g, '<')     // Replace &lt;
-        .replace(/&gt;/g, '>')     // Replace &gt;
-        .replace(/\s+/g, ' ')      // Normalize whitespace
+    // Choose content format: prefer text/plain converted to HTML-safe, fallback to text/html
+    let finalContent = '';
+    
+    if (textContent.trim()) {
+      // Convert text/plain to HTML-safe format
+      finalContent = textContent
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '<br>')
         .trim();
+    } else if (htmlContent.trim()) {
+      // Use HTML content as-is for proper rendering
+      finalContent = htmlContent.trim();
     }
 
     return { content: finalContent, attachments };
