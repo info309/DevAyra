@@ -133,13 +133,106 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     });
   };
 
+  const getFileExtension = () => {
+    const extension = document?.name.split('.').pop()?.toUpperCase();
+    if (!extension) return 'FILE';
+    
+    // Map common extensions to readable names
+    const extensionMap: { [key: string]: string } = {
+      'DOCX': 'WORD',
+      'DOC': 'WORD', 
+      'PAGES': 'PAGES',
+      'PDF': 'PDF',
+      'TXT': 'TEXT',
+      'RTF': 'RTF',
+      'ODT': 'ODT',
+      'XLSX': 'EXCEL',
+      'XLS': 'EXCEL',
+      'NUMBERS': 'NUMBERS',
+      'CSV': 'CSV',
+      'PPTX': 'PPT',
+      'PPT': 'PPT',
+      'KEY': 'KEY',
+      'ODP': 'ODP'
+    };
+    
+    return extensionMap[extension] || extension;
+  };
+
+  const A4DocumentIcon = ({ extension, size = 80 }: { extension: string; size?: number }) => {
+    const width = size * 0.6; // Portrait aspect ratio
+    const height = size;
+    
+    return (
+      <div className="flex flex-col items-center justify-center">
+        <svg 
+          width={width} 
+          height={height} 
+          viewBox={`0 0 ${width} ${height}`} 
+          className="drop-shadow-lg"
+        >
+          <defs>
+            <linearGradient id={`paperGrad-${document?.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#f8fafc" />
+            </linearGradient>
+          </defs>
+          
+          {/* Document body */}
+          <rect
+            x="2"
+            y="2"
+            width={width - 4}
+            height={height - 4}
+            fill={`url(#paperGrad-${document?.id})`}
+            stroke="#e2e8f0"
+            strokeWidth="1"
+            rx="3"
+          />
+          
+          {/* Document lines */}
+          {Array.from({ length: Math.floor(height / 12) - 2 }).map((_, i) => (
+            <line
+              key={i}
+              x1="8"
+              y1={16 + i * 8}
+              x2={width - 8}
+              y2={16 + i * 8}
+              stroke="#e2e8f0"
+              strokeWidth="1"
+            />
+          ))}
+          
+          {/* Document corner fold */}
+          <path
+            d={`M${width - 16} 2 L${width - 2} 16 L${width - 16} 16 Z`}
+            fill="#f1f5f9"
+            stroke="#e2e8f0"
+            strokeWidth="1"
+          />
+          
+          {/* Extension text */}
+          <text
+            x={width / 2}
+            y={height / 2 + 4}
+            textAnchor="middle"
+            className="fill-slate-600 text-xs font-semibold"
+            style={{ fontSize: extension.length > 4 ? '10px' : '12px' }}
+          >
+            {extension}
+          </text>
+        </svg>
+      </div>
+    );
+  };
+
   const renderPreview = () => {
     if (!document || !previewUrl) {
       return (
         <div className="flex items-center justify-center h-full bg-background">
           <div className="text-center">
-            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
+            <A4DocumentIcon extension={getFileExtension()} size={120} />
+            <p className="text-muted-foreground mt-6">
               {loading ? 'Loading preview...' : 'Preview not available'}
             </p>
           </div>
@@ -195,12 +288,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
 
-    // Other document types - show document info
+    // Other document types - show beautiful document icon
     return (
       <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center max-w-sm p-6">
-          <FileText className="w-16 h-16 text-primary mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">{document.name}</h3>
+          <A4DocumentIcon extension={getFileExtension()} size={120} />
+          <h3 className="text-lg font-medium mb-2 mt-6">{document.name}</h3>
           <p className="text-muted-foreground mb-4">
             This file type cannot be previewed. Click download to open it with the appropriate application.
           </p>
