@@ -466,8 +466,8 @@ const Documents = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-background px-6 py-3 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="bg-background">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Mobile/Tablet Back Arrow and Logo - Left side */}
@@ -476,7 +476,6 @@ const Documents = () => {
                   variant="outline"
                   size="icon"
                   onClick={() => navigate('/dashboard')}
-                  className="ml-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
