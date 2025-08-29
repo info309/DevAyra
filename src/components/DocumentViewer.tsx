@@ -61,6 +61,23 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     try {
       setLoading(true);
       
+      // First check if file exists before creating signed URL
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from('documents')
+        .list(document.file_path.split('/').slice(0, -1).join('/'), {
+          search: document.file_path.split('/').pop()
+        });
+      
+      if (fileError || !fileData?.find(file => document.file_path.endsWith(file.name))) {
+        console.error('File not found in storage:', document.file_path);
+        toast({
+          title: "File Not Found",
+          description: "The document file could not be located in storage",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Create signed URL for preview
       const { data, error } = await supabase.storage
         .from('documents')
@@ -78,6 +95,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       }
     } catch (error) {
       console.error('Error generating preview:', error);
+      toast({
+        title: "Error", 
+        description: "An unexpected error occurred while loading the preview",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

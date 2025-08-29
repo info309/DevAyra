@@ -59,11 +59,20 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
 
   const handleAttachmentDownload = (attachment: Attachment) => {
     if (attachment.downloadUrl) {
-      window.open(attachment.downloadUrl, '_blank');
-      toast({
-        title: "Download Started",
-        description: `Downloading ${attachment.filename}`,
-      });
+      // Validate URL before attempting download
+      if (attachment.downloadUrl.startsWith('http') || attachment.downloadUrl.startsWith('data:')) {
+        window.open(attachment.downloadUrl, '_blank');
+        toast({
+          title: "Download Started",
+          description: `Downloading ${attachment.filename}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid Download URL", 
+          description: `Cannot download ${attachment.filename} - invalid URL`,
+        });
+      }
     } else {
       toast({
         variant: "destructive",
@@ -75,11 +84,20 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
 
   const handleAttachmentPreview = (attachment: Attachment) => {
     if (attachment.downloadUrl) {
-      window.open(attachment.downloadUrl, '_blank');
-      toast({
-        title: "Opening Preview",
-        description: `Previewing ${attachment.filename}`,
-      });
+      // Check if URL is valid before opening
+      if (attachment.downloadUrl.startsWith('http') || attachment.downloadUrl.startsWith('data:')) {
+        window.open(attachment.downloadUrl, '_blank');
+        toast({
+          title: "Opening Preview",
+          description: `Previewing ${attachment.filename}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid URL", 
+          description: `Cannot preview ${attachment.filename} - invalid download URL`,
+        });
+      }
     } else {
       toast({
         variant: "destructive",

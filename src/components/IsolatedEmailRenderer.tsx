@@ -79,7 +79,28 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               border-radius: 8px;
               box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               display: block;
+              margin: 10px auto;
               -ms-interpolation-mode: bicubic;
+              object-fit: contain;
+              max-height: 500px;
+            }
+            
+            /* Handle broken images */
+            img[src=""], img:not([src]), img[src*="data:"] {
+              display: none !important;
+            }
+            
+            /* Fallback for missing images */
+            img[alt]:after {
+              content: "📷 " attr(alt);
+              display: block;
+              padding: 20px;
+              background: #f3f4f6;
+              border: 2px dashed #d1d5db;
+              border-radius: 8px;
+              text-align: center;
+              color: #6b7280;
+              font-style: italic;
             }
             
             /* Links */
@@ -149,9 +170,17 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               observer.observe(document.body);
             }
             
-            // Listen for image load events
+            // Listen for image load events and errors
             document.addEventListener('load', updateHeight, true);
             document.addEventListener('DOMContentLoaded', updateHeight);
+            
+            // Handle broken images
+            document.addEventListener('error', function(e) {
+              if (e.target && e.target.tagName === 'IMG') {
+                e.target.style.display = 'none';
+                updateHeight();
+              }
+            }, true);
             
             // Update on window resize
             window.addEventListener('resize', updateHeight);
