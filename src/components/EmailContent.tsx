@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Paperclip, Download, Image as ImageIcon, Clock } from 'lucide-react';
+import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
+import AttachmentViewer from './AttachmentViewer';
 
 interface Attachment {
   filename: string;
@@ -44,6 +45,7 @@ interface EmailContentProps {
 
 const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
+  const [selectedAttachment, setSelectedAttachment] = useState<{ attachment: Attachment; email: Email } | null>(null);
 
   // Function to decode HTML entities in email content for display
   const decodeHtmlEntities = (htmlContent: string): string => {
@@ -314,6 +316,15 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setSelectedAttachment({ attachment, email })}
+                            className="flex-shrink-0"
+                            title="Preview attachment"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleAttachmentAction(attachment, email, 'save')}
                             disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
@@ -370,6 +381,15 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setSelectedAttachment({ attachment: image, email })}
+                            className="flex-shrink-0"
+                            title="Preview image"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleAttachmentAction(image, email, 'save')}
                             className="flex-shrink-0"
                             title="Save to Documents"
@@ -408,6 +428,16 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
           </div>
         );
       })}
+      
+      {/* Attachment Viewer */}
+      <AttachmentViewer
+        attachment={selectedAttachment?.attachment || null}
+        email={selectedAttachment?.email || null}
+        isOpen={!!selectedAttachment}
+        onClose={() => setSelectedAttachment(null)}
+        onSave={handleAttachmentSave}
+        onDownload={handleAttachmentDownload}
+      />
     </div>
   );
 };
