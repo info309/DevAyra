@@ -1085,7 +1085,7 @@ const Mailbox: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/dashboard')}
-                className="gap-2 -ml-1"
+                className="gap-2 -ml-2"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span className="hidden sm:inline">Back</span>
