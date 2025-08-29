@@ -60,6 +60,8 @@ const Documents = () => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<UserDocument | null>(null);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<UserDocument | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -310,6 +312,59 @@ const Documents = () => {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, doc: UserDocument) => {
+    setDraggedItem(doc);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDropTarget(null);
+  };
+
+  const handleFolderDragOver = (e: React.DragEvent, folderId: string) => {
+    if (draggedItem && !draggedItem.is_folder) {
+      e.preventDefault();
+      setDropTarget(folderId);
+    }
+  };
+
+  const handleFolderDragLeave = () => {
+    setDropTarget(null);
+  };
+
+  const handleFolderDrop = async (e: React.DragEvent, targetFolder: UserDocument) => {
+    e.preventDefault();
+    setDropTarget(null);
+    
+    if (!draggedItem || draggedItem.is_folder || draggedItem.id === targetFolder.id) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_documents')
+        .update({ folder_id: targetFolder.id })
+        .eq('id', draggedItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Moved ${draggedItem.name} to ${targetFolder.name}`,
+      });
+
+      loadDocuments();
+    } catch (error) {
+      console.error('Error moving document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move document",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getFileIcon = (mimeType: string | null) => {
     if (!mimeType) return File;
     if (mimeType.startsWith('image/')) return Image;
@@ -460,35 +515,22 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="group relative cursor-pointer"
+                  className={`group relative cursor-pointer transition-transform ${
+                    draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
+                  } ${dropTarget === doc.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   onClick={() => handleDocumentClick(doc)}
+                  draggable={!doc.is_folder}
+                  onDragStart={(e) => handleDragStart(e, doc)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={doc.is_folder ? (e) => handleFolderDragOver(e, doc.id) : undefined}
+                  onDragLeave={doc.is_folder ? handleFolderDragLeave : undefined}
+                  onDrop={doc.is_folder ? (e) => handleFolderDrop(e, doc) : undefined}
                 >
                   {/* Preview/Icon Area */}
                   <div className="w-full aspect-[3/4] mb-2 rounded-lg overflow-hidden">
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-16 h-16">
-                          <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <defs>
-                              <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#60a5fa" />
-                                <stop offset="100%" stopColor="#3b82f6" />
-                              </linearGradient>
-                            </defs>
-                            <path
-                              d="M15 25 L35 25 L40 35 L85 35 L85 75 L15 75 Z"
-                              fill={`url(#folderGrad-${doc.id})`}
-                              stroke="#2563eb"
-                              strokeWidth="1"
-                            />
-                            <path
-                              d="M15 25 L15 20 L35 20 L40 30 L85 30 L85 35 L40 35 L35 25 Z"
-                              fill="#93c5fd"
-                              stroke="#2563eb"
-                              strokeWidth="1"
-                            />
-                          </svg>
-                        </div>
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg">
+                        <Folder className="w-12 h-12 text-primary" />
                       </div>
                     ) : (
                       <DocumentPreview 
