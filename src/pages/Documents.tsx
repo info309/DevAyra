@@ -333,7 +333,7 @@ const Documents = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-background border-b px-4 py-3 lg:px-8">
+      <div className="bg-background px-4 py-3 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
