@@ -130,7 +130,7 @@ class GmailService {
       base64 += "=";
     }
 
-    // 3. Decode
+    // 3. Decode Base64 to binary, then convert to UTF-8
     try {
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
@@ -138,7 +138,34 @@ class GmailService {
         bytes[i] = binary.charCodeAt(i);
       }
       // 4. Convert to UTF-8 string
-      return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      let decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      
+      // 5. Handle additional URL encoding that may be present (like Tesla emails)
+      // Check if content contains URL-encoded patterns
+      if (decoded.includes('-2F') || decoded.includes('-2B') || decoded.includes('%')) {
+        try {
+          // First handle common URL-encoded dash patterns (used by email link tracking)
+          decoded = decoded
+            .replace(/-2F/g, '/')
+            .replace(/-2B/g, '+')
+            .replace(/-3D/g, '=')
+            .replace(/-26/g, '&')
+            .replace(/-3A/g, ':')
+            .replace(/-3F/g, '?')
+            .replace(/-23/g, '#');
+          
+          // Then try standard URL decoding for remaining % patterns
+          // Only decode if it looks like valid URL encoding
+          if (decoded.match(/%[0-9A-F]{2}/gi)) {
+            decoded = decodeURIComponent(decoded);
+          }
+        } catch (urlDecodeError) {
+          // If URL decoding fails, continue with the partially decoded content
+          console.warn(`[${this.requestId}] URL decoding failed, using partially decoded content:`, urlDecodeError);
+        }
+      }
+      
+      return decoded;
     } catch (e) {
       console.error(`[${this.requestId}] gmailB64Decode failed:`, e);
       return "";
