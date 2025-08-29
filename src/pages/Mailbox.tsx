@@ -792,9 +792,11 @@ const Mailbox: React.FC = () => {
             reader.onload = () => {
               const base64 = (reader.result as string).split(',')[1];
               resolve({
+                name: file.name,
                 filename: file.name,
-                content: base64,
-                contentType: file.type,
+                data: base64,
+                type: file.type,
+                mimeType: file.type,
                 size: file.size
               });
             };
@@ -834,9 +836,11 @@ const Mailbox: React.FC = () => {
                     const base64 = (reader.result as string).split(',')[1];
                     console.log('Successfully converted document to base64:', doc.name);
                     resolve({
+                      name: doc.name,
                       filename: doc.name,
-                      content: base64,
-                      contentType: doc.mime_type || 'application/octet-stream',
+                      data: base64,
+                      type: doc.mime_type || 'application/octet-stream',
+                      mimeType: doc.mime_type || 'application/octet-stream',
                       size: doc.file_size || 0
                     });
                   };
