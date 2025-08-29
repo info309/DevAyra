@@ -610,7 +610,7 @@ const Documents = () => {
                   onTouchEnd={handleTouchEnd}
                 >
                   {/* Preview/Icon Area */}
-                  <div className={`w-full aspect-[3/4] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
+                  <div className={`w-full aspect-[2/3] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
                     doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
                   }`}>
                     {doc.is_folder ? (
