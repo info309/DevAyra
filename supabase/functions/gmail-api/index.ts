@@ -122,14 +122,14 @@ class GmailService {
     if (!content) return '';
     
     try {
-      if (encoding === 'base64') {
-        const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-        return atob(padded);
-      }
-      return content;
+      // Gmail API returns content in Base64URL encoding by default
+      // Convert Base64URL to standard Base64 and decode
+      const base64 = content.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      return atob(padded);
     } catch (error) {
       console.error(`[${this.requestId}] Content decode error:`, error);
+      // If Base64 decode fails, return original content
       return content;
     }
   }
