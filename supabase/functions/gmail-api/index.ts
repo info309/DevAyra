@@ -781,15 +781,49 @@ const handler = async (req: Request): Promise<Response> => {
         const { to, subject, content, replyTo, threadId, attachments } = validatedRequest;
         
         try {
-          let emailContent = `To: ${to}\r\n`;
+          // Create proper MIME message format
+          const boundary = `----=_Part_${Math.random().toString(36).substring(2, 15)}_${Date.now().toString(36)}`;
+          
+          let emailContent = `MIME-Version: 1.0\r\n`;
+          emailContent += `To: ${to}\r\n`;
           emailContent += `Subject: ${subject}\r\n`;
           if (replyTo) {
             emailContent += `Reply-To: ${replyTo}\r\n`;
           }
-          emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-          emailContent += `\r\n${content}`;
+          
+          if (attachments && attachments.length > 0) {
+            // Multipart message with attachments
+            emailContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `--${boundary}\r\n`;
+            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
+            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `${content}\r\n`;
+            
+            // Add attachments (placeholder - full implementation would require file processing)
+            for (const attachment of attachments) {
+              emailContent += `--${boundary}\r\n`;
+              emailContent += `Content-Type: ${attachment.mimeType || 'application/octet-stream'}; name="${attachment.filename}"\r\n`;
+              emailContent += `Content-Transfer-Encoding: base64\r\n`;
+              emailContent += `Content-Disposition: attachment; filename="${attachment.filename}"\r\n`;
+              emailContent += `\r\n`;
+              emailContent += `${attachment.data || ''}\r\n`;
+            }
+            
+            emailContent += `--${boundary}--\r\n`;
+          } else {
+            // Simple text/html message
+            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
+            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `${content || 'This email has no content.'}\r\n`;
+          }
 
-          const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+          const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
 
           const sendData: any = {
             raw: encodedEmail
@@ -833,12 +867,48 @@ const handler = async (req: Request): Promise<Response> => {
         const { threadId, to, subject, content, attachments } = validatedRequest;
         
         try {
-          let emailContent = `To: ${to}\r\n`;
+          // Create proper MIME message format  
+          const boundary = `----=_Part_${Math.random().toString(36).substring(2, 15)}_${Date.now().toString(36)}`;
+          
+          let emailContent = `MIME-Version: 1.0\r\n`;
+          emailContent += `To: ${to}\r\n`;
           emailContent += `Subject: Re: ${subject}\r\n`;
-          emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
-          emailContent += `\r\n${content}`;
+          emailContent += `In-Reply-To: <${threadId}@gmail.com>\r\n`;
+          emailContent += `References: <${threadId}@gmail.com>\r\n`;
+          
+          if (attachments && attachments.length > 0) {
+            // Multipart message with attachments
+            emailContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `--${boundary}\r\n`;
+            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
+            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `${content || 'This email has no content.'}\r\n`;
+            
+            // Add attachments (placeholder - full implementation would require file processing)
+            for (const attachment of attachments) {
+              emailContent += `--${boundary}\r\n`;
+              emailContent += `Content-Type: ${attachment.mimeType || 'application/octet-stream'}; name="${attachment.filename}"\r\n`;
+              emailContent += `Content-Transfer-Encoding: base64\r\n`;
+              emailContent += `Content-Disposition: attachment; filename="${attachment.filename}"\r\n`;
+              emailContent += `\r\n`;
+              emailContent += `${attachment.data || ''}\r\n`;
+            }
+            
+            emailContent += `--${boundary}--\r\n`;
+          } else {
+            // Simple text/html message
+            emailContent += `Content-Type: text/html; charset=utf-8\r\n`;
+            emailContent += `Content-Transfer-Encoding: quoted-printable\r\n`;
+            emailContent += `\r\n`;
+            emailContent += `${content || 'This email has no content.'}\r\n`;
+          }
 
-          const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+          const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
 
           const sendResponse = await fetch(
             'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
