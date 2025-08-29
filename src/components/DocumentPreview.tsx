@@ -55,9 +55,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
 
       console.log('Fallback preview for:', document.name, 'Type:', document.mime_type);
       
-      // For images, generate direct preview
-      if (document.mime_type.startsWith('image/')) {
-        console.log('Creating signed URL for image:', document.file_path);
+      // For images and PDFs, generate direct preview
+      if (document.mime_type.startsWith('image/') || document.mime_type.includes('pdf')) {
+        console.log('Creating signed URL for:', document.mime_type, 'at path:', document.file_path);
         const { data, error } = await supabase.storage
           .from('documents')
           .createSignedUrl(document.file_path, 3600, {
@@ -65,23 +65,25 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
           });
         
         if (error) {
-          console.error('Error creating signed URL:', error);
+          console.error('Error creating signed URL for', document.file_path, ':', error);
           setPreviewUrl(null);
         } else if (data) {
-          console.log('Signed URL created:', data.signedUrl);
+          console.log('Signed URL created successfully:', data.signedUrl);
           setPreviewUrl(data.signedUrl);
           
-          // Detect orientation
-          const img = new Image();
-          img.onload = () => {
-            console.log('Image loaded, dimensions:', img.width, 'x', img.height);
-            setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
-          };
-          img.onerror = (e) => {
-            console.error('Error loading image:', e);
-            setPreviewUrl(null);
-          };
-          img.src = data.signedUrl;
+          // For images, detect orientation
+          if (document.mime_type.startsWith('image/')) {
+            const img = new Image();
+            img.onload = () => {
+              console.log('Image loaded, dimensions:', img.width, 'x', img.height);
+              setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
+            };
+            img.onerror = (e) => {
+              console.error('Error loading image:', e);
+              setPreviewUrl(null);
+            };
+            img.src = data.signedUrl;
+          }
         }
       }
       

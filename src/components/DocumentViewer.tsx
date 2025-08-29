@@ -71,6 +71,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     try {
       setLoading(true);
+      console.log('DocumentViewer: Generating preview for:', document.name, 'at path:', document.file_path);
       
       // Create signed URL for preview with inline download option
       const { data, error } = await supabase.storage
@@ -80,14 +81,23 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         });
       
       if (error) {
-        console.error('Error creating signed URL:', error);
-        // Only show error toast for previewable documents
+        console.error('DocumentViewer: Error creating signed URL for', document.file_path, ':', error);
+        toast({
+          title: "Preview Error",
+          description: `Cannot load preview: ${error.message}`,
+          variant: "destructive",
+        });
       } else if (data) {
+        console.log('DocumentViewer: Signed URL created successfully:', data.signedUrl);
         setPreviewUrl(data.signedUrl);
       }
     } catch (error) {
-      console.error('Error generating preview:', error);
-      // Only show error for previewable documents that actually fail
+      console.error('DocumentViewer: Error generating preview:', error);
+      toast({
+        title: "Preview Error", 
+        description: "Failed to generate document preview",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
