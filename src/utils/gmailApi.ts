@@ -33,8 +33,21 @@ export const gmailApi = {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        // Get the current session to pass auth token
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          throw new GmailApiError(
+            'No active session found. Please log in.',
+            401
+          );
+        }
+
         const { data, error } = await supabase.functions.invoke('gmail-api', {
-          body
+          body,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
         });
 
         if (error) {
