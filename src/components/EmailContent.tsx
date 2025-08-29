@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Paperclip, Download, Image as ImageIcon, Clock, Eye } from 'lucide-react';
+import { Paperclip, Download, Image as ImageIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import IsolatedEmailRenderer from './IsolatedEmailRenderer';
 
@@ -94,45 +94,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
         title: "Error",
         description: "Failed to download attachment",
         variant: "destructive"
-      });
-    }
-  };
-
-  const handleAttachmentPreview = async (attachment: Attachment, email: Email) => {
-    if (!attachment.attachmentId) {
-      toast({
-        variant: "destructive",
-        title: "Preview Unavailable", 
-        description: `No attachment ID available for ${attachment.filename}`,
-      });
-      return;
-    }
-
-    try {
-      // Import gmailApi here to avoid circular dependency
-      const { gmailApi } = await import('@/utils/gmailApi');
-      const data = await gmailApi.downloadAttachment(email.id, attachment.attachmentId);
-      
-      // Create blob and open in new tab for viewing
-      const blob = new Blob([data.data], { type: attachment.mimeType });
-      const url = URL.createObjectURL(blob);
-      
-      // Open in new tab/window
-      window.open(url, '_blank');
-      
-      // Clean up URL after a delay to allow opening
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-      toast({
-        title: "Opened",
-        description: `${attachment.filename} opened in new tab`
-      });
-    } catch (error) {
-      console.error('Preview failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Preview Error",
-        description: `Failed to preview ${attachment.filename}`,
       });
     }
   };
@@ -260,16 +221,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAttachmentPreview(attachment, email)}
-                            disabled={!attachment.attachmentId}
-                            className="flex-shrink-0"
-                            title="Preview document"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => handleAttachmentDownload(attachment, email)}
                             disabled={!attachment.attachmentId}
                             className="flex-shrink-0"
@@ -321,16 +272,6 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
                             title="Save to Documents"
                           >
                             Save
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAttachmentPreview(image, email)}
-                            disabled={!image.attachmentId}
-                            className="flex-shrink-0"
-                            title="Preview image"
-                          >
-                            <Eye className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
