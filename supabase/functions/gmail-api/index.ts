@@ -517,9 +517,12 @@ const handler = async (req: Request): Promise<Response> => {
 
                       const { content, attachments } = await processEmailContent(message.payload);
                       
+                      console.log(`[${requestId}] Processing ${attachments.length} attachments for message ${message.id}`);
+                      
                       // For getEmails, generate download URLs for attachments
                       const attachmentMetadata = await Promise.all(
                         attachments.map(async (att) => {
+                          console.log(`[${requestId}] Processing attachment: ${att.filename}, ID: ${att.attachmentId}`);
                           try {
                             if (att.attachmentId) {
                               const downloadUrl = await downloadAndStoreAttachment(
@@ -532,6 +535,7 @@ const handler = async (req: Request): Promise<Response> => {
                                 userId,
                                 requestId
                               );
+                              console.log(`[${requestId}] Generated download URL for ${att.filename}: ${downloadUrl ? 'SUCCESS' : 'FAILED'}`);
                               return {
                                 filename: att.filename,
                                 mimeType: att.mimeType,
@@ -564,6 +568,8 @@ const handler = async (req: Request): Promise<Response> => {
                         })
                       );
 
+                      console.log(`[${requestId}] Final attachment metadata:`, attachmentMetadata);
+
                       return {
                         id: message.id,
                         threadId: thread.id,
@@ -576,6 +582,8 @@ const handler = async (req: Request): Promise<Response> => {
                         unread: message.labelIds?.includes('UNREAD') || false,
                         attachments: attachmentMetadata
                       };
+                      
+                      console.log(`[${requestId}] Email ${message.id} has ${attachmentMetadata.length} attachments`);
                     } catch (error) {
                       console.error(`[${requestId}] Error processing message ${message.id}:`, error);
                       response.errors!.push({

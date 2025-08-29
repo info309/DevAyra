@@ -172,6 +172,15 @@ const Mailbox: React.FC = () => {
     }
   }, [user]);
 
+  // Debug: Log conversation data when it changes
+  useEffect(() => {
+    console.log('Current conversations updated:', currentConversations.length);
+    currentConversations.forEach((conv, index) => {
+      const totalAttachments = conv.emails.reduce((total, email) => total + (email.attachments?.length || 0), 0);
+      console.log(`Conversation ${index + 1}: "${conv.subject}" - ${totalAttachments} attachments`);
+    });
+  }, [currentConversations]);
+
   // Add periodic refresh for the current view to catch new emails
   useEffect(() => {
     if (!user) return;
@@ -1566,9 +1575,15 @@ const Mailbox: React.FC = () => {
                                     
                                     {/* Bottom right - Action buttons */}
                                     <div className="flex gap-1 items-center">
-                                      {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
-                                        <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                      )}
+                                       {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                         <>
+                                           <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                           {/* Debug attachment count */}
+                                           <span className="text-xs text-muted-foreground">
+                                             ({conversation.emails.reduce((total, email) => total + (email.attachments?.length || 0), 0)})
+                                           </span>
+                                         </>
+                                       )}
                                       
                                       {conversation.messageCount > 1 && (
                                         <Button
@@ -1607,9 +1622,12 @@ const Mailbox: React.FC = () => {
                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
                                                 {email.from.split('<')[0].trim() || email.from}
                                               </p>
-                                              {email.attachments && email.attachments.length > 0 && (
-                                                <Paperclip className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                              )}
+                                               {email.attachments && email.attachments.length > 0 && (
+                                                 <>
+                                                   <Paperclip className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                                   <span className="text-xs text-muted-foreground">({email.attachments.length})</span>
+                                                 </>
+                                               )}
                                               {email.unread && (
                                                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                                               )}

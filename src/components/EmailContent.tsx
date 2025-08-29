@@ -107,16 +107,22 @@ const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachm
     }
   };
 
-  // Sort emails by date (newest first for conversation thread)
   const sortedEmails = [...conversation.emails].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  console.log('EmailContent received conversation with emails:', conversation.emails.length);
+  conversation.emails.forEach((email, index) => {
+    console.log(`Email ${index + 1} attachments:`, email.attachments?.length || 0, email.attachments);
+  });
 
   return (
     <div className="space-y-6 w-full min-w-0 overflow-hidden">
       {sortedEmails.map((email, emailIndex) => {
         const regularAttachments = email.attachments?.filter(att => !att.mimeType.startsWith('image/') || att.filename.includes('.')) || [];
         const inlineImages = email.attachments?.filter(att => att.mimeType.startsWith('image/') && !att.filename.includes('.')) || [];
+
+        console.log(`Email ${email.id} - Regular attachments: ${regularAttachments.length}, Inline images: ${inlineImages.length}`);
 
         return (
           <div key={email.id} className="space-y-4 w-full min-w-0 overflow-hidden">
