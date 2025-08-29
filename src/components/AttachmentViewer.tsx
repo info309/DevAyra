@@ -286,34 +286,27 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       );
     }
 
-    // PDF preview
+    // PDF preview - use simple iframe like DocumentViewer
     if (attachment.mimeType.includes('pdf') && previewUrl) {
       return (
         <div className="w-full h-full bg-background">
-          <object
-            data={previewUrl}
-            type="application/pdf"
-            className="w-full h-full"
+          <iframe
+            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1`}
+            className="w-full h-full border-0"
             title={`Preview of ${attachment.filename}`}
-          >
-            <iframe
-              src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1&navpanes=0&scrollbar=1`}
-              className="w-full h-full border-0"
-              title={`Preview of ${attachment.filename}`}
-              onError={(e) => {
-                console.error('Failed to load PDF preview:', e);
-                toast({
-                  title: "PDF Error", 
-                  description: "Failed to display PDF",
-                  variant: "destructive",
-                });
-                setPreviewUrl(null);
-              }}
-              onLoad={() => {
-                console.log('AttachmentViewer: PDF loaded successfully');
-              }}
-            />
-          </object>
+            onError={(e) => {
+              console.error('Failed to load PDF preview:', e);
+              toast({
+                title: "PDF Error", 
+                description: "Failed to display PDF",
+                variant: "destructive",
+              });
+              setPreviewUrl(null);
+            }}
+            onLoad={() => {
+              console.log('AttachmentViewer: PDF loaded successfully');
+            }}
+          />
         </div>
       );
     }
