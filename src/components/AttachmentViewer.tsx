@@ -279,7 +279,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       return (
         <div className="w-full h-full bg-background">
           <iframe
-            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1`}
+            src={`${previewUrl}#toolbar=1`}
             className="w-full h-full border-0"
             title={`Preview of ${attachment.filename}`}
             onError={(e) => {
