@@ -10,7 +10,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen, Menu } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen, Menu, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
@@ -81,6 +81,11 @@ const Mailbox: React.FC = () => {
   const { toast } = useToast();
   const isDrawerView = useIsDrawerView();
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
@@ -122,6 +127,10 @@ const Mailbox: React.FC = () => {
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   
+  // Gmail connection state
+  const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
+  const [connectingGmail, setConnectingGmail] = useState(false);
+  
   // Add files menu state for mobile compose
   const [showAddFilesMenu, setShowAddFilesMenu] = useState(false);
   const addFilesMenuRef = useRef<HTMLDivElement>(null);
@@ -157,13 +166,20 @@ const Mailbox: React.FC = () => {
 
   // Draft editing state - REMOVED (no longer supporting drafts)
 
+  // Check Gmail connection status on component mount
   useEffect(() => {
     if (user) {
+      checkGmailConnection();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && gmailConnected) {
       // Preload both inbox and sent views for instant switching
       loadEmailsForView('inbox', null, true); // Force refresh on initial load
       loadEmailsForView('sent', null, true);
     }
-  }, [user]);
+  }, [user, gmailConnected]);
 
   // Add periodic refresh for the current view to catch new emails
   useEffect(() => {
@@ -353,8 +369,93 @@ const Mailbox: React.FC = () => {
     return cleaned || htmlContent; // Return original if cleaning results in empty string
   };
 
-  const loadEmailsForView = async (view = currentView, pageToken?: string | null, forceRefresh = false) => {
+  const checkGmailConnection = async () => {
     if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('gmail_connections')
+        .select('id, is_active')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking Gmail connection:', error);
+        setGmailConnected(false);
+        return;
+      }
+
+      setGmailConnected(!!data);
+    } catch (error) {
+      console.error('Error checking Gmail connection:', error);
+      setGmailConnected(false);
+    }
+  };
+
+  const connectGmail = async () => {
+    if (!user) return;
+
+    try {
+      setConnectingGmail(true);
+      
+      const { data, error } = await supabase.functions.invoke('gmail-auth', {
+        body: { action: 'getAuthUrl' }
+      });
+
+      if (error) {
+        console.error('Error getting Gmail auth URL:', error);
+        toast({
+          title: "Error",
+          description: "Failed to connect to Gmail. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.authUrl) {
+        // Open Gmail auth URL in a new window
+        window.open(data.authUrl, '_blank', 'width=600,height=600');
+        
+        // Poll for connection status
+        const pollInterval = setInterval(async () => {
+          const { data: connectionData, error: connectionError } = await supabase
+            .from('gmail_connections')
+            .select('id, is_active')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (!connectionError && connectionData) {
+            setGmailConnected(true);
+            clearInterval(pollInterval);
+            toast({
+              title: "Success",
+              description: "Gmail connected successfully!"
+            });
+          }
+        }, 2000);
+
+        // Stop polling after 2 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 120000);
+      }
+      
+    } catch (error) {
+      console.error('Error connecting Gmail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to Gmail. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setConnectingGmail(false);
+    }
+  };
+
+  const loadEmailsForView = async (view = currentView, pageToken?: string | null, forceRefresh = false) => {
+    if (!user || !gmailConnected) return;
 
     // If we already have cached data and this is not a pagination request or force refresh, return early
     if (!pageToken && !forceRefresh && viewCache[view] && viewCache[view]!.length > 0) {
@@ -1087,6 +1188,117 @@ const Mailbox: React.FC = () => {
       )
     );
   });
+
+  // Show Gmail connection screen if not connected
+  if (gmailConnected === false) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="border-b bg-card p-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-2xl font-heading font-bold">Mailbox</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {user?.email}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Gmail Connection Content */}
+        <main className="max-w-4xl mx-auto p-6">
+          <div className="text-center space-y-6">
+            <div className="space-y-4">
+              <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                <Mail className="w-12 h-12 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-heading font-bold mb-2">Connect Your Gmail</h2>
+                <p className="text-muted-foreground text-lg">
+                  Connect your Gmail account to access and manage your emails directly from Ayra
+                </p>
+              </div>
+            </div>
+
+            <Card className="max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="text-xl">Why Connect Gmail?</CardTitle>
+                <CardDescription>
+                  Securely connect your Gmail to enable email management features
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                    <span className="text-sm">Read and send emails</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                    <span className="text-sm">Organize your inbox</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                    <span className="text-sm">Search through your emails</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                    <span className="text-sm">Manage attachments</span>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <Button 
+                    onClick={connectGmail}
+                    disabled={connectingGmail}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {connectingGmail ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Connect Gmail Account
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  Your email data is encrypted and securely stored. We only access what you authorize.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show loading screen while checking connection
+  if (gmailConnected === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-background overflow-hidden">
