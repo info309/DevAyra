@@ -149,6 +149,8 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             a {
               color: #3b82f6 !important;
               text-decoration: underline;
+              word-break: break-all !important;
+              overflow-wrap: break-word !important;
             }
             
             a:hover {
@@ -160,6 +162,36 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
             a[href^="http"], a[href^="https"] {
               target: "_blank";
               rel: "noopener noreferrer";
+            }
+            
+            /* Handle marketing emails with long tracking URLs */
+            /* Hide or style very long URLs that appear as raw text */
+            body {
+              /* This regex-like approach doesn't work in CSS, so we'll handle it with JS */
+            }
+            
+            /* Improve readability of marketing emails */
+            /* Style bracketed URLs commonly found in marketing emails */
+            a[href*="link."] {
+              display: inline-block;
+              max-width: 200px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              vertical-align: middle;
+            }
+            
+            /* Style tracking links */
+            a[href*="upn="], a[href*="click?"], a[href*="track"] {
+              font-size: 0.9em;
+              opacity: 0.8;
+            }
+            
+            /* Better handling of very long text that might contain URLs */
+            p, div, span {
+              word-break: break-word !important;
+              overflow-wrap: anywhere !important;
+              hyphens: auto !important;
             }
             
             /* Text elements */
@@ -267,14 +299,64 @@ const IsolatedEmailRenderer: React.FC<IsolatedEmailRendererProps> = ({ content, 
               }
             }, true);
             
-            // Force external links to open in new tab
+            // Handle marketing emails with long tracking URLs
             document.addEventListener('DOMContentLoaded', function() {
+              // Clean up bracketed URLs that appear as plain text
+              const textNodes = [];
+              const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+              );
+              
+              let node;
+              while (node = walker.nextNode()) {
+                textNodes.push(node);
+              }
+              
+              textNodes.forEach(function(textNode) {
+                const text = textNode.textContent;
+                if (text && text.includes('[https://')) {
+                  // Replace bracketed URLs with cleaner format
+                  const cleanedText = text.replace(
+                    /\[https:\/\/[^\]]+\]/g, 
+                    '[Link]'
+                  );
+                  if (cleanedText !== text) {
+                    textNode.textContent = cleanedText;
+                  }
+                }
+              });
+              
+              // Find and style very long text that might be URLs
+              const allElements = document.querySelectorAll('p, div, span, td');
+              allElements.forEach(function(element) {
+                const text = element.textContent;
+                if (text && text.length > 100 && text.includes('https://')) {
+                  // If element contains very long URLs, add special styling
+                  element.style.fontSize = '0.85em';
+                  element.style.lineHeight = '1.4';
+                  element.style.wordBreak = 'break-all';
+                }
+              });
+              
+              // Handle link text
               const links = document.querySelectorAll('a[href]');
               links.forEach(function(link) {
                 const href = link.getAttribute('href');
                 if (href && (href.startsWith('http') || href.includes('auth') || href.includes('login') || href.includes('signin') || href.includes('oauth'))) {
                   link.setAttribute('target', '_blank');
                   link.setAttribute('rel', 'noopener noreferrer');
+                  
+                  // If link text is very long, truncate it
+                  if (link.textContent && link.textContent.length > 50) {
+                    const originalText = link.textContent;
+                    if (originalText.includes('http') && originalText.length > 100) {
+                      link.textContent = 'Link';
+                      link.setAttribute('title', originalText);
+                    }
+                  }
                 }
               });
             });
