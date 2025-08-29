@@ -177,12 +177,15 @@ const Documents = () => {
     if (!newFolderName.trim()) return;
 
     try {
+      // Generate a unique file_path for the folder using timestamp and random string
+      const uniquePath = `folders/${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      
       const { error } = await supabase
         .from('user_documents')
         .insert({
           user_id: user?.id,
           name: newFolderName.trim(),
-          file_path: '', // Empty for folders
+          file_path: uniquePath, // Use unique path for folders
           is_folder: true,
           folder_id: currentFolder?.id || null,
           source_type: 'upload'
