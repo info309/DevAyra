@@ -32,46 +32,84 @@ export const gmailApi = {
     const { body, signal, retries = 2 } = options;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        // Get the current session to pass auth token
-        const { data: { session } } = await supabase.auth.getSession();
+    try {
+      // Get the current session to pass auth token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new GmailApiError('Authentication failed', 401);
+      }
+      
+      if (!session?.access_token) {
+        console.error('No access token in session');
+        throw new GmailApiError('No active session found. Please log in.', 401);
+      }
+
+      // Check if token is close to expiring (within 5 minutes)
+      const now = Math.floor(Date.now() / 1000);
+      const tokenExp = session.expires_at || 0;
+      
+      if (tokenExp - now < 300) { // Less than 5 minutes until expiry
+        console.log('Token expiring soon, refreshing session...');
+        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (!session?.access_token) {
-          throw new GmailApiError(
-            'No active session found. Please log in.',
-            401
-          );
+        if (refreshError || !refreshedSession.session) {
+          console.error('Failed to refresh session:', refreshError);
+          throw new GmailApiError('Session expired. Please log in again.', 401);
+        }
+        
+        console.log('Session refreshed successfully');
+      }
+
+      const currentSession = await supabase.auth.getSession();
+      const authToken = currentSession.data.session?.access_token;
+      
+      if (!authToken) {
+        throw new GmailApiError('No authentication token available', 401);
+      }
+
+      const { data, error } = await supabase.functions.invoke('gmail-api', {
+        body,
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        
+        // Check if it's a transient 5xx error and we have retries left
+        if (attempt < retries && error.status && error.status >= 500) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
+          console.log(`Retrying after ${delay}ms due to ${error.status} error`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
         }
 
-        const { data, error } = await supabase.functions.invoke('gmail-api', {
-          body,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        });
-
-        if (error) {
-          // Check if it's a transient 5xx error and we have retries left
-          if (attempt < retries && error.status && error.status >= 500) {
-            const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
-
-          throw new GmailApiError(
-            error.message || 'Gmail API request failed',
-            error.status
-          );
+        // Handle specific error types
+        if (error.status === 401) {
+          throw new GmailApiError('Authentication failed. Please log in again.', 401);
         }
+        
+        throw new GmailApiError(
+          error.message || 'Gmail API request failed',
+          error.status
+        );
+      }
 
-        // Handle partial success responses
-        const response = data as GmailApiResponse;
-        if (response.partialSuccess && response.errors?.length) {
-          console.warn('Gmail API partial success:', response.errors);
-          // Still return the data, but log the errors
-        }
+      if (!data) {
+        throw new GmailApiError('No data received from Gmail API', 500);
+      }
 
-        return response;
+      // Handle partial success responses
+      const response = data as GmailApiResponse;
+      if (response.partialSuccess && response.errors?.length) {
+        console.warn('Gmail API partial success:', response.errors);
+        // Still return the data, but log the errors
+      }
+
+      return response;
 
       } catch (error) {
         if (error instanceof GmailApiError) {

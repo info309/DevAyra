@@ -441,6 +441,16 @@ const Mailbox: React.FC = () => {
       console.error('Error loading emails:', error);
       if (view === currentView) {
         if (error instanceof GmailApiError) {
+          // Handle authentication errors
+          if (error.status === 401 || error.message.includes('Authentication failed') || error.message.includes('Invalid authentication token')) {
+            toast({
+              variant: "destructive",
+              title: "Authentication Error",
+              description: "Your session has expired. Please refresh the page or log in again.",
+            });
+            return;
+          }
+          
           // Check if this is a token expiration error that requires reconnection
           if (error.message && error.message.includes('expired and needs to be reconnected')) {
             toast({
