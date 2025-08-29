@@ -1291,12 +1291,13 @@ const Mailbox: React.FC = () => {
                   </div>
                   <DrawerFooter>
                     {/* Mobile-first bottom action bar */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-end">
                       {/* Add Files Button with Dropdown */}
                       <div className="relative" ref={addFilesMenuRef}>
                         <Button
                           type="button"
                           variant="outline"
+                          size="sm"
                           onClick={() => setShowAddFilesMenu(!showAddFilesMenu)}
                           className="gap-2"
                         >
@@ -1354,12 +1355,12 @@ const Mailbox: React.FC = () => {
                       {/* Cancel Button */}
                       <Button 
                         variant="outline" 
+                        size="sm"
                         onClick={() => {
                           setShowComposeDialog(false);
                           setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                           setShowAddFilesMenu(false);
                         }}
-                        className="flex-1"
                       >
                         Cancel
                       </Button>
@@ -1367,9 +1368,10 @@ const Mailbox: React.FC = () => {
                       {/* Send Button */}
                       <Button 
                         variant="compose"
+                        size="sm"
                         onClick={sendEmail}
                         disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                        className="gap-2 flex-1"
+                        className="gap-2"
                       >
                         <Send className="w-4 h-4" />
                         {sendingEmail ? 'Sending...' : 
