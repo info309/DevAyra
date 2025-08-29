@@ -99,7 +99,8 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
         dataType: typeof data.data,
         dataLength: data.data?.length || data.data?.byteLength || 'unknown',
         isUint8Array: data.data instanceof Uint8Array,
-        isArrayBuffer: data.data instanceof ArrayBuffer
+        isArrayBuffer: data.data instanceof ArrayBuffer,
+        fullResponse: data
       });
       
       if (!data.data) {
