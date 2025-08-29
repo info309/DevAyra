@@ -299,8 +299,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {/* Clean header */}
         <DrawerHeader className="border-b px-4 py-3 bg-background">
           <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0 max-w-full text-left">
-              <DrawerTitle className="text-lg font-semibold truncate mb-1 text-left max-w-full">
+            <div className="flex-1 min-w-0 pr-4 text-left">
+              <DrawerTitle className="text-lg font-semibold truncate mb-1 text-left w-full block">
                 {document.name}
               </DrawerTitle>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
