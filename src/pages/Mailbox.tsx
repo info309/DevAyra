@@ -1141,7 +1141,7 @@ const Mailbox: React.FC = () => {
               </Button>
               <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
                 <DrawerTrigger asChild>
-                  <Button className="gap-2" onClick={() => {
+                  <Button variant="compose" className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
                     setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                   }} size="sm">
