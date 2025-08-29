@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Mailbox from "./pages/Mailbox";
 import Documents from "./pages/Documents";
+import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,11 @@ const App = () => (
             <Route path="/documents" element={
               <ProtectedRoute>
                 <Documents />
+              </ProtectedRoute>
+            } />
+            <Route path="/account" element={
+              <ProtectedRoute>
+                <Account />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -50,13 +50,13 @@ const Dashboard = () => {
       route: '/passwords',
       color: 'text-red-600'
     },
-    {
-      icon: Users,
-      title: 'Contacts',
-      description: 'Manage your contact list',
-      route: '/contacts',
-      color: 'text-indigo-600'
-    }
+        {
+          icon: Users,
+          title: 'Account',
+          description: 'Manage account settings and connections',
+          route: '/account',
+          color: 'text-indigo-600'
+        }
   ];
 
   return (
