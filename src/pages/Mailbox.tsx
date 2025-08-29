@@ -1058,7 +1058,7 @@ const Mailbox: React.FC = () => {
       <div className="container mx-auto p-2 lg:px-8 h-full flex flex-col">
         {/* Desktop Header - Logo and Back Arrow */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 -ml-3">
             {/* Back Arrow */}
             <Button
               variant="outline"
@@ -1080,7 +1080,7 @@ const Mailbox: React.FC = () => {
           {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
           <div className="flex justify-between items-center lg:justify-between">
             {/* Mobile/Tablet Back Arrow and Logo - Left side */}
-            <div className="flex lg:hidden items-center gap-4 pl-4">
+            <div className="flex lg:hidden items-center gap-4 -ml-3">
               <Button
                 variant="outline"
                 size="sm"
