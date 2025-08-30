@@ -385,19 +385,17 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Get user profile for personalization
+    // Get user profile for personalization - now synced from Auth metadata
     const { data: userProfile } = await supabase
       .from('profiles')
       .select('display_name')
       .eq('user_id', user.id)
       .single();
 
-    // Extract first name - if it's an email, use the part before @, otherwise use as-is
-    const userName = userProfile?.display_name ? 
-      (userProfile.display_name.includes('@') ? 
-        userProfile.display_name.split('@')[0] : 
-        userProfile.display_name) : 
-      'there';
+    // The display_name is now automatically synced from Auth metadata
+    // Fall back to email local part if somehow missing
+    const userName = userProfile?.display_name || 
+      (user.email ? user.email.split('@')[0] : 'there');
 
     console.log('User profile loaded:', userName);
 
