@@ -480,7 +480,7 @@ const Documents = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Completely disable all scroll behaviors */}
+      {/* Completely disable all scroll behaviors and focus scrolling */}
       <style>{`
         * {
           scroll-behavior: auto !important;
@@ -488,12 +488,23 @@ const Documents = () => {
         html, body {
           scroll-behavior: auto !important;
         }
-        button:focus {
-          outline: none !important;
+        .document-grid-item {
+          scroll-margin: 0 !important;
+          scroll-padding: 0 !important;
         }
         .document-grid-item:focus {
           outline: none !important;
           box-shadow: none !important;
+          scroll-margin: 0 !important;
+        }
+        .document-grid-item:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        /* Prevent scroll-into-view on any element */
+        button:focus {
+          outline: none !important;
+          scroll-margin: 0 !important;
         }
       `}</style>
       {/* Header */}
@@ -685,6 +696,15 @@ const Documents = () => {
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
                   onClick={() => !isDragging && handleDocumentClick(doc)}
+                  onMouseDown={(e) => {
+                    // Prevent focus which causes scroll-into-view
+                    e.preventDefault();
+                  }}
+                  onFocus={(e) => {
+                    // If somehow it gets focus, immediately blur it
+                    e.target.blur();
+                  }}
+                  tabIndex={-1}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
