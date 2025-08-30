@@ -860,23 +860,23 @@ const Documents = () => {
           </div>
           
           {/* Breadcrumbs - positioned on their own line */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 text-sm py-2">
+          <div className="mb-4 bg-muted/30 rounded-md px-4 py-3 border">
+            <div className="flex items-center gap-2 text-base">
               {currentFolder ? (
                 <>
                   <span
                     onClick={() => setCurrentFolder(null)}
-                    className="cursor-pointer text-primary hover:text-primary/80 font-medium transition-colors"
+                    className="cursor-pointer text-primary hover:text-primary/80 font-medium transition-colors underline"
                   >
                     Documents
                   </span>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="text-foreground font-semibold">
+                  <span className="text-muted-foreground font-medium">/</span>
+                  <span className="text-foreground font-bold">
                     {currentFolder.name}
                   </span>
                 </>
               ) : (
-                <span className="text-foreground font-semibold">All Documents</span>
+                <span className="text-foreground font-bold text-lg">All Documents</span>
               )}
             </div>
           </div>
