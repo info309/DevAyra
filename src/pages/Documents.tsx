@@ -858,7 +858,7 @@ const Documents = () => {
           </div>
           
           {/* Breadcrumbs - fixed height container */}
-          <div className="breadcrumb-container h-8 mb-6" style={{ contain: 'layout' }}>
+          <div className="breadcrumb-container h-8 mb-3" style={{ contain: 'layout' }}>
             {currentFolder && (
               <div 
                 className="flex items-center gap-2 text-sm text-muted-foreground"
