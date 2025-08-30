@@ -341,53 +341,6 @@ const Calendar = () => {
             />
           </div>
 
-          {/* Daily Events */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                Events for {format(selectedDate, 'MMMM d, yyyy')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-sm text-muted-foreground mt-2">Loading events...</p>
-                </div> : selectedDateEvents.length === 0 ? <div className="text-center py-8">
-                  <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No events scheduled for this day</p>
-                  <Button className="mt-4" size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Event
-                  </Button>
-                </div> : <div className="space-y-3">
-                  {selectedDateEvents.map(event => <div key={event.id} className="border rounded-lg p-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium">{event.title}</h4>
-                          {event.description && <p className="text-sm text-muted-foreground mt-1">
-                              {event.description}
-                            </p>}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatEventTime(event, selectedDate)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {getEventBadgeText(event)}
-                          </Badge>
-                          {differenceInDays(new Date(event.end_time), new Date(event.start_time)) > 0 && <Badge variant="outline" className="text-xs">
-                              {format(new Date(event.start_time), 'MMM d')} - {format(new Date(event.end_time), 'MMM d')}
-                            </Badge>}
-                        </div>
-                      </div>
-                    </div>)}
-                </div>}
-            </CardContent>
-          </Card>
         </div>
       </div>;
   }
