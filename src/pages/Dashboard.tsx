@@ -84,7 +84,9 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
-          <h2 className="text-3xl font-heading font-bold mb-2">Your Productivity Suite</h2>
+          <h2 className="text-3xl font-heading font-bold mb-2">
+            {user?.email?.split('@')[0]}, welcome to a new era of productivity!
+          </h2>
           <p className="text-muted-foreground">
             Access all your essential tools in one place. Choose a tool to get started.
           </p>
