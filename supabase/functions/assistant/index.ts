@@ -304,14 +304,21 @@ async function searchDocuments(userId: string, query: string) {
   }
 }
 
-async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[]) {
+async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[], userName?: string) {
   console.log('Composing email draft:', { to, subject, threadId, attachments });
+  
+  // Replace [Your Name] with actual user name
+  let personalizedContent = content;
+  if (userName && content.includes('[Your Name]')) {
+    personalizedContent = content.replace(/\[Your Name\]/g, userName);
+    console.log('Replaced [Your Name] with:', userName);
+  }
   
   // Build draft data with only defined fields
   const draftData: any = {
     to,
     subject,
-    content,
+    content: personalizedContent,
     action: 'compose_draft'
   };
   
@@ -560,7 +567,7 @@ serve(async (req) => {
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
-              result = await composeEmailDraft(to, subject, content, threadId, attachments);
+              result = await composeEmailDraft(to, subject, content, threadId, attachments, userName);
               
               // If attachments were provided, fetch document details
               if (attachments && attachments.length > 0) {
