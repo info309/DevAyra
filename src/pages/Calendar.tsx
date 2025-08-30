@@ -324,8 +324,8 @@ const Calendar = () => {
               </CardContent>
             </Card>}
 
-          {/* Calendar View */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-6">
+          {/* Calendar View - Mobile */}
+          <div className="mb-6 flex flex-col gap-6 sm:hidden">
             <InteractiveCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
@@ -339,38 +339,7 @@ const Calendar = () => {
                   description: "Event creation coming soon!"
                 });
               }}
-              showEvents={false} // Hide events on mobile, will be shown separately
-              className="sm:hidden" // Only show on mobile
-            />
-            <InteractiveCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
-              events={events}
-              onAddEvent={() => {
-                // Add event functionality here
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
-              }}
-              showEvents={false} // Hide events, will be shown separately on larger screens
-              className="hidden sm:block"
-            />
-            {/* Events list - shown below calendar on mobile, to the right on larger screens */}
-            <EventsList
-              selectedDate={selectedDate}
-              events={events}
-              loading={loading}
-              onAddEvent={() => {
-                // Add event functionality here
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
-              }}
-              className="flex-1 sm:max-w-md"
+              showEvents={true} // Show events below calendar on mobile
             />
           </div>
 
@@ -394,7 +363,7 @@ const Calendar = () => {
           </Button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="hidden sm:flex gap-6 items-start">
           {/* Calendar Section */}
           <div className="flex-shrink-0">
             <InteractiveCalendar
@@ -430,68 +399,6 @@ const Calendar = () => {
             />
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Connection Status */}
-            {!gmailConnection && <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                    <h3 className="font-semibold mb-2">Connect Google Calendar</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Sync your events with Google Calendar to access them everywhere.
-                    </p>
-                    <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full">
-                      {connecting ? 'Connecting...' : 'Connect Google Calendar'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>}
-
-            {/* Daily Events */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5" />
-                  {format(selectedDate, 'MMM d')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? <div className="text-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-xs text-muted-foreground mt-2">Loading...</p>
-                  </div> : selectedDateEvents.length === 0 ? <div className="text-center py-6">
-                    <CalendarIcon className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-3">No events</p>
-                    <Button size="sm" className="w-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Event
-                    </Button>
-                  </div> : <div className="space-y-3">
-                    {selectedDateEvents.map(event => <div key={event.id} className="border rounded-lg p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm">{event.title}</h4>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {getEventBadgeText(event)}
-                            </Badge>
-                            {differenceInDays(new Date(event.end_time), new Date(event.start_time)) > 0 && <Badge variant="outline" className="text-xs">
-                                {format(new Date(event.start_time), 'MMM d')} - {format(new Date(event.end_time), 'MMM d')}
-                              </Badge>}
-                          </div>
-                        </div>
-                        {event.description && <p className="text-xs text-muted-foreground mb-2">
-                            {event.description}
-                          </p>}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {formatEventTime(event, selectedDate)}
-                        </div>
-                      </div>)}
-                  </div>}
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>;
