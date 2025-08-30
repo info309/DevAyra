@@ -135,7 +135,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                 onMouseEnter={() => setHoveredDate(date)}
                 onMouseLeave={() => setHoveredDate(null)}
               >
-                <span className="text-xs sm:text-sm">
+                <span className="text-base sm:text-sm">
                   {format(date, 'd')}
                 </span>
                 
