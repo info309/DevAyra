@@ -613,7 +613,7 @@ const Assistant = () => {
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden lg:inline">Dashboard</span>
             </Button>
-            <h1 className="text-lg md:text-xl font-heading font-bold truncate">Ayra</h1>
+            <h1 className="text-2xl font-heading font-bold truncate">Ayra</h1>
           </div>
           
           <div className="ml-auto flex items-center gap-2">
