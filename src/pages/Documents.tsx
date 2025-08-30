@@ -72,6 +72,7 @@ const Documents = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('useEffect triggered - loading documents, currentFolder:', currentFolder?.name || 'root');
       loadDocuments();
     }
   }, [user, currentFolder]);
@@ -83,6 +84,7 @@ const Documents = () => {
     }
     
     try {
+      console.log('Setting loading to true - this might cause scroll');
       setLoading(true);
       
       console.log('Loading documents for user:', user.id);
@@ -293,7 +295,10 @@ const Documents = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('Document clicked:', doc.name, 'is_folder:', doc.is_folder);
+    
     if (doc.is_folder) {
+      console.log('Setting current folder to:', doc.name);
       setCurrentFolder(doc);
     } else {
       setSelectedDocument(doc);
@@ -673,6 +678,7 @@ const Documents = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  console.log('Breadcrumb Documents clicked - setting folder to null');
                   setCurrentFolder(null);
                 }}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
