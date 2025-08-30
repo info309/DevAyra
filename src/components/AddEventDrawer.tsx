@@ -104,6 +104,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
       // If connected to Google Calendar, try to create the event there first
       if (gmailConnection) {
         try {
+          console.log('Attempting to create Google Calendar event...');
           const googleEventData = {
             summary: title.trim(),
             description: description.trim() || undefined,
@@ -119,6 +120,8 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             } : undefined
           };
 
+          console.log('Google event data:', googleEventData);
+
           const { data: googleEvent, error: googleError } = await supabase.functions.invoke('calendar-api', {
             body: {
               action: 'insert',
@@ -126,17 +129,42 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             }
           });
 
+          console.log('Google Calendar response:', { googleEvent, googleError });
+
           if (googleError) {
             console.error('Failed to create Google Calendar event:', googleError);
+            toast({
+              title: "Sync failed",
+              description: "Event created locally but failed to sync to Google Calendar",
+              variant: "destructive"
+            });
             // Still create local event but mark as not synced
           } else if (googleEvent?.event) {
             // Successfully created in Google Calendar
+            console.log('Successfully created Google Calendar event:', googleEvent.event);
             eventData.external_id = googleEvent.event.id;
             eventData.calendar_id = 'primary';
             eventData.is_synced = true;
+            
+            toast({
+              title: "Event synced",
+              description: "Event created and synced to Google Calendar",
+            });
+          } else {
+            console.error('Unexpected Google Calendar response:', googleEvent);
+            toast({
+              title: "Sync failed",
+              description: "Event created locally but sync response was unexpected",
+              variant: "destructive"
+            });
           }
         } catch (googleError) {
           console.error('Error creating Google Calendar event:', googleError);
+          toast({
+            title: "Sync failed", 
+            description: "Event created locally but failed to sync to Google Calendar",
+            variant: "destructive"
+          });
           // Continue with local creation
         }
       }
