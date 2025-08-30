@@ -141,10 +141,6 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             return; // Don't create local event if Google Calendar fails
           } else if (googleEvent?.event) {
             console.log('Successfully created Google Calendar event:', googleEvent.event);
-            toast({
-              title: "Event created",
-              description: "Event created in Google Calendar"
-            });
             
             resetForm();
             setOpen(false);
@@ -176,11 +172,6 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
           .insert([eventData]);
 
         if (error) throw error;
-
-        toast({
-          title: "Event created",
-          description: "Event created locally"
-        });
       }
 
       resetForm();

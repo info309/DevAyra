@@ -328,11 +328,6 @@ const Calendar = () => {
         if (error) throw error;
       }
       
-      toast({
-        title: "Event deleted",
-        description: "Event has been deleted successfully"
-      });
-      
       // Reload events
       loadEvents();
     } catch (error) {
