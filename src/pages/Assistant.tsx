@@ -296,41 +296,37 @@ const Assistant = () => {
 
       case 'emails_compose_draft':
         // Handle draft composition and navigate to mailbox
-        if (toolResult && toolResult[0]?.output) {
-          try {
-            const draft = JSON.parse(toolResult[0].output);
-            if (draft.action === 'compose_draft') {
-              setTimeout(() => {
-                navigate('/mailbox', { 
-                  state: { 
-                    composeDraft: {
-                      to: draft.to,
-                      subject: draft.subject,
-                      content: draft.content,
-                      threadId: draft.threadId
-                    }
+        if (toolResult && toolResult.result) {
+          const draft = toolResult.result;
+          if (draft.action === 'compose_draft') {
+            setTimeout(() => {
+              navigate('/mailbox', { 
+                state: { 
+                  composeDraft: {
+                    to: draft.to,
+                    subject: draft.subject,
+                    content: draft.content,
+                    threadId: draft.threadId
                   }
-                });
-              }, 1000);
+                }
+              });
+            }, 1000);
 
-              return (
-                <Card className="mt-2 bg-accent/50">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Mail className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">Draft Prepared</span>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">To:</span> {draft.to}</p>
-                      <p><span className="font-medium">Subject:</span> {draft.subject}</p>
-                      <p className="text-muted-foreground">Opening compose window...</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }
-          } catch (e) {
-            console.error('Error parsing draft:', e);
+            return (
+              <Card className="mt-2 bg-accent/50">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Draft Prepared</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">To:</span> {draft.to}</p>
+                    <p><span className="font-medium">Subject:</span> {draft.subject}</p>
+                    <p className="text-muted-foreground">Opening compose window...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
           }
         }
         return null;
