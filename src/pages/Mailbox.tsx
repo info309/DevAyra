@@ -1384,7 +1384,7 @@ const Mailbox: React.FC = () => {
                 className="hidden lg:flex items-center gap-2"
               >
                 <MessageSquare className="h-4 w-4" />
-                AI Search
+                Mail with Ayra
               </Button>
               
               {/* Desktop Search next to refresh button */}
@@ -1687,10 +1687,20 @@ const Mailbox: React.FC = () => {
                 name="email-search-tablet"
               />
             </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/assistant')}
+              className="flex items-center gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Mail with Ayra
+            </Button>
           </div>
 
-          {/* View Toggle - Mobile only */}
-          <div className="md:hidden">
+          {/* View Toggle and AI Button - Mobile only */}
+          <div className="md:hidden flex items-center justify-between gap-4">
             <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
               <button
                 onClick={() => setCurrentView('inbox')}
@@ -1715,6 +1725,17 @@ const Mailbox: React.FC = () => {
                 Sent
               </button>
             </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/assistant')}
+              className="flex items-center gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden xs:inline">Mail with Ayra</span>
+              <span className="xs:hidden">Ayra</span>
+            </Button>
           </div>
         </div>
 
