@@ -11,7 +11,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
 import { EventsList } from '@/components/EventsList';
-import { AddEventDialog } from '@/components/AddEventDialog';
+import { AddEventDrawer } from '@/components/AddEventDrawer';
 
 interface CalendarEvent {
   id: string;
@@ -302,7 +302,7 @@ const Calendar = () => {
               </h1>
             </div>
             
-            <AddEventDialog
+            <AddEventDrawer
               selectedDate={selectedDate}
               onEventAdded={loadEvents}
               gmailConnection={gmailConnection}
@@ -365,7 +365,7 @@ const Calendar = () => {
             </h1>
           </div>
           
-          <AddEventDialog
+          <AddEventDrawer
             selectedDate={selectedDate}
             onEventAdded={loadEvents}
             gmailConnection={gmailConnection}

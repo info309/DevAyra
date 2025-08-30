@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, CalendarIcon, Clock, Plus } from 'lucide-react';
+import { Calendar, CalendarIcon, Clock, Plus, X } from 'lucide-react';
 import { format, addHours, startOfDay } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AddEventDialogProps {
+interface AddEventDrawerProps {
   selectedDate?: Date;
   onEventAdded?: () => void;
   trigger?: React.ReactNode;
   gmailConnection?: any;
 }
 
-export const AddEventDialog: React.FC<AddEventDialogProps> = ({ 
+export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({ 
   selectedDate = new Date(), 
   onEventAdded,
   trigger,
@@ -170,139 +170,149 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5" />
-            New Event
-          </DialogTitle>
-        </DialogHeader>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="text-left">
+          <div className="flex items-center justify-between">
+            <DrawerTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5" />
+              New Event
+            </DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="sm">
+                <X className="w-4 h-4" />
+              </Button>
+            </DrawerClose>
+          </div>
+        </DrawerHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Event title"
-              required
-            />
-          </div>
+        <div className="px-4 pb-4 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Event title"
+                required
+              />
+            </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description..."
-              rows={3}
-            />
-          </div>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add a description..."
+                rows={3}
+              />
+            </div>
 
-          {/* All-day toggle */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="all-day"
-              checked={allDay}
-              onCheckedChange={setAllDay}
-            />
-            <Label htmlFor="all-day">All day</Label>
-          </div>
+            {/* All-day toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="all-day"
+                checked={allDay}
+                onCheckedChange={setAllDay}
+              />
+              <Label htmlFor="all-day">All day</Label>
+            </div>
 
-          {/* Date and time inputs */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <Label>Start</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  {!allDay && (
+            {/* Date and time inputs */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label>Start</Label>
+                  <div className="flex gap-2">
                     <Input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                     />
-                  )}
+                    {!allDay && (
+                      <Input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label>End</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                    {!allDay && (
+                      <Input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <Label>End</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                  {!allDay && (
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                  )}
-                </div>
+            {/* Reminder */}
+            <div className="space-y-2">
+              <Label>Reminder</Label>
+              <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reminder time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No reminder</SelectItem>
+                  <SelectItem value="5">5 minutes before</SelectItem>
+                  <SelectItem value="10">10 minutes before</SelectItem>
+                  <SelectItem value="15">15 minutes before</SelectItem>
+                  <SelectItem value="30">30 minutes before</SelectItem>
+                  <SelectItem value="60">1 hour before</SelectItem>
+                  <SelectItem value="120">2 hours before</SelectItem>
+                  <SelectItem value="1440">1 day before</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sync status info */}
+            {gmailConnection && (
+              <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                This event will be synced to your Google Calendar
               </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-4">
+              <DrawerClose asChild>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+              </DrawerClose>
+              <Button type="submit" disabled={loading || !title.trim()}>
+                {loading ? 'Creating...' : 'Create Event'}
+              </Button>
             </div>
-          </div>
-
-          {/* Reminder */}
-          <div className="space-y-2">
-            <Label>Reminder</Label>
-            <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select reminder time" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No reminder</SelectItem>
-                <SelectItem value="5">5 minutes before</SelectItem>
-                <SelectItem value="10">10 minutes before</SelectItem>
-                <SelectItem value="15">15 minutes before</SelectItem>
-                <SelectItem value="30">30 minutes before</SelectItem>
-                <SelectItem value="60">1 hour before</SelectItem>
-                <SelectItem value="120">2 hours before</SelectItem>
-                <SelectItem value="1440">1 day before</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sync status info */}
-          {gmailConnection && (
-            <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-              This event will be synced to your Google Calendar
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex justify-end gap-3">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading || !title.trim()}>
-              {loading ? 'Creating...' : 'Create Event'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
