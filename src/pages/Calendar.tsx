@@ -373,9 +373,8 @@ const Calendar = () => {
               onEventAdded={loadEvents}
               gmailConnection={gmailConnection}
               trigger={
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Event
+                <Button size="icon">
+                  <Plus className="w-4 h-4" />
                 </Button>
               }
             />
