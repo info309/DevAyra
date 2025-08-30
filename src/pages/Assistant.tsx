@@ -255,18 +255,8 @@ const Assistant = () => {
         // Optionally create a new session automatically
         createNewSession();
       }
-      
-      toast({
-        title: "Chat deleted",
-        description: "The chat has been deleted successfully",
-      });
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete chat",
-        variant: "destructive"
-      });
     }
   };
 
