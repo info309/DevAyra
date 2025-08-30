@@ -69,9 +69,6 @@ verify_jwt = true
 [functions.generate-thumbnail]
 verify_jwt = false
 
-[functions.regenerate-thumbnails]
-verify_jwt = true
-
 [edge-runtime]
 enabled = true
 ip_version = "ipv4"

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-
+import { formatFileSize } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Label } from '@/components/ui/label';
@@ -68,7 +68,6 @@ const Documents = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [regeneratingThumbnails, setRegeneratingThumbnails] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -77,19 +76,23 @@ const Documents = () => {
   }, [user, currentFolder]);
 
   const loadDocuments = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('No user ID available, skipping document load');
+      return;
+    }
     
     try {
-      // Only show loading for initial load, not navigation
-      if (documents.length === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
+      
+      console.log('Loading documents for user:', user.id);
       
       let query = supabase
         .from('user_documents')
         .select('*')
         .eq('user_id', user.id);
       
+      // If we're in a specific folder, show only items in that folder
+      // If we're at root level, show items with no folder_id (loose documents) and folders at root level
       if (currentFolder) {
         query = query.eq('folder_id', currentFolder.id);
       } else {
@@ -100,9 +103,15 @@ const Documents = () => {
         .order('is_folder', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('Documents query result:', { data, error, userContext: user.id });
+
+      if (error) {
+        console.error('Database query error:', error);
+        throw error;
+      }
       
       setDocuments((data || []) as UserDocument[]);
+      console.log(`Loaded ${data?.length || 0} documents`);
     } catch (error) {
       console.error('Error loading documents:', error);
       toast({
@@ -117,19 +126,12 @@ const Documents = () => {
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    if (!dragOver) {
-      setDragOver(true);
-    }
-  }, [dragOver]);
+    setDragOver(true);
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    // Only set dragOver to false if we're leaving the drop zone entirely
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOver(false);
-    }
+    setDragOver(false);
   }, []);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -212,7 +214,6 @@ const Documents = () => {
 
       setNewFolderName('');
       setIsCreateFolderOpen(false);
-      // Reload documents to show new folder
       loadDocuments();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -221,35 +222,6 @@ const Documents = () => {
         description: "Failed to create folder",
         variant: "destructive",
       });
-    }
-  };
-
-  const regenerateThumbnails = async () => {
-    try {
-      setRegeneratingThumbnails(true);
-      
-      const { data, error } = await supabase.functions.invoke('regenerate-thumbnails');
-      
-      if (error) throw error;
-      
-      if (data) {
-        toast({
-          title: "Success",
-          description: `Generated ${data.successful || 0} thumbnails${data.failed ? ` (${data.failed} failed)` : ''}`,
-        });
-        
-        // Reload documents to show new thumbnails
-        loadDocuments();
-      }
-    } catch (error) {
-      console.error('Error regenerating thumbnails:', error);
-      toast({
-        title: "Error",
-        description: "Failed to regenerate thumbnails",
-        variant: "destructive",
-      });
-    } finally {
-      setRegeneratingThumbnails(false);
     }
   };
 
@@ -353,7 +325,7 @@ const Documents = () => {
         description: `${doc.is_folder ? 'Folder' : 'File'} deleted successfully`,
       });
 
-      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+      loadDocuments();
     } catch (error) {
       console.error('Error deleting document:', error);
       toast({
@@ -402,7 +374,7 @@ const Documents = () => {
       if (error) throw error;
 
 
-      setDocuments(prev => prev.filter(d => d.id !== draggedItem.id));
+      loadDocuments();
     } catch (error) {
       console.error('Error moving document:', error);
       toast({
@@ -468,7 +440,7 @@ const Documents = () => {
         if (error) throw error;
 
 
-        setDocuments(prev => prev.filter(d => d.id !== draggedItem.id));
+        loadDocuments();
       } catch (error) {
         console.error('Error moving document:', error);
         toast({
@@ -494,18 +466,11 @@ const Documents = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
-
-  const formatFileSize = (bytes: number) => {
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 B';
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
 
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -596,16 +561,6 @@ const Documents = () => {
                   </div>
                 </DrawerContent>
               </Drawer>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={regenerateThumbnails}
-                disabled={regeneratingThumbnails}
-                className="gap-2"
-              >
-                <FileText className={`w-4 h-4 ${regeneratingThumbnails ? 'animate-spin' : ''}`} />
-                {regeneratingThumbnails ? 'Generating...' : 'Generate Thumbnails'}
-              </Button>
             </div>
           </div>
         </div>
@@ -614,49 +569,37 @@ const Documents = () => {
       <div className="max-w-7xl mx-auto p-6">
         {/* Upload Area */}
         <div className="mb-8">
-        {/* Drop Zone */}
-        <div 
-          className={`relative rounded-lg border-2 border-dashed transition-all duration-300 ease-out ${
-            dragOver 
-              ? 'border-primary bg-primary/5 scale-[1.02] shadow-lg' 
-              : 'border-muted-foreground/25 hover:border-muted-foreground/40 hover:bg-muted/20'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="p-8 text-center">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 ${
-              dragOver ? 'bg-primary text-primary-foreground scale-110' : 'bg-muted'
-            }`}>
-              <Upload className={`transition-transform duration-300 ${dragOver ? 'scale-110' : ''}`} size={24} />
-            </div>
-            <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
-              dragOver ? 'text-primary' : 'text-foreground'
-            }`}>
-              {dragOver ? 'Drop files here' : 'Upload Documents'}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {dragOver ? 'Release to upload your files' : 'Drag and drop files here, or click to select'}
-            </p>
-            <Button 
-              onClick={() => document.getElementById('file-upload')?.click()}
-              disabled={loading}
-              className="transition-all duration-200 hover:scale-105"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Choose Files
-            </Button>
+          <div
+            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+              dragOver
+                ? 'border-primary bg-primary/5'
+                : 'border-muted-foreground/25 hover:border-primary hover:bg-accent/50'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
-              id="file-upload"
               type="file"
               multiple
               onChange={handleFileSelect}
               className="hidden"
-              accept="*/*"
+              id="file-upload"
             />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Plus className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-1">Upload Documents</h3>
+                  <p className="text-muted-foreground">
+                    Drag and drop files here, or click to browse
+                  </p>
+                </div>
+              </div>
+            </label>
           </div>
-        </div>
         </div>
 
         {/* Documents Grid */}
@@ -680,14 +623,15 @@ const Documents = () => {
           
           {/* Breadcrumbs */}
           {currentFolder && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
-              <button
-                type="button"
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setCurrentFolder(null)}
-                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer transition-colors duration-200"
+                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
               >
                 Documents
-              </button>
+              </Button>
               <span>/</span>
               <span className="text-foreground font-medium">{currentFolder.name}</span>
             </div>
@@ -695,10 +639,7 @@ const Documents = () => {
           
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                <span>Loading documents...</span>
-              </div>
+              <div className="text-muted-foreground">Loading...</div>
             </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="text-center py-12">
@@ -716,12 +657,12 @@ const Documents = () => {
               </p>
             </div>
           ) : (
-            <div className="document-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 animate-fade-in">
-              {filteredDocuments.map((doc, index) => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4">
+              {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`document-card group relative cursor-pointer bg-gradient-to-br from-card to-card/80 rounded-xl p-4 shadow-sm border transition-all duration-500 ease-out hover:shadow-xl hover:scale-[1.05] hover:-translate-y-2 hover:border-primary/20 ${
-                    draggedItem?.id === doc.id ? 'opacity-40 scale-90 rotate-2' : ''
+                  className={`group relative cursor-pointer transition-all duration-300 ease-out ${
+                    draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
                   onClick={() => !isDragging && handleDocumentClick(doc)}
@@ -734,98 +675,93 @@ const Documents = () => {
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  style={{ 
-                    animationDelay: `${index * 100}ms`,
-                    animationFillMode: 'both'
-                  }}
                 >
-                  {/* Glowing effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
-                  
                   {/* Preview/Icon Area */}
-                  <div className={`relative w-full aspect-[4/5] mb-3 flex items-center justify-center transition-all duration-500 ease-out overflow-hidden rounded-lg ${
-                    doc.is_folder && dropTarget === doc.id 
-                      ? 'scale-110 bg-primary/20 shadow-lg ring-2 ring-primary/30' 
-                      : 'group-hover:scale-110'
+                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
+                    doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
                   }`}>
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center relative">
-                        <div className={`transition-all duration-500 ${
-                          dropTarget === doc.id ? 'scale-125 text-primary drop-shadow-lg' : 'text-primary/80 group-hover:text-primary group-hover:scale-110'
-                        }`}>
-                          <Folder className="w-20 h-16 filter drop-shadow-sm" />
-                        </div>
-                        {/* Folder glow effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        {/* Simple Large Blue Folder Icon */}
+                        <svg viewBox="0 0 120 96" className="w-20 h-16 drop-shadow-sm">
+                          <defs>
+                            <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#60a5fa" />
+                              <stop offset="100%" stopColor="#3b82f6" />
+                            </linearGradient>
+                          </defs>
+                          
+                          {/* Folder body */}
+                          <path
+                            d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
+                            fill={`url(#folderGrad-${doc.id})`}
+                            rx="4"
+                          />
+                          
+                          {/* Folder tab */}
+                          <path
+                            d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
+                            fill="#93c5fd"
+                          />
+                        </svg>
                       </div>
                     ) : (
-                      <div className="w-full h-full relative overflow-hidden rounded-lg bg-gradient-to-br from-muted/30 to-muted/10 group-hover:from-primary/10 group-hover:to-accent/10 transition-all duration-500">
-                        <DocumentPreview 
-                          document={doc}
-                          className="w-full h-full transition-all duration-500 group-hover:scale-110 filter group-hover:brightness-110"
-                        />
-                        {/* Document preview overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      </div>
+                      <DocumentPreview 
+                        document={doc}
+                        className="w-full h-full"
+                      />
                     )}
                   </div>
                   
                   {/* Document Info */}
-                  <div className="text-center relative z-10">
-                    <p className="text-sm font-semibold truncate w-full leading-tight mb-2 group-hover:text-primary transition-colors duration-300" title={doc.name}>
+                  <div className="text-center">
+                    <p className="text-sm font-medium truncate w-full leading-tight mb-1" title={doc.name}>
                       {doc.name}
                     </p>
                     
                     {!doc.is_folder && (
-                      <div className="text-xs text-muted-foreground space-y-1 group-hover:text-foreground/80 transition-colors duration-300">
-                        <div className="font-medium">{formatDate(doc.created_at)}</div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>{formatDate(doc.created_at)}</div>
                         {doc.file_size && (
-                          <div className="opacity-80">{formatFileSize(doc.file_size)}</div>
+                          <div>{formatFileSize(doc.file_size)}</div>
                         )}
                       </div>
                     )}
                     
                     {doc.is_folder && (
-                      <div className="text-xs text-muted-foreground group-hover:text-primary/80 transition-colors duration-300 font-medium">
+                      <div className="text-xs text-muted-foreground">
+                        {/* We'd need to count items in folder here */}
                         Folder
                       </div>
                     )}
                   </div>
 
-                  {/* Enhanced Context Menu */}
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100">
+                  {/* Context Menu */}
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 p-0 bg-background/95 hover:bg-primary/20 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-110 border border-white/20"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
+                          className="h-6 w-6 p-0 bg-background/80 hover:bg-background shadow-sm"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreVertical className="w-4 h-4" />
+                          <MoreVertical className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-background/95 backdrop-blur-md border-white/20 shadow-2xl">
+                      <DropdownMenuContent align="end">
                         {!doc.is_folder && (
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownload(doc);
-                            }}
-                            className="transition-all duration-200 hover:bg-primary/10 hover:text-primary"
-                          >
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(doc);
+                          }}>
                             <Download className="w-4 h-4 mr-2" />
                             Download
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem 
-                          className="text-destructive transition-all duration-200 hover:bg-destructive/10"
+                          className="text-destructive"
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             deleteDocument(doc);
                           }}
@@ -836,13 +772,6 @@ const Documents = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-
-                  {/* Favorite star indicator */}
-                  {doc.is_favorite && (
-                    <div className="absolute top-3 left-3 opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
