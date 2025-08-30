@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Plus, Clock } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth, isToday, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth, isToday, startOfWeek, endOfWeek, startOfDay } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -49,11 +49,15 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
     end: calendarEnd
   });
 
-  // Get events for a specific date
+  // Get events for a specific date - including multi-day events that span this date
   const getEventsForDate = (date: Date) => {
     return events.filter(event => {
-      const eventDate = new Date(event.start_time);
-      return isSameDay(eventDate, date);
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+      const targetDate = startOfDay(date);
+      
+      // Check if the date falls within the event's date range (inclusive)
+      return targetDate >= startOfDay(eventStart) && targetDate <= startOfDay(eventEnd);
     });
   };
 
