@@ -667,18 +667,17 @@ const Documents = () => {
           {/* Breadcrumbs */}
           {currentFolder && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setCurrentFolder(null);
                 }}
-                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
+                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
               >
                 Documents
-              </Button>
+              </button>
               <span>/</span>
               <span className="text-foreground font-medium">{currentFolder.name}</span>
             </div>
