@@ -859,7 +859,23 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs temporarily removed for testing */}
+          {/* Breadcrumbs */}
+          <div className="breadcrumb-container h-8 mb-3" style={{ contain: 'layout' }}>
+            {currentFolder && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span
+                  onClick={() => setCurrentFolder(null)}
+                  className="cursor-pointer text-muted-foreground hover:text-foreground"
+                >
+                  Documents
+                </span>
+                <span>/</span>
+                <span className="text-foreground font-medium">
+                  {currentFolder.name}
+                </span>
+              </div>
+            )}
+          </div>
           
           {loading && documents.length === 0 ? (
             <div className="flex items-center justify-center h-32">
