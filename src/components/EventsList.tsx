@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { format, isSameDay, differenceInDays, startOfDay } from 'date-fns';
 
 interface CalendarEvent {
@@ -19,6 +20,8 @@ interface EventsListProps {
   selectedDate: Date;
   events: CalendarEvent[];
   onAddEvent?: () => void;
+  onEditEvent?: (event: CalendarEvent) => void;
+  onDeleteEvent?: (event: CalendarEvent) => void;
   loading?: boolean;
   className?: string;
 }
@@ -27,6 +30,8 @@ export const EventsList: React.FC<EventsListProps> = ({
   selectedDate,
   events,
   onAddEvent,
+  onEditEvent,
+  onDeleteEvent,
   loading = false,
   className = ""
 }) => {
@@ -119,14 +124,39 @@ export const EventsList: React.FC<EventsListProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge variant="secondary" className="text-base">
-                      {getEventBadgeText(event)}
-                    </Badge>
+                  <div className="flex items-start gap-2">
                     {differenceInDays(new Date(event.end_time), new Date(event.start_time)) > 0 && (
                       <Badge variant="outline" className="text-base">
                         {format(new Date(event.start_time), 'MMM d')} - {format(new Date(event.end_time), 'MMM d')}
                       </Badge>
+                    )}
+                    
+                    {/* Event Actions */}
+                    {(onEditEvent || onDeleteEvent) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-background border shadow-md">
+                          {onEditEvent && (
+                            <DropdownMenuItem onClick={() => onEditEvent(event)} className="hover:bg-accent">
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {onDeleteEvent && (
+                            <DropdownMenuItem 
+                              onClick={() => onDeleteEvent(event)} 
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </div>

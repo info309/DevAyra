@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
@@ -46,6 +47,7 @@ const Calendar = () => {
   const [loading, setLoading] = useState(true);
   const [gmailConnection, setGmailConnection] = useState<GmailConnection | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null);
 
   // Load events and check Gmail connection
   useEffect(() => {
@@ -296,8 +298,59 @@ const Calendar = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
   };
 
-  const handleNextMonth = () => {
-    setCurrentMonth(prev => addMonths(prev, 1));
+  const handleDeleteEvent = async (event: CalendarEvent) => {
+    try {
+      if (event.is_synced && event.external_id && gmailConnection) {
+        // Delete from Google Calendar
+        const { error: googleError } = await supabase.functions.invoke('calendar-api', {
+          body: {
+            action: 'delete',
+            eventId: event.external_id
+          }
+        });
+        
+        if (googleError) {
+          console.error('Failed to delete from Google Calendar:', googleError);
+          toast({
+            title: "Error",
+            description: "Failed to delete event from Google Calendar",
+            variant: "destructive"
+          });
+          return;
+        }
+      } else {
+        // Delete local event
+        const { error } = await supabase
+          .from('calendar_events')
+          .delete()
+          .eq('id', event.id);
+          
+        if (error) throw error;
+      }
+      
+      toast({
+        title: "Event deleted",
+        description: "Event has been deleted successfully"
+      });
+      
+      // Reload events
+      loadEvents();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditEvent = (event: CalendarEvent) => {
+    // For now, just show a toast. We can implement edit functionality later
+    toast({
+      title: "Edit Event",
+      description: "Event editing coming soon!"
+    });
   };
 
   if (isDrawerView) {
@@ -452,6 +505,8 @@ const Calendar = () => {
               selectedDate={selectedDate}
               events={events}
               loading={loading}
+              onEditEvent={handleEditEvent}
+              onDeleteEvent={handleDeleteEvent}
               onAddEvent={() => {
                 // This will be handled by the AddEventDialog component
               }}

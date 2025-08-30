@@ -315,9 +315,6 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         </span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-base ml-2">
-                      {event.is_synced ? 'Synced' : 'Local'}
-                    </Badge>
                   </div>
                 ))
               )}
