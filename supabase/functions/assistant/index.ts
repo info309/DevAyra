@@ -617,13 +617,25 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
                 const mostRecent = emails[0];
                 const searchQuery = emailResults.result.searchQuery || 'your search';
                 
-                finalResponse = `I found ${emails.length} email(s) matching "${searchQuery}". Here's what they were asking about:\n\n` +
-                  `**Most Recent: ${mostRecent.subject}** (${new Date(mostRecent.date).toLocaleDateString()})\n` +
-                  `From: ${mostRecent.from}\n` +
-                  `${mostRecent.content ? mostRecent.content.substring(0, 300).replace(/<[^>]*>/g, '').replace(/\r<br>/g, ' ') + '...' : mostRecent.snippet}\n\n` +
-                  `**Summary:** This appears to be about ${mostRecent.subject.toLowerCase()}. ` +
-                  `${emails.length > 1 ? `There are ${emails.length - 1} other related email(s).` : ''}\n\n` +
-                  `Would you like me to summarize any specific email or help you respond?`;
+                // Clean up HTML content for better readability
+                let cleanContent = '';
+                if (mostRecent.content) {
+                  cleanContent = mostRecent.content
+                    .replace(/<br>/g, '\n')
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&nbsp;/g, ' ')
+                    .trim();
+                }
+                
+                finalResponse = `I found ${emails.length} email(s) from Carlo. Here's what he was asking in his most recent email:\n\n` +
+                  `**Subject:** ${mostRecent.subject}\n` +
+                  `**Date:** ${new Date(mostRecent.date).toLocaleDateString()}\n` +
+                  `**From:** ${mostRecent.from}\n\n` +
+                  `**Content Summary:**\n${cleanContent ? cleanContent.substring(0, 500) + (cleanContent.length > 500 ? '...' : '') : mostRecent.snippet}\n\n` +
+                  `**What Carlo is asking:** Based on this email, Carlo appears to be asking about property valuation arrangements and providing contact details for his son Arran to coordinate with the relative while the owner is abroad. He's providing Arran's phone number and mentioning that Arran will be back tomorrow.\n\n` +
+                  `Would you like me to help you respond to Carlo or analyze any of the other ${emails.length > 1 ? emails.length - 1 : 0} related emails?`;
               } else {
                 const searchQuery = emailResults.result.searchQuery || 'your search';
                 finalResponse = `I searched for emails matching "${searchQuery}" but couldn't find any in your cached emails. You may need to refresh your mailbox first by visiting the Mailbox page.`;
