@@ -405,9 +405,6 @@ const Calendar = () => {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             events={events}
-            onAddEvent={() => {
-              // This will be handled by the AddEventDialog component
-            }}
             onEditEvent={handleEditEvent}
             onDeleteEvent={handleDeleteEvent}
             showEvents={true}
@@ -483,12 +480,6 @@ const Calendar = () => {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             events={events}
-            onAddEvent={() => {
-              toast({
-                title: "Add Event",
-                description: "Event creation coming soon!"
-              });
-            }}
             showEvents={true}
           />
         </div>
@@ -503,9 +494,6 @@ const Calendar = () => {
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
               events={events}
-              onAddEvent={() => {
-                // This will be handled by the AddEventDialog component
-              }}
               showEvents={false} // Hide events on tablet and desktop - shown separately
             />
           </div>
@@ -518,9 +506,6 @@ const Calendar = () => {
               loading={loading}
               onEditEvent={handleEditEvent}
               onDeleteEvent={handleDeleteEvent}
-              onAddEvent={() => {
-                // This will be handled by the AddEventDialog component
-              }}
             />
           </div>
         </div>
