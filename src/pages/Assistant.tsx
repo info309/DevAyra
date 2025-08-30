@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
   created_at: string;
   tool_name?: string;
@@ -115,10 +115,37 @@ const Assistant = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages((data || []).map(msg => ({
-        ...msg,
-        role: msg.role as 'user' | 'assistant'
-      })));
+      
+      // Filter out tool messages and associate them with assistant messages
+      const allMessages = data || [];
+      const toolMessages = allMessages.filter(msg => msg.role === 'tool');
+      const displayMessages = allMessages.filter(msg => msg.role !== 'tool');
+      
+      // Associate tool results with assistant messages
+      const messagesWithTools = displayMessages.map(msg => {
+        if (msg.role === 'assistant') {
+          // Find the most recent tool message before this assistant message
+          const toolMsg = toolMessages
+            .filter(tool => tool.created_at <= msg.created_at)
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          
+          if (toolMsg) {
+            return {
+              ...msg,
+              tool_name: toolMsg.tool_name,
+              tool_result: toolMsg.tool_result ? JSON.parse(typeof toolMsg.tool_result === 'string' ? toolMsg.tool_result : JSON.stringify(toolMsg.tool_result)) : null,
+              role: msg.role as 'user' | 'assistant'
+            };
+          }
+        }
+        
+        return {
+          ...msg,
+          role: msg.role as 'user' | 'assistant'
+        };
+      });
+      
+      setMessages(messagesWithTools);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -296,9 +323,10 @@ const Assistant = () => {
 
       case 'emails_compose_draft':
         // Handle draft composition and show open draft button
-        if (toolResult && toolResult.result) {
-          const draft = toolResult.result;
-          if (draft.action === 'compose_draft') {
+        if (toolResult) {
+          // toolResult is the direct result from the function, not nested
+          const draft = toolResult.action === 'compose_draft' ? toolResult : null;
+          if (draft) {
             const openDraft = () => {
               navigate('/mailbox', { 
                 state: { 
