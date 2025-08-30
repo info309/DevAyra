@@ -175,8 +175,8 @@ const Mailbox: React.FC = () => {
         to: draft.to || '',
         subject: draft.subject || '',
         content: draft.content || '',
-        replyTo: draft.replyTo, // Explicitly set replyTo 
-        threadId: draft.threadId,
+        // Only set threadId if it exists and is a valid string
+        threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
         attachments: [],
         documentAttachments: []
       });
@@ -185,8 +185,8 @@ const Mailbox: React.FC = () => {
         to: draft.to,
         subject: draft.subject,
         content: draft.content,
-        replyTo: draft.replyTo,
-        threadId: draft.threadId
+        threadId: draft.threadId,
+        isValidThreadId: !!(draft.threadId && typeof draft.threadId === 'string')
       });
       setShowComposeDialog(true);
       

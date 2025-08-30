@@ -284,14 +284,20 @@ async function searchDocuments(userId: string, query: string) {
 async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string) {
   console.log('Composing email draft:', { to, subject, threadId });
   
-  // Return draft data that will be used by the frontend
-  return {
+  // Build draft data with only defined fields
+  const draftData: any = {
     to,
     subject,
     content,
-    threadId,
     action: 'compose_draft'
   };
+  
+  // Only include threadId if it's a valid string
+  if (threadId && typeof threadId === 'string' && threadId.trim()) {
+    draftData.threadId = threadId;
+  }
+  
+  return draftData;
 }
 
 // Main handler
