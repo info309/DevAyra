@@ -68,6 +68,9 @@ const Documents = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renamingItem, setRenamingItem] = useState<UserDocument | null>(null);
+  const [newItemName, setNewItemName] = useState('');
 
   // Prevent auto-focus on page load
   useEffect(() => {
@@ -271,6 +274,37 @@ const Documents = () => {
       toast({
         title: "Error",
         description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const startRename = (item: UserDocument) => {
+    setRenamingItem(item);
+    setNewItemName(item.name);
+    setIsRenameOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!renamingItem || !newItemName.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_documents')
+        .update({ name: newItemName.trim() })
+        .eq('id', renamingItem.id);
+
+      if (error) throw error;
+
+      setIsRenameOpen(false);
+      setRenamingItem(null);
+      setNewItemName('');
+      loadDocuments();
+    } catch (error) {
+      console.error('Error renaming item:', error);
+      toast({
+        title: "Error",
+        description: `Failed to rename ${renamingItem.is_folder ? 'folder' : 'file'}`,
         variant: "destructive",
       });
     }
@@ -1035,27 +1069,34 @@ const Documents = () => {
                           <MoreVertical className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {!doc.is_folder && (
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(doc);
-                          }}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteDocument(doc);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
+                       <DropdownMenuContent align="end">
+                         <DropdownMenuItem onClick={(e) => {
+                           e.stopPropagation();
+                           startRename(doc);
+                         }}>
+                           <Edit className="w-4 h-4 mr-2" />
+                           Rename
+                         </DropdownMenuItem>
+                         {!doc.is_folder && (
+                           <DropdownMenuItem onClick={(e) => {
+                             e.stopPropagation();
+                             handleDownload(doc);
+                           }}>
+                             <Download className="w-4 h-4 mr-2" />
+                             Download
+                           </DropdownMenuItem>
+                         )}
+                         <DropdownMenuItem 
+                           className="text-destructive"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             deleteDocument(doc);
+                           }}
+                         >
+                           <Trash2 className="w-4 h-4 mr-2" />
+                           Delete
+                         </DropdownMenuItem>
+                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
@@ -1063,6 +1104,51 @@ const Documents = () => {
             </div>
           )}
         </div>
+        
+        {/* Rename Dialog */}
+        <Drawer open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+          <DrawerContent>
+            <div className="mx-auto w-full max-w-sm">
+              <DrawerHeader>
+                <DrawerTitle>Rename {renamingItem?.is_folder ? 'Folder' : 'File'}</DrawerTitle>
+                <DrawerDescription>
+                  Enter a new name for "{renamingItem?.name}".
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="p-4 pb-0">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="item-name">Name</Label>
+                    <Input
+                      id="item-name"
+                      placeholder={`Enter ${renamingItem?.is_folder ? 'folder' : 'file'} name...`}
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newItemName.trim()) {
+                          handleRename();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DrawerFooter>
+                <Button 
+                  onClick={handleRename}
+                  disabled={!newItemName.trim()}
+                  className="gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Rename
+                </Button>
+                <DrawerClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
         
         {/* Document Viewer */}
         <DocumentViewer
