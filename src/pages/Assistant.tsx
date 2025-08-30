@@ -423,7 +423,7 @@ const Assistant = () => {
                     <PanelLeft className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-80">
+                <SheetContent side="left" className="p-0 w-80 [&>button]:hidden">
                   <SessionsSidebar onSessionSelect={() => setSidebarOpen(false)} />
                 </SheetContent>
               </Sheet>
