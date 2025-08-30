@@ -221,6 +221,11 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                       const hasEvents = singleDayEvents.length > 0;
                       const isHovered = hoveredDate && isSameDay(date, hoveredDate);
                       
+                      // Check if this date has spanning events going through it
+                      const hasSpanningEvents = weekSpanningEvents.some(spanEvent => 
+                        dayIndex >= spanEvent.startCol && dayIndex < spanEvent.startCol + spanEvent.span
+                      );
+                      
                       return (
                         <div
                           key={dayIndex}
@@ -234,7 +239,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         >
                           <span className={`text-base relative z-20 ${
                             isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
-                            isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : ''
+                            isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : 
+                            hasSpanningEvents ? 'text-white font-semibold' : ''
                           }`}>
                             {format(date, 'd')}
                           </span>
