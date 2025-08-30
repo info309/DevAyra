@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
       case 'list':
         return await listEvents(connection, requestData);
       case 'create':
-        return await createEvent(connection, requestData, supabaseClient, user.id);
+        return await createEvent(connection, requestData);
       case 'update':
         return await updateEvent(connection, requestData, supabaseClient, user.id);
       case 'delete':
@@ -185,28 +185,13 @@ async function listEvents(connection: any, { timeMin, timeMax }: any) {
   );
 }
 
-async function createEvent(connection: any, { event }: { event: CalendarEvent }, supabaseClient: any, userId: string) {
-  console.log('Creating calendar event');
+async function createEvent(connection: any, { event }: { event: CalendarEvent }) {
+  console.log('Creating calendar event in Google Calendar only');
   
   const data = await makeCalendarRequest(connection, '/calendars/primary/events', {
     method: 'POST',
     body: JSON.stringify(event),
   });
-
-  // Also store in local database
-  const localEvent = {
-    user_id: userId,
-    title: event.summary,
-    description: event.description || null,
-    start_time: event.start.dateTime || event.start.date,
-    end_time: event.end.dateTime || event.end.date,
-    all_day: !!event.start.date, // If date is used instead of dateTime, it's all day
-    reminder_minutes: event.reminders?.overrides?.[0]?.minutes || null,
-  };
-
-  await supabaseClient
-    .from('calendar_events')
-    .insert(localEvent);
 
   return new Response(
     JSON.stringify({ event: data }),
