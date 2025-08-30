@@ -238,8 +238,11 @@ const Documents = () => {
     if (doc.is_folder) return;
     
     try {
+      // Determine the bucket based on file path
+      const bucket = doc.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+      
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from(bucket)
         .download(doc.file_path);
 
       if (error) throw error;
@@ -327,8 +330,11 @@ const Documents = () => {
     try {
       // If it's a file, delete from storage first
       if (!doc.is_folder && doc.file_path) {
+        // Determine the bucket based on file path
+        const bucket = doc.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+        
         const { error: storageError } = await supabase.storage
-          .from('documents')
+          .from(bucket)
           .remove([doc.file_path]);
         
         if (storageError) console.error('Storage deletion error:', storageError);

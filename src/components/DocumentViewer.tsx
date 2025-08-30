@@ -73,15 +73,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       setLoading(true);
       console.log('DocumentViewer: Generating preview for:', document.name, 'at path:', document.file_path);
       
+      // Determine the bucket based on file path
+      const bucket = document.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+      
       // Create signed URL for preview with inline download option
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from(bucket)
         .createSignedUrl(document.file_path, 3600, {
           download: false // This ensures the file is displayed inline, not downloaded
         });
       
       if (error) {
-        console.error('DocumentViewer: Error creating signed URL for', document.file_path, ':', error);
+        console.error('DocumentViewer: Error creating signed URL for', document.file_path, 'in bucket', bucket, ':', error);
         // Don't show error toast - just log it and continue with fallback
       } else if (data) {
         console.log('DocumentViewer: Signed URL created successfully:', data.signedUrl);
@@ -99,8 +102,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (!document) return;
     
     try {
+      // Determine the bucket based on file path
+      const bucket = document.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+      
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from(bucket)
         .download(document.file_path);
 
       if (error) throw error;
