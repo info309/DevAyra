@@ -414,6 +414,16 @@ const Calendar = () => {
             showEvents={true}
           />
         </div>
+        
+        {/* Edit Event Drawer for Mobile/Tablet */}
+        <AddEventDrawer
+          selectedDate={selectedDate}
+          onEventAdded={handleEditComplete}
+          gmailConnection={gmailConnection}
+          eventToEdit={eventToEdit}
+          open={editDrawerOpen}
+          onOpenChange={setEditDrawerOpen}
+        />
       </div>
     );
   }
