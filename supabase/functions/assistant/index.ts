@@ -342,20 +342,51 @@ Remember: You're having a conversation, not just executing commands. Be human-li
               break;
 
             case 'emails_search':
-              // Search in local cache using full-text search
+              // Enhanced email search - try multiple strategies in order
               if (args.query) {
-                const { data: searchResults, error: searchError } = await supabase
+                let searchResults = [];
+                let searchError = null;
+                
+                // Strategy 1: Direct name/email search (most reliable for "from Michelle")
+                const { data: senderResults, error: senderError } = await supabase
                   .from('cached_emails')
                   .select('*')
                   .eq('user_id', user.id)
-                  .textSearch('subject || \' \' || sender_name || \' \' || content', args.query, {
-                    type: 'websearch',
-                    config: 'english'
-                  })
+                  .or(`sender_name.ilike.%${args.query}%,sender_email.ilike.%${args.query}%`)
                   .order('date_sent', { ascending: false })
                   .limit(20);
                 
-                if (!searchError && searchResults) {
+                if (!senderError && senderResults && senderResults.length > 0) {
+                  searchResults = senderResults;
+                } else {
+                  // Strategy 2: Search subject lines
+                  const { data: subjectResults, error: subjectError } = await supabase
+                    .from('cached_emails')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .ilike('subject', `%${args.query}%`)
+                    .order('date_sent', { ascending: false })
+                    .limit(20);
+                  
+                  if (!subjectError && subjectResults && subjectResults.length > 0) {
+                    searchResults = subjectResults;
+                  } else {
+                    // Strategy 3: Search email content
+                    const { data: contentResults, error: contentError } = await supabase
+                      .from('cached_emails')
+                      .select('*')
+                      .eq('user_id', user.id)
+                      .ilike('content', `%${args.query}%`)
+                      .order('date_sent', { ascending: false })
+                      .limit(20);
+                    
+                    if (!contentError && contentResults && contentResults.length > 0) {
+                      searchResults = contentResults;
+                    }
+                  }
+                }
+                
+                if (searchResults.length > 0) {
                   result = {
                     conversations: searchResults.map(email => ({
                       id: email.gmail_thread_id,
@@ -368,41 +399,17 @@ Remember: You're having a conversation, not just executing commands. Be human-li
                       unreadCount: email.is_unread ? 1 : 0
                     })),
                     fromCache: true,
-                    searchQuery: args.query
+                    searchQuery: args.query,
+                    searchStrategy: searchResults === senderResults ? 'sender' : 
+                                   searchResults === subjectResults ? 'subject' : 'content'
                   };
                 } else {
-                  // If no cached results or search fails, also try name-based search
-                  const { data: nameResults, error: nameError } = await supabase
-                    .from('cached_emails')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .or(`sender_name.ilike.%${args.query}%,sender_email.ilike.%${args.query}%,subject.ilike.%${args.query}%`)
-                    .order('date_sent', { ascending: false })
-                    .limit(20);
-                  
-                  if (!nameError && nameResults && nameResults.length > 0) {
-                    result = {
-                      conversations: nameResults.map(email => ({
-                        id: email.gmail_thread_id,
-                        subject: email.subject,
-                        from: email.sender_name || email.sender_email,
-                        to: email.recipient_name || email.recipient_email,
-                        date: email.date_sent,
-                        snippet: email.snippet,
-                        content: email.content,
-                        unreadCount: email.is_unread ? 1 : 0
-                      })),
-                      fromCache: true,
-                      searchQuery: args.query
-                    };
-                  } else {
-                    result = { 
-                      conversations: [], 
-                      fromCache: true, 
-                      searchQuery: args.query,
-                      noResults: true 
-                    };
-                  }
+                  result = { 
+                    conversations: [], 
+                    fromCache: true, 
+                    searchQuery: args.query,
+                    noResults: true 
+                  };
                 }
               } else {
                 result = { error: 'Search query is required' };
