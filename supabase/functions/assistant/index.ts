@@ -109,12 +109,12 @@ serve(async (req) => {
 4. Answer questions about email content and documents
 
 Available tools:
-- emails.list: Get recent emails with optional query/label filter
-- emails.search: Search emails by keywords  
-- emails.read: Get full email content by message ID
-- emails.send: Draft/send emails (always ask for confirmation)
-- documents.list: List user's documents with optional search
-- documents.search: Search documents by name/content
+- emails_list: Get recent emails with optional query/label filter
+- emails_search: Search emails by keywords  
+- emails_read: Get full email content by message ID
+- emails_send: Draft/send emails (always ask for confirmation)
+- documents_list: List user's documents with optional search
+- documents_search: Search documents by name/content
 
 Be helpful, concise, and always confirm before sending emails.`
       },
@@ -142,7 +142,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'emails.list',
+          name: 'emails_list',
           description: 'Get recent emails from Gmail',
           parameters: {
             type: 'object',
@@ -156,7 +156,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'emails.search',
+          name: 'emails_search',
           description: 'Search emails by keywords',
           parameters: {
             type: 'object',
@@ -170,7 +170,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'emails.read',
+          name: 'emails_read',
           description: 'Get full content of a specific email',
           parameters: {
             type: 'object',
@@ -184,7 +184,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'emails.send',
+          name: 'emails_send',
           description: 'Draft or send an email',
           parameters: {
             type: 'object',
@@ -201,7 +201,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'documents.list',
+          name: 'documents_list',
           description: 'List user documents',
           parameters: {
             type: 'object',
@@ -215,7 +215,7 @@ Be helpful, concise, and always confirm before sending emails.`
       {
         type: 'function',
         function: {
-          name: 'documents.search',
+          name: 'documents_search',
           description: 'Search documents by name or content',
           parameters: {
             type: 'object',
@@ -263,14 +263,14 @@ Be helpful, concise, and always confirm before sending emails.`
           console.log('Executing tool:', toolCall.function.name, args);
 
           switch (toolCall.function.name) {
-            case 'emails.list':
-            case 'emails.search':
-            case 'emails.read':
-            case 'emails.send':
+            case 'emails_list':
+            case 'emails_search':
+            case 'emails_read':
+            case 'emails_send':
               // Call existing gmail-api function
               const { data: gmailResult, error: gmailError } = await supabase.functions.invoke('gmail-api', {
                 body: {
-                  action: toolCall.function.name.replace('emails.', ''),
+                  action: toolCall.function.name.replace('emails_', ''),
                   ...args
                 },
                 headers: {
@@ -282,7 +282,7 @@ Be helpful, concise, and always confirm before sending emails.`
               result = gmailResult;
               break;
 
-            case 'documents.list':
+            case 'documents_list':
               const { data: docsList, error: docsError } = await supabase
                 .from('user_documents')
                 .select('id, name, mime_type, file_size, created_at, is_favorite, category, description')
@@ -296,7 +296,7 @@ Be helpful, concise, and always confirm before sending emails.`
               result = { documents: docsList };
               break;
 
-            case 'documents.search':
+            case 'documents_search':
               const { data: searchDocs, error: searchError } = await supabase
                 .from('user_documents')
                 .select('id, name, mime_type, file_size, created_at, is_favorite, category, description')
