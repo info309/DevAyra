@@ -68,6 +68,7 @@ const Documents = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [regeneratingThumbnails, setRegeneratingThumbnails] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -222,6 +223,35 @@ const Documents = () => {
         description: "Failed to create folder",
         variant: "destructive",
       });
+    }
+  };
+
+  const regenerateThumbnails = async () => {
+    try {
+      setRegeneratingThumbnails(true);
+      
+      const { data, error } = await supabase.functions.invoke('regenerate-thumbnails');
+      
+      if (error) throw error;
+      
+      if (data) {
+        toast({
+          title: "Success",
+          description: `Generated ${data.successful || 0} thumbnails${data.failed ? ` (${data.failed} failed)` : ''}`,
+        });
+        
+        // Reload documents to show new thumbnails
+        loadDocuments();
+      }
+    } catch (error) {
+      console.error('Error regenerating thumbnails:', error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate thumbnails",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingThumbnails(false);
     }
   };
 
@@ -564,6 +594,16 @@ const Documents = () => {
                   </div>
                 </DrawerContent>
               </Drawer>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={regenerateThumbnails}
+                disabled={regeneratingThumbnails}
+                className="gap-2"
+              >
+                <FileText className={`w-4 h-4 ${regeneratingThumbnails ? 'animate-spin' : ''}`} />
+                {regeneratingThumbnails ? 'Generating...' : 'Generate Thumbnails'}
+              </Button>
             </div>
           </div>
         </div>
