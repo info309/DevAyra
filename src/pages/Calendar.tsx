@@ -484,12 +484,8 @@ const Calendar = () => {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             events={events}
-            onAddEvent={() => {
-              toast({
-                title: "Add Event",
-                description: "Event creation coming soon!"
-              });
-            }}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={handleDeleteEvent}
             showEvents={true}
           />
         </div>
