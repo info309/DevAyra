@@ -659,7 +659,7 @@ const Assistant = () => {
                   onKeyDown={handleKeyPress}
                   placeholder="Ask me anything..."
                   disabled={isLoading}
-                  className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-background placeholder:pt-2"
+                  className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-background"
                   rows={1}
                 />
                 <Button 
