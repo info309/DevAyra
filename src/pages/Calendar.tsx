@@ -405,7 +405,7 @@ const Calendar = () => {
           </Button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Calendar Section */}
           <div className="flex-shrink-0">
             <Card className="w-fit p-4 bg-card">
