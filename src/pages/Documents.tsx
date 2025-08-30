@@ -215,6 +215,7 @@ const Documents = () => {
 
       setNewFolderName('');
       setIsCreateFolderOpen(false);
+      // Reload documents to show new folder
       loadDocuments();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -358,7 +359,7 @@ const Documents = () => {
         description: `${doc.is_folder ? 'Folder' : 'File'} deleted successfully`,
       });
 
-      loadDocuments();
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
     } catch (error) {
       console.error('Error deleting document:', error);
       toast({
@@ -407,7 +408,7 @@ const Documents = () => {
       if (error) throw error;
 
 
-      loadDocuments();
+      setDocuments(prev => prev.filter(d => d.id !== draggedItem.id));
     } catch (error) {
       console.error('Error moving document:', error);
       toast({
@@ -473,7 +474,7 @@ const Documents = () => {
         if (error) throw error;
 
 
-        loadDocuments();
+        setDocuments(prev => prev.filter(d => d.id !== draggedItem.id));
       } catch (error) {
         console.error('Error moving document:', error);
         toast({
