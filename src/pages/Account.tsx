@@ -68,7 +68,7 @@ const Account: React.FC = () => {
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <h1 className="text-lg font-semibold">Account</h1>
+              <h1 className="text-2xl font-bold">Account</h1>
             </div>
             
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
