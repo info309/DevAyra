@@ -130,21 +130,27 @@ CAPABILITIES:
    - Remember context from our conversation
 
 TOOL USAGE:
-- emails_list: Get recent emails (use for "check my emails", "recent messages")
+- emails_list: Get recent emails (use for "check my emails", "recent messages", or when search fails)
 - emails_search: Search by keywords (use for "find emails about X", "emails from Y")
 - emails_read: Get full email content by ID (use when user asks about specific email details)
 - emails_send: Draft/send emails (ALWAYS ask for confirmation first)
 - documents_list: List documents (use for "show my files", "what documents do I have")
 - documents_search: Search documents by content/name
 
+SMART FALLBACKS:
+- If email search fails, automatically check recent emails and look for matches manually
+- When looking for emails from a specific person, scan recent emails if search doesn't work
+- Always try to help even if the first approach doesn't work
+
 CONVERSATION FLOW:
 1. If a request is unclear, ask specific clarifying questions
 2. Execute the appropriate tool calls to gather information
-3. Analyze and summarize the results in a conversational way
-4. Suggest follow-up actions or ask if they need anything else
-5. For email sending, always confirm details before executing
+3. If tools fail, try alternative approaches automatically
+4. Analyze and summarize the results in a conversational way
+5. Suggest follow-up actions or ask if they need anything else
+6. For email sending, always confirm details before executing
 
-Remember: You're having a conversation, not just executing commands. Be human-like in your responses.`
+Remember: You're having a conversation, not just executing commands. Be human-like in your responses and persistent in helping users find what they need.`
       },
       ...(history || []).map(msg => ({
         role: msg.role,
@@ -387,6 +393,32 @@ Remember: You're having a conversation, not just executing commands. Be human-li
 
             default:
               result = { error: `Unknown tool: ${toolCall.function.name}` };
+          }
+
+          // If email search fails, try listing recent emails as fallback
+          if (toolCall.function.name === 'emails_search' && (result.error || !result.conversations)) {
+            console.log('Email search failed, falling back to list recent emails');
+            try {
+              const { data: fallbackResult, error: fallbackError } = await supabase.functions.invoke('gmail-api', {
+                body: {
+                  action: 'getEmails',
+                  maxResults: 50
+                },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                }
+              });
+              
+              if (!fallbackError && fallbackResult?.conversations) {
+                result = {
+                  ...fallbackResult,
+                  fallback_used: true,
+                  original_error: result.error
+                };
+              }
+            } catch (fallbackErr) {
+              console.error('Fallback also failed:', fallbackErr);
+            }
           }
 
           toolResults.push({
