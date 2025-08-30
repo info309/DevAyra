@@ -33,35 +33,66 @@ interface DocumentTool {
 }
 
 serve(async (req) => {
+  console.log('=== ASSISTANT FUNCTION START ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  
   if (req.method === 'OPTIONS') {
+    console.log('Returning CORS response');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('=== AUTHENTICATION CHECK ===');
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header exists:', !!authHeader);
+    
     if (!authHeader) {
-      throw new Error('No authorization header');
+      console.error('No authorization header');
+      return new Response(JSON.stringify({ 
+        error: 'No authorization header',
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token length:', token.length);
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    console.log('Auth error:', authError);
+    console.log('User exists:', !!user);
     
     if (authError || !user) {
-      throw new Error('Authentication failed');
+      console.error('Authentication failed:', authError);
+      return new Response(JSON.stringify({ 
+        error: 'Authentication failed',
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
+    console.log('=== PARSING REQUEST BODY ===');
     const requestBody = await req.json();
     console.log('Raw request body:', JSON.stringify(requestBody));
     
     const { message, sessionId, detectedTriggers = [] } = requestBody;
+    console.log('Parsed params:', { messageLength: message?.length, sessionId, detectedTriggers });
 
-    console.log('Assistant request received:', { 
-      userId: user.id, 
-      sessionId, 
-      message: message ? message.substring(0, 100) : 'NO MESSAGE',
-      detectedTriggers: detectedTriggers,
-      timestamp: new Date().toISOString()
-    });
+    if (!message || !sessionId) {
+      console.error('Missing required parameters');
+      return new Response(JSON.stringify({ 
+        error: 'Missing message or sessionId',
+        success: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Get or create session
     let session;
