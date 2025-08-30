@@ -300,9 +300,9 @@ const Calendar = () => {
             </div>
             
             <div className="text-right">
-              <p className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold">
                 {format(new Date(), "EEEE do MMMM yyyy")}
-              </p>
+              </h1>
             </div>
           </div>
 
@@ -358,9 +358,9 @@ const Calendar = () => {
           </div>
           
           <div className="text-right">
-            <p className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold">
               {format(new Date(), "EEEE do MMMM yyyy")}
-            </p>
+            </h1>
           </div>
         </div>
 
