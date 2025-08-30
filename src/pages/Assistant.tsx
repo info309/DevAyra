@@ -758,16 +758,7 @@ const Assistant = () => {
                   ))}
                 </div>
               )}
-              <div className="flex gap-2 md:gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-[44px] w-[44px] shrink-0"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImagePlus className="w-4 h-4" />
-                  <span className="sr-only">Add images</span>
-                </Button>
+              <div className="relative">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -782,14 +773,23 @@ const Assistant = () => {
                   onKeyDown={handleKeyPress}
                   placeholder="Ask me anything..."
                   disabled={isLoading}
-                  className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-background"
+                  className="w-full min-h-[44px] max-h-[200px] resize-none bg-background pl-12 pr-12"
                   rows={1}
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  <span className="sr-only">Add images</span>
+                </Button>
                 <Button 
                   onClick={sendMessage} 
                   disabled={!inputMessage.trim() || isLoading}
                   size="icon"
-                  className="h-[44px] w-[44px] shrink-0"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0"
                 >
                   <Send className="w-4 h-4" />
                   <span className="sr-only">Send message</span>
