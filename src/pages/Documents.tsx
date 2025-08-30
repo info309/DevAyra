@@ -26,6 +26,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
+import { ThumbnailGenerator } from '@/utils/thumbnailGenerator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Label } from '@/components/ui/label';
@@ -136,6 +137,8 @@ const Documents = () => {
   useEffect(() => {
     if (user) {
       loadDocuments();
+      // Trigger backfill for missing thumbnails on page load
+      ThumbnailGenerator.backfillMissingThumbnails();
     }
   }, [user, currentFolder?.id, loadDocuments]);
 
@@ -177,11 +180,20 @@ const Documents = () => {
           formData.append('folderId', currentFolder.id);
         }
 
-        const { error } = await supabase.functions.invoke('document-upload', {
+        const { data, error } = await supabase.functions.invoke('document-upload-with-thumbnail', {
           body: formData
         });
 
         if (error) throw error;
+
+        // Generate client-side thumbnail for PDFs and videos if possible
+        if (data?.document) {
+          await ThumbnailGenerator.generateThumbnailForDocument(
+            data.document.id,
+            file,
+            data.document.file_path
+          );
+        }
       }
 
       toast({
