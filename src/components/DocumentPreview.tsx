@@ -215,8 +215,26 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
     );
   }
 
-  // If we have a preview URL (either thumbnail or original), show it
+  // If we have a preview URL, show appropriate preview
   if (previewUrl) {
+    // For PDFs, use iframe preview instead of image
+    if (document.mime_type?.includes('pdf')) {
+      return (
+        <div className={`${className} bg-muted/30 rounded-xl overflow-hidden`}>
+          <iframe
+            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=0&navpanes=0&statusbar=0`}
+            className="w-full h-full border-0"
+            title={`Preview of ${document.name}`}
+            onError={(e) => {
+              console.error('PDF preview failed to load:', previewUrl);
+              setPreviewUrl(null); // Fallback to document icon
+            }}
+          />
+        </div>
+      );
+    }
+    
+    // For images and other supported types, use image preview
     return (
       <div className={`${className} bg-muted/30 rounded-xl overflow-hidden`}>
         <img
