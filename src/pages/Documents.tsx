@@ -345,10 +345,13 @@ const Documents = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${doc.is_folder ? 'Folder' : 'File'} deleted successfully`,
-      });
+      // Only show success message for file deletion, not folders
+      if (!doc.is_folder) {
+        toast({
+          title: "Success",
+          description: "File deleted successfully",
+        });
+      }
 
       loadDocuments();
     } catch (error) {
