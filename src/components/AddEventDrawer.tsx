@@ -124,7 +124,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
 
           const { data: googleEvent, error: googleError } = await supabase.functions.invoke('calendar-api', {
             body: {
-              action: 'insert',
+              action: 'create',
               event: googleEventData
             }
           });
