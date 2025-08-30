@@ -429,11 +429,6 @@ const Documents = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${draggedItem.is_folder ? 'Folder' : 'Document'} moved successfully`,
-      });
-
       loadDocuments();
     } catch (error) {
       console.error('Error moving item:', error);
@@ -544,11 +539,6 @@ const Documents = () => {
           .eq('id', draggedItem.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: `${draggedItem.is_folder ? 'Folder' : 'Document'} moved successfully`,
-        });
 
         loadDocuments();
       } catch (error) {
