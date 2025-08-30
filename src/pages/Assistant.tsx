@@ -494,7 +494,7 @@ const Assistant = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container flex h-14 max-w-screen-2xl items-center px-4">
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-4 md:gap-6">
             <Button 
               variant="outline" 
               size={isMobile ? "icon" : "sm"} 
