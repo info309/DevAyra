@@ -299,10 +299,6 @@ const Calendar = () => {
               <h1 className="text-2xl font-bold">Calendar</h1>
             </div>
             
-            <Button size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Event
-            </Button>
           </div>
 
           {/* Connection Status */}
@@ -355,10 +351,6 @@ const Calendar = () => {
             </Button>
             <h1 className="text-2xl font-bold">Calendar</h1>
           </div>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Event
-          </Button>
         </div>
 
         {/* Google Calendar Connection - show at top if not connected */}
