@@ -245,9 +245,9 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                             {format(date, 'd')}
                           </span>
                           
-                          {/* Single-day event indicators */}
+                          {/* Single-day event indicators positioned at bottom */}
                           {hasEvents && (
-                            <div className="flex gap-0.5 sm:gap-1 mt-2 relative z-20">
+                            <div className="absolute bottom-1 flex gap-0.5 sm:gap-1 relative z-20">
                               {singleDayEvents.slice(0, 2).map((event, eventIndex) => (
                                 <div
                                   key={eventIndex}
