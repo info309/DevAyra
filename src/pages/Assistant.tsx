@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, Paperclip } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -765,8 +765,8 @@ const Assistant = () => {
                   className="h-[44px] w-[44px] shrink-0"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Paperclip className="w-4 h-4" />
-                  <span className="sr-only">Add attachment</span>
+                  <ImagePlus className="w-4 h-4" />
+                  <span className="sr-only">Add images</span>
                 </Button>
                 <input
                   ref={fileInputRef}
