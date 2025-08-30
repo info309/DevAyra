@@ -318,10 +318,21 @@ const Assistant = () => {
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-12">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="font-semibold mb-2">Start a conversation</h3>
-                  <p className="text-sm">
-                    Ask me about your emails, documents, or anything else!
+                  <h3 className="font-semibold mb-2">Hi! I'm Ayra, your AI assistant</h3>
+                  <p className="text-sm max-w-lg mx-auto">
+                    I can help you with your emails and documents. Try asking me something like:
                   </p>
+                  <div className="mt-4 space-y-2 text-xs">
+                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
+                      "Did I get an email from Michelle?"
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
+                      "Show me my recent documents"
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
+                      "Help me find emails about the project"
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -369,11 +380,11 @@ const Assistant = () => {
           {/* Input Area */}
           <div className="border-t p-4">
             <div className="max-w-4xl mx-auto flex gap-2">
-              <Input
+                <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask about your emails, documents, or anything else..."
+                placeholder="Ask me anything about your emails or documents..."
                 disabled={isLoading}
                 className="flex-1"
               />

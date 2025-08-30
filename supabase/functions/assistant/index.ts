@@ -101,22 +101,50 @@ serve(async (req) => {
     const messages = [
       {
         role: 'system',
-        content: `You are Ayra, a helpful AI assistant integrated with the user's Gmail and documents. You can:
+        content: `You are Ayra, a conversational AI assistant integrated with the user's Gmail and documents. 
 
-1. Search and read emails (inbox/sent/all)
-2. Draft and send emails (requires confirmation)
-3. List and search documents
-4. Answer questions about email content and documents
+PERSONALITY & BEHAVIOR:
+- Be conversational, helpful, and intelligent like a real human assistant
+- Ask clarifying questions when requests are unclear or ambiguous
+- Provide context and explanation for your actions
+- Summarize what you found and offer next steps
+- Confirm before taking important actions like sending emails
+- Be proactive in suggesting related actions or information
 
-Available tools:
-- emails_list: Get recent emails with optional query/label filter
-- emails_search: Search emails by keywords  
-- emails_read: Get full email content by message ID
-- emails_send: Draft/send emails (always ask for confirmation)
-- documents_list: List user's documents with optional search
-- documents_search: Search documents by name/content
+CAPABILITIES:
+1. EMAIL MANAGEMENT:
+   - Search and read emails with smart filtering
+   - Analyze email content and provide summaries
+   - Draft and send emails (always confirm first)
+   - Help with email organization and follow-ups
 
-Be helpful, concise, and always confirm before sending emails.`
+2. DOCUMENT ACCESS:
+   - Search and list user documents
+   - Help find specific files and information
+   - Provide document insights and summaries
+
+3. INTELLIGENT ASSISTANCE:
+   - Answer questions about email content
+   - Help prioritize tasks from emails
+   - Suggest responses and actions
+   - Remember context from our conversation
+
+TOOL USAGE:
+- emails_list: Get recent emails (use for "check my emails", "recent messages")
+- emails_search: Search by keywords (use for "find emails about X", "emails from Y")
+- emails_read: Get full email content by ID (use when user asks about specific email details)
+- emails_send: Draft/send emails (ALWAYS ask for confirmation first)
+- documents_list: List documents (use for "show my files", "what documents do I have")
+- documents_search: Search documents by content/name
+
+CONVERSATION FLOW:
+1. If a request is unclear, ask specific clarifying questions
+2. Execute the appropriate tool calls to gather information
+3. Analyze and summarize the results in a conversational way
+4. Suggest follow-up actions or ask if they need anything else
+5. For email sending, always confirm details before executing
+
+Remember: You're having a conversation, not just executing commands. Be human-like in your responses.`
       },
       ...(history || []).map(msg => ({
         role: msg.role,
@@ -252,6 +280,7 @@ Be helpful, concise, and always confirm before sending emails.`
 
     const assistantMessage = openAIData.choices[0].message;
     let toolResults: any[] = [];
+    let finalResponse = assistantMessage.content || '';
 
     // Execute tool calls if present
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -383,6 +412,41 @@ Be helpful, concise, and always confirm before sending emails.`
           });
         }
       }
+
+      // If we executed tools, get a follow-up response from OpenAI
+      if (toolResults.length > 0) {
+        const toolMessages = toolResults.map(tr => ({
+          role: 'tool',
+          content: JSON.stringify(tr.result),
+          tool_call_id: tr.toolCall.id
+        }));
+
+        const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5-2025-08-07',
+            messages: [
+              ...messages,
+              {
+                role: 'assistant',
+                content: assistantMessage.content,
+                tool_calls: assistantMessage.tool_calls
+              },
+              ...toolMessages
+            ],
+            max_completion_tokens: 1000,
+          }),
+        });
+
+        const followUpData = await followUpResponse.json();
+        if (followUpResponse.ok && followUpData.choices?.[0]?.message?.content) {
+          finalResponse = followUpData.choices[0].message.content;
+        }
+      }
     }
 
     // Save assistant response
@@ -392,14 +456,14 @@ Be helpful, concise, and always confirm before sending emails.`
         session_id: session.id,
         user_id: user.id,
         role: 'assistant',
-        content: assistantMessage.content || ''
+        content: finalResponse
       });
 
     if (assistantMessageError) throw assistantMessageError;
 
     return new Response(JSON.stringify({
       sessionId: session.id,
-      message: assistantMessage.content || '',
+      message: finalResponse,
       toolResults,
       success: true
     }), {
