@@ -355,51 +355,41 @@ Remember: You're having a conversation, not just executing commands. Be human-li
               break;
 
             case 'emails_search':
-              // Enhanced email search - try multiple strategies in order
+              // Enhanced email search with debugging
+              console.log('Starting email search for query:', args.query);
+              
               if (args.query) {
-                let searchResults = [];
-                let searchError = null;
+                // Check if we have any cached emails first
+                const { data: emailCount, error: countError } = await supabase
+                  .from('cached_emails')
+                  .select('id', { count: 'exact' })
+                  .eq('user_id', user.id);
                 
-                // Strategy 1: Direct name/email search (most reliable for "from Michelle")
-                const { data: senderResults, error: senderError } = await supabase
+                console.log('Cached emails count:', emailCount?.length || 0, 'Error:', countError);
+                
+                if (!emailCount || emailCount.length === 0) {
+                  result = { 
+                    conversations: [], 
+                    fromCache: true, 
+                    searchQuery: args.query,
+                    noResults: true,
+                    message: 'No emails found in cache. Please visit your Mailbox first to sync emails.'
+                  };
+                  break;
+                }
+                
+                // Simple search in sender name/email
+                const { data: searchResults, error: searchError } = await supabase
                   .from('cached_emails')
                   .select('*')
                   .eq('user_id', user.id)
                   .or(`sender_name.ilike.%${args.query}%,sender_email.ilike.%${args.query}%`)
                   .order('date_sent', { ascending: false })
-                  .limit(20);
+                  .limit(10);
                 
-                if (!senderError && senderResults && senderResults.length > 0) {
-                  searchResults = senderResults;
-                } else {
-                  // Strategy 2: Search subject lines
-                  const { data: subjectResults, error: subjectError } = await supabase
-                    .from('cached_emails')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .ilike('subject', `%${args.query}%`)
-                    .order('date_sent', { ascending: false })
-                    .limit(20);
-                  
-                  if (!subjectError && subjectResults && subjectResults.length > 0) {
-                    searchResults = subjectResults;
-                  } else {
-                    // Strategy 3: Search email content
-                    const { data: contentResults, error: contentError } = await supabase
-                      .from('cached_emails')
-                      .select('*')
-                      .eq('user_id', user.id)
-                      .ilike('content', `%${args.query}%`)
-                      .order('date_sent', { ascending: false })
-                      .limit(20);
-                    
-                    if (!contentError && contentResults && contentResults.length > 0) {
-                      searchResults = contentResults;
-                    }
-                  }
-                }
+                console.log('Search results:', searchResults?.length || 0, 'Error:', searchError);
                 
-                if (searchResults.length > 0) {
+                if (!searchError && searchResults && searchResults.length > 0) {
                   result = {
                     conversations: searchResults.map(email => ({
                       id: email.gmail_thread_id,
@@ -412,9 +402,7 @@ Remember: You're having a conversation, not just executing commands. Be human-li
                       unreadCount: email.is_unread ? 1 : 0
                     })),
                     fromCache: true,
-                    searchQuery: args.query,
-                    searchStrategy: searchResults === senderResults ? 'sender' : 
-                                   searchResults === subjectResults ? 'subject' : 'content'
+                    searchQuery: args.query
                   };
                 } else {
                   result = { 
