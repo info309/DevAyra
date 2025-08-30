@@ -789,7 +789,7 @@ const Assistant = () => {
                   onClick={sendMessage} 
                   disabled={!inputMessage.trim() || isLoading}
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 rounded-full"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 rounded-full bg-send hover:bg-send/90 text-send-foreground disabled:bg-muted disabled:text-muted-foreground"
                 >
                   <Send className="w-4 h-4" />
                   <span className="sr-only">Send message</span>

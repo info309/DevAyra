@@ -69,6 +69,10 @@ export default {
 				compose: {
 					DEFAULT: 'hsl(var(--compose-button))',
 					foreground: 'hsl(var(--compose-button-foreground))'
+				},
+				send: {
+					DEFAULT: 'hsl(var(--send-button))',
+					foreground: 'hsl(var(--send-button-foreground))'
 				}
 			},
 			borderRadius: {
