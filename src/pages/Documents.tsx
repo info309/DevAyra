@@ -67,6 +67,7 @@ const Documents = () => {
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
   const [newFolderName, setNewFolderName] = useState('');
 
   const loadDocuments = useCallback(async () => {
@@ -115,16 +116,24 @@ const Documents = () => {
 
   useEffect(() => {
     if (user) {
-      // Preserve scroll position during folder navigation
-      const currentScrollY = window.scrollY;
+      loadDocuments();
+    }
+  }, [user, loadDocuments]);
+
+  // Separate effect for handling folder changes with scroll preservation
+  useEffect(() => {
+    if (user && currentFolder?.id !== undefined) {
+      console.log('Folder changed, preserving scroll position:', window.scrollY);
+      setScrollPosition(window.scrollY);
       loadDocuments().then(() => {
-        // Only restore scroll if we're not at the top (indicating it was preserved)
-        if (currentScrollY > 0) {
-          window.scrollTo(0, currentScrollY);
-        }
+        console.log('Documents loaded, restoring scroll to:', scrollPosition);
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollPosition, behavior: 'instant' });
+        });
       });
     }
-  }, [user, currentFolder?.id, loadDocuments]); // Only depend on folder ID to prevent unnecessary reloads
+  }, [currentFolder?.id]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -261,12 +270,17 @@ const Documents = () => {
   };
 
   const handleDocumentClick = useCallback((doc: UserDocument, event?: React.MouseEvent) => {
-    // Prevent default behavior that might cause scrolling
+    // Prevent any default behavior and propagation
     if (event) {
       event.preventDefault();
+      event.stopPropagation();
     }
     
+    console.log('Document clicked:', doc.name, 'Current scroll:', window.scrollY);
+    
     if (doc.is_folder) {
+      // Store current scroll position before folder change
+      setScrollPosition(window.scrollY);
       setCurrentFolder(doc);
     } else {
       setSelectedDocument(doc);
@@ -485,7 +499,13 @@ const Documents = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background" style={{ scrollBehavior: 'auto' }}>
+    <div className="min-h-screen bg-background">
+      {/* Prevent scroll restoration on navigation */}
+      <style>{`
+        html {
+          scroll-behavior: auto !important;
+        }
+      `}</style>
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -636,6 +656,9 @@ const Documents = () => {
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Back to documents clicked, current scroll:', window.scrollY);
+                  setScrollPosition(window.scrollY);
                   setCurrentFolder(null);
                 }}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
@@ -675,7 +698,11 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={(e) => !isDragging && handleDocumentClick(doc, e)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isDragging) handleDocumentClick(doc, e);
+                  }}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
