@@ -11,6 +11,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
 import { EventsList } from '@/components/EventsList';
+
 interface CalendarEvent {
   id: string;
   title: string;
@@ -26,19 +27,17 @@ interface CalendarEvent {
   created_at: string;
   updated_at: string;
 }
+
 interface GmailConnection {
   id: string;
   email_address: string;
   is_active: boolean;
 }
+
 const Calendar = () => {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const isDrawerView = useIsDrawerView();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -61,6 +60,7 @@ const Calendar = () => {
       loadEvents();
     }
   }, [user, currentMonth, gmailConnection]);
+
   const loadEvents = async () => {
     if (!user?.id) return;
     try {
@@ -74,10 +74,7 @@ const Calendar = () => {
       if (gmailConnection) {
         try {
           console.log('Fetching Google Calendar events...');
-          const {
-            data: googleEvents,
-            error: googleError
-          } = await supabase.functions.invoke('calendar-api', {
+          const { data: googleEvents, error: googleError } = await supabase.functions.invoke('calendar-api', {
             body: {
               action: 'list',
               timeMin: monthStart.toISOString(),
@@ -118,10 +115,13 @@ const Calendar = () => {
       }
 
       // Load local events (fallback or when not connected to Google Calendar)
-      const {
-        data,
-        error
-      } = await supabase.from('calendar_events').select('*').eq('user_id', user.id).gte('start_time', monthStart.toISOString()).lte('start_time', monthEnd.toISOString()).order('start_time');
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('start_time', monthStart.toISOString())
+        .lte('start_time', monthEnd.toISOString())
+        .order('start_time');
       if (error) throw error;
       setEvents(data || []);
     } catch (error) {
@@ -135,13 +135,16 @@ const Calendar = () => {
       setLoading(false);
     }
   };
+
   const checkGmailConnection = async () => {
     if (!user?.id) return;
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('gmail_connections').select('*').eq('user_id', user.id).eq('is_active', true).single();
+      const { data, error } = await supabase
+        .from('gmail_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
@@ -150,6 +153,7 @@ const Calendar = () => {
       console.error('Error checking Gmail connection:', error);
     }
   };
+
   const connectGoogleCalendar = async () => {
     if (!user?.id) return;
     try {
@@ -220,19 +224,10 @@ const Calendar = () => {
     const selectedEnd = endOfDay(selectedDate);
 
     // Check if the event overlaps with the selected date
-    return isWithinInterval(selectedStart, {
-      start: eventStart,
-      end: eventEnd
-    }) || isWithinInterval(selectedEnd, {
-      start: eventStart,
-      end: eventEnd
-    }) || isWithinInterval(eventStart, {
-      start: selectedStart,
-      end: selectedEnd
-    }) || isWithinInterval(eventEnd, {
-      start: selectedStart,
-      end: selectedEnd
-    });
+    return isWithinInterval(selectedStart, { start: eventStart, end: eventEnd }) ||
+           isWithinInterval(selectedEnd, { start: eventStart, end: eventEnd }) ||
+           isWithinInterval(eventStart, { start: selectedStart, end: selectedEnd }) ||
+           isWithinInterval(eventEnd, { start: selectedStart, end: selectedEnd });
   });
 
   // Get all days with events for the calendar view
@@ -247,6 +242,7 @@ const Calendar = () => {
     }
     return dates;
   }, []);
+
   const formatEventTime = (event: CalendarEvent, forSelectedDate: Date) => {
     const eventStart = new Date(event.start_time);
     const eventEnd = new Date(event.end_time);
@@ -275,6 +271,7 @@ const Calendar = () => {
     // Single day event
     return `${format(eventStart, 'h:mm a')} - ${format(eventEnd, 'h:mm a')}`;
   };
+
   const getEventBadgeText = (event: CalendarEvent) => {
     const eventStart = new Date(event.start_time);
     const eventEnd = new Date(event.end_time);
@@ -284,14 +281,18 @@ const Calendar = () => {
     }
     return event.is_synced ? 'Synced' : 'Local';
   };
+
   const handlePrevMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
   };
+
   const handleNextMonth = () => {
     setCurrentMonth(prev => addMonths(prev, 1));
   };
+
   if (isDrawerView) {
-    return <div className="min-h-screen bg-background">
+    return (
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-6">
           {/* Mobile Header */}
           <div className="flex items-center justify-between mb-6">
@@ -309,7 +310,8 @@ const Calendar = () => {
           </div>
 
           {/* Connection Status */}
-          {!gmailConnection && <Card className="mb-6">
+          {!gmailConnection && (
+            <Card className="mb-6">
               <CardContent className="p-4">
                 <div className="text-center">
                   <CalendarIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
@@ -322,31 +324,31 @@ const Calendar = () => {
                   </Button>
                 </div>
               </CardContent>
-            </Card>}
+            </Card>
+          )}
 
-          {/* Calendar View - Mobile */}
-          <div className="mb-6 flex flex-col gap-6 sm:hidden">
-            <InteractiveCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
-              events={events}
-              onAddEvent={() => {
-                // Add event functionality here
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
-              }}
-              showEvents={true} // Show events below calendar on mobile
-            />
-          </div>
-
+          {/* Mobile Calendar with events built-in */}
+          <InteractiveCalendar
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            events={events}
+            onAddEvent={() => {
+              toast({
+                title: "Add Event",
+                description: "Event creation coming soon!"
+              });
+            }}
+            showEvents={true}
+          />
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Desktop Header */}
         <div className="flex items-center justify-between mb-8">
@@ -363,7 +365,8 @@ const Calendar = () => {
           </Button>
         </div>
 
-        <div className="hidden sm:flex gap-6 items-start">
+        {/* Responsive Calendar Layout */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Calendar Section */}
           <div className="flex-shrink-0">
             <InteractiveCalendar
@@ -373,29 +376,28 @@ const Calendar = () => {
               onMonthChange={setCurrentMonth}
               events={events}
               onAddEvent={() => {
-                // Add event functionality here
                 toast({
                   title: "Add Event",
                   description: "Event creation coming soon!"
                 });
               }}
-              showEvents={false} // Hide events, will be shown separately
+              showEvents={false} // Hide events, will be shown separately on larger screens
             />
           </div>
 
-          {/* Right side content */}
-          <div className="flex-1 max-w-md space-y-6">
+          {/* Right side content - events and connection */}
+          <div className="w-full lg:flex-1 lg:max-w-md space-y-6">
             {/* Connection Status */}
             {!gmailConnection && (
               <Card>
                 <CardContent className="p-6">
                   <div className="text-center">
                     <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                    <h3 className="font-semibold mb-2">Connect Google Calendar</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <h3 className="font-semibold mb-2 text-base">Connect Google Calendar</h3>
+                    <p className="text-base text-muted-foreground mb-4">
                       Sync your events with Google Calendar to access them everywhere.
                     </p>
-                    <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full">
+                    <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full text-base">
                       {connecting ? 'Connecting...' : 'Connect Google Calendar'}
                     </Button>
                   </div>
@@ -409,7 +411,6 @@ const Calendar = () => {
               events={events}
               loading={loading}
               onAddEvent={() => {
-                // Add event functionality here
                 toast({
                   title: "Add Event",
                   description: "Event creation coming soon!"
@@ -417,9 +418,10 @@ const Calendar = () => {
               }}
             />
           </div>
-
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Calendar;

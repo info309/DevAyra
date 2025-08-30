@@ -77,7 +77,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <Card className={`w-full sm:w-[60%] max-w-none bg-card ${className}`}>
+    <Card className={`w-full lg:w-[60%] max-w-none bg-card ${className}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <Button 
