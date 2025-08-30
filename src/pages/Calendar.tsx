@@ -338,15 +338,16 @@ const Calendar = () => {
             showEvents={true}
           />
 
-          {/* Add Event FAB for mobile */}
-          <div className="fixed bottom-6 right-6">
+          {/* Add Event Button for mobile/tablet */}
+          <div className="mt-6">
             <AddEventDialog
               selectedDate={selectedDate}
               onEventAdded={loadEvents}
               gmailConnection={gmailConnection}
               trigger={
-                <Button size="lg" className="rounded-full shadow-lg">
-                  <Plus className="w-5 h-5" />
+                <Button className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Event
                 </Button>
               }
             />
