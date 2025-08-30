@@ -57,10 +57,16 @@ const Calendar = () => {
   // Load events and check Gmail connection
   useEffect(() => {
     if (user) {
-      loadEvents();
       checkGmailConnection();
     }
-  }, [user, currentMonth]);
+  }, [user]);
+
+  // Load events when connection status or month changes
+  useEffect(() => {
+    if (user && gmailConnection !== null) { // Wait for connection check to complete
+      loadEvents();
+    }
+  }, [user, currentMonth, gmailConnection]);
 
   const loadEvents = async () => {
     if (!user?.id) return;
@@ -72,6 +78,52 @@ const Calendar = () => {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
+      // First, try to load Google Calendar events if connected
+      if (gmailConnection) {
+        try {
+          console.log('Fetching Google Calendar events...');
+          const { data: googleEvents, error: googleError } = await supabase.functions.invoke('calendar-api', {
+            body: {
+              action: 'list',
+              timeMin: monthStart.toISOString(),
+              timeMax: monthEnd.toISOString()
+            }
+          });
+
+          if (googleError) {
+            console.error('Google Calendar API error:', googleError);
+            // Fall back to local events if Google Calendar fails
+          } else if (googleEvents?.events) {
+            console.log('Received Google Calendar events:', googleEvents.events.length);
+            // Convert Google Calendar events to our format
+            const convertedEvents: CalendarEvent[] = googleEvents.events.map((event: any) => ({
+              id: event.id,
+              title: event.summary || 'Untitled Event',
+              description: event.description || '',
+              start_time: event.start?.dateTime || event.start?.date,
+              end_time: event.end?.dateTime || event.end?.date,
+              all_day: !!event.start?.date, // All day if date is used instead of dateTime
+              reminder_minutes: event.reminders?.overrides?.[0]?.minutes || null,
+              external_id: event.id,
+              calendar_id: 'primary',
+              is_synced: true,
+              user_id: user.id,
+              created_at: event.created || new Date().toISOString(),
+              updated_at: event.updated || new Date().toISOString()
+            }));
+            
+            setEvents(convertedEvents);
+            return; // Don't load local events if we have Google events
+          }
+        } catch (googleError) {
+          console.error('Error fetching Google Calendar events:', googleError);
+          // Fall back to local events
+        }
+      } else {
+        console.log('No Gmail connection found, loading local events only');
+      }
+      
+      // Load local events (fallback or when not connected to Google Calendar)
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
@@ -122,12 +174,18 @@ const Calendar = () => {
     try {
       setConnecting(true);
       
-      // Get auth URL with calendar scopes
-      const { data, error } = await supabase.functions.invoke('gmail-auth', {
-        body: { userId: user.id }
+      // Get auth URL with calendar scopes  
+      const response = await fetch(`https://lmkpmnndrygjatnipfgd.supabase.co/functions/v1/gmail-auth?userId=${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       });
-
-      if (error) throw error;
+      
+      if (!response.ok) {
+        throw new Error('Failed to get auth URL');
+      }
+      
+      const data = await response.json();
 
       // Open popup for authentication
       const popup = window.open(
