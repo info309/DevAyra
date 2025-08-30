@@ -230,13 +230,14 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         <div
                           key={dayIndex}
                           className={`
-                            relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md transition-all duration-200
+                            relative h-12 w-full sm:h-16 sm:w-full aspect-square flex items-center justify-center text-base cursor-pointer rounded-md transition-all duration-200
                             ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
                           `}
                           onClick={() => handleDateClick(date)}
                           onMouseEnter={() => setHoveredDate(date)}
                           onMouseLeave={() => setHoveredDate(null)}
                         >
+                          {/* Date number - always centered */}
                           <span className={`text-base relative z-20 ${
                             isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
                             isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : 
@@ -245,9 +246,9 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                             {format(date, 'd')}
                           </span>
                           
-                          {/* Single-day event indicators positioned at bottom */}
+                          {/* Single-day event indicators - positioned absolutely at bottom */}
                           {hasEvents && (
-                            <div className="absolute bottom-1 flex gap-0.5 sm:gap-1 relative z-20">
+                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5 sm:gap-1 z-20">
                               {singleDayEvents.slice(0, 2).map((event, eventIndex) => (
                                 <div
                                   key={eventIndex}
