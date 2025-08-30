@@ -96,15 +96,15 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
         all_day: allDay,
         reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
         user_id: user.id,
-        is_synced: false, // Will be true if we sync to Google Calendar
+        is_synced: false,
         external_id: null,
         calendar_id: null
       };
 
-      // If connected to Google Calendar, try to create the event there first
+      // If connected to Google Calendar, only create in Google Calendar (no local copy)
       if (gmailConnection) {
         try {
-          console.log('Attempting to create Google Calendar event...');
+          console.log('Creating event in Google Calendar only...');
           const googleEventData = {
             summary: title.trim(),
             description: description.trim() || undefined,
@@ -135,46 +135,53 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             console.error('Failed to create Google Calendar event:', googleError);
             toast({
               title: "Sync failed",
-              description: "Event created locally but failed to sync to Google Calendar",
+              description: "Failed to create event in Google Calendar",
               variant: "destructive"
             });
-            // Still create local event but mark as not synced
+            return; // Don't create local event if Google Calendar fails
           } else if (googleEvent?.event) {
-            // Successfully created in Google Calendar
             console.log('Successfully created Google Calendar event:', googleEvent.event);
-            eventData.external_id = googleEvent.event.id;
-            eventData.calendar_id = 'primary';
-            eventData.is_synced = true;
-            
             toast({
-              title: "Event synced",
-              description: "Event created and synced to Google Calendar",
+              title: "Event created",
+              description: "Event created in Google Calendar"
             });
+            
+            resetForm();
+            setOpen(false);
+            onEventAdded?.();
+            return; // Successfully created in Google Calendar, don't create local event
           } else {
             console.error('Unexpected Google Calendar response:', googleEvent);
             toast({
               title: "Sync failed",
-              description: "Event created locally but sync response was unexpected",
+              description: "Unexpected response from Google Calendar",
               variant: "destructive"
             });
+            return;
           }
         } catch (googleError) {
           console.error('Error creating Google Calendar event:', googleError);
           toast({
             title: "Sync failed", 
-            description: "Event created locally but failed to sync to Google Calendar",
+            description: "Failed to create event in Google Calendar",
             variant: "destructive"
           });
-          // Continue with local creation
+          return;
         }
+      } else {
+        // No Google Calendar connection - create local event only
+        console.log('Creating local event only...');
+        const { error } = await supabase
+          .from('calendar_events')
+          .insert([eventData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Event created",
+          description: "Event created locally"
+        });
       }
-
-      // Create the event in our local database
-      const { error } = await supabase
-        .from('calendar_events')
-        .insert([eventData]);
-
-      if (error) throw error;
 
       resetForm();
       setOpen(false);
@@ -318,9 +325,13 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             </div>
 
             {/* Sync status info */}
-            {gmailConnection && (
+            {gmailConnection ? (
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-                This event will be synced to your Google Calendar
+                This event will be created in your Google Calendar
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                This event will be created locally (connect Google Calendar to sync events)
               </div>
             )}
 
