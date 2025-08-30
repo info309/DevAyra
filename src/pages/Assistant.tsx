@@ -447,8 +447,12 @@ const Assistant = () => {
             <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-12 px-4">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="w-8 h-8 text-primary" />
+                  <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+                    <img 
+                      src="/lovable-uploads/b9f654a4-1cd5-476d-aa97-df8cfb64bb25.png" 
+                      alt="Ayra Assistant" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <h3 className="text-xl font-semibold mb-3 text-foreground">Hi! I'm Ayra, your AI assistant</h3>
                   <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
