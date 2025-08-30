@@ -76,7 +76,10 @@ const Documents = () => {
     }
     
     try {
-      setLoading(true);
+      // Don't show loading for folder navigation - only for initial load
+      if (documents.length === 0) {
+        setLoading(true);
+      }
       
       let query = supabase
         .from('user_documents')
@@ -109,9 +112,12 @@ const Documents = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      // Only clear loading if we were actually showing it
+      if (documents.length === 0) {
+        setLoading(false);
+      }
     }
-  }, [user?.id, currentFolder?.id, toast]);
+  }, [user?.id, currentFolder?.id, toast, documents.length]);
 
   useEffect(() => {
     if (user) {
@@ -253,11 +259,7 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = useCallback((doc: UserDocument, event: React.MouseEvent) => {
-    // Always prevent default behavior to stop scroll-to-top
-    event.preventDefault();
-    event.stopPropagation();
-    
+  const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
@@ -627,10 +629,7 @@ const Documents = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentFolder(null);
-                }}
+                onClick={() => setCurrentFolder(null)}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
               >
                 Documents
@@ -640,7 +639,7 @@ const Documents = () => {
             </div>
           )}
           
-          {loading ? (
+          {loading && documents.length === 0 ? (
             <div className="flex items-center justify-center h-32">
               <div className="text-muted-foreground">Loading...</div>
             </div>
@@ -668,7 +667,7 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={(e) => !isDragging && handleDocumentClick(doc, e)}
+                  onClick={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
