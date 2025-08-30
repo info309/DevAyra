@@ -298,16 +298,8 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Create a new supabase client with the user's JWT token
-    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    });
-    
-    const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+    // Verify the JWT token and get user info
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
       console.error('Authentication failed:', authError);
