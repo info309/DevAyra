@@ -295,17 +295,9 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         {/* Selected date info - only show if showEvents is true */}
         {showEvents && (
           <div className="mt-4 pt-4 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
             <h4 className="text-base font-medium">
               {format(selectedDate, 'EEEE, MMMM d')}
             </h4>
-              {onAddEvent && (
-                <Button size="sm" variant="outline" onClick={onAddEvent} className="text-base">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              )}
-            </div>
             
             {/* Events for selected date */}
             <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
