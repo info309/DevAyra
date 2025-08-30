@@ -403,9 +403,9 @@ const Calendar = () => {
           />
         </div>
 
-        {/* Tablet/Desktop: Two Card Layout - md breakpoint and above */}
-        <div className="hidden md:flex gap-6 w-full">
-          {/* Calendar Card - 60% width */}
+        {/* Tablet & Desktop: Two Card Layout - md breakpoint and above (768px+) */}
+        <div className="hidden md:flex gap-4 lg:gap-6 w-full">
+          {/* Calendar Card - 60% width on tablet and desktop */}
           <div className="w-[60%]">
             <InteractiveCalendar
               selectedDate={selectedDate}
@@ -419,11 +419,11 @@ const Calendar = () => {
                   description: "Event creation coming soon!"
                 });
               }}
-              showEvents={false} // Hide events on larger screens
+              showEvents={false} // Hide events on tablet and desktop - shown separately
             />
           </div>
 
-          {/* Events Card - 30% width */}
+          {/* Events Card - 30% width on tablet and desktop */}
           <div className="w-[30%]">
             <EventsList
               selectedDate={selectedDate}
