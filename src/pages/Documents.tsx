@@ -253,7 +253,11 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = useCallback((doc: UserDocument) => {
+  const handleDocumentClick = useCallback((doc: UserDocument, event: React.MouseEvent) => {
+    // Always prevent default behavior to stop scroll-to-top
+    event.preventDefault();
+    event.stopPropagation();
+    
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
@@ -623,7 +627,10 @@ const Documents = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
               <button
                 type="button"
-                onClick={() => setCurrentFolder(null)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentFolder(null);
+                }}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
               >
                 Documents
@@ -661,7 +668,7 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={() => !isDragging && handleDocumentClick(doc)}
+                  onClick={(e) => !isDragging && handleDocumentClick(doc, e)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
