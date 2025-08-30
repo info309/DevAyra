@@ -297,14 +297,22 @@ const Calendar = () => {
               <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <h1 className="text-2xl font-bold">Calendar</h1>
-            </div>
-            
-            <div className="text-right">
               <h1 className="text-2xl font-bold">
                 {format(new Date(), "EEEE do MMMM yyyy")}
               </h1>
             </div>
+            
+            <AddEventDialog
+              selectedDate={selectedDate}
+              onEventAdded={loadEvents}
+              gmailConnection={gmailConnection}
+              trigger={
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Event
+                </Button>
+              }
+            />
           </div>
 
           {/* Connection Status */}
@@ -337,21 +345,6 @@ const Calendar = () => {
             }}
             showEvents={true}
           />
-
-          {/* Add Event Button for mobile/tablet */}
-          <div className="mt-6">
-            <AddEventDialog
-              selectedDate={selectedDate}
-              onEventAdded={loadEvents}
-              gmailConnection={gmailConnection}
-              trigger={
-                <Button className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Event
-                </Button>
-              }
-            />
-          </div>
         </div>
       </div>
     );
@@ -367,14 +360,22 @@ const Calendar = () => {
               <ArrowLeft className="w-4 h-4" />
               Dashboard
             </Button>
-            <h1 className="text-2xl font-bold">Calendar</h1>
-          </div>
-          
-          <div className="text-right">
             <h1 className="text-2xl font-bold">
               {format(new Date(), "EEEE do MMMM yyyy")}
             </h1>
           </div>
+          
+          <AddEventDialog
+            selectedDate={selectedDate}
+            onEventAdded={loadEvents}
+            gmailConnection={gmailConnection}
+            trigger={
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Event
+              </Button>
+            }
+          />
         </div>
 
         {/* Google Calendar Connection - show at top if not connected */}
@@ -442,21 +443,6 @@ const Calendar = () => {
                 // This will be handled by the AddEventDialog component
               }}
             />
-            
-            {/* Add Event Button for desktop */}
-            <div className="mt-4">
-              <AddEventDialog
-                selectedDate={selectedDate}
-                onEventAdded={loadEvents}
-                gmailConnection={gmailConnection}
-                trigger={
-                  <Button className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Event
-                  </Button>
-                }
-              />
-            </div>
           </div>
         </div>
       </div>
