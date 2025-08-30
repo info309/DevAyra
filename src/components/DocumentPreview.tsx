@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React from 'react';
 
 interface DocumentPreviewProps {
   document: {
@@ -16,8 +15,6 @@ interface DocumentPreviewProps {
 }
 
 const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className = "", onMouseUp, onTouchEnd }) => {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [thumbnailError, setThumbnailError] = useState(false);
 
   const getFileExtension = () => {
     const extension = document.name.split('.').pop()?.toUpperCase();
@@ -80,48 +77,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
     );
   };
 
-  // Load thumbnail if available
-  useEffect(() => {
-    const loadThumbnail = async () => {
-      if (document.thumbnail_path && !thumbnailError) {
-        try {
-          const { data } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(document.thumbnail_path, 3600); // 1 hour expiry
-          
-          if (data?.signedUrl) {
-            setThumbnailUrl(data.signedUrl);
-          } else {
-            setThumbnailError(true);
-          }
-        } catch (error) {
-          console.error('Error loading thumbnail:', error);
-          setThumbnailError(true);
-        }
-      }
-    };
-
-    loadThumbnail();
-  }, [document.thumbnail_path, thumbnailError]);
-
-  // Render thumbnail or fallback to icon
+  // Simple static preview without loading states
   return (
     <div 
-      className={`${className} bg-muted/30 rounded-xl overflow-hidden relative`}
+      className={`${className} bg-muted/30 rounded-xl overflow-hidden`}
       onMouseUp={onMouseUp}
       onTouchEnd={onTouchEnd}
     >
-      {thumbnailUrl && !thumbnailError ? (
-        <img
-          src={thumbnailUrl}
-          alt={document.name}
-          className="w-full h-full object-cover"
-          onError={() => setThumbnailError(true)}
-          loading="lazy"
-        />
-      ) : (
-        <SimpleDocIcon extension={getFileExtension()} />
-      )}
+      <SimpleDocIcon extension={getFileExtension()} />
     </div>
   );
 };
