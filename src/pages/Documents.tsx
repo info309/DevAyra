@@ -666,7 +666,7 @@ const Documents = () => {
                   className="gap-2"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                  Back to Dashboard
+                  Dashboard
                 </Button>
                 <h1 className="text-2xl font-bold">Documents</h1>
               </div>

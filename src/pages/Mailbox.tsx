@@ -1321,7 +1321,7 @@ const Mailbox: React.FC = () => {
               className="gap-2"
             >
               <ArrowLeft className="w-5 h-5" />
-              Back to Dashboard
+              Dashboard
             </Button>
             
             {/* Logo */}
