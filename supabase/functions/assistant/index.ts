@@ -346,12 +346,20 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
               
               if (args.query) {
                 try {
-                  const searchTerm = args.query.toLowerCase().trim();
-                  console.log('Processing search term:', searchTerm);
-                  let searchResults = [];
+                  let searchTerm = args.query.toLowerCase().trim();
                   
-                  // Log the exact SQL query that will be executed
-                  console.log(`SQL Query will be: sender_name ILIKE '%${searchTerm}%'`);
+                  // Parse Gmail-style queries to extract the actual search term
+                  if (searchTerm.startsWith('from:')) {
+                    searchTerm = searchTerm.replace('from:', '').trim();
+                  } else if (searchTerm.startsWith('to:')) {
+                    searchTerm = searchTerm.replace('to:', '').trim();
+                  } else if (searchTerm.startsWith('subject:')) {
+                    searchTerm = searchTerm.replace('subject:', '').trim();
+                  }
+                  
+                  console.log('Original query:', args.query);
+                  console.log('Processed search term:', searchTerm);
+                  let searchResults = [];
                   
                   // Step 1: Search by sender name (most relevant)
                   const { data: nameResults, error: nameError } = await supabase
