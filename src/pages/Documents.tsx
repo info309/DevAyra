@@ -898,65 +898,7 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs - fixed height container */}
-          <div className="breadcrumb-container h-8 mb-3" style={{ contain: 'layout' }}>
-            {currentFolder && (
-              <div 
-                className="flex items-center gap-2 text-sm text-muted-foreground"
-                style={{ 
-                  scrollMargin: '0px',
-                  scrollPadding: '0px',
-                  outline: 'none'
-                }}
-                tabIndex={-1}
-                onFocus={(e) => {
-                  console.log('BREADCRUMB FOCUS EVENT');
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.blur();
-                }}
-              >
-                <span
-                  onClick={() => setCurrentFolder(null)}
-                  className="cursor-pointer text-muted-foreground hover:text-foreground"
-                  style={{ 
-                    userSelect: 'none', 
-                    touchAction: 'manipulation',
-                    scrollMargin: '0px',
-                    scrollPadding: '0px',
-                    outline: 'none'
-                  }}
-                  tabIndex={-1}
-                  onFocus={(e) => {
-                    console.log('DOCUMENTS BREADCRUMB FOCUS');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.blur();
-                  }}
-                >
-                  Documents
-                </span>
-                <span>/</span>
-                <span 
-                  className="text-foreground font-medium"
-                  style={{ 
-                    scrollMargin: '0px',
-                    scrollPadding: '0px',
-                    outline: 'none'
-                  }}
-                  tabIndex={-1}
-                  onFocus={(e) => {
-                    console.log('FOLDER NAME BREADCRUMB FOCUS');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.blur();
-                  }}
-                >
-                  {currentFolder.name}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Breadcrumbs temporarily removed for testing */}
           
           {loading && documents.length === 0 ? (
             <div className="flex items-center justify-center h-32">
