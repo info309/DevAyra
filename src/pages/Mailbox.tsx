@@ -170,9 +170,14 @@ const Mailbox: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      // Preload both inbox and sent views for instant switching
-      loadEmailsForView('inbox', null, true); // Force refresh on initial load
+      // Preload both inbox and sent views for instant switching with larger cache (100 emails)
+      loadEmailsForView('inbox', null, true); // Force refresh on initial load  
       loadEmailsForView('sent', null, true);
+      
+      // Auto-refresh emails from last 24h when opening app
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      refreshRecentEmails(yesterday);
     }
   }, [user]);
 
@@ -238,6 +243,41 @@ const Mailbox: React.FC = () => {
       setEmailLoading(false);
     }
   }, [currentView, viewCache]);
+
+  const refreshRecentEmails = async (since: Date) => {
+    if (!user) return;
+    
+    try {
+      const sinceFormatted = since.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const query = `in:inbox after:${sinceFormatted}`;
+      
+      console.log('Refreshing recent emails since:', sinceFormatted);
+      
+      const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
+      
+      if (data?.conversations) {
+        // Cache the recent emails
+        try {
+          await supabase.functions.invoke('cache-emails', {
+            body: { conversations: data.conversations }
+          });
+          console.log(`Cached ${data.conversations.length} recent emails`);
+        } catch (cacheError) {
+          console.warn('Failed to cache recent emails:', cacheError);
+        }
+      }
+    } catch (error) {
+      console.debug('Recent email refresh failed:', error);
+    }
+  };
+
+  const loadMoreEmails = async () => {
+    if (!currentPageToken || currentAllEmailsLoaded || viewLoading[currentView]) {
+      return;
+    }
+    
+    await loadEmailsForView(currentView, currentPageToken);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -520,11 +560,6 @@ const Mailbox: React.FC = () => {
     loadEmailsForView(currentView, null, true);
   };
 
-  const loadMoreEmails = () => {
-    if (currentPageToken && !emailLoading && !viewLoading[currentView]) {
-      loadEmailsForView(currentView, currentPageToken);
-    }
-  };
 
   const handleSearch = async () => {
     if (!user || !searchQuery.trim()) return;
@@ -1244,6 +1279,17 @@ const Mailbox: React.FC = () => {
 
             {/* Action Controls - Right side on all screens */}
             <div className="flex gap-2 justify-end ml-auto">
+              {/* AI Assistant Search Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/assistant')}
+                className="hidden lg:flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                AI Search
+              </Button>
+              
               {/* Desktop Search next to refresh button */}
               <div className="hidden lg:flex relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />

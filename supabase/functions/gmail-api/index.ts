@@ -262,7 +262,7 @@ class GmailService {
     };
   }
 
-  async getEmails(query: string = 'in:inbox', maxResults: number = 50, pageToken?: string) {
+  async getEmails(query: string = 'in:inbox', maxResults: number = 100, pageToken?: string) {
     try {
       // Get threads
       let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;

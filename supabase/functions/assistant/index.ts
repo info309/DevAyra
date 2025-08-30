@@ -192,11 +192,13 @@ Remember: You're having a conversation, not just executing commands. Be human-li
         type: 'function',
         function: {
           name: 'emails_search',
-          description: 'Search emails by keywords',
+          description: 'Search through the user\'s cached emails by content, subject, sender, or other criteria. This searches locally cached emails which is much faster than the Gmail API. Use different search approaches for better results.',
           parameters: {
             type: 'object',
             properties: {
-              query: { type: 'string', description: 'Search keywords' }
+              query: { type: 'string', description: 'Search query to find emails. Can include sender names, subjects, keywords from content, dates, etc. Examples: \'from:tesla\', \'subject:invoice\', \'meeting tomorrow\', \'amazon order\'' },
+              search_type: { type: 'string', enum: ['content', 'subject', 'sender', 'combined'], description: 'Type of search - content: search email body, subject: search subject line, sender: search sender info, combined: search all fields', default: 'combined' },
+              limit: { type: 'number', description: 'Maximum number of emails to return (default: 15)', default: 15 }
             },
             required: ['query']
           }

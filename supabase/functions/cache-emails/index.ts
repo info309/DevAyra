@@ -37,6 +37,10 @@ serve(async (req) => {
     }
 
     console.log(`Caching ${conversations.length} conversations for user ${user.id}`);
+    
+    // Log email count for debugging
+    const totalEmails = conversations.reduce((total, conv) => total + (conv.emails?.length || 0), 0);
+    console.log(`Total emails to cache: ${totalEmails}`);
 
     // Process each conversation and its emails
     const emailsToCache = [];
