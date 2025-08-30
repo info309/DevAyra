@@ -483,10 +483,10 @@ const Calendar = () => {
           </Button>
         </div>
 
-        <div className="grid xl:grid-cols-4 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Calendar Section */}
-          <div className="xl:col-span-3 lg:col-span-2">
-            <Card className="h-fit">
+          <div className="flex-shrink-0">
+            <Card className="w-fit">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <Button variant="ghost" onClick={handlePrevMonth}>
@@ -511,7 +511,7 @@ const Calendar = () => {
                   modifiersStyles={{
                     hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                   }}
-                  className="pointer-events-auto w-full"
+                  className="pointer-events-auto"
                 />
               </CardContent>
             </Card>
