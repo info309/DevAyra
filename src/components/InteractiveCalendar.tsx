@@ -239,8 +239,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         >
                           {/* Date number - always centered */}
                           <span className={`text-base relative z-20 ${
+                            isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' :
                             isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
-                            isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : 
                             hasSpanningEvents ? 'text-white font-semibold' : ''
                           }`}>
                             {format(date, 'd')}
