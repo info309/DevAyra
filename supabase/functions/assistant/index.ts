@@ -276,8 +276,11 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
+    // Extract first name - if it's an email, use the part before @, otherwise use as-is
     const userName = userProfile?.display_name ? 
-      userProfile.display_name.split('@')[0] : // Extract name from email if it's an email
+      (userProfile.display_name.includes('@') ? 
+        userProfile.display_name.split('@')[0] : 
+        userProfile.display_name) : 
       'there';
 
     console.log('User profile loaded:', userName);
