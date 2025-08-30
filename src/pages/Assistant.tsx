@@ -250,47 +250,7 @@ const Assistant = () => {
     switch (toolName) {
       case 'emails_list':
       case 'emails_search':
-        return (
-          <Card className="mt-2 bg-muted/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Found {toolResult.conversations?.length || 0} emails
-                {toolResult.searchQuery && (
-                  <span className="text-xs text-muted-foreground ml-2">
-                    for "{toolResult.searchQuery}"
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {toolResult.conversations?.slice(0, 5).map((email: any, idx: number) => (
-                <div key={idx} className="border-l-2 border-primary/20 pl-3 mb-3 last:mb-0">
-                  <div className="font-medium text-sm">{email.subject}</div>
-                  <div className="text-xs text-muted-foreground">From: {email.from}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(email.date).toLocaleDateString()}
-                  </div>
-                  {email.snippet && (
-                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {email.snippet}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {toolResult.conversations?.length > 5 && (
-                <div className="text-xs text-muted-foreground mt-2">
-                  ...and {toolResult.conversations.length - 5} more emails
-                </div>
-              )}
-              {toolResult.noResults && (
-                <div className="text-sm text-muted-foreground italic">
-                  {toolResult.message || 'No emails found matching your search.'}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
+        return null;
 
       case 'documents_list':
       case 'documents_search':
