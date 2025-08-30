@@ -994,7 +994,7 @@ const Documents = () => {
                   }}
                 >
                   {/* Preview/Icon Area - Icons are directly clickable */}
-                  <div className="w-full aspect-[4/5] mb-2 flex items-center justify-center">
+                  <div className="w-full aspect-[6/3] mb-2 flex items-center justify-center">
                     {doc.is_folder ? (
                       <svg 
                         viewBox="0 0 120 96" 
