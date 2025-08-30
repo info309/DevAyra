@@ -94,42 +94,69 @@ serve(async (req) => {
 
     if (userMessageError) throw userMessageError;
 
-    // Get recent conversation history
-    const { data: history } = await supabase
+    // Get recent conversation history - limit to prevent context pollution
+    const { data: historyRaw } = await supabase
       .from('assistant_messages')
       .select('*')
       .eq('session_id', session.id)
       .order('created_at', { ascending: true })
-      .limit(20);
+      .limit(10); // Reduced from 20 to 10
 
-    // Prepare messages for OpenAI
+    // Clean and prepare conversation history
+    let conversationHistory = [];
+    if (historyRaw && historyRaw.length > 0) {
+      // Only include the last few exchanges, excluding current user message
+      const previousMessages = historyRaw.slice(0, -1); // Remove current message
+      
+      // Take only the last 6 messages (3 user-assistant pairs)
+      const recentMessages = previousMessages.slice(-6);
+      
+      // Filter and clean the messages
+      conversationHistory = recentMessages
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .filter(msg => msg.content && msg.content.trim().length > 0)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content.trim()
+        }));
+    }
+
+    // Prepare messages for OpenAI with enhanced system prompt
     const messages = [
       {
         role: 'system',
-        content: `You are ChatGPT. Answer questions normally using your general knowledge.
+        content: `You are ChatGPT with specialized tools. Act as ChatGPT by default for all conversations.
 
-DO NOT use any tools unless the user explicitly asks for email or document operations.
+IMPORTANT: Each message is independent. Do NOT repeat actions from previous messages unless explicitly asked again.
 
-CRITICAL: For basic questions like math, general knowledge, conversation - respond normally WITHOUT any tools.
+DEFAULT BEHAVIOR: 
+- Answer questions using your general knowledge
+- Have normal conversations 
+- Provide helpful information on any topic
+- Do math, explain concepts, chat naturally
 
-ONLY use tools for these EXACT phrases:
-- "find emails" / "search emails" / "check emails" 
-- "look for emails" / "show me emails"
-- "find documents" / "search documents"
+ONLY use tools when users explicitly request email or document operations:
 
-Examples:
-- "What's 2+2?" → Answer: "4" (NO TOOLS)
-- "Tell me about cats" → Give general info about cats (NO TOOLS)  
-- "How are you?" → Chat normally (NO TOOLS)
-- "Find emails from Carlo" → Use emails_search tool
-- "Search documents about project" → Use documents_search tool
+EMAIL TRIGGERS: 
+- "find emails" / "search emails" / "check emails" / "look for emails"
+- "show me emails" / "email from [person]" / "did I get an email"
 
-BE CHATGPT FIRST. Only use tools when explicitly requested.`
+DOCUMENT TRIGGERS:
+- "find documents" / "search documents" / "look for documents"
+
+EXAMPLES OF NORMAL CHATGPT RESPONSES (NO TOOLS):
+- "What's 2+2?" → "4"
+- "Tell me about cats" → General information about cats
+- "How are you?" → Friendly chat response  
+- "What did Carlo want?" → "I don't have access to that information. Would you like me to search your emails for messages from Carlo?"
+
+EXAMPLES REQUIRING TOOLS:
+- "Find emails from Carlo" → Use emails_search
+- "Search documents about project" → Use documents_search
+
+CRITICAL: If the previous conversation was about emails/documents but the current question is general, respond normally without tools.`
       },
-      ...(history || []).filter(msg => msg.role === 'user' || msg.role === 'assistant').map(msg => ({
-        role: msg.role,
-        content: msg.content || ''
-      }))
+      ...conversationHistory
     ];
 
     // Define available tools
