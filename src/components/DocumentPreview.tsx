@@ -10,9 +10,11 @@ interface DocumentPreviewProps {
     thumbnail_path?: string | null;
   };
   className?: string;
+  onMouseUp?: (e: React.MouseEvent) => void;
+  onTouchEnd?: (e: React.TouchEvent) => void;
 }
 
-const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className = "" }) => {
+const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className = "", onMouseUp, onTouchEnd }) => {
 
   const getFileExtension = () => {
     const extension = document.name.split('.').pop()?.toUpperCase();
@@ -77,7 +79,11 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, className =
 
   // Simple static preview without loading states
   return (
-    <div className={`${className} bg-muted/30 rounded-xl overflow-hidden`}>
+    <div 
+      className={`${className} bg-muted/30 rounded-xl overflow-hidden`}
+      onMouseUp={onMouseUp}
+      onTouchEnd={onTouchEnd}
+    >
       <SimpleDocIcon extension={getFileExtension()} />
     </div>
   );

@@ -1025,7 +1025,8 @@ const Documents = () => {
                         />
                       </svg>
                     ) : (
-                      <div
+                      <DocumentPreview 
+                        document={doc}
                         className={`w-full h-full cursor-pointer transition-transform duration-300 ease-out hover:scale-110`}
                         onMouseUp={(e) => {
                           e.preventDefault();
@@ -1038,12 +1039,7 @@ const Documents = () => {
                           e.stopPropagation();
                           if (!isDragging) handleDocumentClick(doc);
                         }}
-                      >
-                        <DocumentPreview 
-                          document={doc}
-                          className="w-full h-full"
-                        />
-                      </div>
+                      />
                     )}
                   </div>
                   
