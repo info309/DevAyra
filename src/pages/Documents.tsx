@@ -480,33 +480,6 @@ const Documents = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Completely disable all scroll behaviors and focus scrolling */}
-      <style>{`
-        * {
-          scroll-behavior: auto !important;
-        }
-        html, body {
-          scroll-behavior: auto !important;
-        }
-        .document-grid-item {
-          scroll-margin: 0 !important;
-          scroll-padding: 0 !important;
-        }
-        .document-grid-item:focus {
-          outline: none !important;
-          box-shadow: none !important;
-          scroll-margin: 0 !important;
-        }
-        .document-grid-item:focus-visible {
-          outline: none !important;
-          box-shadow: none !important;
-        }
-        /* Prevent scroll-into-view on any element */
-        button:focus {
-          outline: none !important;
-          scroll-margin: 0 !important;
-        }
-      `}</style>
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -688,23 +661,14 @@ const Documents = () => {
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4">
               {filteredDocuments.map((doc) => (
-                <button
+                <div
                   key={doc.id}
-                  type="button"
-                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out bg-transparent border-0 p-0 w-full text-left ${
+                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={() => !isDragging && handleDocumentClick(doc)}
-                  onMouseDown={(e) => {
-                    // Prevent focus which causes scroll-into-view
-                    e.preventDefault();
-                  }}
-                  onFocus={(e) => {
-                    // If somehow it gets focus, immediately blur it
-                    e.target.blur();
-                  }}
-                  tabIndex={-1}
+                  onMouseUp={() => !isDragging && handleDocumentClick(doc)}
+                  onTouchEnd={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
@@ -713,7 +677,7 @@ const Documents = () => {
                   onDrop={doc.is_folder ? (e) => handleFolderDrop(e, doc) : undefined}
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
+                  style={{ userSelect: 'none' }}
                 >
                   {/* Preview/Icon Area */}
                   <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
@@ -812,7 +776,7 @@ const Documents = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
