@@ -446,7 +446,7 @@ const Assistant = () => {
           <ScrollArea className="flex-1">
             <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground pt-6 pb-12 px-4">
+                <div className="text-center text-muted-foreground pt-6 pb-6 px-4">
                   <h3 className="text-xl font-semibold mb-6 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
                   <div className="w-48 h-48 mx-auto mb-1.5 flex items-center justify-center">
                     <img 
