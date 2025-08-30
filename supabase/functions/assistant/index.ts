@@ -339,14 +339,19 @@ Always extract the most relevant search terms from the user's natural language a
               break;
 
             case 'emails_search':
-              console.log('Starting email search for query:', args.query);
-              console.log('Full args received:', JSON.stringify(args));
+              console.log('=== EMAIL SEARCH DEBUG ===');
+              console.log('Query received:', args.query);
+              console.log('Full args:', JSON.stringify(args));
+              console.log('User ID:', user.id);
               
               if (args.query) {
                 try {
-                  const searchTerm = args.query.toLowerCase();
+                  const searchTerm = args.query.toLowerCase().trim();
                   console.log('Processing search term:', searchTerm);
                   let searchResults = [];
+                  
+                  // Log the exact SQL query that will be executed
+                  console.log(`SQL Query will be: sender_name ILIKE '%${searchTerm}%'`);
                   
                   // Step 1: Search by sender name (most relevant)
                   const { data: nameResults, error: nameError } = await supabase
@@ -356,10 +361,13 @@ Always extract the most relevant search terms from the user's natural language a
                     .ilike('sender_name', `%${searchTerm}%`)
                     .order('date_sent', { ascending: false })
                     .limit(10);
-                  
-                  if (!nameError && nameResults) {
-                    searchResults.push(...nameResults);
-                  }
+                   
+                   console.log('Step 1 - Name search error:', nameError);
+                   console.log('Step 1 - Name search results count:', nameResults?.length || 0);
+                   if (nameResults && nameResults.length > 0) {
+                     console.log('Step 1 - First result sender:', nameResults[0].sender_name, nameResults[0].sender_email);
+                     searchResults.push(...nameResults);
+                   }
                   
                   // Step 2: Search by email addresses if we need more results
                   if (searchResults.length < 5) {
