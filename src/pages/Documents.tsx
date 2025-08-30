@@ -930,19 +930,32 @@ const Documents = () => {
               style={{ 
                 scrollMargin: '0px',
                 scrollPadding: '0px',
-                outline: 'none'
+                outline: 'none',
+                scrollBehavior: 'auto' // Prevent smooth scrolling
               }}
               tabIndex={-1}
               onFocus={(e) => {
-                console.log('GRID FOCUS EVENT');
+                console.log('GRID FOCUS EVENT - PREVENTING');
                 e.preventDefault();
                 e.stopPropagation();
                 e.currentTarget.blur();
               }}
               ref={(el) => {
                 if (el) {
-                  el.scrollIntoView = () => {};
-                  el.focus = () => {};
+                  // Completely disable all scroll methods on the grid
+                  el.scrollIntoView = () => {
+                    console.log('GRID scrollIntoView BLOCKED');
+                  };
+                  el.focus = () => {
+                    console.log('GRID focus BLOCKED');
+                  };
+                  
+                  // Prevent any automatic scrolling when content changes
+                  const observer = new MutationObserver(() => {
+                    // Don't scroll when content changes
+                    el.scrollIntoView = () => {};
+                  });
+                  observer.observe(el, { childList: true, subtree: true });
                 }
               }}
             >
