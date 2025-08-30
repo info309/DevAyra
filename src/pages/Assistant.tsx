@@ -704,7 +704,7 @@ const Assistant = () => {
                         </div>
                       )}
                       {message.content && (
-                        <p className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
+                        <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
                           {message.content}
                         </p>
                       )}
