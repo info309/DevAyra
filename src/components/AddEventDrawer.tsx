@@ -127,6 +127,20 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     }
   }, [selectedDate, isEditing]);
 
+  // Update form fields when eventToEdit changes
+  useEffect(() => {
+    if (eventToEdit) {
+      setTitle(eventToEdit.title);
+      setDescription(eventToEdit.description || '');
+      setAllDay(eventToEdit.all_day);
+      setStartDate(format(parseISO(eventToEdit.start_time), 'yyyy-MM-dd'));
+      setStartTime(eventToEdit.all_day ? '00:00' : format(parseISO(eventToEdit.start_time), 'HH:mm'));
+      setEndDate(format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd'));
+      setEndTime(eventToEdit.all_day ? '23:59' : format(parseISO(eventToEdit.end_time), 'HH:mm'));
+      setReminderMinutes(eventToEdit.reminder_minutes?.toString() || 'none');
+    }
+  }, [eventToEdit]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id || !title.trim()) return;
