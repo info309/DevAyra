@@ -72,30 +72,24 @@ const Documents = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('useEffect triggered - loading documents, currentFolder:', currentFolder?.name || 'root');
       loadDocuments();
     }
   }, [user, currentFolder]);
 
   const loadDocuments = async () => {
-    if (!user?.id) {
-      console.log('No user ID available, skipping document load');
-      return;
-    }
+    if (!user?.id) return;
     
     try {
-      console.log('Setting loading to true - this might cause scroll');
-      setLoading(true);
-      
-      console.log('Loading documents for user:', user.id);
+      // Only show loading for initial load, not navigation
+      if (documents.length === 0) {
+        setLoading(true);
+      }
       
       let query = supabase
         .from('user_documents')
         .select('*')
         .eq('user_id', user.id);
       
-      // If we're in a specific folder, show only items in that folder
-      // If we're at root level, show items with no folder_id (loose documents) and folders at root level
       if (currentFolder) {
         query = query.eq('folder_id', currentFolder.id);
       } else {
@@ -106,15 +100,9 @@ const Documents = () => {
         .order('is_folder', { ascending: false })
         .order('created_at', { ascending: false });
 
-      console.log('Documents query result:', { data, error, userContext: user.id });
-
-      if (error) {
-        console.error('Database query error:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       setDocuments((data || []) as UserDocument[]);
-      console.log(`Loaded ${data?.length || 0} documents`);
     } catch (error) {
       console.error('Error loading documents:', error);
       toast({
@@ -291,14 +279,8 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = (e: React.MouseEvent, doc: UserDocument) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('Document clicked:', doc.name, 'is_folder:', doc.is_folder);
-    
+  const handleDocumentClick = (doc: UserDocument) => {
     if (doc.is_folder) {
-      console.log('Setting current folder to:', doc.name);
       setCurrentFolder(doc);
     } else {
       setSelectedDocument(doc);
@@ -675,12 +657,7 @@ const Documents = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Breadcrumb Documents clicked - setting folder to null');
-                  setCurrentFolder(null);
-                }}
+                onClick={() => setCurrentFolder(null)}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
               >
                 Documents
@@ -718,7 +695,7 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={(e) => !isDragging && handleDocumentClick(e, doc)}
+                  onClick={(e) => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
