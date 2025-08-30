@@ -462,7 +462,7 @@ const Calendar = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Desktop Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold">Calendar</h1>
@@ -472,10 +472,10 @@ const Calendar = () => {
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid xl:grid-cols-4 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
-          <div className="lg:col-span-2">
-            <Card>
+          <div className="xl:col-span-3 lg:col-span-2">
+            <Card className="h-fit">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <Button variant="ghost" onClick={handlePrevMonth}>
@@ -487,7 +487,7 @@ const Calendar = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <CalendarComponent
                   mode="single"
                   selected={selectedDate}
@@ -500,7 +500,7 @@ const Calendar = () => {
                   modifiersStyles={{
                     hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                   }}
-                  className="pointer-events-auto"
+                  className="pointer-events-auto w-full [&_.rdp-table]:w-full [&_.rdp-head_cell]:w-full [&_.rdp-cell]:w-full [&_.rdp-day]:w-12 [&_.rdp-day]:h-12 [&_.rdp-head_cell]:text-center"
                 />
               </CardContent>
             </Card>
