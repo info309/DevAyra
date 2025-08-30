@@ -409,6 +409,8 @@ const Calendar = () => {
             onAddEvent={() => {
               // This will be handled by the AddEventDialog component
             }}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={handleDeleteEvent}
             showEvents={true}
           />
         </div>

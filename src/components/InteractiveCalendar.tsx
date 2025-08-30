@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Plus, Clock } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ChevronLeft, ChevronRight, Plus, Clock, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth, isToday, startOfWeek, endOfWeek, startOfDay, differenceInDays } from 'date-fns';
 
 interface CalendarEvent {
@@ -22,6 +23,8 @@ interface InteractiveCalendarProps {
   onMonthChange: (date: Date) => void;
   events: CalendarEvent[];
   onAddEvent?: () => void;
+  onEditEvent?: (event: CalendarEvent) => void;
+  onDeleteEvent?: (event: CalendarEvent) => void;
   className?: string;
   showEvents?: boolean; // New prop to control events display
 }
@@ -33,6 +36,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
   onMonthChange,
   events,
   onAddEvent,
+  onEditEvent,
+  onDeleteEvent,
   className = "",
   showEvents = true // Default to true for backward compatibility
 }) => {
@@ -315,6 +320,34 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Event Actions */}
+                    {(onEditEvent || onDeleteEvent) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-background border shadow-md">
+                          {onEditEvent && (
+                            <DropdownMenuItem onClick={() => onEditEvent(event)} className="hover:bg-accent">
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {onDeleteEvent && (
+                            <DropdownMenuItem 
+                              onClick={() => onDeleteEvent(event)} 
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 ))
               )}
