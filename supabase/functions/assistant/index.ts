@@ -50,12 +50,15 @@ serve(async (req) => {
       throw new Error('Authentication failed');
     }
 
-    const { message, sessionId, detectedTriggers = [] } = await req.json();
+    const requestBody = await req.json();
+    console.log('Raw request body:', JSON.stringify(requestBody));
+    
+    const { message, sessionId, detectedTriggers = [] } = requestBody;
 
     console.log('Assistant request received:', { 
       userId: user.id, 
       sessionId, 
-      message: message.substring(0, 100),
+      message: message ? message.substring(0, 100) : 'NO MESSAGE',
       detectedTriggers: detectedTriggers,
       timestamp: new Date().toISOString()
     });
@@ -582,7 +585,7 @@ Stay magical, helpful, and human! ✨
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-5-2025-08-07',
+              model: 'gpt-4o-mini',
               messages: [
                 ...messages,
                 {
@@ -592,7 +595,8 @@ Stay magical, helpful, and human! ✨
                 },
                 ...toolMessages
               ],
-              max_completion_tokens: 1000,
+              max_tokens: 1000,
+              temperature: 0.7,
             }),
           });
 
@@ -671,8 +675,9 @@ Stay magical, helpful, and human! ✨
     });
 
   } catch (error) {
-    console.error('Assistant function error details:', {
-      error: error.message,
+    console.error('ASSISTANT FUNCTION ERROR:', {
+      name: error.name,
+      message: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
