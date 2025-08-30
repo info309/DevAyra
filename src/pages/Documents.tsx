@@ -859,14 +859,14 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs */}
-          <div className="breadcrumb-container min-h-[32px] mb-3 flex items-center">
-            <div className="flex items-center gap-2 text-sm">
+          {/* Breadcrumbs - positioned on their own line */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 text-sm py-2">
               {currentFolder ? (
                 <>
                   <span
                     onClick={() => setCurrentFolder(null)}
-                    className="cursor-pointer text-primary hover:text-primary/80 font-medium"
+                    className="cursor-pointer text-primary hover:text-primary/80 font-medium transition-colors"
                   >
                     Documents
                   </span>
@@ -876,7 +876,7 @@ const Documents = () => {
                   </span>
                 </>
               ) : (
-                <span className="text-foreground font-semibold">Documents</span>
+                <span className="text-foreground font-semibold">All Documents</span>
               )}
             </div>
           </div>
