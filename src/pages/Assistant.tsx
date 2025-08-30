@@ -351,7 +351,7 @@ const Assistant = () => {
   // Sessions sidebar component for reuse
   const SessionsSidebar = ({ onSessionSelect }: { onSessionSelect?: () => void }) => (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4">
         <h3 className="font-semibold text-foreground">Chat History</h3>
         <Button onClick={createNewSession} size="sm" variant="outline" className="md:hidden">
           <Plus className="w-4 h-4" />
