@@ -859,26 +859,22 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs - positioned on their own line */}
-          <div className="mb-4 bg-muted/30 rounded-md px-4 py-3 border">
-            <div className="flex items-center gap-2 text-base">
-              {currentFolder ? (
-                <>
-                  <span
-                    onClick={() => setCurrentFolder(null)}
-                    className="cursor-pointer text-primary hover:text-primary/80 font-medium transition-colors underline"
-                  >
-                    Documents
-                  </span>
-                  <span className="text-muted-foreground font-medium">/</span>
-                  <span className="text-foreground font-bold">
-                    {currentFolder.name}
-                  </span>
-                </>
-              ) : (
-                <span className="text-foreground font-bold text-lg">All Documents</span>
-              )}
-            </div>
+          {/* Breadcrumbs */}
+          <div className="breadcrumb-container h-8 mb-3" style={{ contain: 'layout' }}>
+            {currentFolder && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span
+                  onClick={() => setCurrentFolder(null)}
+                  className="cursor-pointer text-muted-foreground hover:text-foreground"
+                >
+                  Documents
+                </span>
+                <span>/</span>
+                <span className="text-foreground font-medium">
+                  {currentFolder.name}
+                </span>
+              </div>
+            )}
           </div>
           
           {loading && documents.length === 0 ? (
