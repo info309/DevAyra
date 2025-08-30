@@ -258,7 +258,10 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = (doc: UserDocument) => {
+  const handleDocumentClick = (e: React.MouseEvent, doc: UserDocument) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
@@ -665,7 +668,7 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={() => !isDragging && handleDocumentClick(doc)}
+                  onClick={(e) => !isDragging && handleDocumentClick(e, doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
