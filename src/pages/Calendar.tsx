@@ -290,6 +290,13 @@ const Calendar = () => {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-6">
+          {/* Today's Date */}
+          <div className="mb-4">
+            <p className="text-lg font-medium text-muted-foreground">
+              {format(new Date(), "EEEE do MMMM yyyy")}
+            </p>
+          </div>
+          
           {/* Mobile Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -342,6 +349,13 @@ const Calendar = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Today's Date */}
+        <div className="mb-6">
+          <p className="text-xl font-medium text-muted-foreground">
+            {format(new Date(), "EEEE do MMMM yyyy")}
+          </p>
+        </div>
+        
         {/* Desktop Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
