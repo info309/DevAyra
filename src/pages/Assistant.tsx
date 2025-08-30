@@ -32,8 +32,8 @@ function detectTriggers(message: string) {
   const lower = message.toLowerCase();
   const triggers: string[] = [];
   
-  // Email triggers - broader detection including confirmations
-  if (["email","inbox","mail","message","reply","search emails","find email","michelle","carlo","yes","yeah","sure","go ahead","do it"].some(k=>lower.includes(k))) {
+  // Email triggers - broader detection including compose/send requests
+  if (["email","inbox","mail","message","reply","search emails","find email","michelle","carlo","send","send it","draft","compose","go ahead","yes","yeah","sure","do it"].some(k=>lower.includes(k))) {
     triggers.push("email");
   }
   
