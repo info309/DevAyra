@@ -69,6 +69,17 @@ const Documents = () => {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
+  // Prevent auto-focus on page load
+  useEffect(() => {
+    // Prevent any element from being focused on page load
+    if (document.activeElement && document.activeElement !== document.body) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    
+    // Ensure we stay at top when entering page
+    window.scrollTo(0, 0);
+  }, []);
+
   const loadDocuments = useCallback(async () => {
     if (!user?.id) {
       console.log('No user ID available, skipping document load');
@@ -624,7 +635,21 @@ const Documents = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Upload Area */}
-        <div className="mb-8">
+        <div 
+          className="mb-8"
+          style={{ 
+            scrollMargin: '0px',
+            scrollPadding: '0px',
+            outline: 'none'
+          }}
+          tabIndex={-1}
+          onFocus={(e) => {
+            console.log('UPLOAD AREA FOCUS EVENT');
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.blur();
+          }}
+        >
           <div
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
               dragOver
@@ -642,7 +667,22 @@ const Documents = () => {
               className="hidden"
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="cursor-pointer">
+            <label 
+              htmlFor="file-upload" 
+              className="cursor-pointer"
+              style={{ 
+                scrollMargin: '0px',
+                scrollPadding: '0px',
+                outline: 'none'
+              }}
+              tabIndex={-1}
+              onFocus={(e) => {
+                console.log('UPLOAD LABEL FOCUS EVENT');
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+            >
               <div className="flex flex-col items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Plus className="w-8 h-8 text-primary" />
