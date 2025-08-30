@@ -670,7 +670,11 @@ const Documents = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentFolder(null)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentFolder(null);
+                }}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
               >
                 Documents
