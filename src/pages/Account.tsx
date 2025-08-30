@@ -93,33 +93,54 @@ const Account: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={handleBackToDashboard}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="bg-background">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Account Settings
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Manage your account and connected services
-              </p>
+            <div className="flex items-center gap-3">
+              {/* Mobile/Tablet Back Arrow and Logo - Left side */}
+              <div className="flex lg:hidden items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleBackToDashboard}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <h1 className="text-2xl font-bold">Account</h1>
+              </div>
+              
+              {/* Desktop Header */}
+              <div className="hidden lg:flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackToDashboard}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Dashboard
+                </Button>
+                <h1 className="text-2xl font-bold">Account</h1>
+              </div>
             </div>
             
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-6">
+          <p className="text-muted-foreground">
+            Manage your account and connected services
+          </p>
         </div>
 
         <div className="grid gap-6">
