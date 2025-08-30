@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, Menu, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -397,18 +397,6 @@ const Assistant = () => {
       <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container flex h-14 max-w-screen-2xl items-center px-4">
           <div className="flex items-center gap-2 md:gap-4">
-            {isMobile && (
-              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
-                    <Menu className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-80">
-                  <SessionsSidebar onSessionSelect={() => setSidebarOpen(false)} />
-                </SheetContent>
-              </Sheet>
-            )}
             <Button 
               variant="ghost" 
               size={isMobile ? "icon" : "sm"} 
@@ -420,12 +408,27 @@ const Assistant = () => {
             </Button>
             <h1 className="text-lg md:text-xl font-heading font-bold truncate">Ayra</h1>
           </div>
-          {!isMobile && (
-            <Button onClick={createNewSession} size="sm" className="ml-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              New Chat
-            </Button>
-          )}
+          
+          <div className="ml-auto flex items-center gap-2">
+            {!isMobile && (
+              <Button onClick={createNewSession} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                New Chat
+              </Button>
+            )}
+            {isMobile && (
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <PanelLeft className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-80">
+                  <SessionsSidebar onSessionSelect={() => setSidebarOpen(false)} />
+                </SheetContent>
+              </Sheet>
+            )}
+          </div>
         </div>
       </header>
 
