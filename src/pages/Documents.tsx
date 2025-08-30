@@ -480,23 +480,46 @@ const Documents = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Completely disable scroll behavior when breadcrumbs are present */}
-      {currentFolder && (
-        <style>{`
-          html, body {
-            overflow-anchor: none !important;
-            scroll-behavior: auto !important;
-          }
+      {/* Aggressively prevent ALL scroll behavior */}
+      <style>{`
+        html {
+          scroll-behavior: auto !important;
+          overflow-anchor: none !important;
+        }
+        body {
+          scroll-behavior: auto !important;
+          overflow-anchor: none !important;
+        }
+        * {
+          scroll-behavior: auto !important;
+          scroll-margin: 0 !important;
+          scroll-padding: 0 !important;
+          scroll-snap-type: none !important;
+          overflow-anchor: none !important;
+        }
+        .document-grid-item {
+          scroll-margin: 0 !important;
+          scroll-padding: 0 !important;
+          scroll-snap-align: none !important;
+        }
+        .document-grid-item:focus,
+        .document-grid-item:focus-visible,
+        .document-grid-item:target,
+        .document-grid-item:active {
+          scroll-margin: 0 !important;
+          scroll-padding: 0 !important;
+        }
+        /* Prevent browser scroll-into-view on any interaction */
+        div:focus {
+          scroll-margin: 0 !important;
+        }
+        /* Disable smooth scrolling completely */
+        @media (prefers-reduced-motion: no-preference) {
           * {
             scroll-behavior: auto !important;
-            scroll-margin: 0 !important;
-            scroll-padding: 0 !important;
           }
-          .breadcrumb-container {
-            contain: layout !important;
-          }
-        `}</style>
-      )}
+        }
+      `}</style>
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -686,8 +709,16 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onMouseUp={() => !isDragging && handleDocumentClick(doc)}
-                  onTouchEnd={() => !isDragging && handleDocumentClick(doc)}
+                  onMouseUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isDragging) handleDocumentClick(doc);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isDragging) handleDocumentClick(doc);
+                  }}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
@@ -696,7 +727,12 @@ const Documents = () => {
                   onDrop={doc.is_folder ? (e) => handleFolderDrop(e, doc) : undefined}
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
-                  style={{ userSelect: 'none' }}
+                  style={{ 
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    scrollMargin: '0px',
+                    scrollPadding: '0px'
+                  }}
                 >
                   {/* Preview/Icon Area */}
                   <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
