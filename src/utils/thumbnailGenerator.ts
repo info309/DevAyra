@@ -1,14 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
 
 export class ThumbnailGenerator {
   
   static async generatePDFThumbnail(file: File): Promise<Blob | null> {
     try {
       console.log('Generating PDF thumbnail on client...');
+      
+      // Dynamically import PDF.js to avoid top-level await issues
+      const pdfjsLib = await import('pdfjs-dist');
+      
+      // Configure PDF.js worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
       
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
