@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -80,6 +80,7 @@ interface UserDocument {
 const Mailbox: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation() as any;
   const { toast } = useToast();
   const isDrawerView = useIsDrawerView();
 
@@ -166,7 +167,24 @@ const Mailbox: React.FC = () => {
     };
   }, [showAddFilesMenu]);
 
-  // Draft editing state - REMOVED (no longer supporting drafts)
+  // Handle draft from assistant
+  useEffect(() => {
+    if (location.state?.composeDraft) {
+      const draft = location.state.composeDraft;
+      setComposeForm({
+        to: draft.to || '',
+        subject: draft.subject || '',
+        content: draft.content || '',
+        threadId: draft.threadId,
+        attachments: [],
+        documentAttachments: []
+      });
+      setShowComposeDialog(true);
+      
+      // Clear the state to prevent reopening
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   useEffect(() => {
     if (user) {

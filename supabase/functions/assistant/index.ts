@@ -72,6 +72,36 @@ const EMAIL_TOOLS = [
         required: ['query']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'emails_compose_draft',
+      description: 'Compose a draft email that will be opened in the user\'s compose window for review and sending.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { 
+            type: 'string', 
+            description: 'Recipient email address' 
+          },
+          subject: { 
+            type: 'string', 
+            description: 'Email subject line' 
+          },
+          content: { 
+            type: 'string', 
+            description: 'Email body content (plain text)' 
+          },
+          threadId: { 
+            type: 'string', 
+            description: 'Thread ID if this is a reply to an existing conversation',
+            optional: true
+          }
+        },
+        required: ['to', 'subject', 'content']
+      }
+    }
   }
 ];
 
@@ -228,6 +258,19 @@ async function searchDocuments(userId: string, query: string) {
     console.error('Document search error:', error);
     return { error: `Document search failed: ${error.message}` };
   }
+}
+
+async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string) {
+  console.log('Composing email draft:', { to, subject, threadId });
+  
+  // Return draft data that will be used by the frontend
+  return {
+    to,
+    subject,
+    content,
+    threadId,
+    action: 'compose_draft'
+  };
 }
 
 // Main handler
@@ -450,6 +493,9 @@ serve(async (req) => {
               break;
             case 'documents_search':
               result = await searchDocuments(user.id, args.query);
+              break;
+            case 'emails_compose_draft':
+              result = await composeEmailDraft(args.to, args.subject, args.content, args.threadId);
               break;
             default:
               result = { error: `Unknown tool: ${toolCall.function.name}` };
