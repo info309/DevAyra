@@ -69,12 +69,6 @@ const Documents = () => {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      loadDocuments();
-    }
-  }, [user, currentFolder?.id]); // Only depend on folder ID to prevent unnecessary reloads
-
   const loadDocuments = useCallback(async () => {
     if (!user?.id) {
       console.log('No user ID available, skipping document load');
@@ -118,6 +112,19 @@ const Documents = () => {
       setLoading(false);
     }
   }, [user?.id, currentFolder?.id, toast]);
+
+  useEffect(() => {
+    if (user) {
+      // Preserve scroll position during folder navigation
+      const currentScrollY = window.scrollY;
+      loadDocuments().then(() => {
+        // Only restore scroll if we're not at the top (indicating it was preserved)
+        if (currentScrollY > 0) {
+          window.scrollTo(0, currentScrollY);
+        }
+      });
+    }
+  }, [user, currentFolder?.id, loadDocuments]); // Only depend on folder ID to prevent unnecessary reloads
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -253,7 +260,12 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = useCallback((doc: UserDocument) => {
+  const handleDocumentClick = useCallback((doc: UserDocument, event?: React.MouseEvent) => {
+    // Prevent default behavior that might cause scrolling
+    if (event) {
+      event.preventDefault();
+    }
+    
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
@@ -473,7 +485,7 @@ const Documents = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ scrollBehavior: 'auto' }}>
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -622,7 +634,10 @@ const Documents = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentFolder(null)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentFolder(null);
+                }}
                 className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
               >
                 Documents
@@ -660,7 +675,7 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={() => !isDragging && handleDocumentClick(doc)}
+                  onClick={(e) => !isDragging && handleDocumentClick(doc, e)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
