@@ -38,7 +38,7 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
   const [startTime, setStartTime] = useState(format(selectedDate, 'HH:mm'));
   const [endDate, setEndDate] = useState(format(selectedDate, 'yyyy-MM-dd'));
   const [endTime, setEndTime] = useState(format(addHours(selectedDate, 1), 'HH:mm'));
-  const [reminderMinutes, setReminderMinutes] = useState<string>('15');
+  const [reminderMinutes, setReminderMinutes] = useState<string>('none');
 
   const resetForm = () => {
     setTitle('');
@@ -48,7 +48,7 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
     setStartTime(format(selectedDate, 'HH:mm'));
     setEndDate(format(selectedDate, 'yyyy-MM-dd'));
     setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
-    setReminderMinutes('15');
+    setReminderMinutes('none');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +86,7 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
         start_time: startDateTime,
         end_time: endDateTime,
         all_day: allDay,
-        reminder_minutes: reminderMinutes ? parseInt(reminderMinutes) : null,
+        reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
         user_id: user.id,
         is_synced: false, // Will be true if we sync to Google Calendar
         external_id: null,
@@ -105,7 +105,7 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
             end: allDay 
               ? { date: endDate }
               : { dateTime: endDateTime },
-            reminders: reminderMinutes ? {
+            reminders: reminderMinutes !== 'none' ? {
               useDefault: false,
               overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
             } : undefined
@@ -268,7 +268,7 @@ export const AddEventDialog: React.FC<AddEventDialogProps> = ({
                 <SelectValue placeholder="Select reminder time" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No reminder</SelectItem>
+                <SelectItem value="none">No reminder</SelectItem>
                 <SelectItem value="5">5 minutes before</SelectItem>
                 <SelectItem value="10">10 minutes before</SelectItem>
                 <SelectItem value="15">15 minutes before</SelectItem>
