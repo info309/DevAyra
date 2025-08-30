@@ -295,7 +295,8 @@ const Assistant = () => {
                     subject: draft.subject,
                     content: draft.content,
                     replyTo: draft.replyTo,
-                    threadId: draft.threadId
+                    threadId: draft.threadId,
+                    attachments: draft.attachedDocuments || []
                   }
                 }
               });
@@ -311,6 +312,9 @@ const Assistant = () => {
                   <div className="space-y-3 text-sm">
                     <p><span className="font-medium">To:</span> {draft.to}</p>
                     <p><span className="font-medium">Subject:</span> {draft.subject}</p>
+                    {draft.attachedDocuments && draft.attachedDocuments.length > 0 && (
+                      <p><span className="font-medium">Attachments:</span> {draft.attachedDocuments.length} file(s)</p>
+                    )}
                     <Button onClick={openDraft} className="w-full">
                       <Mail className="w-4 h-4 mr-2" />
                       Open Draft

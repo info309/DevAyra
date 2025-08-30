@@ -39,6 +39,7 @@ Core Rules:
 Email Handling Rules:
 - CRITICAL: When user asks for email summaries, weekly reviews, or mentions specific people - IMMEDIATELY search emails first
 - When user says "send", "send it", "yes", "go ahead", "all good", "Id like to send it" after discussing email content - IMMEDIATELY call "emails_compose_draft" tool
+- When user wants to attach documents to emails, search for the relevant documents first, then include their IDs in the attachments parameter
 - DO NOT ask "shall I prepare this draft" or similar - just call the tool immediately 
 - NEVER actually send emails - only create drafts for user review
 - CRITICAL: When creating email drafts, ALWAYS use the actual email address from the search results (e.g., "carlobordi@aol.com") NOT placeholder addresses like "carlo@example.com"
@@ -48,6 +49,10 @@ Key trigger phrases that REQUIRE email search:
   - "emails from [person]", "what did [person] say", "[person]'s email"
   - "find email", "search emails", "check inbox", "look for messages"
   - "action items", "follow up", "need to respond", "pending emails"
+
+Document attachment phrases:
+  - "attach the contract", "include the document", "send with the file"
+  - "attach [document name]", "include [file]", "send the [document type]"
 
 When you find emails, always provide:
 - Clear summary of what was found
@@ -120,6 +125,15 @@ const EMAIL_TOOLS = [
           threadId: { 
             type: 'string', 
             description: 'Thread ID if this is a reply to an existing conversation',
+            optional: true
+          },
+          attachments: {
+            type: 'array',
+            description: 'Array of document IDs to attach from user\'s stored documents',
+            items: {
+              type: 'string',
+              description: 'Document ID from user_documents table'
+            },
             optional: true
           }
         },
@@ -284,8 +298,8 @@ async function searchDocuments(userId: string, query: string) {
   }
 }
 
-async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string) {
-  console.log('Composing email draft:', { to, subject, threadId });
+async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[]) {
+  console.log('Composing email draft:', { to, subject, threadId, attachments });
   
   // Build draft data with only defined fields
   const draftData: any = {
@@ -298,6 +312,11 @@ async function composeEmailDraft(to: string, subject: string, content: string, t
   // Only include threadId if it's a valid string
   if (threadId && typeof threadId === 'string' && threadId.trim()) {
     draftData.threadId = threadId;
+  }
+  
+  // Include attachments if provided
+  if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+    draftData.attachments = attachments;
   }
   
   return draftData;
@@ -534,7 +553,19 @@ serve(async (req) => {
               result = await searchDocuments(user.id, args.query);
               break;
             case 'emails_compose_draft':
-              result = await composeEmailDraft(args.to, args.subject, args.content, args.threadId);
+              const { to, subject, content, threadId, attachments } = args;
+              result = await composeEmailDraft(to, subject, content, threadId, attachments);
+              
+              // If attachments were provided, fetch document details
+              if (attachments && attachments.length > 0) {
+                const { data: attachedDocs } = await supabase
+                  .from('user_documents')
+                  .select('id, name, file_path, mime_type, file_size')
+                  .eq('user_id', user.id)
+                  .in('id', attachments);
+                  
+                result.attachedDocuments = attachedDocs || [];
+              }
               break;
             default:
               result = { error: `Unknown tool: ${toolCall.function.name}` };
