@@ -447,6 +447,7 @@ const Assistant = () => {
             <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground pt-6 pb-12 px-4">
+                  <h3 className="text-xl font-semibold mb-6 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
                   <div className="w-48 h-48 mx-auto mb-1.5 flex items-center justify-center">
                     <img 
                       src="/lovable-uploads/fc3ef300-a3f1-42f7-9cf2-4eed433cb33c.png" 
@@ -454,7 +455,6 @@ const Assistant = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
                   <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
                     I can help you with your emails and documents. Try asking me something like:
                   </p>
