@@ -31,8 +31,7 @@ Rules:
 Email Handling Rules:
 - CRITICAL: When user says "send", "send it", "yes", "go ahead", "all good", "Id like to send it" after discussing email content - IMMEDIATELY call "emails_compose_draft" tool
 - DO NOT ask "shall I prepare this draft" or similar - just call the tool immediately 
-- For immediate sending: ONLY use "emails_send" when user explicitly says "send it now", "send immediately", or gives clear immediate send instructions
-- NEVER claim to have sent an email unless you actually used the "emails_send" tool successfully
+- NEVER actually send emails - only create drafts for user review
 
 Example conversation flow:
 User: "Tell him I'm on it and I'll let him know"
@@ -92,36 +91,6 @@ const EMAIL_TOOLS = [
     function: {
       name: 'emails_compose_draft',
       description: 'Compose a draft email that will be opened in the user\'s compose window for review and sending.',
-      parameters: {
-        type: 'object',
-        properties: {
-          to: { 
-            type: 'string', 
-            description: 'Recipient email address' 
-          },
-          subject: { 
-            type: 'string', 
-            description: 'Email subject line' 
-          },
-          content: { 
-            type: 'string', 
-            description: 'Email body content (plain text)' 
-          },
-          threadId: { 
-            type: 'string', 
-            description: 'Thread ID if this is a reply to an existing conversation',
-            optional: true
-          }
-        },
-        required: ['to', 'subject', 'content']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'emails_send',
-      description: 'Send an email directly through Gmail API.',
       parameters: {
         type: 'object',
         properties: {
@@ -315,55 +284,6 @@ async function composeEmailDraft(to: string, subject: string, content: string, t
     threadId,
     action: 'compose_draft'
   };
-}
-
-async function sendEmail(userId: string, to: string, subject: string, content: string, threadId?: string) {
-  try {
-    console.log('Sending email via Gmail API:', { userId, to, subject, threadId });
-    
-    // Call the gmail-api function to send the email
-    const { data, error } = await supabase.functions.invoke('gmail-api', {
-      body: {
-        action: 'sendEmail',
-        to,
-        subject,
-        content,
-        threadId
-      },
-      headers: {
-        'user-id': userId
-      }
-    });
-
-    if (error) {
-      console.error('Gmail API function error:', error);
-      return { 
-        error: `Failed to send email: ${error.message}`,
-        success: false 
-      };
-    }
-
-    if (data?.success) {
-      console.log('Email sent successfully:', data.messageId);
-      return {
-        success: true,
-        messageId: data.messageId,
-        message: 'Email sent successfully!'
-      };
-    } else {
-      console.error('Gmail API returned error:', data);
-      return { 
-        error: `Failed to send email: ${data?.error || 'Unknown error'}`,
-        success: false 
-      };
-    }
-  } catch (error) {
-    console.error('Send email error:', error);
-    return { 
-      error: `Failed to send email: ${error.message}`,
-      success: false 
-    };
-  }
 }
 
 // Main handler
@@ -591,9 +511,6 @@ serve(async (req) => {
               break;
             case 'emails_compose_draft':
               result = await composeEmailDraft(args.to, args.subject, args.content, args.threadId);
-              break;
-            case 'emails_send':
-              result = await sendEmail(user.id, args.to, args.subject, args.content, args.threadId);
               break;
             default:
               result = { error: `Unknown tool: ${toolCall.function.name}` };
