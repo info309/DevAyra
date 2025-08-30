@@ -381,14 +381,13 @@ const Calendar = () => {
                   description: "Event creation coming soon!"
                 });
               }}
-              showEvents={false} // Hide events, will be shown separately on larger screens
+              showEvents={true} // Show events in the same component
             />
           </div>
 
-          {/* Right side content - events and connection */}
-          <div className="w-full lg:flex-1 lg:max-w-md space-y-6">
-            {/* Connection Status */}
-            {!gmailConnection && (
+          {/* Google Calendar Connection - only show if not connected */}
+          {!gmailConnection && (
+            <div className="w-full lg:max-w-sm">
               <Card>
                 <CardContent className="p-6">
                   <div className="text-center">
@@ -403,21 +402,8 @@ const Calendar = () => {
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Events Section */}
-            <EventsList
-              selectedDate={selectedDate}
-              events={events}
-              loading={loading}
-              onAddEvent={() => {
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
-              }}
-            />
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
