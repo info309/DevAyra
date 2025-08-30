@@ -700,7 +700,21 @@ const Documents = () => {
           {/* Breadcrumbs - fixed height container */}
           <div className="breadcrumb-container h-8 mb-6" style={{ contain: 'layout' }}>
             {currentFolder && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div 
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+                style={{ 
+                  scrollMargin: '0px',
+                  scrollPadding: '0px',
+                  outline: 'none'
+                }}
+                tabIndex={-1}
+                onFocus={(e) => {
+                  console.log('BREADCRUMB FOCUS EVENT');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.blur();
+                }}
+              >
                 <span
                   onClick={() => setCurrentFolder(null)}
                   className="cursor-pointer text-muted-foreground hover:text-foreground"
@@ -712,6 +726,12 @@ const Documents = () => {
                     outline: 'none'
                   }}
                   tabIndex={-1}
+                  onFocus={(e) => {
+                    console.log('DOCUMENTS BREADCRUMB FOCUS');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
                 >
                   Documents
                 </span>
@@ -724,6 +744,12 @@ const Documents = () => {
                     outline: 'none'
                   }}
                   tabIndex={-1}
+                  onFocus={(e) => {
+                    console.log('FOLDER NAME BREADCRUMB FOCUS');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
                 >
                   {currentFolder.name}
                 </span>
@@ -751,7 +777,27 @@ const Documents = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4">
+            <div 
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4"
+              style={{ 
+                scrollMargin: '0px',
+                scrollPadding: '0px',
+                outline: 'none'
+              }}
+              tabIndex={-1}
+              onFocus={(e) => {
+                console.log('GRID FOCUS EVENT');
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+              ref={(el) => {
+                if (el) {
+                  el.scrollIntoView = () => {};
+                  el.focus = () => {};
+                }
+              }}
+            >
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
