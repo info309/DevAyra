@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const SYSTEM_PROMPT = `
 You are a magical AI assistant named "Ayra". You are friendly, human-like, witty, and concise.
-You have access to special tools like email search, document search, and soon calendar management, but you only use them when explicitly asked or triggered.
+You have access to special tools like email search, document search, and email sending, but you only use them when explicitly asked or triggered.
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
 Rules:
@@ -28,8 +28,15 @@ Rules:
 7. Use the last 6 messages for context. Each message is independent. Focus on clarity and usefulness.
 8. Be conversational and context-aware - don't repeat the same questions.
 
+Email Handling Rules:
+- For email composition: Use "emails_compose_draft" to create a draft that the user can review and send manually
+- For immediate sending: Use "emails_send" only when the user explicitly asks to "send" an email or confirms sending after seeing a draft
+- NEVER claim to have sent an email unless you actually used the "emails_send" tool successfully
+
 Example trigger phrases:
-  - Emails: "search emails", "find email from", "look in my inbox", "show me messages", "email from Michelle", "what did Carlo ask", confirmations like "yes", "sure"
+  - Email search: "search emails", "find email from", "look in my inbox", "show me messages", "email from Michelle", "what did Carlo ask"
+  - Email draft: "draft an email", "compose a message", "write an email", "prepare a response"
+  - Email send: "send the email", "send it", "go ahead and send", confirmations after drafting
   - Documents: "search docs", "find document", "open report", "lookup file"
 
 When you find emails or documents, always provide:
@@ -78,6 +85,36 @@ const EMAIL_TOOLS = [
     function: {
       name: 'emails_compose_draft',
       description: 'Compose a draft email that will be opened in the user\'s compose window for review and sending.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { 
+            type: 'string', 
+            description: 'Recipient email address' 
+          },
+          subject: { 
+            type: 'string', 
+            description: 'Email subject line' 
+          },
+          content: { 
+            type: 'string', 
+            description: 'Email body content (plain text)' 
+          },
+          threadId: { 
+            type: 'string', 
+            description: 'Thread ID if this is a reply to an existing conversation',
+            optional: true
+          }
+        },
+        required: ['to', 'subject', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'emails_send',
+      description: 'Send an email directly through Gmail API.',
       parameters: {
         type: 'object',
         properties: {
@@ -271,6 +308,55 @@ async function composeEmailDraft(to: string, subject: string, content: string, t
     threadId,
     action: 'compose_draft'
   };
+}
+
+async function sendEmail(userId: string, to: string, subject: string, content: string, threadId?: string) {
+  try {
+    console.log('Sending email via Gmail API:', { userId, to, subject, threadId });
+    
+    // Call the gmail-api function to send the email
+    const { data, error } = await supabase.functions.invoke('gmail-api', {
+      body: {
+        action: 'sendEmail',
+        to,
+        subject,
+        content,
+        threadId
+      },
+      headers: {
+        'user-id': userId
+      }
+    });
+
+    if (error) {
+      console.error('Gmail API function error:', error);
+      return { 
+        error: `Failed to send email: ${error.message}`,
+        success: false 
+      };
+    }
+
+    if (data?.success) {
+      console.log('Email sent successfully:', data.messageId);
+      return {
+        success: true,
+        messageId: data.messageId,
+        message: 'Email sent successfully!'
+      };
+    } else {
+      console.error('Gmail API returned error:', data);
+      return { 
+        error: `Failed to send email: ${data?.error || 'Unknown error'}`,
+        success: false 
+      };
+    }
+  } catch (error) {
+    console.error('Send email error:', error);
+    return { 
+      error: `Failed to send email: ${error.message}`,
+      success: false 
+    };
+  }
 }
 
 // Main handler
@@ -499,6 +585,9 @@ serve(async (req) => {
             case 'emails_compose_draft':
               result = await composeEmailDraft(args.to, args.subject, args.content, args.threadId);
               break;
+            case 'emails_send':
+              result = await sendEmail(user.id, args.to, args.subject, args.content, args.threadId);
+              break;
             default:
               result = { error: `Unknown tool: ${toolCall.function.name}` };
           }
@@ -507,6 +596,19 @@ serve(async (req) => {
             toolCall,
             result
           });
+
+          // Save tool message to database for UI rendering
+          await supabase
+            .from('assistant_messages')
+            .insert({
+              session_id: session.id,
+              user_id: user.id,
+              role: 'tool',
+              content: JSON.stringify(result),
+              tool_name: toolCall.function.name,
+              tool_args: JSON.stringify(args),
+              tool_result: JSON.stringify(result)
+            });
 
           console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || 'error');
         } catch (toolError) {
