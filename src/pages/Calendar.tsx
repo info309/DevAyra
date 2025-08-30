@@ -367,6 +367,18 @@ const Calendar = () => {
                 {format(new Date(), "EEEE do MMMM yyyy")}
               </h1>
             </div>
+            
+            <AddEventDrawer
+              selectedDate={selectedDate}
+              onEventAdded={loadEvents}
+              gmailConnection={gmailConnection}
+              trigger={
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Event
+                </Button>
+              }
+            />
           </div>
 
           {/* Connection Status */}
@@ -472,8 +484,12 @@ const Calendar = () => {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             events={events}
-            onEditEvent={handleEditEvent}
-            onDeleteEvent={handleDeleteEvent}
+            onAddEvent={() => {
+              toast({
+                title: "Add Event",
+                description: "Event creation coming soon!"
+              });
+            }}
             showEvents={true}
           />
         </div>
