@@ -449,7 +449,7 @@ const Assistant = () => {
                 <div className="text-center text-muted-foreground py-12 px-4">
                   <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
                     <img 
-                      src="/lovable-uploads/b9f654a4-1cd5-476d-aa97-df8cfb64bb25.png" 
+                      src="/lovable-uploads/fc3ef300-a3f1-42f7-9cf2-4eed433cb33c.png" 
                       alt="Ayra Assistant" 
                       className="w-full h-full object-contain"
                     />
