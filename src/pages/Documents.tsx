@@ -960,7 +960,7 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`group relative flex flex-col items-center transition-all duration-300 ease-out p-2 rounded-lg hover:bg-accent/30 ${
+                  className={`document-grid-item group relative transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
@@ -992,11 +992,12 @@ const Documents = () => {
                     outline: 'none'
                   }}
                 >
-                  {/* Icon Area */}
-                  <div className="w-16 h-16 mb-2 flex items-center justify-center">
+                  {/* Preview/Icon Area - Icons are directly clickable */}
+                  <div className="w-full aspect-[4/5] mb-2 flex items-center justify-center">
                     {doc.is_folder ? (
-                      <Folder 
-                        className={`w-14 h-14 text-primary cursor-pointer transition-transform duration-300 ease-out ${
+                      <svg 
+                        viewBox="0 0 120 96" 
+                        className={`w-20 h-16 drop-shadow-sm cursor-pointer transition-transform duration-300 ease-out ${
                           doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'hover:scale-110'
                         }`}
                         onMouseUp={(e) => {
@@ -1010,10 +1011,31 @@ const Documents = () => {
                           e.stopPropagation();
                           if (!isDragging) handleDocumentClick(doc);
                         }}
-                      />
+                      >
+                        <defs>
+                          <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#60a5fa" />
+                            <stop offset="100%" stopColor="#3b82f6" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {/* Folder body */}
+                        <path
+                          d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
+                          fill={`url(#folderGrad-${doc.id})`}
+                          rx="4"
+                        />
+                        
+                        {/* Folder tab */}
+                        <path
+                          d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
+                          fill="#93c5fd"
+                        />
+                      </svg>
                     ) : (
-                      <div
-                        className="cursor-pointer transition-transform duration-300 ease-out hover:scale-110"
+                      <DocumentPreview 
+                        document={doc}
+                        className={`w-full h-full cursor-pointer transition-transform duration-300 ease-out hover:scale-110`}
                         onMouseUp={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -1025,37 +1047,42 @@ const Documents = () => {
                           e.stopPropagation();
                           if (!isDragging) handleDocumentClick(doc);
                         }}
-                      >
-                        {doc.mime_type?.startsWith('image/') ? (
-                          <Image className="w-12 h-12 text-purple-500" />
-                        ) : doc.mime_type === 'application/pdf' ? (
-                          <FileText className="w-12 h-12 text-red-500" />
-                        ) : doc.mime_type?.includes('sheet') || doc.name.toLowerCase().includes('.xlsx') ? (
-                          <FileText className="w-12 h-12 text-green-500" />
-                        ) : doc.mime_type?.includes('presentation') || doc.name.toLowerCase().includes('.ppt') ? (
-                          <FileText className="w-12 h-12 text-orange-500" />
-                        ) : doc.mime_type?.includes('document') || doc.name.toLowerCase().includes('.doc') ? (
-                          <FileText className="w-12 h-12 text-blue-500" />
-                        ) : (
-                          <File className="w-12 h-12 text-muted-foreground" />
-                        )}
-                      </div>
+                      />
                     )}
                   </div>
                   
-                  {/* Label */}
-                  <p className="text-xs text-center leading-tight max-w-full px-1 truncate" title={doc.name}>
-                    {doc.name}
-                  </p>
+                  {/* Document Info */}
+                  <div className="text-center">
+                    <p className="text-sm font-medium truncate w-full leading-tight mb-1" title={doc.name}>
+                      {doc.name}
+                    </p>
+                    
+                    {!doc.is_folder && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>{formatDate(doc.created_at)}</div>
+                        {doc.file_size && (
+                          <div>{formatFileSize(doc.file_size)}</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {doc.is_folder && (
+                      <div className="text-xs text-muted-foreground">
+                        {/* We'd need to count items in folder here */}
+                        Folder
+                      </div>
+                    )}
+                  </div>
+
                   
                   {/* Context Menu */}
-                  <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-5 w-5 p-0 bg-background/80 hover:bg-background shadow-sm"
+                          className="h-6 w-6 p-0 bg-background/80 hover:bg-background shadow-sm"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="w-3 h-3" />
@@ -1078,26 +1105,19 @@ const Documents = () => {
                              Download
                            </DropdownMenuItem>
                          )}
-                         <DropdownMenuItem onClick={(e) => {
-                           e.stopPropagation();
-                           toggleFavorite(doc);
-                         }}>
-                           <Star className={`w-4 h-4 mr-2 ${doc.is_favorite ? 'fill-current' : ''}`} />
-                           {doc.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                         </DropdownMenuItem>
                          <DropdownMenuItem 
+                           className="text-destructive"
                            onClick={(e) => {
                              e.stopPropagation();
                              deleteDocument(doc);
                            }}
-                           className="text-destructive"
                          >
                            <Trash2 className="w-4 h-4 mr-2" />
                            Delete
                          </DropdownMenuItem>
                        </DropdownMenuContent>
-                     </DropdownMenu>
-                   </div>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))}
             </div>
