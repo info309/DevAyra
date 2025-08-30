@@ -175,9 +175,18 @@ const Mailbox: React.FC = () => {
         to: draft.to || '',
         subject: draft.subject || '',
         content: draft.content || '',
+        replyTo: draft.replyTo, // Explicitly set replyTo 
         threadId: draft.threadId,
         attachments: [],
         documentAttachments: []
+      });
+      
+      console.log('AI Draft loaded:', {
+        to: draft.to,
+        subject: draft.subject,
+        content: draft.content,
+        replyTo: draft.replyTo,
+        threadId: draft.threadId
       });
       setShowComposeDialog(true);
       
@@ -827,6 +836,9 @@ const Mailbox: React.FC = () => {
         to: composeForm.to,
         subject: composeForm.subject,
         hasContent: !!composeForm.content,
+        contentLength: composeForm.content?.length,
+        replyTo: composeForm.replyTo,
+        threadId: composeForm.threadId,
         fileAttachments: composeForm.attachments?.length || 0,
         documentAttachments: composeForm.documentAttachments?.length || 0,
         documentNames: composeForm.documentAttachments?.map(d => d.name) || []

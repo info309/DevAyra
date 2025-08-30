@@ -294,6 +294,7 @@ const Assistant = () => {
                     to: draft.to,
                     subject: draft.subject,
                     content: draft.content,
+                    replyTo: draft.replyTo,
                     threadId: draft.threadId
                   }
                 }
