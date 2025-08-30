@@ -253,14 +253,15 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
 
-    // PDF preview
+    // PDF preview with iframe
     if (document.mime_type?.includes('pdf')) {
       return (
         <div className="w-full h-full bg-background">
           <iframe
-            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1`}
+            src={`${previewUrl}#view=FitH&pagemode=none&toolbar=1&navpanes=0&statusbar=0`}
             className="w-full h-full border-0"
             title={`Preview of ${document.name}`}
+            allow="fullscreen"
             onError={() => {
               console.error('Failed to load PDF preview');
               setPreviewUrl(null);

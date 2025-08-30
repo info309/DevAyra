@@ -73,9 +73,9 @@ const Documents = () => {
     if (user) {
       loadDocuments();
     }
-  }, [user, currentFolder]);
+  }, [user, currentFolder?.id]); // Only depend on folder ID to prevent unnecessary reloads
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     if (!user?.id) {
       console.log('No user ID available, skipping document load');
       return;
@@ -83,8 +83,6 @@ const Documents = () => {
     
     try {
       setLoading(true);
-      
-      console.log('Loading documents for user:', user.id);
       
       let query = supabase
         .from('user_documents')
@@ -103,15 +101,12 @@ const Documents = () => {
         .order('is_folder', { ascending: false })
         .order('created_at', { ascending: false });
 
-      console.log('Documents query result:', { data, error, userContext: user.id });
-
       if (error) {
         console.error('Database query error:', error);
         throw error;
       }
       
       setDocuments((data || []) as UserDocument[]);
-      console.log(`Loaded ${data?.length || 0} documents`);
     } catch (error) {
       console.error('Error loading documents:', error);
       toast({
@@ -122,7 +117,7 @@ const Documents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, currentFolder?.id, toast]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -258,14 +253,14 @@ const Documents = () => {
     }
   };
 
-  const handleDocumentClick = (doc: UserDocument) => {
+  const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
     }
-  };
+  }, []);
 
   const toggleFavorite = async (doc: UserDocument) => {
     try {
