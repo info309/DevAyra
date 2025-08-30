@@ -295,11 +295,11 @@ const Assistant = () => {
         );
 
       case 'emails_compose_draft':
-        // Handle draft composition and navigate to mailbox
+        // Handle draft composition and show open draft button
         if (toolResult && toolResult.result) {
           const draft = toolResult.result;
           if (draft.action === 'compose_draft') {
-            setTimeout(() => {
+            const openDraft = () => {
               navigate('/mailbox', { 
                 state: { 
                   composeDraft: {
@@ -310,7 +310,7 @@ const Assistant = () => {
                   }
                 }
               });
-            }, 1000);
+            };
 
             return (
               <Card className="mt-2 bg-accent/50">
@@ -319,10 +319,13 @@ const Assistant = () => {
                     <Mail className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">Draft Prepared</span>
                   </div>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-3 text-sm">
                     <p><span className="font-medium">To:</span> {draft.to}</p>
                     <p><span className="font-medium">Subject:</span> {draft.subject}</p>
-                    <p className="text-muted-foreground">Opening compose window...</p>
+                    <Button onClick={openDraft} className="w-full">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Open Draft
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
