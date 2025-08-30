@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, Paperclip } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -653,6 +653,18 @@ const Assistant = () => {
           <div className="border-t bg-card/50 p-4">
             <div className="container max-w-4xl mx-auto">
               <div className="flex gap-2 md:gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-[44px] w-[44px] shrink-0"
+                  onClick={() => {
+                    // TODO: Implement attachment functionality
+                    console.log('Attachment clicked');
+                  }}
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <span className="sr-only">Add attachment</span>
+                </Button>
                 <Textarea
                   value={inputMessage}
                   onChange={handleTextareaChange}
