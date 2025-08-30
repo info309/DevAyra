@@ -220,14 +220,10 @@ const Calendar = () => {
   const selectedDateEvents = events.filter(event => {
     const eventStart = new Date(event.start_time);
     const eventEnd = new Date(event.end_time);
-    const selectedStart = startOfDay(selectedDate);
-    const selectedEnd = endOfDay(selectedDate);
-
-    // Check if the event overlaps with the selected date
-    return isWithinInterval(selectedStart, { start: eventStart, end: eventEnd }) ||
-           isWithinInterval(selectedEnd, { start: eventStart, end: eventEnd }) ||
-           isWithinInterval(eventStart, { start: selectedStart, end: selectedEnd }) ||
-           isWithinInterval(eventEnd, { start: selectedStart, end: selectedEnd });
+    const selectedDay = startOfDay(selectedDate);
+    
+    // Check if the selected date falls within the event's date range (inclusive)
+    return selectedDay >= startOfDay(eventStart) && selectedDay <= startOfDay(eventEnd);
   });
 
   // Get all days with events for the calendar view
