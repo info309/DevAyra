@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut } from 'lucide-react';
+import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -50,6 +50,13 @@ const Dashboard = () => {
       route: '/passwords',
       color: 'text-red-600'
     },
+        {
+          icon: Bot,
+          title: 'AI Assistant',
+          description: 'Chat with AI about your emails and documents',
+          route: '/assistant',
+          color: 'text-violet-600'
+        },
         {
           icon: Users,
           title: 'Account',

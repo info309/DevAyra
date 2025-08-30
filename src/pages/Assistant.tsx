@@ -1,0 +1,395 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+  tool_name?: string;
+  tool_result?: any;
+}
+
+interface Session {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const Assistant = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  useEffect(() => {
+    if (currentSession) {
+      fetchMessages(currentSession.id);
+    }
+  }, [currentSession]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchSessions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assistant_sessions')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setSessions(data || []);
+      
+      // Auto-select first session or create new one
+      if (data && data.length > 0) {
+        setCurrentSession(data[0]);
+      } else {
+        createNewSession();
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat sessions",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchMessages = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('assistant_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages((data || []).map(msg => ({
+        ...msg,
+        role: msg.role as 'user' | 'assistant'
+      })));
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const createNewSession = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assistant_sessions')
+        .insert({ user_id: user!.id, title: 'New Chat' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCurrentSession(data);
+      setSessions(prev => [data, ...prev]);
+      setMessages([]);
+    } catch (error) {
+      console.error('Error creating session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new chat",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !currentSession || isLoading) return;
+
+    const message = inputMessage.trim();
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      // Add user message to UI immediately
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: message,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // Call assistant function
+      const { data, error } = await supabase.functions.invoke('assistant', {
+        body: {
+          message,
+          sessionId: currentSession.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Assistant request failed');
+      }
+
+      // Refresh messages to show assistant response
+      await fetchMessages(currentSession.id);
+
+      // Update session title if it's the first message
+      if (messages.length === 0) {
+        const shortTitle = message.length > 30 ? message.substring(0, 30) + '...' : message;
+        await supabase
+          .from('assistant_sessions')
+          .update({ title: shortTitle })
+          .eq('id', currentSession.id);
+        
+        setCurrentSession(prev => prev ? { ...prev, title: shortTitle } : null);
+        setSessions(prev => prev.map(s => s.id === currentSession.id ? { ...s, title: shortTitle } : s));
+      }
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+      
+      // Remove the user message we optimistically added
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const renderToolResult = (toolName: string, toolResult: any) => {
+    if (!toolResult) return null;
+
+    switch (toolName) {
+      case 'emails.list':
+      case 'emails.search':
+        return (
+          <Card className="mt-2 bg-muted/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Found {toolResult.conversations?.length || 0} emails
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {toolResult.conversations?.slice(0, 3).map((email: any, idx: number) => (
+                <div key={idx} className="border-l-2 border-primary/20 pl-3 mb-2 last:mb-0">
+                  <div className="font-medium text-sm">{email.subject}</div>
+                  <div className="text-xs text-muted-foreground">From: {email.from}</div>
+                  <div className="text-xs text-muted-foreground">{new Date(email.date).toLocaleDateString()}</div>
+                </div>
+              ))}
+              {toolResult.conversations?.length > 3 && (
+                <div className="text-xs text-muted-foreground mt-2">
+                  ...and {toolResult.conversations.length - 3} more emails
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'documents.list':
+      case 'documents.search':
+        return (
+          <Card className="mt-2 bg-muted/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Found {toolResult.documents?.length || 0} documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {toolResult.documents?.slice(0, 3).map((doc: any, idx: number) => (
+                <div key={idx} className="border-l-2 border-primary/20 pl-3 mb-2 last:mb-0">
+                  <div className="font-medium text-sm">{doc.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {doc.category && <Badge variant="outline" className="mr-2">{doc.category}</Badge>}
+                    {new Date(doc.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+              {toolResult.documents?.length > 3 && (
+                <div className="text-xs text-muted-foreground mt-2">
+                  ...and {toolResult.documents.length - 3} more documents
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 'emails.send':
+        return (
+          <Card className="mt-2 bg-muted/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-sm">
+                <AlertCircle className="w-4 h-4 text-orange-500" />
+                {toolResult.success ? 'Email sent successfully' : 'Email sending failed'}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card p-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+              ← Back to Dashboard
+            </Button>
+            <h1 className="text-2xl font-heading font-bold">AI Assistant</h1>
+          </div>
+          <Button onClick={createNewSession} size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            New Chat
+          </Button>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto flex h-[calc(100vh-80px)]">
+        {/* Sessions Sidebar */}
+        <div className="w-64 border-r bg-card/50 p-4">
+          <h3 className="font-semibold mb-4">Chat History</h3>
+          <ScrollArea className="h-full">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`p-3 rounded-lg cursor-pointer mb-2 transition-colors ${
+                  currentSession?.id === session.id 
+                    ? 'bg-primary/10 border border-primary/20' 
+                    : 'hover:bg-muted/50'
+                }`}
+                onClick={() => setCurrentSession(session)}
+              >
+                <div className="font-medium text-sm line-clamp-2">{session.title}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {new Date(session.updated_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+          </ScrollArea>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {messages.length === 0 && (
+                <div className="text-center text-muted-foreground py-12">
+                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="font-semibold mb-2">Start a conversation</h3>
+                  <p className="text-sm">
+                    Ask me about your emails, documents, or anything else!
+                  </p>
+                </div>
+              )}
+
+              {messages.map((message) => (
+                <div key={message.id} className="flex items-start gap-3">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.role === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  }`}>
+                    {message.role === 'user' ? (
+                      <User className="w-4 h-4" />
+                    ) : (
+                      <Bot className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="prose prose-sm max-w-none">
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                    {message.tool_name && message.tool_result && 
+                      renderToolResult(message.tool_name, message.tool_result)
+                    }
+                  </div>
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-muted/50 rounded-lg p-3 animate-pulse">
+                      <div className="text-sm text-muted-foreground">Thinking...</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input Area */}
+          <div className="border-t p-4">
+            <div className="max-w-4xl mx-auto flex gap-2">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about your emails, documents, or anything else..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button 
+                onClick={sendMessage} 
+                disabled={!inputMessage.trim() || isLoading}
+                size="icon"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Assistant;
