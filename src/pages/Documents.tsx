@@ -312,63 +312,19 @@ const Documents = () => {
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
-      // Capture exact scroll position
-      const scrollY = window.pageYOffset;
-      
-      // Freeze the entire page layout
-      const body = document.body;
-      const html = document.documentElement;
-      
-      // Get current page height
-      const currentHeight = Math.max(body.scrollHeight, html.scrollHeight);
-      
-      // Lock the page height to prevent layout shifts
-      body.style.height = `${currentHeight}px`;
-      body.style.overflow = 'hidden';
-      html.style.overflow = 'hidden';
-      
-      // Disable all scroll restoration
-      if ('scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
-      }
-      
-      // Override ALL methods that could cause scrolling
-      const originalMethods = {
-        scrollTo: window.scrollTo,
-        scrollBy: window.scrollBy,
-        scroll: window.scroll,
-        scrollIntoView: Element.prototype.scrollIntoView,
-        focus: HTMLElement.prototype.focus
-      };
-      
-      window.scrollTo = () => {};
-      window.scrollBy = () => {};
-      window.scroll = () => {};
-      Element.prototype.scrollIntoView = () => {};
-      HTMLElement.prototype.focus = function() { this.blur(); };
-      
       setCurrentFolder(doc);
       
-      // Restore everything after the render cycle completes
+      // After the folder content loads, scroll to the top of the file grid
       setTimeout(() => {
-        // Restore scroll methods
-        Object.assign(window, originalMethods);
-        Element.prototype.scrollIntoView = originalMethods.scrollIntoView;
-        HTMLElement.prototype.focus = originalMethods.focus;
-        
-        // Restore layout
-        body.style.height = '';
-        body.style.overflow = '';
-        html.style.overflow = '';
-        
-        // Force scroll position
-        window.scrollTo(0, scrollY);
-        
-        // Restore scroll restoration
-        if ('scrollRestoration' in history) {
-          history.scrollRestoration = 'auto';
+        const fileGrid = document.querySelector('[data-file-grid]');
+        if (fileGrid) {
+          fileGrid.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
         }
-      }, 300);
+      }, 100);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
@@ -926,6 +882,7 @@ const Documents = () => {
             </div>
           ) : (
             <div 
+              data-file-grid
               className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4"
               style={{ 
                 scrollMargin: '0px',
