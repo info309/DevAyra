@@ -219,10 +219,7 @@ const Documents = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Folder created successfully",
-      });
+      // No success toast for folder creation
 
       setNewFolderName('');
       setIsCreateFolderOpen(false);
