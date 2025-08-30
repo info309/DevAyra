@@ -99,12 +99,6 @@ export const EventsList: React.FC<EventsListProps> = ({
           <div className="text-center py-8">
             <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground text-base">No events scheduled for this day</p>
-            {onAddEvent && (
-              <Button className="mt-4 text-base" size="sm" onClick={onAddEvent}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Event
-              </Button>
-            )}
           </div>
         ) : (
           <div className="space-y-3">
