@@ -158,14 +158,14 @@ Remember: You're having a conversation, not just executing commands. Be human-li
         content: msg.content || '',
         ...(msg.tool_name && msg.tool_result ? {
           tool_calls: [{
-            id: `call_${msg.id}`,
+            id: msg.id.slice(0, 40), // Truncate to 40 chars max
             type: 'function',
             function: {
               name: msg.tool_name,
               arguments: JSON.stringify(msg.tool_args || {})
             }
           }],
-          tool_call_id: `call_${msg.id}`,
+          tool_call_id: msg.id.slice(0, 40), // Truncate to 40 chars max
           name: msg.tool_name,
           content: JSON.stringify(msg.tool_result)
         } : {})
