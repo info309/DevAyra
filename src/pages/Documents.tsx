@@ -768,6 +768,18 @@ const Documents = () => {
               onChange={handleFileSelect}
               className="hidden"
               id="file-upload"
+              tabIndex={-1}
+              style={{ 
+                scrollMargin: '0px',
+                scrollPadding: '0px',
+                outline: 'none'
+              }}
+              onFocus={(e) => {
+                console.log('FILE INPUT FOCUS EVENT - PREVENTING');
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
             />
             <label 
               htmlFor="file-upload" 
