@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { formatFileSize } from '@/lib/utils';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Label } from '@/components/ui/label';
@@ -117,12 +117,19 @@ const Documents = () => {
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(true);
-  }, []);
+    e.stopPropagation();
+    if (!dragOver) {
+      setDragOver(true);
+    }
+  }, [dragOver]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(false);
+    e.stopPropagation();
+    // Only set dragOver to false if we're leaving the drop zone entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOver(false);
+    }
   }, []);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -486,11 +493,14 @@ const Documents = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatFileSize = (bytes: number) => {
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   const filteredDocuments = documents.filter(doc => 
@@ -600,37 +610,49 @@ const Documents = () => {
       <div className="max-w-7xl mx-auto p-6">
         {/* Upload Area */}
         <div className="mb-8">
-          <div
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-              dragOver
-                ? 'border-primary bg-primary/5'
-                : 'border-muted-foreground/25 hover:border-primary hover:bg-accent/50'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
+        {/* Drop Zone */}
+        <div 
+          className={`relative rounded-lg border-2 border-dashed transition-all duration-300 ease-out ${
+            dragOver 
+              ? 'border-primary bg-primary/5 scale-[1.02] shadow-lg' 
+              : 'border-muted-foreground/25 hover:border-muted-foreground/40 hover:bg-muted/20'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="p-8 text-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 ${
+              dragOver ? 'bg-primary text-primary-foreground scale-110' : 'bg-muted'
+            }`}>
+              <Upload className={`transition-transform duration-300 ${dragOver ? 'scale-110' : ''}`} size={24} />
+            </div>
+            <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
+              dragOver ? 'text-primary' : 'text-foreground'
+            }`}>
+              {dragOver ? 'Drop files here' : 'Upload Documents'}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {dragOver ? 'Release to upload your files' : 'Drag and drop files here, or click to select'}
+            </p>
+            <Button 
+              onClick={() => document.getElementById('file-upload')?.click()}
+              disabled={loading}
+              className="transition-all duration-200 hover:scale-105"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Choose Files
+            </Button>
             <input
+              id="file-upload"
               type="file"
               multiple
               onChange={handleFileSelect}
               className="hidden"
-              id="file-upload"
+              accept="*/*"
             />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium mb-1">Upload Documents</h3>
-                  <p className="text-muted-foreground">
-                    Drag and drop files here, or click to browse
-                  </p>
-                </div>
-              </div>
-            </label>
           </div>
+        </div>
         </div>
 
         {/* Documents Grid */}
@@ -669,7 +691,10 @@ const Documents = () => {
           
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="text-muted-foreground animate-pulse">Loading...</div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                <span>Loading documents...</span>
+              </div>
             </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="text-center py-12">
@@ -691,7 +716,7 @@ const Documents = () => {
               {filteredDocuments.map((doc, index) => (
                 <div
                   key={doc.id}
-                  className={`document-card group relative cursor-pointer bg-card rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-300 ease-out ${
+                  className={`document-card group relative cursor-pointer bg-card rounded-lg p-3 shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:scale-[1.02] ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
@@ -705,21 +730,32 @@ const Documents = () => {
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  style={{ 
+                    animationDelay: `${index * 50}ms`,
+                    animationFillMode: 'both'
+                  }}
                 >
                   {/* Preview/Icon Area */}
-                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
-                    doc.is_folder && dropTarget === doc.id ? 'scale-110' : 'group-hover:scale-105'
+                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-all duration-300 ease-out ${
+                    doc.is_folder && dropTarget === doc.id 
+                      ? 'scale-110 bg-primary/10 rounded-lg' 
+                      : 'group-hover:scale-105'
                   }`}>
                     {doc.is_folder ? (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Folder className="w-16 h-16 text-primary" />
+                        <div className={`transition-all duration-300 ${
+                          dropTarget === doc.id ? 'scale-110 text-primary' : 'text-primary group-hover:scale-105'
+                        }`}>
+                          <Folder className="w-16 h-16" />
+                        </div>
                       </div>
                     ) : (
-                      <DocumentPreview 
-                        document={doc}
-                        className="w-full h-full rounded-lg overflow-hidden"
-                      />
+                      <div className="w-full h-full relative overflow-hidden rounded-lg bg-muted/30 group-hover:bg-muted/50 transition-colors duration-300">
+                        <DocumentPreview 
+                          document={doc}
+                          className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </div>
                     )}
                   </div>
                   
@@ -746,13 +782,13 @@ const Documents = () => {
                   </div>
 
                   {/* Context Menu */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-6 w-6 p-0 bg-background/80 hover:bg-background shadow-sm"
+                          className="h-7 w-7 p-0 bg-background/90 hover:bg-background shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -763,17 +799,20 @@ const Documents = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-background border shadow-lg">
                         {!doc.is_folder && (
-                          <DropdownMenuItem onClick={(e) => {
+                        <DropdownMenuItem 
+                          onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleDownload(doc);
-                          }}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
+                          }}
+                          className="transition-colors duration-200 hover:bg-muted/80"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
                         )}
                         <DropdownMenuItem 
-                          className="text-destructive"
+                          className="text-destructive transition-colors duration-200 hover:bg-destructive/10"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
