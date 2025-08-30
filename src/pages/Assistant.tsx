@@ -171,9 +171,18 @@ const Assistant = () => {
 
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Extract error message from supabase function response
+      let errorMessage = "Failed to send message";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.error) {
+        errorMessage = error.error;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: errorMessage,
         variant: "destructive"
       });
       

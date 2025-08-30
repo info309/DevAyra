@@ -589,10 +589,16 @@ Remember: You're having a conversation, not just executing commands. Be human-li
     });
 
   } catch (error) {
-    console.error('Assistant function error:', error);
+    console.error('Assistant function error details:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(JSON.stringify({ 
       error: error.message,
-      success: false
+      success: false,
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
