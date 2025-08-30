@@ -652,7 +652,15 @@ const Documents = () => {
         {/* Documents Grid */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
+            <h2 
+              className="text-lg font-semibold"
+              style={{ 
+                scrollMargin: '0px',
+                scrollPadding: '0px',
+                outline: 'none'
+              }}
+              tabIndex={-1}
+            >
               {currentFolder ? currentFolder.name : 'My Documents'}
             </h2>
           </div>
@@ -675,12 +683,29 @@ const Documents = () => {
                 <span
                   onClick={() => setCurrentFolder(null)}
                   className="cursor-pointer text-muted-foreground hover:text-foreground"
-                  style={{ userSelect: 'none', touchAction: 'manipulation' }}
+                  style={{ 
+                    userSelect: 'none', 
+                    touchAction: 'manipulation',
+                    scrollMargin: '0px',
+                    scrollPadding: '0px',
+                    outline: 'none'
+                  }}
+                  tabIndex={-1}
                 >
                   Documents
                 </span>
                 <span>/</span>
-                <span className="text-foreground font-medium">{currentFolder.name}</span>
+                <span 
+                  className="text-foreground font-medium"
+                  style={{ 
+                    scrollMargin: '0px',
+                    scrollPadding: '0px',
+                    outline: 'none'
+                  }}
+                  tabIndex={-1}
+                >
+                  {currentFolder.name}
+                </span>
               </div>
             )}
           </div>
