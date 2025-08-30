@@ -355,17 +355,10 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
       </DrawerTrigger>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="text-left">
-          <div className="flex items-center justify-between">
-            <DrawerTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />
-              {isEditing ? 'Edit Event' : 'New Event'}
-            </DrawerTitle>
-            <DrawerClose asChild>
-              <Button variant="ghost" size="sm">
-                <X className="w-4 h-4" />
-              </Button>
-            </DrawerClose>
-          </div>
+          <DrawerTitle className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5" />
+            {isEditing ? 'Edit Event' : 'New Event'}
+          </DrawerTitle>
         </DrawerHeader>
         
         <div className="px-4 pb-4 overflow-y-auto">
