@@ -595,57 +595,7 @@ const Documents = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Drawer open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateFolderOpen(true)}
-                  className="gap-2 shrink-0 h-auto p-0 text-primary hover:text-primary/80 bg-transparent border-0 cursor-pointer flex items-center"
-                >
-                  <Folder className="w-4 h-4" />
-                  New Folder
-                </button>
-                <DrawerContent>
-                  <div className="mx-auto w-full max-w-sm">
-                    <DrawerHeader>
-                      <DrawerTitle>Create New Folder</DrawerTitle>
-                      <DrawerDescription>
-                        Enter a name for your new folder.
-                      </DrawerDescription>
-                    </DrawerHeader>
-                    <div className="p-4 pb-0">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="folder-name">Folder Name</Label>
-                          <Input
-                            id="folder-name"
-                            placeholder="Enter folder name..."
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && newFolderName.trim()) {
-                                createFolder();
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <DrawerFooter>
-                      <Button 
-                        onClick={createFolder}
-                        disabled={!newFolderName.trim()}
-                        className="gap-2"
-                      >
-                        <Folder className="w-4 h-4" />
-                        Create Folder
-                      </Button>
-                      <DrawerClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                      </DrawerClose>
-                    </DrawerFooter>
-                  </div>
-                </DrawerContent>
-              </Drawer>
+              {/* New folder button moved to be inline with My Documents heading */}
             </div>
           </div>
         </div>
@@ -742,6 +692,58 @@ const Documents = () => {
             >
               {currentFolder ? currentFolder.name : 'My Documents'}
             </h2>
+            
+            <Drawer open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
+              <button
+                type="button"
+                onClick={() => setIsCreateFolderOpen(true)}
+                className="gap-2 shrink-0 h-auto p-0 text-primary hover:text-primary/80 bg-transparent border-0 cursor-pointer flex items-center"
+              >
+                <Folder className="w-4 h-4" />
+                New Folder
+              </button>
+              <DrawerContent>
+                <div className="mx-auto w-full max-w-sm">
+                  <DrawerHeader>
+                    <DrawerTitle>Create New Folder</DrawerTitle>
+                    <DrawerDescription>
+                      Enter a name for your new folder.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="p-4 pb-0">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="folder-name">Folder Name</Label>
+                        <Input
+                          id="folder-name"
+                          placeholder="Enter folder name..."
+                          value={newFolderName}
+                          onChange={(e) => setNewFolderName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newFolderName.trim()) {
+                              createFolder();
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DrawerFooter>
+                    <Button 
+                      onClick={createFolder}
+                      disabled={!newFolderName.trim()}
+                      className="gap-2"
+                    >
+                      <Folder className="w-4 h-4" />
+                      Create Folder
+                    </Button>
+                    <DrawerClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DrawerClose>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
           </div>
           
           {/* Search */}
