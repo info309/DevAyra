@@ -312,28 +312,69 @@ const Documents = () => {
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
-      // Store current scroll position
-      const currentScrollY = window.pageYOffset;
+      // Store current scroll position BEFORE any state changes
+      const scrollY = window.pageYOffset;
+      const scrollX = window.pageXOffset;
       
-      // Prevent any automatic scrolling behavior
+      // Completely disable scrolling temporarily
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      
+      // Override ALL scroll methods
       const originalScrollTo = window.scrollTo;
+      const originalScrollBy = window.scrollBy;
       const originalScrollIntoView = Element.prototype.scrollIntoView;
       
-      // Override scroll methods temporarily
       window.scrollTo = () => {};
+      window.scrollBy = () => {};
       Element.prototype.scrollIntoView = () => {};
+      
+      // Prevent any focus events on the entire document
+      const preventAllFocus = (e: FocusEvent) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.target !== document.body) {
+          (e.target as HTMLElement)?.blur?.();
+        }
+      };
+      
+      document.addEventListener('focus', preventAllFocus, true);
+      document.addEventListener('focusin', preventAllFocus, true);
       
       setCurrentFolder(doc);
       
-      // Force scroll position back after state update
+      // Force scroll position immediately and repeatedly
+      const restoreScroll = () => {
+        window.scroll(scrollX, scrollY);
+        document.documentElement.scrollTop = scrollY;
+        document.body.scrollTop = scrollY;
+      };
+      
+      restoreScroll();
+      
+      // Restore everything after multiple frames
       requestAnimationFrame(() => {
-        window.scrollTo(0, currentScrollY);
-        
-        // Restore scroll methods after a short delay
-        setTimeout(() => {
-          window.scrollTo = originalScrollTo;
-          Element.prototype.scrollIntoView = originalScrollIntoView;
-        }, 100);
+        restoreScroll();
+        requestAnimationFrame(() => {
+          restoreScroll();
+          setTimeout(() => {
+            // Remove focus prevention
+            document.removeEventListener('focus', preventAllFocus, true);
+            document.removeEventListener('focusin', preventAllFocus, true);
+            
+            // Restore scroll methods
+            window.scrollTo = originalScrollTo;
+            window.scrollBy = originalScrollBy;
+            Element.prototype.scrollIntoView = originalScrollIntoView;
+            
+            // Restore scrolling
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            
+            // Final scroll position enforcement
+            restoreScroll();
+          }, 200);
+        });
       });
     } else {
       setSelectedDocument(doc);
