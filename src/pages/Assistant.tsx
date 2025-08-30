@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -303,6 +304,15 @@ const Assistant = () => {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
   };
 
   const renderToolResult = (toolName: string, toolResult: any) => {
@@ -606,13 +616,14 @@ const Assistant = () => {
           <div className="border-t bg-card/50 p-4">
             <div className="container max-w-4xl mx-auto">
               <div className="flex gap-2 md:gap-3">
-                <Input
+                <Textarea
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask me anything about your emails or documents..."
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask me anything about your emails or documents... (Press Enter to send, Shift+Enter for new line)"
                   disabled={isLoading}
-                  className="flex-1 min-h-[44px] bg-background"
+                  className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-background"
+                  rows={1}
                 />
                 <Button 
                   onClick={sendMessage} 
