@@ -71,6 +71,7 @@ const Documents = () => {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renamingItem, setRenamingItem] = useState<UserDocument | null>(null);
   const [newItemName, setNewItemName] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // Prevent auto-focus on page load
   useEffect(() => {
@@ -184,7 +185,9 @@ const Documents = () => {
         if (error) throw error;
       }
 
-      // Success - no toast message needed
+      // Show success message in upload box
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 3000);
 
       loadDocuments();
     } catch (error) {
@@ -739,15 +742,33 @@ const Documents = () => {
               }}
             >
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium mb-1">Upload Documents</h3>
-                  <p className="text-muted-foreground">
-                    Drag and drop files here, or click to browse
-                  </p>
-                </div>
+                {uploadSuccess ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-1 text-green-700">Upload Successful!</h3>
+                      <p className="text-green-600">
+                        Files have been saved to My Documents
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Plus className="w-8 h-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-1">Upload Documents</h3>
+                      <p className="text-muted-foreground">
+                        Drag and drop files here, or click to browse
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </label>
           </div>
