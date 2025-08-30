@@ -479,7 +479,25 @@ const Documents = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ scrollBehavior: 'auto' }}>
+      {/* Prevent any scroll behavior */}
+      <style>{`
+        * {
+          scroll-behavior: auto !important;
+        }
+        html, body {
+          scroll-behavior: auto !important;
+        }
+        .document-grid-item {
+          scroll-behavior: auto !important;
+        }
+        .document-grid-item:focus {
+          outline: none;
+        }
+        .document-grid-item:target {
+          scroll-margin-top: 0 !important;
+        }
+      `}</style>
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -663,11 +681,15 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out ${
+                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={() => !isDragging && handleDocumentClick(doc)}
+                  onMouseDown={(e) => {
+                    // Prevent any focus behavior that might cause scrolling
+                    e.preventDefault();
+                  }}
+                  onMouseUp={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
@@ -677,6 +699,7 @@ const Documents = () => {
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
+                  tabIndex={-1}
                 >
                   {/* Preview/Icon Area */}
                   <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
