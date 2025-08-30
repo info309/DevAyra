@@ -94,7 +94,7 @@ const Account: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
           <Button
             variant="ghost"
