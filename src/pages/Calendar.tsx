@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
+import { InteractiveCalendar } from '@/components/InteractiveCalendar';
 interface CalendarEvent {
   id: string;
   title: string;
@@ -324,19 +324,23 @@ const Calendar = () => {
             </Card>}
 
           {/* Calendar View */}
-          <Card className="mb-6 px-0 mx-[300px]">
-            
-            <CardContent className="mx-0">
-              <CalendarComponent mode="single" selected={selectedDate} onSelect={date => date && setSelectedDate(date)} month={currentMonth} onMonthChange={setCurrentMonth} modifiers={{
-              hasEvents: eventDates
-            }} modifiersStyles={{
-              hasEvents: {
-                backgroundColor: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))'
-              }
-            }} className="pointer-events-auto mx-0" />
-            </CardContent>
-          </Card>
+          <div className="mb-6">
+            <InteractiveCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              events={events}
+              onAddEvent={() => {
+                // Add event functionality here
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+              className="mx-auto"
+            />
+          </div>
 
           {/* Daily Events */}
           <Card>
@@ -408,27 +412,20 @@ const Calendar = () => {
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Calendar Section */}
           <div className="flex-shrink-0">
-            <Card className="w-fit p-4 bg-card">
-              <div className="flex items-center justify-between mb-4">
-                <Button variant="ghost" onClick={handlePrevMonth}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <h3 className="text-xl font-semibold leading-none tracking-tight">{format(currentMonth, 'MMMM yyyy')}</h3>
-                <Button variant="ghost" onClick={handleNextMonth}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="calendar-container">
-                <CalendarComponent mode="single" selected={selectedDate} onSelect={date => date && setSelectedDate(date)} month={currentMonth} onMonthChange={setCurrentMonth} modifiers={{
-                hasEvents: eventDates
-              }} modifiersStyles={{
-                hasEvents: {
-                  backgroundColor: 'hsl(var(--primary))',
-                  color: 'hsl(var(--primary-foreground))'
-                }
-              }} className="pointer-events-auto w-fit" />
-              </div>
-            </Card>
+            <InteractiveCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              events={events}
+              onAddEvent={() => {
+                // Add event functionality here
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+            />
           </div>
 
           {/* Sidebar */}
