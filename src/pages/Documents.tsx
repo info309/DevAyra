@@ -312,28 +312,29 @@ const Documents = () => {
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
-      // Prevent focus on any new elements that appear
-      const preventFocus = () => {
-        const breadcrumbContainer = document.querySelector('.breadcrumb-container');
-        if (breadcrumbContainer) {
-          // Remove tabindex and add focus prevention to all breadcrumb elements
-          const focusableElements = breadcrumbContainer.querySelectorAll('*');
-          focusableElements.forEach(el => {
-            (el as HTMLElement).tabIndex = -1;
-            (el as HTMLElement).style.outline = 'none';
-            (el as any).focus = () => {};
-            (el as any).scrollIntoView = () => {};
-          });
-        }
-      };
+      // Store current scroll position
+      const currentScrollY = window.pageYOffset;
+      
+      // Prevent any automatic scrolling behavior
+      const originalScrollTo = window.scrollTo;
+      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      
+      // Override scroll methods temporarily
+      window.scrollTo = () => {};
+      Element.prototype.scrollIntoView = () => {};
       
       setCurrentFolder(doc);
       
-      // Prevent focus immediately and after re-render
-      preventFocus();
-      setTimeout(preventFocus, 0);
-      setTimeout(preventFocus, 10);
-      setTimeout(preventFocus, 50);
+      // Force scroll position back after state update
+      requestAnimationFrame(() => {
+        window.scrollTo(0, currentScrollY);
+        
+        // Restore scroll methods after a short delay
+        setTimeout(() => {
+          window.scrollTo = originalScrollTo;
+          Element.prototype.scrollIntoView = originalScrollIntoView;
+        }, 100);
+      });
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
