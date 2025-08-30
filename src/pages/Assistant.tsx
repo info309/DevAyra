@@ -456,7 +456,7 @@ const Assistant = () => {
                     />
                   </div>
                   <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
-                    I can help you with your emails and documents. Try asking me something like:
+                    Try asking me something like:
                   </p>
                   <div className="grid gap-3 max-w-md mx-auto">
                     {[
