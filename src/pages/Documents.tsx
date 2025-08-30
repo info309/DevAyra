@@ -262,8 +262,17 @@ const Documents = () => {
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     console.log('Document clicked:', doc.name, 'Scroll position before:', window.scrollY);
     
+    // Prevent any automatic scrolling
+    const originalScrollY = window.scrollY;
+    
     if (doc.is_folder) {
       setCurrentFolder(doc);
+      
+      // Force scroll position to stay the same after state update
+      setTimeout(() => {
+        window.scrollTo(0, originalScrollY);
+        console.log('Forced scroll back to:', originalScrollY, 'Current:', window.scrollY);
+      }, 0);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
@@ -660,6 +669,18 @@ const Documents = () => {
                 outline: 'none'
               }}
               tabIndex={-1}
+              onFocus={(e) => {
+                console.log('HEADER FOCUS EVENT:', currentFolder ? currentFolder.name : 'My Documents');
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }}
+              ref={(el) => {
+                if (el) {
+                  el.scrollIntoView = () => {};
+                  el.focus = () => {};
+                }
+              }}
             >
               {currentFolder ? currentFolder.name : 'My Documents'}
             </h2>
