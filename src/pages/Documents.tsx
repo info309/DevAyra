@@ -493,7 +493,10 @@ const Documents = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -502,6 +505,7 @@ const Documents = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
+
 
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -712,12 +716,12 @@ const Documents = () => {
               </p>
             </div>
           ) : (
-            <div className="document-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 animate-fade-in">
+            <div className="document-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 animate-fade-in">
               {filteredDocuments.map((doc, index) => (
                 <div
                   key={doc.id}
-                  className={`document-card group relative cursor-pointer bg-card rounded-lg p-3 shadow-sm transition-all duration-300 ease-out hover:shadow-md hover:scale-[1.02] ${
-                    draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
+                  className={`document-card group relative cursor-pointer bg-gradient-to-br from-card to-card/80 rounded-xl p-4 shadow-sm border transition-all duration-500 ease-out hover:shadow-xl hover:scale-[1.05] hover:-translate-y-2 hover:border-primary/20 ${
+                    draggedItem?.id === doc.id ? 'opacity-40 scale-90 rotate-2' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
                   onClick={() => !isDragging && handleDocumentClick(doc)}
@@ -731,88 +735,95 @@ const Documents = () => {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   style={{ 
-                    animationDelay: `${index * 50}ms`,
+                    animationDelay: `${index * 100}ms`,
                     animationFillMode: 'both'
                   }}
                 >
+                  {/* Glowing effect on hover */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+                  
                   {/* Preview/Icon Area */}
-                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-all duration-300 ease-out ${
+                  <div className={`relative w-full aspect-[4/5] mb-3 flex items-center justify-center transition-all duration-500 ease-out overflow-hidden rounded-lg ${
                     doc.is_folder && dropTarget === doc.id 
-                      ? 'scale-110 bg-primary/10 rounded-lg' 
-                      : 'group-hover:scale-105'
+                      ? 'scale-110 bg-primary/20 shadow-lg ring-2 ring-primary/30' 
+                      : 'group-hover:scale-110'
                   }`}>
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className={`transition-all duration-300 ${
-                          dropTarget === doc.id ? 'scale-110 text-primary' : 'text-primary group-hover:scale-105'
+                      <div className="w-full h-full flex items-center justify-center relative">
+                        <div className={`transition-all duration-500 ${
+                          dropTarget === doc.id ? 'scale-125 text-primary drop-shadow-lg' : 'text-primary/80 group-hover:text-primary group-hover:scale-110'
                         }`}>
-                          <Folder className="w-16 h-16" />
+                          <Folder className="w-20 h-16 filter drop-shadow-sm" />
                         </div>
+                        {/* Folder glow effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                     ) : (
-                      <div className="w-full h-full relative overflow-hidden rounded-lg bg-muted/30 group-hover:bg-muted/50 transition-colors duration-300">
+                      <div className="w-full h-full relative overflow-hidden rounded-lg bg-gradient-to-br from-muted/30 to-muted/10 group-hover:from-primary/10 group-hover:to-accent/10 transition-all duration-500">
                         <DocumentPreview 
                           document={doc}
-                          className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full transition-all duration-500 group-hover:scale-110 filter group-hover:brightness-110"
                         />
+                        {/* Document preview overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                     )}
                   </div>
                   
                   {/* Document Info */}
-                  <div className="text-center">
-                    <p className="text-sm font-medium truncate w-full leading-tight mb-1" title={doc.name}>
+                  <div className="text-center relative z-10">
+                    <p className="text-sm font-semibold truncate w-full leading-tight mb-2 group-hover:text-primary transition-colors duration-300" title={doc.name}>
                       {doc.name}
                     </p>
                     
                     {!doc.is_folder && (
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div>{formatDate(doc.created_at)}</div>
+                      <div className="text-xs text-muted-foreground space-y-1 group-hover:text-foreground/80 transition-colors duration-300">
+                        <div className="font-medium">{formatDate(doc.created_at)}</div>
                         {doc.file_size && (
-                          <div>{formatFileSize(doc.file_size)}</div>
+                          <div className="opacity-80">{formatFileSize(doc.file_size)}</div>
                         )}
                       </div>
                     )}
                     
                     {doc.is_folder && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground group-hover:text-primary/80 transition-colors duration-300 font-medium">
                         Folder
                       </div>
                     )}
                   </div>
 
-                  {/* Context Menu */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
+                  {/* Enhanced Context Menu */}
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 w-7 p-0 bg-background/90 hover:bg-background shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-110"
+                          className="h-8 w-8 p-0 bg-background/95 hover:bg-primary/20 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-110 border border-white/20"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                           }}
                         >
-                          <MoreVertical className="w-3 h-3" />
+                          <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-background border shadow-lg">
+                      <DropdownMenuContent align="end" className="bg-background/95 backdrop-blur-md border-white/20 shadow-2xl">
                         {!doc.is_folder && (
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDownload(doc);
-                          }}
-                          className="transition-colors duration-200 hover:bg-muted/80"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDownload(doc);
+                            }}
+                            className="transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
                         )}
                         <DropdownMenuItem 
-                          className="text-destructive transition-colors duration-200 hover:bg-destructive/10"
+                          className="text-destructive transition-all duration-200 hover:bg-destructive/10"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -825,6 +836,13 @@ const Documents = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+
+                  {/* Favorite star indicator */}
+                  {doc.is_favorite && (
+                    <div className="absolute top-3 left-3 opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
