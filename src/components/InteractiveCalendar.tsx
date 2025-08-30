@@ -23,6 +23,7 @@ interface InteractiveCalendarProps {
   events: CalendarEvent[];
   onAddEvent?: () => void;
   className?: string;
+  showEvents?: boolean; // New prop to control events display
 }
 
 export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
@@ -32,7 +33,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
   onMonthChange,
   events,
   onAddEvent,
-  className = ""
+  className = "",
+  showEvents = true // Default to true for backward compatibility
 }) => {
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
@@ -161,44 +163,46 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
           })}
         </div>
         
-        {/* Selected date info */}
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-base sm:text-base font-medium">
-              {format(selectedDate, 'EEEE, MMMM d')}
-            </h4>
-            {onAddEvent && (
-              <Button size="sm" variant="outline" onClick={onAddEvent}>
-                <Plus className="h-3 w-3 mr-1" />
-                Add
-              </Button>
-            )}
-          </div>
-          
-          {/* Events for selected date */}
-          <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-            {getEventsForDate(selectedDate).length === 0 ? (
-              <p className="text-base sm:text-sm text-muted-foreground">No events scheduled</p>
-            ) : (
-              getEventsForDate(selectedDate).map(event => (
-                <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-base sm:text-sm">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{event.title}</p>
-                    <div className="flex items-center gap-1 text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {event.all_day ? 'All day' : format(new Date(event.start_time), 'h:mm a')}
-                      </span>
+        {/* Selected date info - only show if showEvents is true */}
+        {showEvents && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-base sm:text-base font-medium">
+                {format(selectedDate, 'EEEE, MMMM d')}
+              </h4>
+              {onAddEvent && (
+                <Button size="sm" variant="outline" onClick={onAddEvent}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </Button>
+              )}
+            </div>
+            
+            {/* Events for selected date */}
+            <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
+              {getEventsForDate(selectedDate).length === 0 ? (
+                <p className="text-base sm:text-sm text-muted-foreground">No events scheduled</p>
+              ) : (
+                getEventsForDate(selectedDate).map(event => (
+                  <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-base sm:text-sm">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{event.title}</p>
+                      <div className="flex items-center gap-1 text-muted-foreground mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {event.all_day ? 'All day' : format(new Date(event.start_time), 'h:mm a')}
+                        </span>
+                      </div>
                     </div>
+                    <Badge variant="secondary" className="text-xs ml-2">
+                      {event.is_synced ? 'Synced' : 'Local'}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-xs ml-2">
-                    {event.is_synced ? 'Synced' : 'Local'}
-                  </Badge>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

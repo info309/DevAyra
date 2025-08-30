@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
+import { EventsList } from '@/components/EventsList';
 interface CalendarEvent {
   id: string;
   title: string;
@@ -324,7 +325,7 @@ const Calendar = () => {
             </Card>}
 
           {/* Calendar View */}
-          <div className="mb-6 flex justify-start">
+          <div className="mb-6 flex flex-col sm:flex-row gap-6">
             <InteractiveCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
@@ -338,6 +339,38 @@ const Calendar = () => {
                   description: "Event creation coming soon!"
                 });
               }}
+              showEvents={false} // Hide events on mobile, will be shown separately
+              className="sm:hidden" // Only show on mobile
+            />
+            <InteractiveCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              events={events}
+              onAddEvent={() => {
+                // Add event functionality here
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+              showEvents={false} // Hide events, will be shown separately on larger screens
+              className="hidden sm:block"
+            />
+            {/* Events list - shown below calendar on mobile, to the right on larger screens */}
+            <EventsList
+              selectedDate={selectedDate}
+              events={events}
+              loading={loading}
+              onAddEvent={() => {
+                // Add event functionality here
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+              className="flex-1 sm:max-w-md"
             />
           </div>
 
@@ -370,6 +403,23 @@ const Calendar = () => {
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
               events={events}
+              onAddEvent={() => {
+                // Add event functionality here
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+              showEvents={false} // Hide events, will be shown separately
+            />
+          </div>
+
+          {/* Events Section */}
+          <div className="flex-1 max-w-md">
+            <EventsList
+              selectedDate={selectedDate}
+              events={events}
+              loading={loading}
               onAddEvent={() => {
                 // Add event functionality here
                 toast({
