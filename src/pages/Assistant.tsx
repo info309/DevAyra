@@ -454,7 +454,7 @@ const Assistant = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 text-foreground">Hi! I'm Ayra, your AI assistant</h3>
+                  <h3 className="text-xl font-semibold mb-3 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
                   <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
                     I can help you with your emails and documents. Try asking me something like:
                   </p>
