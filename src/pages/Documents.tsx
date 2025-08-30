@@ -791,7 +791,10 @@ const Documents = () => {
                           variant="ghost" 
                           size="sm" 
                           className="h-6 w-6 p-0 bg-background/80 hover:bg-background shadow-sm"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                         >
                           <MoreVertical className="w-3 h-3" />
                         </Button>
@@ -799,6 +802,7 @@ const Documents = () => {
                       <DropdownMenuContent align="end">
                         {!doc.is_folder && (
                           <DropdownMenuItem onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             handleDownload(doc);
                           }}>
@@ -809,6 +813,7 @@ const Documents = () => {
                         <DropdownMenuItem 
                           className="text-destructive"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             deleteDocument(doc);
                           }}
