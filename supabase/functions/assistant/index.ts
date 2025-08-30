@@ -334,62 +334,90 @@ Remember: You're having a conversation, not just executing commands. Be human-li
               break;
 
             case 'emails_search':
-              // Enhanced email search with debugging
               console.log('Starting email search for query:', args.query);
               
               if (args.query) {
                 try {
-                  // Check if we have any cached emails first
-                  const { data: emailCount, error: countError } = await supabase
+                  const searchTerm = args.query.toLowerCase();
+                  let searchResults = [];
+                  
+                  // Step 1: Search by sender name (most relevant)
+                  const { data: nameResults, error: nameError } = await supabase
                     .from('cached_emails')
-                    .select('id', { count: 'exact' })
-                    .eq('user_id', user.id);
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .ilike('sender_name', `%${searchTerm}%`)
+                    .order('date_sent', { ascending: false })
+                    .limit(10);
                   
-                  console.log('Cached emails count:', emailCount?.length || 0, 'Error:', countError);
+                  if (!nameError && nameResults) {
+                    searchResults.push(...nameResults);
+                  }
                   
-                  if (!emailCount || emailCount.length === 0) {
+                  // Step 2: Search by email addresses if we need more results
+                  if (searchResults.length < 5) {
+                    const { data: emailResults, error: emailError } = await supabase
+                      .from('cached_emails')
+                      .select('*')
+                      .eq('user_id', user.id)
+                      .or(`sender_email.ilike.%${searchTerm}%,recipient_email.ilike.%${searchTerm}%`)
+                      .order('date_sent', { ascending: false })
+                      .limit(10);
+                    
+                    if (!emailError && emailResults) {
+                      // Add only new results (avoid duplicates)
+                      const existingIds = searchResults.map(r => r.id);
+                      const newResults = emailResults.filter(r => !existingIds.includes(r.id));
+                      searchResults.push(...newResults);
+                    }
+                  }
+                  
+                  // Step 3: Search by subject and content if we still need more results
+                  if (searchResults.length < 5) {
+                    const { data: contentResults, error: contentError } = await supabase
+                      .from('cached_emails')
+                      .select('*')
+                      .eq('user_id', user.id)
+                      .or(`subject.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,snippet.ilike.%${searchTerm}%`)
+                      .order('date_sent', { ascending: false })
+                      .limit(15);
+                    
+                    if (!contentError && contentResults) {
+                      // Add only new results (avoid duplicates)
+                      const existingIds = searchResults.map(r => r.id);
+                      const newResults = contentResults.filter(r => !existingIds.includes(r.id));
+                      searchResults.push(...newResults);
+                    }
+                  }
+                  
+                  console.log(`Found ${searchResults.length} search results for query: ${args.query}`);
+                  
+                  if (searchResults.length > 0) {
+                    result = {
+                      conversations: searchResults.slice(0, 20).map(email => ({
+                        id: email.gmail_thread_id,
+                        messageId: email.gmail_message_id,
+                        subject: email.subject,
+                        from: email.sender_name ? `${email.sender_name} <${email.sender_email}>` : email.sender_email,
+                        to: email.recipient_name ? `${email.recipient_name} <${email.recipient_email}>` : email.recipient_email,
+                        date: email.date_sent,
+                        snippet: email.snippet,
+                        content: email.content,
+                        unreadCount: email.is_unread ? 1 : 0,
+                        hasAttachments: email.has_attachments
+                      })),
+                      fromCache: true,
+                      searchQuery: args.query,
+                      totalResults: searchResults.length
+                    };
+                  } else {
                     result = { 
                       conversations: [], 
                       fromCache: true, 
                       searchQuery: args.query,
                       noResults: true,
-                      message: 'No emails found in cache. Please visit your Mailbox first to sync emails.'
+                      message: `No emails found matching "${args.query}". Try searching for sender names, email addresses, or keywords from email content.`
                     };
-                  } else {
-                    // Simple search in sender name/email
-                    const { data: searchResults, error: searchError } = await supabase
-                      .from('cached_emails')
-                      .select('*')
-                      .eq('user_id', user.id)
-                      .or(`sender_name.ilike.%${args.query}%,sender_email.ilike.%${args.query}%`)
-                      .order('date_sent', { ascending: false })
-                      .limit(10);
-                    
-                    console.log('Search results:', searchResults?.length || 0, 'Error:', searchError);
-                    
-                    if (!searchError && searchResults && searchResults.length > 0) {
-                      result = {
-                        conversations: searchResults.map(email => ({
-                          id: email.gmail_thread_id,
-                          subject: email.subject,
-                          from: email.sender_name || email.sender_email,
-                          to: email.recipient_name || email.recipient_email,
-                          date: email.date_sent,
-                          snippet: email.snippet,
-                          content: email.content,
-                          unreadCount: email.is_unread ? 1 : 0
-                        })),
-                        fromCache: true,
-                        searchQuery: args.query
-                      };
-                    } else {
-                      result = { 
-                        conversations: [], 
-                        fromCache: true, 
-                        searchQuery: args.query,
-                        noResults: true 
-                      };
-                    }
                   }
                 } catch (searchErr) {
                   console.error('Email search error:', searchErr);
