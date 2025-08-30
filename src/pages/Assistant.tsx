@@ -773,7 +773,7 @@ const Assistant = () => {
                   onKeyDown={handleKeyPress}
                   placeholder="Ask me anything..."
                   disabled={isLoading}
-                  className="w-full min-h-[44px] max-h-[200px] resize-none bg-background pl-12 pr-12 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-none [&:focus]:outline-none [&:focus]:ring-0 [&:focus]:border-none [&:focus-visible]:outline-none [&:focus-visible]:ring-0 [&:focus-visible]:border-none"
+                  className="w-full min-h-[44px] max-h-[200px] resize-none bg-background pl-12 pr-12 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-none [&:focus]:outline-none [&:focus]:ring-0 [&:focus]:border-none [&:focus-visible]:outline-none [&:focus-visible]:ring-0 [&:focus-visible]:border-none text-base"
                   rows={1}
                 />
                 <Button
