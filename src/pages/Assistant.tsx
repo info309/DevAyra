@@ -63,6 +63,8 @@ const Assistant = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -175,6 +177,61 @@ const Assistant = () => {
         description: "Failed to create new chat",
         variant: "destructive"
       });
+    }
+  };
+
+  const updateSessionTitle = async (sessionId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('assistant_sessions')
+        .update({ title: newTitle.trim() })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSessions(prev => prev.map(s => 
+        s.id === sessionId ? { ...s, title: newTitle.trim() } : s
+      ));
+      
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(prev => prev ? { ...prev, title: newTitle.trim() } : null);
+      }
+    } catch (error) {
+      console.error('Error updating session title:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update chat title",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const startEditing = (sessionId: string, currentTitle: string) => {
+    setEditingSessionId(sessionId);
+    setEditingTitle(currentTitle);
+  };
+
+  const stopEditing = () => {
+    setEditingSessionId(null);
+    setEditingTitle('');
+  };
+
+  const saveTitle = async () => {
+    if (editingSessionId && editingTitle.trim()) {
+      await updateSessionTitle(editingSessionId, editingTitle);
+    }
+    stopEditing();
+  };
+
+  const handleTitleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitle();
+    } else if (e.key === 'Escape') {
+      stopEditing();
     }
   };
 
@@ -367,14 +424,34 @@ const Assistant = () => {
                   ? 'bg-primary/10 border border-primary/20 shadow-sm' 
                   : 'hover:bg-muted/50 border border-transparent'
               }`}
-              onClick={() => {
-                setCurrentSession(session);
-                onSessionSelect?.();
-              }}
+               onClick={() => {
+                 if (editingSessionId !== session.id) {
+                   setCurrentSession(session);
+                   onSessionSelect?.();
+                 }
+               }}
             >
-              <div className="font-medium text-sm line-clamp-2 text-foreground">
-                {session.title}
-              </div>
+               {editingSessionId === session.id ? (
+                 <Input
+                   value={editingTitle}
+                   onChange={(e) => setEditingTitle(e.target.value)}
+                   onKeyDown={handleTitleKeyPress}
+                   onBlur={saveTitle}
+                   className="text-sm font-medium h-auto p-0 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                   autoFocus
+                   onClick={(e) => e.stopPropagation()}
+                 />
+               ) : (
+                 <div 
+                   className="font-medium text-sm line-clamp-2 text-foreground"
+                   onDoubleClick={(e) => {
+                     e.stopPropagation();
+                     startEditing(session.id, session.title);
+                   }}
+                 >
+                   {session.title}
+                 </div>
+               )}
               <div className="text-xs text-muted-foreground mt-1">
                 {new Date(session.updated_at).toLocaleDateString()}
               </div>
