@@ -153,23 +153,36 @@ CONVERSATION FLOW:
 
 Remember: You're having a conversation, not just executing commands. Be human-like in your responses and persistent in helping users find what they need.`
       },
-      ...(history || []).map(msg => ({
-        role: msg.role,
-        content: msg.content || '',
-        ...(msg.tool_name && msg.tool_result ? {
-          tool_calls: [{
-            id: msg.id.slice(0, 40), // Truncate to 40 chars max
-            type: 'function',
-            function: {
-              name: msg.tool_name,
-              arguments: JSON.stringify(msg.tool_args || {})
-            }
-          }],
-          tool_call_id: msg.id.slice(0, 40), // Truncate to 40 chars max
-          name: msg.tool_name,
-          content: JSON.stringify(msg.tool_result)
-        } : {})
-      }))
+      ...(history || []).map(msg => {
+        if (msg.tool_name && msg.tool_result) {
+          // This is a tool call result - return as tool message
+          return {
+            role: 'tool',
+            content: JSON.stringify(msg.tool_result),
+            tool_call_id: msg.id.slice(0, 40)
+          };
+        } else if (msg.role === 'assistant' && msg.tool_name) {
+          // This is an assistant message that made a tool call
+          return {
+            role: 'assistant',
+            content: msg.content || '',
+            tool_calls: [{
+              id: msg.id.slice(0, 40),
+              type: 'function',
+              function: {
+                name: msg.tool_name,
+                arguments: JSON.stringify(msg.tool_args || {})
+              }
+            }]
+          };
+        } else {
+          // Regular message
+          return {
+            role: msg.role,
+            content: msg.content || ''
+          };
+        }
+      })
     ];
 
     // Define available tools
