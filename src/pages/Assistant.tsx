@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -233,6 +233,40 @@ const Assistant = () => {
       saveTitle();
     } else if (e.key === 'Escape') {
       stopEditing();
+    }
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('assistant_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      
+      // If we deleted the current session, clear it and create a new one
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(null);
+        setMessages([]);
+        // Optionally create a new session automatically
+        createNewSession();
+      }
+      
+      toast({
+        title: "Chat deleted",
+        description: "The chat has been deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chat",
+        variant: "destructive"
+      });
     }
   };
 
@@ -462,19 +496,32 @@ const Assistant = () => {
                      {new Date(session.updated_at).toLocaleDateString()}
                    </div>
                  </div>
-                 {editingSessionId !== session.id && (
-                   <Button
-                     size="sm"
-                     variant="ghost"
-                     className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 shrink-0 ml-2"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       startEditing(session.id, session.title);
-                     }}
-                   >
-                     <Pencil className="h-3 w-3" />
-                   </Button>
-                 )}
+                  {editingSessionId !== session.id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(session.id, session.title);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 shrink-0 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSession(session.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                </div>
              </div>
           ))}
