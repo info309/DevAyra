@@ -418,7 +418,7 @@ const Assistant = () => {
               <ArrowLeft className="h-4 w-4" />
               {!isMobile && <span className="ml-2">Dashboard</span>}
             </Button>
-            <h1 className="text-lg md:text-xl font-heading font-bold truncate">Meet, Ayra</h1>
+            <h1 className="text-lg md:text-xl font-heading font-bold truncate">Ayra</h1>
           </div>
           {!isMobile && (
             <Button onClick={createNewSession} size="sm" className="ml-auto">
