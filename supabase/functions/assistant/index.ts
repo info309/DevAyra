@@ -264,13 +264,10 @@ Be helpful, concise, and always confirm before sending emails.`
 
           switch (toolCall.function.name) {
             case 'emails_list':
-            case 'emails_search':
-            case 'emails_read':
-            case 'emails_send':
               // Call existing gmail-api function
               const { data: gmailResult, error: gmailError } = await supabase.functions.invoke('gmail-api', {
                 body: {
-                  action: toolCall.function.name.replace('emails_', ''),
+                  action: 'getEmails',
                   ...args
                 },
                 headers: {
@@ -280,6 +277,55 @@ Be helpful, concise, and always confirm before sending emails.`
               
               if (gmailError) throw gmailError;
               result = gmailResult;
+              break;
+
+            case 'emails_search':
+              // Call existing gmail-api function
+              const { data: gmailSearchResult, error: gmailSearchError } = await supabase.functions.invoke('gmail-api', {
+                body: {
+                  action: 'searchEmails',
+                  ...args
+                },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                }
+              });
+              
+              if (gmailSearchError) throw gmailSearchError;
+              result = gmailSearchResult;
+              break;
+
+            case 'emails_read':
+              // For reading a specific email, we need to get it from the gmail-api
+              const { data: gmailReadResult, error: gmailReadError } = await supabase.functions.invoke('gmail-api', {
+                body: {
+                  action: 'getEmails',
+                  query: `rfc822msgid:${args.messageId}`,
+                  maxResults: 1
+                },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                }
+              });
+              
+              if (gmailReadError) throw gmailReadError;
+              result = gmailReadResult;
+              break;
+
+            case 'emails_send':
+              // Call existing gmail-api function
+              const { data: gmailSendResult, error: gmailSendError } = await supabase.functions.invoke('gmail-api', {
+                body: {
+                  action: 'sendEmail',
+                  ...args
+                },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                }
+              });
+              
+              if (gmailSendError) throw gmailSendError;
+              result = gmailSendResult;
               break;
 
             case 'documents_list':
