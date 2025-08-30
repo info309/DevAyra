@@ -130,17 +130,18 @@ CAPABILITIES:
    - Remember context from our conversation
 
 TOOL USAGE:
-- emails_list: Get recent emails (use for "check my emails", "recent messages", or when search fails)
-- emails_search: Search by keywords (use for "find emails about X", "emails from Y")
+- emails_list: Get recent emails from your local cache (much faster than Gmail API)
+- emails_search: Search emails by keywords in your cached emails 
 - emails_read: Get full email content by ID (use when user asks about specific email details)
 - emails_send: Draft/send emails (ALWAYS ask for confirmation first)
 - documents_list: List documents (use for "show my files", "what documents do I have")
 - documents_search: Search documents by content/name
 
-SMART FALLBACKS:
-- If email search fails, automatically check recent emails and look for matches manually
-- When looking for emails from a specific person, scan recent emails if search doesn't work
-- Always try to help even if the first approach doesn't work
+EMAIL SEARCH STRATEGY:
+- Your emails are automatically cached locally when you view your mailbox
+- This makes searches much faster and more reliable than calling Gmail API
+- When searching for emails from specific people, the cache can find them instantly
+- If no cached results are found, inform the user they may need to visit their mailbox first
 
 CONVERSATION FLOW:
 1. If a request is unclear, ask specific clarifying questions
@@ -299,35 +300,111 @@ Remember: You're having a conversation, not just executing commands. Be human-li
 
           switch (toolCall.function.name) {
             case 'emails_list':
-              // Call existing gmail-api function
-              const { data: gmailResult, error: gmailError } = await supabase.functions.invoke('gmail-api', {
-                body: {
-                  action: 'getEmails',
-                  ...args
-                },
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                }
-              });
+              // First try to get from local cache
+              const { data: cachedEmails, error: cacheError } = await supabase
+                .from('cached_emails')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('date_sent', { ascending: false })
+                .limit(args.maxResults || 50);
               
-              if (gmailError) throw gmailError;
-              result = gmailResult;
+              if (!cacheError && cachedEmails && cachedEmails.length > 0) {
+                // Convert cached emails to conversation format
+                result = {
+                  conversations: cachedEmails.map(email => ({
+                    id: email.gmail_thread_id,
+                    subject: email.subject,
+                    from: email.sender_name || email.sender_email,
+                    to: email.recipient_name || email.recipient_email,
+                    date: email.date_sent,
+                    snippet: email.snippet,
+                    unreadCount: email.is_unread ? 1 : 0
+                  })),
+                  fromCache: true
+                };
+              } else {
+                // Fallback to Gmail API if cache is empty
+                const { data: gmailResult, error: gmailError } = await supabase.functions.invoke('gmail-api', {
+                  body: {
+                    action: 'getEmails',
+                    ...args
+                  },
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  }
+                });
+                
+                if (gmailError) throw gmailError;
+                result = gmailResult;
+              }
               break;
 
             case 'emails_search':
-              // Call existing gmail-api function
-              const { data: gmailSearchResult, error: gmailSearchError } = await supabase.functions.invoke('gmail-api', {
-                body: {
-                  action: 'searchEmails',
-                  ...args
-                },
-                headers: {
-                  Authorization: `Bearer ${token}`,
+              // Search in local cache using full-text search
+              if (args.query) {
+                const { data: searchResults, error: searchError } = await supabase
+                  .from('cached_emails')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .textSearch('subject || \' \' || sender_name || \' \' || content', args.query, {
+                    type: 'websearch',
+                    config: 'english'
+                  })
+                  .order('date_sent', { ascending: false })
+                  .limit(20);
+                
+                if (!searchError && searchResults) {
+                  result = {
+                    conversations: searchResults.map(email => ({
+                      id: email.gmail_thread_id,
+                      subject: email.subject,
+                      from: email.sender_name || email.sender_email,
+                      to: email.recipient_name || email.recipient_email,
+                      date: email.date_sent,
+                      snippet: email.snippet,
+                      content: email.content,
+                      unreadCount: email.is_unread ? 1 : 0
+                    })),
+                    fromCache: true,
+                    searchQuery: args.query
+                  };
+                } else {
+                  // If no cached results or search fails, also try name-based search
+                  const { data: nameResults, error: nameError } = await supabase
+                    .from('cached_emails')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .or(`sender_name.ilike.%${args.query}%,sender_email.ilike.%${args.query}%,subject.ilike.%${args.query}%`)
+                    .order('date_sent', { ascending: false })
+                    .limit(20);
+                  
+                  if (!nameError && nameResults && nameResults.length > 0) {
+                    result = {
+                      conversations: nameResults.map(email => ({
+                        id: email.gmail_thread_id,
+                        subject: email.subject,
+                        from: email.sender_name || email.sender_email,
+                        to: email.recipient_name || email.recipient_email,
+                        date: email.date_sent,
+                        snippet: email.snippet,
+                        content: email.content,
+                        unreadCount: email.is_unread ? 1 : 0
+                      })),
+                      fromCache: true,
+                      searchQuery: args.query
+                    };
+                  } else {
+                    result = { 
+                      conversations: [], 
+                      fromCache: true, 
+                      searchQuery: args.query,
+                      noResults: true 
+                    };
+                  }
                 }
-              });
-              
-              if (gmailSearchError) throw gmailSearchError;
-              result = gmailSearchResult;
+              } else {
+                result = { error: 'Search query is required' };
+              }
               break;
 
             case 'emails_read':

@@ -431,6 +431,15 @@ const Mailbox: React.FC = () => {
           setCurrentConversations(newConversations);
         }
         setConversations(newConversations);
+        
+        // Cache emails for assistant search
+        try {
+          await supabase.functions.invoke('cache-emails', {
+            body: { conversations: newConversations }
+          });
+        } catch (cacheError) {
+          console.warn('Failed to cache emails for assistant:', cacheError);
+        }
       }
       
       if (view === currentView) {

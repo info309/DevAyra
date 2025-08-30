@@ -77,6 +77,72 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_emails: {
+        Row: {
+          attachment_info: Json | null
+          content: string | null
+          created_at: string | null
+          date_sent: string
+          email_type: string | null
+          gmail_message_id: string
+          gmail_thread_id: string
+          has_attachments: boolean | null
+          id: string
+          is_unread: boolean | null
+          labels: string[] | null
+          recipient_email: string | null
+          recipient_name: string | null
+          sender_email: string
+          sender_name: string | null
+          snippet: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attachment_info?: Json | null
+          content?: string | null
+          created_at?: string | null
+          date_sent: string
+          email_type?: string | null
+          gmail_message_id: string
+          gmail_thread_id: string
+          has_attachments?: boolean | null
+          id?: string
+          is_unread?: boolean | null
+          labels?: string[] | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sender_email: string
+          sender_name?: string | null
+          snippet?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attachment_info?: Json | null
+          content?: string | null
+          created_at?: string | null
+          date_sent?: string
+          email_type?: string | null
+          gmail_message_id?: string
+          gmail_thread_id?: string
+          has_attachments?: boolean | null
+          id?: string
+          is_unread?: boolean | null
+          labels?: string[] | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          sender_email?: string
+          sender_name?: string | null
+          snippet?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           all_day: boolean | null
