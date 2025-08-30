@@ -178,7 +178,7 @@ const Mailbox: React.FC = () => {
         // Only set threadId if it exists and is a valid string
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
         attachments: [],
-        documentAttachments: draft.attachments || [] // Use attachments from AI draft
+        documentAttachments: []
       });
       
       console.log('AI Draft loaded:', {
