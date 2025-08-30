@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
-import { EventsList } from '@/components/EventsList';
 
 interface CalendarEvent {
   id: string;
@@ -365,45 +364,42 @@ const Calendar = () => {
           </Button>
         </div>
 
-        {/* Responsive Calendar Layout */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* Calendar Section */}
-          <div className="flex-shrink-0">
-            <InteractiveCalendar
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
-              events={events}
-              onAddEvent={() => {
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
-              }}
-              showEvents={true} // Show events in the same component
-            />
+        {/* Google Calendar Connection - show at top if not connected */}
+        {!gmailConnection && (
+          <div className="mb-6 max-w-md mx-auto">
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                  <h3 className="font-semibold mb-2 text-base">Connect Google Calendar</h3>
+                  <p className="text-base text-muted-foreground mb-4">
+                    Sync your events with Google Calendar to access them everywhere.
+                  </p>
+                  <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full text-base">
+                    {connecting ? 'Connecting...' : 'Connect Google Calendar'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        )}
 
-          {/* Google Calendar Connection - only show if not connected */}
-          {!gmailConnection && (
-            <div className="w-full lg:max-w-sm">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                    <h3 className="font-semibold mb-2 text-base">Connect Google Calendar</h3>
-                    <p className="text-base text-muted-foreground mb-4">
-                      Sync your events with Google Calendar to access them everywhere.
-                    </p>
-                    <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full text-base">
-                      {connecting ? 'Connecting...' : 'Connect Google Calendar'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+        {/* Full Width Calendar */}
+        <div className="w-full">
+          <InteractiveCalendar
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            events={events}
+            onAddEvent={() => {
+              toast({
+                title: "Add Event",
+                description: "Event creation coming soon!"
+              });
+            }}
+            showEvents={true}
+          />
         </div>
       </div>
     </div>
