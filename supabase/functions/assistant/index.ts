@@ -52,7 +52,12 @@ serve(async (req) => {
 
     const { message, sessionId } = await req.json();
 
-    console.log('Assistant request:', { userId: user.id, sessionId, message: message.substring(0, 100) });
+    console.log('Assistant request received:', { 
+      userId: user.id, 
+      sessionId, 
+      message: message.substring(0, 100),
+      timestamp: new Date().toISOString()
+    });
 
     // Get or create session
     let session;
