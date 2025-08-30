@@ -624,20 +624,23 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs */}
-          {currentFolder && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-              <button
-                type="button"
-                onClick={() => setCurrentFolder(null)}
-                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
-              >
-                Documents
-              </button>
-              <span>/</span>
-              <span className="text-foreground font-medium">{currentFolder.name}</span>
-            </div>
-          )}
+          {/* Breadcrumbs - always reserve space to prevent layout shift */}
+          <div className="h-8 mb-6">
+            {currentFolder && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span
+                  onClick={() => setCurrentFolder(null)}
+                  className="cursor-pointer text-muted-foreground hover:text-foreground"
+                  style={{ userSelect: 'none' }}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  Documents
+                </span>
+                <span>/</span>
+                <span className="text-foreground font-medium">{currentFolder.name}</span>
+              </div>
+            )}
+          </div>
           
           {loading && documents.length === 0 ? (
             <div className="flex items-center justify-center h-32">
