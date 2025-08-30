@@ -134,14 +134,13 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                   relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md border transition-all duration-200
                   ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
                   ${isSelected ? 'bg-yellow-50 text-yellow-900 border-yellow-200' : 'border-transparent hover:bg-accent hover:text-accent-foreground'}
-                  ${isCurrentDay && !isSelected ? 'border-2 border-red-500 text-foreground font-semibold' : ''}
                   ${isHovered ? 'ring-2 ring-primary/50' : ''}
                 `}
                 onClick={() => handleDateClick(date)}
                 onMouseEnter={() => setHoveredDate(date)}
                 onMouseLeave={() => setHoveredDate(null)}
               >
-                <span className="text-base">
+                <span className={`text-base ${isCurrentDay && !isSelected ? 'w-6 h-6 flex items-center justify-center rounded-full border-2 border-red-500 font-semibold' : ''}`}>
                   {format(date, 'd')}
                 </span>
                 
