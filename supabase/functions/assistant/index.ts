@@ -56,6 +56,7 @@ serve(async (req) => {
       userId: user.id, 
       sessionId, 
       message: message.substring(0, 100),
+      tool: tool,
       timestamp: new Date().toISOString()
     });
 
