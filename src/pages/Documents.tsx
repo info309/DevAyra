@@ -984,53 +984,66 @@ const Documents = () => {
                     outline: 'none'
                   }}
                 >
-                  {/* Preview/Icon Area - Only this area is clickable */}
-                  <div 
-                    className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out cursor-pointer ${
-                      doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
-                    }`}
-                    onMouseUp={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
-                      if (!isDragging) handleDocumentClick(doc);
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isDragging) handleDocumentClick(doc);
-                    }}
-                  >
+                  {/* Preview/Icon Area - Icons are directly clickable */}
+                  <div className="w-full aspect-[4/5] mb-2 flex items-center justify-center">
                     {doc.is_folder ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        {/* Simple Large Blue Folder Icon */}
-                        <svg viewBox="0 0 120 96" className="w-20 h-16 drop-shadow-sm">
-                          <defs>
-                            <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" stopColor="#60a5fa" />
-                              <stop offset="100%" stopColor="#3b82f6" />
-                            </linearGradient>
-                          </defs>
-                          
-                          {/* Folder body */}
-                          <path
-                            d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
-                            fill={`url(#folderGrad-${doc.id})`}
-                            rx="4"
-                          />
-                          
-                          {/* Folder tab */}
-                          <path
-                            d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
-                            fill="#93c5fd"
-                          />
-                        </svg>
-                      </div>
+                      <svg 
+                        viewBox="0 0 120 96" 
+                        className={`w-20 h-16 drop-shadow-sm cursor-pointer transition-transform duration-300 ease-out ${
+                          doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'hover:scale-110'
+                        }`}
+                        onMouseUp={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
+                          if (!isDragging) handleDocumentClick(doc);
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isDragging) handleDocumentClick(doc);
+                        }}
+                      >
+                        <defs>
+                          <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#60a5fa" />
+                            <stop offset="100%" stopColor="#3b82f6" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {/* Folder body */}
+                        <path
+                          d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
+                          fill={`url(#folderGrad-${doc.id})`}
+                          rx="4"
+                        />
+                        
+                        {/* Folder tab */}
+                        <path
+                          d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
+                          fill="#93c5fd"
+                        />
+                      </svg>
                     ) : (
-                      <DocumentPreview 
-                        document={doc}
-                        className="w-full h-full"
-                      />
+                      <div
+                        className={`w-full h-full cursor-pointer transition-transform duration-300 ease-out hover:scale-110`}
+                        onMouseUp={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
+                          if (!isDragging) handleDocumentClick(doc);
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isDragging) handleDocumentClick(doc);
+                        }}
+                      >
+                        <DocumentPreview 
+                          document={doc}
+                          className="w-full h-full"
+                        />
+                      </div>
                     )}
                   </div>
                   
