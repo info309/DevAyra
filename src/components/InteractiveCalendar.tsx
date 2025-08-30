@@ -164,7 +164,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         {/* Selected date info */}
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm sm:text-base font-medium">
+            <h4 className="text-base sm:text-base font-medium">
               {format(selectedDate, 'EEEE, MMMM d')}
             </h4>
             {onAddEvent && (
@@ -178,10 +178,10 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
           {/* Events for selected date */}
           <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
             {getEventsForDate(selectedDate).length === 0 ? (
-              <p className="text-xs sm:text-sm text-muted-foreground">No events scheduled</p>
+              <p className="text-base sm:text-sm text-muted-foreground">No events scheduled</p>
             ) : (
               getEventsForDate(selectedDate).map(event => (
-                <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-xs sm:text-sm">
+                <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-base sm:text-sm">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{event.title}</p>
                     <div className="flex items-center gap-1 text-muted-foreground mt-1">
