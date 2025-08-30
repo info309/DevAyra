@@ -620,7 +620,7 @@ const Assistant = () => {
                   value={inputMessage}
                   onChange={handleTextareaChange}
                   onKeyDown={handleKeyPress}
-                  placeholder="Ask me anything about your emails or documents... (Press Enter to send, Shift+Enter for new line)"
+                  placeholder="Ask me anything"
                   disabled={isLoading}
                   className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-background"
                   rows={1}
