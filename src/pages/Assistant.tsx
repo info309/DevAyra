@@ -31,9 +31,22 @@ interface Session {
 function detectTriggers(message: string) {
   const lower = message.toLowerCase();
   const triggers: string[] = [];
-  if (["email","inbox","mail","message","reply"].some(k=>lower.includes(k))) triggers.push("email");
-  if (["document","doc","report","file","proposal"].some(k=>lower.includes(k))) triggers.push("document");
-  if (["meeting","schedule","appointment","calendar","event"].some(k=>lower.includes(k))) triggers.push("calendar");
+  
+  // Email triggers - broader detection including confirmations
+  if (["email","inbox","mail","message","reply","search emails","find email","michelle","carlo","yes","yeah","sure","go ahead","do it"].some(k=>lower.includes(k))) {
+    triggers.push("email");
+  }
+  
+  // Document triggers  
+  if (["document","doc","report","file","proposal","search docs","find document"].some(k=>lower.includes(k))) {
+    triggers.push("document");
+  }
+  
+  // Calendar triggers
+  if (["meeting","schedule","appointment","calendar","event"].some(k=>lower.includes(k))) {
+    triggers.push("calendar");
+  }
+  
   return triggers;
 }
 
