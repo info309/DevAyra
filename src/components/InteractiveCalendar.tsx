@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Plus, Clock } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth, isToday, startOfWeek, endOfWeek, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth, isToday, startOfWeek, endOfWeek, startOfDay, differenceInDays } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -61,6 +61,83 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
     });
   };
 
+  // Calculate spanning events for display
+  const getSpanningEvents = () => {
+    const spanningEvents: Array<{
+      event: CalendarEvent;
+      startCol: number;
+      span: number;
+      row: number;
+      level: number;
+    }> = [];
+
+    // Group calendar days into weeks (rows)
+    const weeks: Date[][] = [];
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      weeks.push(calendarDays.slice(i, i + 7));
+    }
+
+    events.forEach(event => {
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+      const daysDiff = differenceInDays(eventEnd, eventStart);
+      
+      if (daysDiff > 0) { // Multi-day event
+        weeks.forEach((week, weekIndex) => {
+          const weekStart = week[0];
+          const weekEnd = week[6];
+          
+          // Check if event overlaps with this week
+          if (eventStart <= weekEnd && eventEnd >= weekStart) {
+            // Calculate start position in this week
+            let startCol = 0;
+            if (eventStart >= weekStart) {
+              startCol = week.findIndex(day => isSameDay(day, eventStart));
+            }
+            
+            // Calculate span within this week
+            let endCol = 6;
+            if (eventEnd <= weekEnd) {
+              endCol = week.findIndex(day => isSameDay(day, eventEnd));
+            }
+            
+            if (startCol !== -1) {
+              spanningEvents.push({
+                event,
+                startCol,
+                span: endCol - startCol + 1,
+                row: weekIndex,
+                level: 0 // Will be calculated for proper stacking
+              });
+            }
+          }
+        });
+      }
+    });
+
+    // Calculate levels to prevent overlapping
+    spanningEvents.forEach((spanEvent, index) => {
+      let level = 0;
+      spanningEvents.slice(0, index).forEach(prevEvent => {
+        if (prevEvent.row === spanEvent.row && 
+            prevEvent.startCol < spanEvent.startCol + spanEvent.span &&
+            prevEvent.startCol + prevEvent.span > spanEvent.startCol) {
+          level = Math.max(level, prevEvent.level + 1);
+        }
+      });
+      spanEvent.level = level;
+    });
+
+    return spanningEvents;
+  };
+
+  const spanningEvents = getSpanningEvents();
+
+  // Handle date click
+  const handleDateClick = (date: Date) => {
+    onDateSelect(date);
+  };
+
   // Handle month navigation
   const handlePrevMonth = () => {
     const newMonth = subMonths(currentMonth, 1);
@@ -72,9 +149,14 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
     onMonthChange(newMonth);
   };
 
-  // Handle date click
-  const handleDateClick = (date: Date) => {
-    onDateSelect(date);
+  // Get single-day events for a specific date (non-spanning events)
+  const getSingleDayEvents = (date: Date) => {
+    return events.filter(event => {
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+      const daysDiff = differenceInDays(eventEnd, eventStart);
+      return daysDiff === 0 && isSameDay(eventStart, date);
+    });
   };
 
   // Weekday headers
@@ -110,61 +192,98 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
       
       <CardContent className="p-4 pt-0">
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+        <div className="relative">
           {/* Weekday headers */}
-          {weekdays.map(day => (
-            <div key={day} className="h-8 sm:h-10 flex items-center justify-center text-base font-medium text-muted-foreground">
-              {day}
-            </div>
-          ))}
-          
-          {/* Calendar days */}
-          {calendarDays.map((date, index) => {
-            const isSelected = isSameDay(date, selectedDate);
-            const isCurrentMonth = isSameMonth(date, currentMonth);
-            const isCurrentDay = isToday(date);
-            const dayEvents = getEventsForDate(date);
-            const hasEvents = dayEvents.length > 0;
-            const isHovered = hoveredDate && isSameDay(date, hoveredDate);
-            
-            return (
-              <div
-                key={index}
-                className={`
-                  relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md transition-all duration-200
-                  ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
-                `}
-                onClick={() => handleDateClick(date)}
-                onMouseEnter={() => setHoveredDate(date)}
-                onMouseLeave={() => setHoveredDate(null)}
-              >
-                <span className={`text-base ${
-                  isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
-                  isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : ''
-                }`}>
-                  {format(date, 'd')}
-                </span>
-                
-                {/* Event indicators */}
-                {hasEvents && (
-                  <div className="flex gap-0.5 sm:gap-1 mt-0.5">
-                    {dayEvents.slice(0, 2).map((event, eventIndex) => (
-                      <div
-                        key={eventIndex}
-                        className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
-                          event.is_synced ? 'bg-blue-500' : 'bg-green-500'
-                        }`}
-                        title={event.title}
-                      />
-                    ))}
-                    {dayEvents.length > 2 && (
-                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" title={`+${dayEvents.length - 2} more`} />
-                    )}
-                  </div>
-                )}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+            {weekdays.map(day => (
+              <div key={day} className="h-8 sm:h-10 flex items-center justify-center text-base font-medium text-muted-foreground">
+                {day}
               </div>
-            );
-          })}
+            ))}
+          </div>
+          
+          {/* Calendar days with spanning events */}
+          <div className="relative">
+            {/* Render calendar in weeks */}
+            {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map((_, weekIndex) => {
+              const weekDays = calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7);
+              const weekSpanningEvents = spanningEvents.filter(se => se.row === weekIndex);
+              const maxLevel = Math.max(0, ...weekSpanningEvents.map(se => se.level));
+              
+              return (
+                <div key={weekIndex} className="relative mb-1" style={{ paddingTop: `${maxLevel * 24 + 8}px` }}>
+                  {/* Spanning event bars for this week */}
+                  {weekSpanningEvents.map((spanEvent, eventIndex) => (
+                    <div
+                      key={`${spanEvent.event.id}-${weekIndex}-${eventIndex}`}
+                      className={`absolute text-xs px-2 py-1 rounded text-white truncate ${
+                        spanEvent.event.is_synced ? 'bg-blue-500' : 'bg-green-500'
+                      }`}
+                      style={{
+                        left: `${(spanEvent.startCol / 7) * 100}%`,
+                        width: `${(spanEvent.span / 7) * 100}%`,
+                        top: `${spanEvent.level * 24}px`,
+                        height: '20px',
+                        zIndex: 10
+                      }}
+                    >
+                      {spanEvent.startCol === 0 || weekIndex === 0 ? spanEvent.event.title : ''}
+                    </div>
+                  ))}
+                  
+                  {/* Week row of days */}
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                    {weekDays.map((date, dayIndex) => {
+                      const isSelected = isSameDay(date, selectedDate);
+                      const isCurrentMonth = isSameMonth(date, currentMonth);
+                      const isCurrentDay = isToday(date);
+                      const singleDayEvents = getSingleDayEvents(date);
+                      const hasEvents = singleDayEvents.length > 0;
+                      const isHovered = hoveredDate && isSameDay(date, hoveredDate);
+                      
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={`
+                            relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md transition-all duration-200
+                            ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
+                          `}
+                          onClick={() => handleDateClick(date)}
+                          onMouseEnter={() => setHoveredDate(date)}
+                          onMouseLeave={() => setHoveredDate(null)}
+                        >
+                          <span className={`text-base ${
+                            isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
+                            isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : ''
+                          }`}>
+                            {format(date, 'd')}
+                          </span>
+                          
+                          {/* Single-day event indicators */}
+                          {hasEvents && (
+                            <div className="flex gap-0.5 sm:gap-1 mt-0.5">
+                              {singleDayEvents.slice(0, 2).map((event, eventIndex) => (
+                                <div
+                                  key={eventIndex}
+                                  className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
+                                    event.is_synced ? 'bg-blue-500' : 'bg-green-500'
+                                  }`}
+                                  title={event.title}
+                                />
+                              ))}
+                              {singleDayEvents.length > 2 && (
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" title={`+${singleDayEvents.length - 2} more`} />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
         
         {/* Selected date info - only show if showEvents is true */}
