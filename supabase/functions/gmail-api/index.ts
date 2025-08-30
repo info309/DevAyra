@@ -704,15 +704,27 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case 'sendEmail':
-        console.log(`[${requestId}] Starting sendEmail action with recipient: ${request.to}`);
-        result = await gmailService.sendEmail(
-          request.to,
-          request.subject,
-          request.content,
-          request.threadId,
-          request.attachments
-        );
-        console.log(`[${requestId}] sendEmail completed successfully`);
+        try {
+          console.log(`[${requestId}] Starting sendEmail action with recipient: ${request.to}`);
+          console.log(`[${requestId}] Request data:`, { 
+            to: request.to, 
+            subject: request.subject, 
+            hasContent: !!request.content,
+            attachmentCount: request.attachments?.length || 0 
+          });
+          
+          result = await gmailService.sendEmail(
+            request.to,
+            request.subject,
+            request.content,
+            request.threadId,
+            request.attachments
+          );
+          console.log(`[${requestId}] sendEmail completed successfully`);
+        } catch (error) {
+          console.error(`[${requestId}] sendEmail failed:`, error);
+          throw error; // Re-throw to be caught by outer try-catch
+        }
         break;
 
       case 'trashMessage':
