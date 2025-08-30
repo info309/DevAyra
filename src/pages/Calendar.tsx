@@ -11,6 +11,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
 import { EventsList } from '@/components/EventsList';
+import { AddEventDialog } from '@/components/AddEventDialog';
 
 interface CalendarEvent {
   id: string;
@@ -332,13 +333,24 @@ const Calendar = () => {
             onMonthChange={setCurrentMonth}
             events={events}
             onAddEvent={() => {
-              toast({
-                title: "Add Event",
-                description: "Event creation coming soon!"
-              });
+              // This will be handled by the AddEventDialog component
             }}
             showEvents={true}
           />
+
+          {/* Add Event FAB for mobile */}
+          <div className="fixed bottom-6 right-6">
+            <AddEventDialog
+              selectedDate={selectedDate}
+              onEventAdded={loadEvents}
+              gmailConnection={gmailConnection}
+              trigger={
+                <Button size="lg" className="rounded-full shadow-lg">
+                  <Plus className="w-5 h-5" />
+                </Button>
+              }
+            />
+          </div>
         </div>
       </div>
     );
@@ -413,10 +425,7 @@ const Calendar = () => {
               onMonthChange={setCurrentMonth}
               events={events}
               onAddEvent={() => {
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
+                // This will be handled by the AddEventDialog component
               }}
               showEvents={false} // Hide events on tablet and desktop - shown separately
             />
@@ -429,12 +438,24 @@ const Calendar = () => {
               events={events}
               loading={loading}
               onAddEvent={() => {
-                toast({
-                  title: "Add Event",
-                  description: "Event creation coming soon!"
-                });
+                // This will be handled by the AddEventDialog component
               }}
             />
+            
+            {/* Add Event Button for desktop */}
+            <div className="mt-4">
+              <AddEventDialog
+                selectedDate={selectedDate}
+                onEventAdded={loadEvents}
+                gmailConnection={gmailConnection}
+                trigger={
+                  <Button className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Event
+                  </Button>
+                }
+              />
+            </div>
           </div>
         </div>
       </div>
