@@ -37,6 +37,7 @@ serve(async (req) => {
     }
 
     console.log(`Caching ${conversations.length} conversations for user ${user.id}`);
+    console.log('Sample conversation structure:', JSON.stringify(conversations[0], null, 2));
     
     // Log email count for debugging
     const totalEmails = conversations.reduce((total, conv) => total + (conv.emails?.length || 0), 0);
