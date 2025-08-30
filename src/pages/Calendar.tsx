@@ -27,6 +27,9 @@ interface CalendarEvent {
   end_time: string;
   all_day: boolean;
   reminder_minutes?: number;
+  external_id?: string;
+  calendar_id?: string;
+  is_synced: boolean;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -121,11 +124,7 @@ const Calendar = () => {
       
       // Get auth URL with calendar scopes
       const { data, error } = await supabase.functions.invoke('gmail-auth', {
-        method: 'GET',
-        body: { 
-          userId: user.id,
-          includeCalendar: true 
-        }
+        body: { userId: user.id }
       });
 
       if (error) throw error;
@@ -322,7 +321,7 @@ const Calendar = () => {
                           </div>
                         </div>
                         <Badge variant="secondary" className="text-xs">
-                          {gmailConnection ? 'Synced' : 'Local'}
+                          {event.is_synced ? 'Synced' : 'Local'}
                         </Badge>
                       </div>
                     </div>
@@ -436,7 +435,7 @@ const Calendar = () => {
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-medium text-sm">{event.title}</h4>
                           <Badge variant="secondary" className="text-xs">
-                            {gmailConnection ? 'Synced' : 'Local'}
+                            {event.is_synced ? 'Synced' : 'Local'}
                           </Badge>
                         </div>
                         {event.description && (

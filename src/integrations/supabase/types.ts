@@ -146,10 +146,13 @@ export type Database = {
       calendar_events: {
         Row: {
           all_day: boolean | null
+          calendar_id: string | null
           created_at: string
           description: string | null
           end_time: string
+          external_id: string | null
           id: string
+          is_synced: boolean | null
           reminder_minutes: number | null
           start_time: string
           title: string
@@ -158,10 +161,13 @@ export type Database = {
         }
         Insert: {
           all_day?: boolean | null
+          calendar_id?: string | null
           created_at?: string
           description?: string | null
           end_time: string
+          external_id?: string | null
           id?: string
+          is_synced?: boolean | null
           reminder_minutes?: number | null
           start_time: string
           title: string
@@ -170,10 +176,13 @@ export type Database = {
         }
         Update: {
           all_day?: boolean | null
+          calendar_id?: string | null
           created_at?: string
           description?: string | null
           end_time?: string
+          external_id?: string | null
           id?: string
+          is_synced?: boolean | null
           reminder_minutes?: number | null
           start_time?: string
           title?: string
