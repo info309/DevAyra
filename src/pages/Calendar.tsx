@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './CalendarStyles.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -486,30 +487,32 @@ const Calendar = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Calendar Section */}
           <div className="flex-shrink-0">
-            <Card className="w-fit p-4">
+            <Card className="w-fit p-4 bg-card">
               <div className="flex items-center justify-between mb-4">
                 <Button variant="ghost" onClick={handlePrevMonth}>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <h3 className="text-2xl font-semibold leading-none tracking-tight">{format(currentMonth, 'MMMM yyyy')}</h3>
+                <h3 className="text-xl font-semibold leading-none tracking-tight">{format(currentMonth, 'MMMM yyyy')}</h3>
                 <Button variant="ghost" onClick={handleNextMonth}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                modifiers={{
-                  hasEvents: eventDates
-                }}
-                modifiersStyles={{
-                  hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
-                }}
-                className="pointer-events-auto"
-              />
+              <div className="calendar-container">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
+                  modifiers={{
+                    hasEvents: eventDates
+                  }}
+                  modifiersStyles={{
+                    hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
+                  }}
+                  className="pointer-events-auto w-fit"
+                />
+              </div>
             </Card>
           </div>
 

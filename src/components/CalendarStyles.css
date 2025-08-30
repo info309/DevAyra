@@ -1,0 +1,18 @@
+/* Calendar container styles to ensure tight fit */
+.calendar-container {
+  width: fit-content;
+}
+
+.calendar-container .rdp {
+  margin: 0;
+  width: fit-content;
+}
+
+.calendar-container .rdp-table {
+  width: fit-content;
+}
+
+/* Ensure calendar doesn't expand beyond its content */
+.rdp-months {
+  width: fit-content;
+}
