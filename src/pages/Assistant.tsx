@@ -27,6 +27,20 @@ interface Session {
   updated_at: string;
 }
 
+const detectToolTrigger = (message: string): { tool?: string; triggerFound: boolean } => {
+  const triggers = [
+    { tool: 'email', regex: /\b(email|inbox|gmail|send|mail|find\s+emails|search\s+emails|check\s+emails|look\s+for\s+emails|show\s+me\s+emails|email\s+from|did\s+I\s+get\s+an?\s+email)\b/i },
+    { tool: 'document', regex: /\b(document|file|pdf|docx|upload|find\s+documents|search\s+documents|look\s+for\s+documents)\b/i },
+    { tool: 'calendar', regex: /\b(calendar|schedule|meeting|appointment)\b/i }, // future
+  ];
+
+  for (const t of triggers) {
+    if (t.regex.test(message)) return { tool: t.tool, triggerFound: true };
+  }
+
+  return { triggerFound: false };
+};
+
 const Assistant = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -140,11 +154,15 @@ const Assistant = () => {
       };
       setMessages(prev => [...prev, userMessage]);
 
+      // Detect tool triggers
+      const { tool, triggerFound } = detectToolTrigger(message);
+
       // Call assistant function
       const { data, error } = await supabase.functions.invoke('assistant', {
         body: {
           message,
-          sessionId: currentSession.id
+          sessionId: currentSession.id,
+          tool: triggerFound ? tool : null // only include tool if trigger detected
         }
       });
 

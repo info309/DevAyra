@@ -50,7 +50,7 @@ serve(async (req) => {
       throw new Error('Authentication failed');
     }
 
-    const { message, sessionId } = await req.json();
+    const { message, sessionId, tool } = await req.json();
 
     console.log('Assistant request received:', { 
       userId: user.id, 
@@ -159,8 +159,8 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
       ...conversationHistory
     ];
 
-    // Define available tools
-    const tools = [
+    // Define email tool definitions
+    const emailToolDefinition = [
       {
         type: 'function',
         function: {
@@ -221,7 +221,10 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
             required: ['to', 'subject', 'content']
           }
         }
-      },
+      }
+    ];
+
+    const documentToolDefinition = [
       {
         type: 'function',
         function: {
@@ -252,6 +255,12 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
       }
     ];
 
+    // Only include tools if trigger was detected
+    const tools = [];
+    if (tool === 'email') tools.push(...emailToolDefinition);
+    if (tool === 'document') tools.push(...documentToolDefinition);
+    // if (tool === 'calendar') tools.push(...calendarToolDefinition); // future
+
     // Call OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -262,7 +271,8 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
       body: JSON.stringify({
         model: 'gpt-5-2025-08-07',
         messages,
-        tools,
+        tools: tools.length > 0 ? tools : undefined,
+        tool_choice: tools.length > 0 ? 'auto' : 'none',
         max_completion_tokens: 1000,
       }),
     });
