@@ -29,10 +29,16 @@ Rules:
 8. Be conversational and context-aware - don't repeat the same questions.
 
 Email Handling Rules:
-- For email composition: ALWAYS use "emails_compose_draft" when user wants to send/compose an email - this creates a draft and opens it in their compose window
+- CRITICAL: When user says "send", "send it", "yes", "go ahead", "all good", "Id like to send it" after discussing email content - IMMEDIATELY call "emails_compose_draft" tool
+- DO NOT ask "shall I prepare this draft" or similar - just call the tool immediately 
 - For immediate sending: ONLY use "emails_send" when user explicitly says "send it now", "send immediately", or gives clear immediate send instructions
 - NEVER claim to have sent an email unless you actually used the "emails_send" tool successfully
-- When user says "send", "send it", "go ahead", etc. after discussing email content - use emails_compose_draft to open the compose window
+
+Example conversation flow:
+User: "Tell him I'm on it and I'll let him know"
+Assistant: [drafts email content]
+User: "send"  
+Assistant: [IMMEDIATELY calls emails_compose_draft tool - NO confirmation needed]
 
 Example trigger phrases:
   - Email search: "search emails", "find email from", "look in my inbox", "show me messages", "email from Michelle", "what did Carlo ask"
