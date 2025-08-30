@@ -73,18 +73,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       setLoading(true);
       console.log('DocumentViewer: Generating preview for:', document.name, 'at path:', document.file_path);
       
-      // Determine the bucket based on file path
-      const bucket = document.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+      // Determine the bucket and clean file path
+      let bucket = 'documents';
+      let filePath = document.file_path;
+      
+      if (document.file_path.startsWith('attachments/')) {
+        bucket = 'attachments';
+        filePath = document.file_path.replace('attachments/', ''); // Remove the prefix
+      }
+      
+      console.log('DocumentViewer: Using bucket:', bucket, 'with path:', filePath);
       
       // Create signed URL for preview with inline download option
       const { data, error } = await supabase.storage
         .from(bucket)
-        .createSignedUrl(document.file_path, 3600, {
+        .createSignedUrl(filePath, 3600, {
           download: false // This ensures the file is displayed inline, not downloaded
         });
       
       if (error) {
-        console.error('DocumentViewer: Error creating signed URL for', document.file_path, 'in bucket', bucket, ':', error);
+        console.error('DocumentViewer: Error creating signed URL for', filePath, 'in bucket', bucket, ':', error);
         // Don't show error toast - just log it and continue with fallback
       } else if (data) {
         console.log('DocumentViewer: Signed URL created successfully:', data.signedUrl);
@@ -102,12 +110,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (!document) return;
     
     try {
-      // Determine the bucket based on file path
-      const bucket = document.file_path.startsWith('attachments/') ? 'attachments' : 'documents';
+      // Determine the bucket and clean file path
+      let bucket = 'documents';
+      let filePath = document.file_path;
+      
+      if (document.file_path.startsWith('attachments/')) {
+        bucket = 'attachments';
+        filePath = document.file_path.replace('attachments/', ''); // Remove the prefix
+      }
       
       const { data, error } = await supabase.storage
         .from(bucket)
-        .download(document.file_path);
+        .download(filePath);
 
       if (error) throw error;
 
