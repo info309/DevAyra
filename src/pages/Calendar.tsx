@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 
 interface CalendarEvent {
@@ -239,13 +239,75 @@ const Calendar = () => {
     }
   };
 
-  // Get events for selected date
-  const selectedDateEvents = events.filter(event => 
-    isSameDay(new Date(event.start_time), selectedDate)
-  );
+  // Get events for selected date - including multi-day events that span this date
+  const selectedDateEvents = events.filter(event => {
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
+    const selectedStart = startOfDay(selectedDate);
+    const selectedEnd = endOfDay(selectedDate);
+    
+    // Check if the event overlaps with the selected date
+    return isWithinInterval(selectedStart, { start: eventStart, end: eventEnd }) ||
+           isWithinInterval(selectedEnd, { start: eventStart, end: eventEnd }) ||
+           isWithinInterval(eventStart, { start: selectedStart, end: selectedEnd }) ||
+           isWithinInterval(eventEnd, { start: selectedStart, end: selectedEnd });
+  });
 
   // Get all days with events for the calendar view
-  const eventDates = events.map(event => new Date(event.start_time));
+  const eventDates = events.reduce((dates: Date[], event) => {
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
+    const daysDiff = differenceInDays(eventEnd, eventStart);
+    
+    // Add all days that this event spans
+    for (let i = 0; i <= daysDiff; i++) {
+      dates.push(addDays(eventStart, i));
+    }
+    
+    return dates;
+  }, []);
+
+  const formatEventTime = (event: CalendarEvent, forSelectedDate: Date) => {
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
+    const daysDiff = differenceInDays(eventEnd, eventStart);
+    
+    if (event.all_day) {
+      if (daysDiff === 0) {
+        return 'All day';
+      } else {
+        return `All day (${daysDiff + 1} days)`;
+      }
+    }
+    
+    // Multi-day event
+    if (daysDiff > 0) {
+      const isFirstDay = isSameDay(eventStart, forSelectedDate);
+      const isLastDay = isSameDay(eventEnd, forSelectedDate);
+      
+      if (isFirstDay) {
+        return `${format(eventStart, 'h:mm a')} - continues tomorrow`;
+      } else if (isLastDay) {
+        return `Continues until ${format(eventEnd, 'h:mm a')}`;
+      } else {
+        return 'All day (continued)';
+      }
+    }
+    
+    // Single day event
+    return `${format(eventStart, 'h:mm a')} - ${format(eventEnd, 'h:mm a')}`;
+  };
+
+  const getEventBadgeText = (event: CalendarEvent) => {
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
+    const daysDiff = differenceInDays(eventEnd, eventStart);
+    
+    if (daysDiff > 0) {
+      return 'Multi-day';
+    }
+    return event.is_synced ? 'Synced' : 'Local';
+  };
 
   const handlePrevMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
@@ -372,15 +434,20 @@ const Calendar = () => {
                           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {event.all_day ? 'All day' : 
-                                `${format(new Date(event.start_time), 'h:mm a')} - ${format(new Date(event.end_time), 'h:mm a')}`
-                              }
+                              {formatEventTime(event, selectedDate)}
                             </div>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {event.is_synced ? 'Synced' : 'Local'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {getEventBadgeText(event)}
+                          </Badge>
+                          {differenceInDays(new Date(event.end_time), new Date(event.start_time)) > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {format(new Date(event.start_time), 'MMM d')} - {format(new Date(event.end_time), 'MMM d')}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -492,9 +559,16 @@ const Calendar = () => {
                       <div key={event.id} className="border rounded-lg p-3">
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-medium text-sm">{event.title}</h4>
-                          <Badge variant="secondary" className="text-xs">
-                            {event.is_synced ? 'Synced' : 'Local'}
-                          </Badge>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {getEventBadgeText(event)}
+                            </Badge>
+                            {differenceInDays(new Date(event.end_time), new Date(event.start_time)) > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {format(new Date(event.start_time), 'MMM d')} - {format(new Date(event.end_time), 'MMM d')}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         {event.description && (
                           <p className="text-xs text-muted-foreground mb-2">
@@ -503,9 +577,7 @@ const Calendar = () => {
                         )}
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          {event.all_day ? 'All day' : 
-                            `${format(new Date(event.start_time), 'h:mm a')}`
-                          }
+                          {formatEventTime(event, selectedDate)}
                         </div>
                       </div>
                     ))}
