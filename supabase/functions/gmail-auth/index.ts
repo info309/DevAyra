@@ -134,69 +134,14 @@ const handler = async (req: Request): Promise<Response> => {
 
           console.log('Gmail connection saved successfully');
 
-          // Return success page that closes popup and notifies parent
-          return new Response(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Gmail Connected Successfully</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-align: center;
-    }
-    .container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 40px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
-    }
-    .success-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      margin: 0 0 20px 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
-    p {
-      margin: 0 0 20px 0;
-      opacity: 0.9;
-      line-height: 1.5;
-      font-size: 16px;
-    }
-    .closing-text {
-      font-size: 14px;
-      opacity: 0.7;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="success-icon">✅</div>
-    <h1>Congratulations!</h1>
-    <p>You're now connected to Gmail.</p>
-    <div class="closing-text">This window will close automatically...</div>
-  </div>
-  <script>
-    window.opener?.postMessage({
-      type: 'GMAIL_AUTH_SUCCESS',
-      data: { email: '${userInfo.email}' }
-    }, '*');
-    setTimeout(() => window.close(), 3000);
-  </script>
-</body>
-</html>`, {
+          // Return minimal success page that closes popup immediately
+          return new Response(`<html><head><title>Success</title></head><body><script>
+            window.opener?.postMessage({
+              type: 'GMAIL_AUTH_SUCCESS',
+              data: { email: '${userInfo.email}' }
+            }, '*');
+            window.close();
+          </script><p>Gmail connected successfully. Closing...</p></body></html>`, {
             status: 200,
             headers: { 
               'Content-Type': 'text/html; charset=utf-8',
