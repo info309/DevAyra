@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react';
-import { format, isSameDay, differenceInDays } from 'date-fns';
+import { format, isSameDay, differenceInDays, startOfDay } from 'date-fns';
 
 interface CalendarEvent {
   id: string;
@@ -32,8 +32,12 @@ export const EventsList: React.FC<EventsListProps> = ({
 }) => {
   // Get events for selected date
   const selectedDateEvents = events.filter(event => {
-    const eventDate = new Date(event.start_time);
-    return isSameDay(eventDate, selectedDate);
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
+    const selectedDay = startOfDay(selectedDate);
+    
+    // Check if the selected date falls within the event's date range (inclusive)
+    return selectedDay >= startOfDay(eventStart) && selectedDay <= startOfDay(eventEnd);
   });
 
   const formatEventTime = (event: CalendarEvent, forSelectedDate: Date) => {
