@@ -473,22 +473,11 @@ const Assistant = () => {
               )}
 
               {messages.map((message) => (
-                <div key={message.id} className="flex items-start gap-3 md:gap-4">
-                  <div className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted border'
-                  }`}>
-                    {message.role === 'user' ? (
-                      <User className="w-4 h-4 md:w-5 md:h-5" />
-                    ) : (
-                      <Bot className="w-4 h-4 md:w-5 md:h-5" />
-                    )}
-                  </div>
+                <div key={message.id} className="flex items-start">
                   <div className="flex-1 space-y-3 min-w-0">
                     <div className={`rounded-lg px-4 py-3 max-w-none ${
                       message.role === 'user' 
-                        ? 'bg-primary/5 border border-primary/10' 
+                        ? 'bg-primary/5 border border-primary/10 ml-auto max-w-2xl' 
                         : 'bg-muted/30'
                     }`}>
                       <p className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
@@ -503,10 +492,7 @@ const Assistant = () => {
               ))}
 
               {isLoading && (
-                <div className="flex items-start gap-3 md:gap-4">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted border flex items-center justify-center">
-                    <Bot className="w-4 h-4 md:w-5 md:h-5" />
-                  </div>
+                <div className="flex items-start">
                   <div className="flex-1 min-w-0">
                     <div className="bg-muted/50 rounded-lg p-4 animate-pulse">
                       <div className="flex items-center gap-2">
