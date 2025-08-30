@@ -412,7 +412,11 @@ class GmailService {
 
   async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[]) {
     try {
-      console.log(`[${this.requestId}] Sending email with attachments:`, attachments?.length || 0);
+      console.log(`[${this.requestId}] === STARTING SEND EMAIL ===`);
+      console.log(`[${this.requestId}] Recipient: ${to}`);
+      console.log(`[${this.requestId}] Subject: ${subject}`);
+      console.log(`[${this.requestId}] ThreadId: ${threadId || 'none'}`);
+      console.log(`[${this.requestId}] Attachments: ${attachments?.length || 0}`);
       
       // Generate boundary for multipart message
       const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -472,8 +476,10 @@ class GmailService {
       // Close the boundary
       bodyParts.push(`--${boundary}--`);
       
-      // Combine headers and body
-      const emailContent = headers.join('\r\n') + bodyParts.join('\r\n');
+      // Combine headers and body with proper MIME structure
+      const emailContent = headers.join('\r\n') + '\r\n' + bodyParts.join('\r\n');
+      
+      console.log(`[${this.requestId}] Email content preview:`, emailContent.substring(0, 500));
       
       // Encode the entire message in base64url
       const encodedMessage = btoa(emailContent)
@@ -502,7 +508,9 @@ class GmailService {
         }
       );
 
-      console.log(`[${this.requestId}] Email sent successfully with ID: ${result.id}`);
+      console.log(`[${this.requestId}] === EMAIL SENT SUCCESSFULLY ===`);
+      console.log(`[${this.requestId}] Message ID: ${result.id}`);
+      console.log(`[${this.requestId}] Recipient: ${to}`);
       return { success: true, messageId: result.id, sentMessage: result };
     } catch (error) {
       console.error(`[${this.requestId}] sendEmail error:`, error);
@@ -696,6 +704,7 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case 'sendEmail':
+        console.log(`[${requestId}] Starting sendEmail action with recipient: ${request.to}`);
         result = await gmailService.sendEmail(
           request.to,
           request.subject,
@@ -703,6 +712,7 @@ const handler = async (req: Request): Promise<Response> => {
           request.threadId,
           request.attachments
         );
+        console.log(`[${requestId}] sendEmail completed successfully`);
         break;
 
       case 'trashMessage':
