@@ -97,6 +97,7 @@ const Mailbox: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
   const [expandedConversations, setExpandedConversations] = useState<Set<string>>(new Set());
+  const [hasGmailConnection, setHasGmailConnection] = useState<boolean | null>(null);
 
   // Compose dialog state
   const [showComposeDialog, setShowComposeDialog] = useState(false);
@@ -196,7 +197,35 @@ const Mailbox: React.FC = () => {
   }, [location.state, navigate, location.pathname]);
 
   useEffect(() => {
-    if (user) {
+    const checkGmailConnection = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: connections, error } = await supabase
+          .from('gmail_connections')
+          .select('id, is_active')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1);
+        
+        if (error) {
+          console.error('Error checking Gmail connection:', error);
+          setHasGmailConnection(false);
+          return;
+        }
+        
+        setHasGmailConnection(connections && connections.length > 0);
+      } catch (error) {
+        console.error('Error checking Gmail connection:', error);
+        setHasGmailConnection(false);
+      }
+    };
+
+    checkGmailConnection();
+  }, [user]);
+
+  useEffect(() => {
+    if (user && hasGmailConnection === true) {
       // Preload both inbox and sent views for instant switching with larger cache (100 emails)
       loadEmailsForView('inbox', null, true); // Force refresh on initial load  
       loadEmailsForView('sent', null, true);
@@ -206,7 +235,7 @@ const Mailbox: React.FC = () => {
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       refreshRecentEmails(yesterday);
     }
-  }, [user]);
+  }, [user, hasGmailConnection]);
 
   // Debug: Log conversation data when it changes
   useEffect(() => {
@@ -1251,6 +1280,36 @@ const Mailbox: React.FC = () => {
   return (
     <div className="h-screen bg-background overflow-hidden">
       <div className="container mx-auto px-4 p-2 lg:px-8 h-full flex flex-col">
+        {/* Show welcome message if no Gmail connection */}
+        {hasGmailConnection === false ? (
+          <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-md mx-auto text-center">
+            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold text-foreground">Welcome to Mail</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                To get your mailbox connected, visit the account page and connect your Gmail account.
+              </p>
+            </div>
+            <Button 
+              onClick={() => navigate('/account')}
+              className="w-full max-w-xs"
+            >
+              Go to Account Page
+            </Button>
+          </div>
+        ) : hasGmailConnection === null ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-2">
+              <div className="w-8 h-8 mx-auto animate-spin">
+                <RefreshCw className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-muted-foreground">Checking connection...</p>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Desktop Header - Logo and Back Arrow */}
         <div className="hidden lg:flex items-center justify-start py-4 mb-6">
           <div className="flex items-center gap-4">
@@ -2059,9 +2118,11 @@ const Mailbox: React.FC = () => {
               </DrawerContent>
             </Drawer>
           </div>
-        </div>
+          </>
+        )}
       </div>
-    );
+    </div>
+  );
 };
 
 export default Mailbox;
