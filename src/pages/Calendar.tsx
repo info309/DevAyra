@@ -72,6 +72,8 @@ const Calendar = () => {
       const monthEnd = endOfMonth(currentMonth);
 
       // First, try to load Google Calendar events if connected
+      let allEvents: CalendarEvent[] = [];
+      
       if (gmailConnection) {
         try {
           console.log('Fetching Google Calendar events...');
@@ -84,7 +86,7 @@ const Calendar = () => {
           });
           if (googleError) {
             console.error('Google Calendar API error:', googleError);
-            // Fall back to local events if Google Calendar fails
+            // Continue to load local events
           } else if (googleEvents?.events) {
             console.log('Received Google Calendar events:', googleEvents.events.length);
             // Convert Google Calendar events to our format
@@ -104,27 +106,38 @@ const Calendar = () => {
               created_at: event.created || new Date().toISOString(),
               updated_at: event.updated || new Date().toISOString()
             }));
-            setEvents(convertedEvents);
-            return; // Don't load local events if we have Google events
+            allEvents.push(...convertedEvents);
           }
         } catch (googleError) {
           console.error('Error fetching Google Calendar events:', googleError);
-          // Fall back to local events
+          // Continue to load local events
         }
       } else {
         console.log('No Gmail connection found, loading local events only');
       }
 
-      // Load local events (fallback or when not connected to Google Calendar)
-      const { data, error } = await supabase
+      // Always load local events to combine with Google Calendar events
+      const { data: localEvents, error } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('user_id', user.id)
         .gte('start_time', monthStart.toISOString())
         .lte('start_time', monthEnd.toISOString())
         .order('start_time');
+      
       if (error) throw error;
-      setEvents(data || []);
+      
+      // Add local events to the combined events array
+      if (localEvents) {
+        allEvents.push(...localEvents);
+      }
+      
+      // Remove duplicates (in case an event exists both locally and in Google Calendar)
+      const uniqueEvents = allEvents.filter((event, index, self) => 
+        index === self.findIndex((e) => e.external_id && e.external_id === event.external_id || e.id === event.id)
+      );
+      
+      setEvents(uniqueEvents);
     } catch (error) {
       console.error('Error loading events:', error);
       toast({
