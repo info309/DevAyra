@@ -545,36 +545,61 @@ Remember: You're having a conversation, not just executing commands. Be human-li
 
       // If we executed tools, get a follow-up response from OpenAI
       if (toolResults.length > 0) {
+        console.log('Executing follow-up OpenAI call with tool results');
+        
         const toolMessages = toolResults.map(tr => ({
           role: 'tool',
           content: JSON.stringify(tr.result),
           tool_call_id: tr.toolCall.id
         }));
 
-        const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-5-2025-08-07',
-            messages: [
-              ...messages,
-              {
-                role: 'assistant',
-                content: assistantMessage.content,
-                tool_calls: assistantMessage.tool_calls
-              },
-              ...toolMessages
-            ],
-            max_completion_tokens: 1000,
-          }),
-        });
+        try {
+          const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-5-2025-08-07',
+              messages: [
+                ...messages,
+                {
+                  role: 'assistant',
+                  content: assistantMessage.content,
+                  tool_calls: assistantMessage.tool_calls
+                },
+                ...toolMessages
+              ],
+              max_completion_tokens: 1000,
+            }),
+          });
 
-        const followUpData = await followUpResponse.json();
-        if (followUpResponse.ok && followUpData.choices?.[0]?.message?.content) {
-          finalResponse = followUpData.choices[0].message.content;
+          const followUpData = await followUpResponse.json();
+          console.log('Follow-up OpenAI response status:', followUpResponse.status);
+          console.log('Follow-up OpenAI response data:', JSON.stringify(followUpData));
+          
+          if (followUpResponse.ok && followUpData.choices?.[0]?.message?.content) {
+            finalResponse = followUpData.choices[0].message.content;
+            console.log('Successfully got follow-up response:', finalResponse);
+          } else {
+            console.error('Follow-up OpenAI call failed or returned no content');
+            // Provide a fallback response
+            if (toolResults.some(tr => tr.toolCall.function.name === 'emails_search')) {
+              const emailResults = toolResults.find(tr => tr.toolCall.function.name === 'emails_search');
+              if (emailResults?.result?.conversations?.length > 0) {
+                finalResponse = `I found ${emailResults.result.conversations.length} email(s) from Michelle. Here's what she was asking:\n\n` +
+                  emailResults.result.conversations.map(email => 
+                    `**${email.subject}** (${new Date(email.date).toLocaleDateString()})\n${email.snippet || email.content?.substring(0, 200)}...`
+                  ).join('\n\n');
+              } else {
+                finalResponse = "I searched for emails from Michelle but couldn't find any in your cached emails. You may need to refresh your mailbox first.";
+              }
+            }
+          }
+        } catch (followUpError) {
+          console.error('Follow-up OpenAI call error:', followUpError);
+          finalResponse = "I found some results but had trouble generating a response. Please try asking again.";
         }
       }
     }
