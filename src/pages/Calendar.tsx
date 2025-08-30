@@ -48,6 +48,8 @@ const Calendar = () => {
   const [gmailConnection, setGmailConnection] = useState<GmailConnection | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
 
   // Load events and check Gmail connection
   useEffect(() => {
@@ -341,11 +343,14 @@ const Calendar = () => {
   };
 
   const handleEditEvent = (event: CalendarEvent) => {
-    // For now, just show a toast. We can implement edit functionality later
-    toast({
-      title: "Edit Event",
-      description: "Event editing coming soon!"
-    });
+    setEventToEdit(event);
+    setEditDrawerOpen(true);
+  };
+
+  const handleEditComplete = () => {
+    setEventToEdit(null);
+    setEditDrawerOpen(false);
+    loadEvents();
   };
 
   if (isDrawerView) {
@@ -508,6 +513,16 @@ const Calendar = () => {
             />
           </div>
         </div>
+        
+        {/* Edit Event Drawer */}
+        <AddEventDrawer
+          selectedDate={selectedDate}
+          onEventAdded={handleEditComplete}
+          gmailConnection={gmailConnection}
+          eventToEdit={eventToEdit}
+          open={editDrawerOpen}
+          onOpenChange={setEditDrawerOpen}
+        />
       </div>
     </div>
   );

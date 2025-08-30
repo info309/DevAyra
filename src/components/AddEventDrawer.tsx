@@ -7,57 +7,125 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, CalendarIcon, Clock, Plus, X } from 'lucide-react';
-import { format, addHours, startOfDay } from 'date-fns';
+import { format, addHours, startOfDay, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  all_day: boolean;
+  reminder_minutes?: number;
+  external_id?: string;
+  calendar_id?: string;
+  is_synced: boolean;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AddEventDrawerProps {
   selectedDate?: Date;
   onEventAdded?: () => void;
   trigger?: React.ReactNode;
   gmailConnection?: any;
+  eventToEdit?: CalendarEvent | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({ 
   selectedDate = new Date(), 
   onEventAdded,
   trigger,
-  gmailConnection 
+  gmailConnection,
+  eventToEdit,
+  open: controlledOpen,
+  onOpenChange
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [allDay, setAllDay] = useState(false);
-  const [startDate, setStartDate] = useState(format(selectedDate, 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState(format(selectedDate, 'HH:mm'));
-  const [endDate, setEndDate] = useState(format(selectedDate, 'yyyy-MM-dd'));
-  const [endTime, setEndTime] = useState(format(addHours(selectedDate, 1), 'HH:mm'));
-  const [reminderMinutes, setReminderMinutes] = useState<string>('none');
+  // Use controlled or internal open state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+  
+  const isEditing = !!eventToEdit;
+  
+  // Form state - initialize with event data if editing
+  const [title, setTitle] = useState(eventToEdit?.title || '');
+  const [description, setDescription] = useState(eventToEdit?.description || '');
+  const [allDay, setAllDay] = useState(eventToEdit?.all_day || false);
+  const [startDate, setStartDate] = useState(() => {
+    if (eventToEdit) {
+      return format(parseISO(eventToEdit.start_time), 'yyyy-MM-dd');
+    }
+    return format(selectedDate, 'yyyy-MM-dd');
+  });
+  const [startTime, setStartTime] = useState(() => {
+    if (eventToEdit && !eventToEdit.all_day) {
+      return format(parseISO(eventToEdit.start_time), 'HH:mm');
+    }
+    return format(selectedDate, 'HH:mm');
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (eventToEdit) {
+      return format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd');
+    }
+    return format(selectedDate, 'yyyy-MM-dd');
+  });
+  const [endTime, setEndTime] = useState(() => {
+    if (eventToEdit && !eventToEdit.all_day) {
+      return format(parseISO(eventToEdit.end_time), 'HH:mm');
+    }
+    return format(addHours(selectedDate, 1), 'HH:mm');
+  });
+  const [reminderMinutes, setReminderMinutes] = useState<string>(() => {
+    if (eventToEdit?.reminder_minutes) {
+      return eventToEdit.reminder_minutes.toString();
+    }
+    return 'none';
+  });
 
   const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setAllDay(false);
-    setStartDate(format(selectedDate, 'yyyy-MM-dd'));
-    setStartTime(format(selectedDate, 'HH:mm'));
-    setEndDate(format(selectedDate, 'yyyy-MM-dd'));
-    setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
-    setReminderMinutes('none');
+    if (isEditing && eventToEdit) {
+      // Reset to original event data
+      setTitle(eventToEdit.title);
+      setDescription(eventToEdit.description || '');
+      setAllDay(eventToEdit.all_day);
+      setStartDate(format(parseISO(eventToEdit.start_time), 'yyyy-MM-dd'));
+      setStartTime(format(parseISO(eventToEdit.start_time), 'HH:mm'));
+      setEndDate(format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd'));
+      setEndTime(format(parseISO(eventToEdit.end_time), 'HH:mm'));
+      setReminderMinutes(eventToEdit.reminder_minutes?.toString() || 'none');
+    } else {
+      // Reset to defaults for new event
+      setTitle('');
+      setDescription('');
+      setAllDay(false);
+      setStartDate(format(selectedDate, 'yyyy-MM-dd'));
+      setStartTime(format(selectedDate, 'HH:mm'));
+      setEndDate(format(selectedDate, 'yyyy-MM-dd'));
+      setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
+      setReminderMinutes('none');
+    }
   };
 
-  // Update form dates when selectedDate changes
+  // Update form dates when selectedDate changes (only for new events)
   useEffect(() => {
-    setStartDate(format(selectedDate, 'yyyy-MM-dd'));
-    setStartTime(format(selectedDate, 'HH:mm'));
-    setEndDate(format(selectedDate, 'yyyy-MM-dd'));
-    setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
-  }, [selectedDate]);
+    if (!isEditing) {
+      setStartDate(format(selectedDate, 'yyyy-MM-dd'));
+      setStartTime(format(selectedDate, 'HH:mm'));
+      setEndDate(format(selectedDate, 'yyyy-MM-dd'));
+      setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
+    }
+  }, [selectedDate, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +156,76 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
         return;
       }
 
+      // If editing, handle update logic
+      if (isEditing && eventToEdit) {
+        if (eventToEdit.is_synced && eventToEdit.external_id && gmailConnection) {
+          // Update Google Calendar event
+          try {
+            console.log('Updating Google Calendar event...');
+            const googleEventData = {
+              summary: title.trim(),
+              description: description.trim() || undefined,
+              start: allDay 
+                ? { date: startDate }
+                : { dateTime: startDateTime },
+              end: allDay 
+                ? { date: endDate }
+                : { dateTime: endDateTime },
+              reminders: reminderMinutes !== 'none' ? {
+                useDefault: false,
+                overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
+              } : undefined
+            };
+
+            const { error: googleError } = await supabase.functions.invoke('calendar-api', {
+              body: {
+                action: 'update',
+                eventId: eventToEdit.external_id,
+                event: googleEventData
+              }
+            });
+
+            if (googleError) {
+              console.error('Failed to update Google Calendar event:', googleError);
+              toast({
+                title: "Update failed",
+                description: "Failed to update event in Google Calendar",
+                variant: "destructive"
+              });
+              return;
+            }
+          } catch (googleError) {
+            console.error('Error updating Google Calendar event:', googleError);
+            toast({
+              title: "Update failed",
+              description: "Failed to update event in Google Calendar",
+              variant: "destructive"
+            });
+            return;
+          }
+        } else {
+          // Update local event
+          const { error } = await supabase
+            .from('calendar_events')
+            .update({
+              title: title.trim(),
+              description: description.trim() || null,
+              start_time: startDateTime,
+              end_time: endDateTime,
+              all_day: allDay,
+              reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
+            })
+            .eq('id', eventToEdit.id);
+
+          if (error) throw error;
+        }
+
+        setOpen(false);
+        onEventAdded?.();
+        return;
+      }
+
+      // If creating new event, handle creation logic
       const eventData: any = {
         title: title.trim(),
         description: description.trim() || null,
@@ -206,7 +344,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
           <div className="flex items-center justify-between">
             <DrawerTitle className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />
-              New Event
+              {isEditing ? 'Edit Event' : 'New Event'}
             </DrawerTitle>
             <DrawerClose asChild>
               <Button variant="ghost" size="sm">
@@ -338,7 +476,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
                 </Button>
               </DrawerClose>
               <Button type="submit" disabled={loading || !title.trim()}>
-                {loading ? 'Creating...' : 'Create Event'}
+                {loading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Event' : 'Create Event')}
               </Button>
             </div>
           </form>
