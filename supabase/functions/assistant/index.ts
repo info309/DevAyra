@@ -566,7 +566,7 @@ Remember: You're having a conversation, not just executing commands. Be human-li
                 ...messages,
                 {
                   role: 'assistant',
-                  content: assistantMessage.content,
+                  content: assistantMessage.content || null,
                   tool_calls: assistantMessage.tool_calls
                 },
                 ...toolMessages
@@ -584,22 +584,31 @@ Remember: You're having a conversation, not just executing commands. Be human-li
             console.log('Successfully got follow-up response:', finalResponse);
           } else {
             console.error('Follow-up OpenAI call failed or returned no content');
-            // Provide a fallback response
+            console.error('Error details:', followUpData.error || 'No error details');
+            
+            // Provide a comprehensive fallback response based on tool results
             if (toolResults.some(tr => tr.toolCall.function.name === 'emails_search')) {
               const emailResults = toolResults.find(tr => tr.toolCall.function.name === 'emails_search');
               if (emailResults?.result?.conversations?.length > 0) {
-                finalResponse = `I found ${emailResults.result.conversations.length} email(s) from Michelle. Here's what she was asking:\n\n` +
-                  emailResults.result.conversations.map(email => 
-                    `**${email.subject}** (${new Date(email.date).toLocaleDateString()})\n${email.snippet || email.content?.substring(0, 200)}...`
-                  ).join('\n\n');
+                const emails = emailResults.result.conversations;
+                const mostRecent = emails[0];
+                
+                finalResponse = `I found ${emails.length} email(s) from Michelle. Here's what she was asking about:\n\n` +
+                  `**Most Recent: ${mostRecent.subject}** (${new Date(mostRecent.date).toLocaleDateString()})\n` +
+                  `${mostRecent.content ? mostRecent.content.substring(0, 300).replace(/<[^>]*>/g, '').replace(/\r<br>/g, ' ') + '...' : mostRecent.snippet}\n\n` +
+                  `**Summary:** Michelle appears to be asking about ${mostRecent.subject.toLowerCase()}. ` +
+                  `${emails.length > 1 ? `She also sent ${emails.length - 1} other email(s) recently.` : ''}\n\n` +
+                  `Would you like me to summarize any specific email or help you respond to her?`;
               } else {
-                finalResponse = "I searched for emails from Michelle but couldn't find any in your cached emails. You may need to refresh your mailbox first.";
+                finalResponse = "I searched for emails from Michelle but couldn't find any in your cached emails. You may need to refresh your mailbox first by visiting the Mailbox page.";
               }
+            } else {
+              finalResponse = "I found some results but had trouble generating a detailed response. Please try asking again or be more specific about what you'd like to know.";
             }
           }
         } catch (followUpError) {
           console.error('Follow-up OpenAI call error:', followUpError);
-          finalResponse = "I found some results but had trouble generating a response. Please try asking again.";
+          finalResponse = "I found the information you requested, but encountered an issue generating a response. Please try asking again.";
         }
       }
     }
