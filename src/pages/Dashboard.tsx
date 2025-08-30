@@ -1,13 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (profile?.display_name) {
+          setDisplayName(profile.display_name);
+        } else {
+          // Fallback to email username if no display name
+          setDisplayName(user.email?.split('@')[0] || 'User');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        // Fallback to email username
+        setDisplayName(user.email?.split('@')[0] || 'User');
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -85,7 +114,7 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
           <h2 className="text-3xl font-heading font-bold mb-2">
-            {user?.email?.split('@')[0]}, welcome to a new era of productivity!
+            {displayName}, welcome to a new era of productivity!
           </h2>
           <p className="text-muted-foreground">
             Access all your essential tools in one place. Choose a tool to get started.
