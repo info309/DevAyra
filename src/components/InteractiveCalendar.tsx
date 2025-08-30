@@ -271,7 +271,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                   {weekSpanningEvents.map((spanEvent, eventIndex) => (
                     <div
                       key={`${spanEvent.event.id}-${weekIndex}-${eventIndex}`}
-                      className={`absolute text-xs px-2 py-1 rounded text-white truncate ${
+                      className={`absolute rounded ${
                         spanEvent.event.is_synced ? 'bg-blue-500/80' : 'bg-green-500/80'
                       }`}
                       style={{
@@ -283,9 +283,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                         zIndex: 10,
                         marginTop: `${spanEvent.level * 20}px`
                       }}
-                    >
-                      {spanEvent.startCol === 0 || weekIndex === 0 ? spanEvent.event.title : ''}
-                    </div>
+                    />
                   ))}
                 </div>
               );
