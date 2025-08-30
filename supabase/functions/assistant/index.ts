@@ -324,10 +324,12 @@ Always respond conversationally and ask follow-up questions to understand user i
 
             case 'emails_search':
               console.log('Starting email search for query:', args.query);
+              console.log('Full args received:', JSON.stringify(args));
               
               if (args.query) {
                 try {
                   const searchTerm = args.query.toLowerCase();
+                  console.log('Processing search term:', searchTerm);
                   let searchResults = [];
                   
                   // Step 1: Search by sender name (most relevant)
@@ -581,15 +583,18 @@ Always respond conversationally and ask follow-up questions to understand user i
               if (emailResults?.result?.conversations?.length > 0) {
                 const emails = emailResults.result.conversations;
                 const mostRecent = emails[0];
+                const searchQuery = emailResults.result.searchQuery || 'your search';
                 
-                finalResponse = `I found ${emails.length} email(s) from Michelle. Here's what she was asking about:\n\n` +
+                finalResponse = `I found ${emails.length} email(s) matching "${searchQuery}". Here's what they were asking about:\n\n` +
                   `**Most Recent: ${mostRecent.subject}** (${new Date(mostRecent.date).toLocaleDateString()})\n` +
+                  `From: ${mostRecent.from}\n` +
                   `${mostRecent.content ? mostRecent.content.substring(0, 300).replace(/<[^>]*>/g, '').replace(/\r<br>/g, ' ') + '...' : mostRecent.snippet}\n\n` +
-                  `**Summary:** Michelle appears to be asking about ${mostRecent.subject.toLowerCase()}. ` +
-                  `${emails.length > 1 ? `She also sent ${emails.length - 1} other email(s) recently.` : ''}\n\n` +
-                  `Would you like me to summarize any specific email or help you respond to her?`;
+                  `**Summary:** This appears to be about ${mostRecent.subject.toLowerCase()}. ` +
+                  `${emails.length > 1 ? `There are ${emails.length - 1} other related email(s).` : ''}\n\n` +
+                  `Would you like me to summarize any specific email or help you respond?`;
               } else {
-                finalResponse = "I searched for emails from Michelle but couldn't find any in your cached emails. You may need to refresh your mailbox first by visiting the Mailbox page.";
+                const searchQuery = emailResults.result.searchQuery || 'your search';
+                finalResponse = `I searched for emails matching "${searchQuery}" but couldn't find any in your cached emails. You may need to refresh your mailbox first by visiting the Mailbox page.`;
               }
             } else {
               finalResponse = "I found some results but had trouble generating a detailed response. Please try asking again or be more specific about what you'd like to know.";
