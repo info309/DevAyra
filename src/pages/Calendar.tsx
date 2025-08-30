@@ -511,7 +511,7 @@ const Calendar = () => {
                   modifiersStyles={{
                     hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                   }}
-                  className="pointer-events-auto w-full scale-125 lg:scale-150 xl:scale-[1.75] 2xl:scale-[2] origin-top-left"
+                  className="pointer-events-auto w-full"
                 />
               </CardContent>
             </Card>
