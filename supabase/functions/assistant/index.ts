@@ -310,7 +310,7 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication
+    // Create client with JWT token from request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No authorization header');
@@ -325,8 +325,17 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
+    // Create a new client instance with the user's token
+    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+    
     // Verify the JWT token and get user info
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser(token);
     
     if (authError || !user) {
       console.error('Authentication failed:', authError);
