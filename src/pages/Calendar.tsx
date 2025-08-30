@@ -423,8 +423,8 @@ const Calendar = () => {
             />
           </div>
 
-          {/* Events Card - 30% width on tablet and desktop */}
-          <div className="w-[30%]">
+          {/* Events Card - fills remaining space to screen edge */}
+          <div className="flex-1">
             <EventsList
               selectedDate={selectedDate}
               events={events}
