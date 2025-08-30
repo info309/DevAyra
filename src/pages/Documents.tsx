@@ -312,60 +312,28 @@ const Documents = () => {
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
-      // Store current scroll position before any state changes
-      const originalScrollY = window.scrollY;
-      
-      // Temporarily disable scroll restoration
-      const originalScrollBehavior = document.documentElement.style.scrollBehavior;
-      document.documentElement.style.scrollBehavior = 'auto';
-      
-      // Override scroll methods on all elements to prevent any scrolling
-      const scrollMethods = ['scrollTo', 'scrollIntoView', 'scroll'];
-      const originalMethods: any = {};
-      
-      scrollMethods.forEach(method => {
-        originalMethods[method] = window[method as keyof Window];
-        (window as any)[method] = () => {};
-      });
-      
-      // Also override on document elements
-      const elements = document.querySelectorAll('*');
-      const elementMethods: any[] = [];
-      elements.forEach(el => {
-        const elMethods: any = {};
-        scrollMethods.forEach(method => {
-          if (method in el) {
-            elMethods[method] = (el as any)[method];
-            (el as any)[method] = () => {};
-          }
-        });
-        elementMethods.push({ el, methods: elMethods });
-      });
+      // Prevent focus on any new elements that appear
+      const preventFocus = () => {
+        const breadcrumbContainer = document.querySelector('.breadcrumb-container');
+        if (breadcrumbContainer) {
+          // Remove tabindex and add focus prevention to all breadcrumb elements
+          const focusableElements = breadcrumbContainer.querySelectorAll('*');
+          focusableElements.forEach(el => {
+            (el as HTMLElement).tabIndex = -1;
+            (el as HTMLElement).style.outline = 'none';
+            (el as any).focus = () => {};
+            (el as any).scrollIntoView = () => {};
+          });
+        }
+      };
       
       setCurrentFolder(doc);
       
-      // Restore scroll methods after a short delay
-      setTimeout(() => {
-        // Restore window methods
-        scrollMethods.forEach(method => {
-          if (originalMethods[method]) {
-            (window as any)[method] = originalMethods[method];
-          }
-        });
-        
-        // Restore element methods
-        elementMethods.forEach(({ el, methods }) => {
-          Object.keys(methods).forEach(method => {
-            (el as any)[method] = methods[method];
-          });
-        });
-        
-        // Force scroll position back
-        window.scrollTo(0, originalScrollY);
-        
-        // Restore scroll behavior
-        document.documentElement.style.scrollBehavior = originalScrollBehavior;
-      }, 100);
+      // Prevent focus immediately and after re-render
+      preventFocus();
+      setTimeout(preventFocus, 0);
+      setTimeout(preventFocus, 10);
+      setTimeout(preventFocus, 50);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
