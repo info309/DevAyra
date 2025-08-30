@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, Menu, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Message {
   id: string;
@@ -55,11 +57,13 @@ const Assistant = () => {
   const navigate = useNavigate();
   const location = useLocation() as any;
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -344,90 +348,149 @@ const Assistant = () => {
     }
   };
 
+  // Sessions sidebar component for reuse
+  const SessionsSidebar = ({ onSessionSelect }: { onSessionSelect?: () => void }) => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="font-semibold text-foreground">Chat History</h3>
+        <Button onClick={createNewSession} size="sm" variant="outline">
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                currentSession?.id === session.id 
+                  ? 'bg-primary/10 border border-primary/20 shadow-sm' 
+                  : 'hover:bg-muted/50 border border-transparent'
+              }`}
+              onClick={() => {
+                setCurrentSession(session);
+                onSessionSelect?.();
+              }}
+            >
+              <div className="font-medium text-sm line-clamp-2 text-foreground">
+                {session.title}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {new Date(session.updated_at).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+          {sessions.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No chats yet</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
-              ← Back to Dashboard
+      <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="container flex h-14 max-w-screen-2xl items-center px-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            {isMobile && (
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-80">
+                  <SessionsSidebar onSessionSelect={() => setSidebarOpen(false)} />
+                </SheetContent>
+              </Sheet>
+            )}
+            <Button 
+              variant="ghost" 
+              size={isMobile ? "icon" : "sm"} 
+              onClick={() => navigate('/dashboard')}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">Dashboard</span>}
             </Button>
-            <h1 className="text-2xl font-heading font-bold">AI Assistant</h1>
+            <h1 className="text-lg md:text-xl font-heading font-bold truncate">AI Assistant</h1>
           </div>
-          <Button onClick={createNewSession} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            New Chat
-          </Button>
+          {!isMobile && (
+            <Button onClick={createNewSession} size="sm" className="ml-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              New Chat
+            </Button>
+          )}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto flex h-[calc(100vh-80px)]">
-        {/* Sessions Sidebar */}
-        <div className="w-64 border-r bg-card/50 p-4">
-          <h3 className="font-semibold mb-4">Chat History</h3>
-          <ScrollArea className="h-full">
-            {sessions.map((session) => (
-              <div
-                key={session.id}
-                className={`p-3 rounded-lg cursor-pointer mb-2 transition-colors ${
-                  currentSession?.id === session.id 
-                    ? 'bg-primary/10 border border-primary/20' 
-                    : 'hover:bg-muted/50'
-                }`}
-                onClick={() => setCurrentSession(session)}
-              >
-                <div className="font-medium text-sm line-clamp-2">{session.title}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(session.updated_at).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
-          </ScrollArea>
-        </div>
+      <div className="flex h-[calc(100vh-56px)]">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <div className="hidden md:flex w-80 border-r bg-card/30">
+            <SessionsSidebar />
+          </div>
+        )}
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="max-w-4xl mx-auto space-y-4">
+          <ScrollArea className="flex-1">
+            <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground py-12">
-                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="font-semibold mb-2">Hi! I'm Ayra, your AI assistant</h3>
-                  <p className="text-sm max-w-lg mx-auto">
+                <div className="text-center text-muted-foreground py-12 px-4">
+                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bot className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3 text-foreground">Hi! I'm Ayra, your AI assistant</h3>
+                  <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
                     I can help you with your emails and documents. Try asking me something like:
                   </p>
-                  <div className="mt-4 space-y-2 text-xs">
-                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
-                      "Did I get an email from Michelle?"
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
-                      "Show me my recent documents"
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-2 max-w-md mx-auto">
+                  <div className="grid gap-3 max-w-md mx-auto">
+                    {[
+                      "Did I get an email from Michelle?",
+                      "Show me my recent documents",
                       "Help me find emails about the project"
-                    </div>
+                    ].map((example, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-muted/50 rounded-lg p-3 text-sm cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => setInputMessage(example)}
+                      >
+                        "{example}"
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {messages.map((message) => (
-                <div key={message.id} className="flex items-start gap-3">
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                <div key={message.id} className="flex items-start gap-3 md:gap-4">
+                  <div className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm ${
                     message.role === 'user' 
                       ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
+                      : 'bg-muted border'
                   }`}>
                     {message.role === 'user' ? (
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 md:w-5 md:h-5" />
                     ) : (
-                      <Bot className="w-4 h-4" />
+                      <Bot className="w-4 h-4 md:w-5 md:h-5" />
                     )}
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div className="flex-1 space-y-3 min-w-0">
+                    <div className={`rounded-lg px-4 py-3 max-w-none ${
+                      message.role === 'user' 
+                        ? 'bg-primary/5 border border-primary/10' 
+                        : 'bg-muted/30'
+                    }`}>
+                      <p className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
+                        {message.content}
+                      </p>
                     </div>
                     {message.tool_name && message.tool_result && 
                       renderToolResult(message.tool_name, message.tool_result)
@@ -437,13 +500,18 @@ const Assistant = () => {
               ))}
 
               {isLoading && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <Bot className="w-4 h-4" />
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted border flex items-center justify-center">
+                    <Bot className="w-4 h-4 md:w-5 md:h-5" />
                   </div>
-                  <div className="flex-1">
-                    <div className="bg-muted/50 rounded-lg p-3 animate-pulse">
-                      <div className="text-sm text-muted-foreground">Thinking...</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-muted/50 rounded-lg p-4 animate-pulse">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0.1s]" />
+                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <span className="text-sm text-muted-foreground ml-2">Thinking...</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -454,23 +522,27 @@ const Assistant = () => {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="border-t p-4">
-            <div className="max-w-4xl mx-auto flex gap-2">
+          <div className="border-t bg-card/50 p-4">
+            <div className="container max-w-4xl mx-auto">
+              <div className="flex gap-2 md:gap-3">
                 <Input
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about your emails or documents..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button 
-                onClick={sendMessage} 
-                disabled={!inputMessage.trim() || isLoading}
-                size="icon"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me anything about your emails or documents..."
+                  disabled={isLoading}
+                  className="flex-1 min-h-[44px] bg-background"
+                />
+                <Button 
+                  onClick={sendMessage} 
+                  disabled={!inputMessage.trim() || isLoading}
+                  size="icon"
+                  className="h-[44px] w-[44px] shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="sr-only">Send message</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
