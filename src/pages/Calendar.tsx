@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import { InteractiveCalendar } from '@/components/InteractiveCalendar';
+import { EventsList } from '@/components/EventsList';
 
 interface CalendarEvent {
   id: string;
@@ -384,8 +385,8 @@ const Calendar = () => {
           </div>
         )}
 
-        {/* Full Width Calendar */}
-        <div className="w-full">
+        {/* Mobile: Single Calendar with Events - below md breakpoint */}
+        <div className="block md:hidden w-full">
           <InteractiveCalendar
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
@@ -400,6 +401,42 @@ const Calendar = () => {
             }}
             showEvents={true}
           />
+        </div>
+
+        {/* Tablet/Desktop: Two Card Layout - md breakpoint and above */}
+        <div className="hidden md:flex gap-6 w-full">
+          {/* Calendar Card - 60% width */}
+          <div className="w-[60%]">
+            <InteractiveCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              events={events}
+              onAddEvent={() => {
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+              showEvents={false} // Hide events on larger screens
+            />
+          </div>
+
+          {/* Events Card - 30% width */}
+          <div className="w-[30%]">
+            <EventsList
+              selectedDate={selectedDate}
+              events={events}
+              loading={loading}
+              onAddEvent={() => {
+                toast({
+                  title: "Add Event",
+                  description: "Event creation coming soon!"
+                });
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
