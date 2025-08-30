@@ -479,8 +479,8 @@ const Documents = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background" style={{ scrollBehavior: 'auto' }}>
-      {/* Prevent any scroll behavior */}
+    <div className="min-h-screen bg-background">
+      {/* Completely disable all scroll behaviors */}
       <style>{`
         * {
           scroll-behavior: auto !important;
@@ -488,14 +488,12 @@ const Documents = () => {
         html, body {
           scroll-behavior: auto !important;
         }
-        .document-grid-item {
-          scroll-behavior: auto !important;
+        button:focus {
+          outline: none !important;
         }
         .document-grid-item:focus {
-          outline: none;
-        }
-        .document-grid-item:target {
-          scroll-margin-top: 0 !important;
+          outline: none !important;
+          box-shadow: none !important;
         }
       `}</style>
       {/* Header */}
@@ -679,17 +677,14 @@ const Documents = () => {
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4">
               {filteredDocuments.map((doc) => (
-                <div
+                <button
                   key={doc.id}
-                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out ${
+                  type="button"
+                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out bg-transparent border-0 p-0 w-full text-left ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onMouseDown={(e) => {
-                    // Prevent any focus behavior that might cause scrolling
-                    e.preventDefault();
-                  }}
-                  onMouseUp={() => !isDragging && handleDocumentClick(doc)}
+                  onClick={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
@@ -699,7 +694,6 @@ const Documents = () => {
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  tabIndex={-1}
                 >
                   {/* Preview/Icon Area */}
                   <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
@@ -761,6 +755,7 @@ const Documents = () => {
                     )}
                   </div>
 
+                  
                   {/* Context Menu */}
                   <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
@@ -797,7 +792,7 @@ const Documents = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
