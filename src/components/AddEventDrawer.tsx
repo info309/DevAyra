@@ -341,17 +341,10 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     }
   };
 
-  const defaultTrigger = (
-    <Button variant="outline" size="sm">
-      <Plus className="w-4 h-4 mr-2" />
-      Add Event
-    </Button>
-  );
-
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        {trigger || defaultTrigger}
+        {trigger}
       </DrawerTrigger>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="text-left">
