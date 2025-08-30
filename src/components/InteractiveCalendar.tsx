@@ -109,7 +109,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
           {/* Weekday headers */}
           {weekdays.map(day => (
-            <div key={day} className="h-8 sm:h-10 flex items-center justify-center text-sm font-medium text-muted-foreground">
+            <div key={day} className="h-8 sm:h-10 flex items-center justify-center text-base font-medium text-muted-foreground">
               {day}
             </div>
           ))}
@@ -137,7 +137,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                 onMouseEnter={() => setHoveredDate(date)}
                 onMouseLeave={() => setHoveredDate(null)}
               >
-                <span className="text-base sm:text-sm">
+                <span className="text-base">
                   {format(date, 'd')}
                 </span>
                 
@@ -167,12 +167,12 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         {showEvents && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-base sm:text-base font-medium">
-                {format(selectedDate, 'EEEE, MMMM d')}
-              </h4>
+            <h4 className="text-base font-medium">
+              {format(selectedDate, 'EEEE, MMMM d')}
+            </h4>
               {onAddEvent && (
-                <Button size="sm" variant="outline" onClick={onAddEvent}>
-                  <Plus className="h-3 w-3 mr-1" />
+                <Button size="sm" variant="outline" onClick={onAddEvent} className="text-base">
+                  <Plus className="h-4 w-4 mr-1" />
                   Add
                 </Button>
               )}
@@ -181,20 +181,20 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
             {/* Events for selected date */}
             <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
               {getEventsForDate(selectedDate).length === 0 ? (
-                <p className="text-base sm:text-sm text-muted-foreground">No events scheduled</p>
+                <p className="text-base text-muted-foreground">No events scheduled</p>
               ) : (
                 getEventsForDate(selectedDate).map(event => (
-                  <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-base sm:text-sm">
+                  <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-base">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{event.title}</p>
-                      <div className="flex items-center gap-1 text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3" />
+                      <div className="flex items-center gap-1 text-muted-foreground mt-1 text-base">
+                        <Clock className="h-4 w-4" />
                         <span>
                           {event.all_day ? 'All day' : format(new Date(event.start_time), 'h:mm a')}
                         </span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-xs ml-2">
+                    <Badge variant="secondary" className="text-base ml-2">
                       {event.is_synced ? 'Synced' : 'Local'}
                     </Badge>
                   </div>
