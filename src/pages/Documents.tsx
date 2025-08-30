@@ -657,15 +657,15 @@ const Documents = () => {
                 <h1 className="text-2xl font-bold">Documents</h1>
               </div>
               
-              {/* Desktop Header */}
+              {/* Desktop Header - Always visible on large screens */}
               <div className="hidden lg:flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate('/dashboard')}
-                  className="gap-2"
+                  className="gap-2 flex-shrink-0"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4" />
                   Dashboard
                 </Button>
                 <h1 className="text-2xl font-bold">Documents</h1>
