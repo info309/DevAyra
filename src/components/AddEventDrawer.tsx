@@ -148,13 +148,6 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Event created",
-        description: gmailConnection && eventData.is_synced 
-          ? "Event created and synced to Google Calendar" 
-          : "Event created successfully"
-      });
-
       resetForm();
       setOpen(false);
       onEventAdded?.();
