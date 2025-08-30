@@ -654,11 +654,11 @@ const Documents = () => {
           
           {/* Breadcrumbs */}
           {currentFolder && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
               <button
                 type="button"
                 onClick={() => setCurrentFolder(null)}
-                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
+                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer transition-colors duration-200"
               >
                 Documents
               </button>
@@ -669,7 +669,7 @@ const Documents = () => {
           
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="text-muted-foreground">Loading...</div>
+              <div className="text-muted-foreground animate-pulse">Loading...</div>
             </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="text-center py-12">
@@ -687,15 +687,15 @@ const Documents = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-3 sm:gap-4">
-              {filteredDocuments.map((doc) => (
+            <div className="document-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 animate-fade-in">
+              {filteredDocuments.map((doc, index) => (
                 <div
                   key={doc.id}
-                  className={`group relative cursor-pointer transition-all duration-300 ease-out ${
+                  className={`document-card group relative cursor-pointer bg-card rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
-                  onClick={(e) => !isDragging && handleDocumentClick(doc)}
+                  onClick={() => !isDragging && handleDocumentClick(doc)}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
@@ -705,40 +705,20 @@ const Documents = () => {
                   onTouchStart={(e) => handleTouchStart(e, doc)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
                   {/* Preview/Icon Area */}
                   <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
-                    doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
+                    doc.is_folder && dropTarget === doc.id ? 'scale-110' : 'group-hover:scale-105'
                   }`}>
                     {doc.is_folder ? (
                       <div className="w-full h-full flex items-center justify-center">
-                        {/* Simple Large Blue Folder Icon */}
-                        <svg viewBox="0 0 120 96" className="w-20 h-16 drop-shadow-sm">
-                          <defs>
-                            <linearGradient id={`folderGrad-${doc.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" stopColor="#60a5fa" />
-                              <stop offset="100%" stopColor="#3b82f6" />
-                            </linearGradient>
-                          </defs>
-                          
-                          {/* Folder body */}
-                          <path
-                            d="M10 24 L10 80 C10 84 14 88 18 88 L102 88 C106 88 110 84 110 80 L110 32 C110 28 106 24 102 24 L54 24 L48 16 C46 14 44 12 40 12 L18 12 C14 12 10 16 10 20 Z"
-                            fill={`url(#folderGrad-${doc.id})`}
-                            rx="4"
-                          />
-                          
-                          {/* Folder tab */}
-                          <path
-                            d="M10 20 C10 16 14 12 18 12 L40 12 C44 12 46 14 48 16 L54 24 L48 20 C46 18 44 16 40 16 L18 16 C14 16 10 16 10 20 Z"
-                            fill="#93c5fd"
-                          />
-                        </svg>
+                        <Folder className="w-16 h-16 text-primary" />
                       </div>
                     ) : (
                       <DocumentPreview 
                         document={doc}
-                        className="w-full h-full"
+                        className="w-full h-full rounded-lg overflow-hidden"
                       />
                     )}
                   </div>
@@ -760,14 +740,13 @@ const Documents = () => {
                     
                     {doc.is_folder && (
                       <div className="text-xs text-muted-foreground">
-                        {/* We'd need to count items in folder here */}
                         Folder
                       </div>
                     )}
                   </div>
 
                   {/* Context Menu */}
-                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -782,7 +761,7 @@ const Documents = () => {
                           <MoreVertical className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-background border shadow-lg">
                         {!doc.is_folder && (
                           <DropdownMenuItem onClick={(e) => {
                             e.preventDefault();

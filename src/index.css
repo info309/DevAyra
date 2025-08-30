@@ -122,3 +122,22 @@ All colors MUST be HSL.
     @apply font-heading;
   }
 }
+
+@layer utilities {
+  /* Smooth animations for Documents page */
+  .document-card {
+    @apply transform transition-all duration-300 ease-out;
+  }
+  
+  .document-card:hover {
+    @apply scale-105 shadow-lg;
+  }
+  
+  .document-grid {
+    @apply animate-fade-in;
+  }
+  
+  .breadcrumb-smooth {
+    @apply transition-all duration-200 ease-out;
+  }
+}
