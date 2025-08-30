@@ -140,7 +140,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                 onMouseEnter={() => setHoveredDate(date)}
                 onMouseLeave={() => setHoveredDate(null)}
               >
-                <span className={`text-base ${isCurrentDay && !isSelected ? 'w-6 h-6 flex items-center justify-center rounded-full border-2 border-red-500 font-semibold' : ''}`}>
+                <span className={`text-base ${isCurrentDay && !isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : ''}`}>
                   {format(date, 'd')}
                 </span>
                 
