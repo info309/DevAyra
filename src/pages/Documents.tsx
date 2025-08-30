@@ -260,12 +260,16 @@ const Documents = () => {
   };
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
+    console.log('Document clicked:', doc.name, 'Scroll position before:', window.scrollY);
+    
     if (doc.is_folder) {
       setCurrentFolder(doc);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
     }
+    
+    console.log('Document clicked:', doc.name, 'Scroll position after:', window.scrollY);
   }, []);
 
   const toggleFavorite = async (doc: UserDocument) => {
@@ -709,15 +713,28 @@ const Documents = () => {
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
+                  tabIndex={-1}
                   onMouseUp={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
                     if (!isDragging) handleDocumentClick(doc);
                   }}
                   onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     if (!isDragging) handleDocumentClick(doc);
+                  }}
+                  onFocus={(e) => {
+                    console.log('FOCUS EVENT on:', doc.name, 'Scroll position:', window.scrollY);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.blur();
+                  }}
+                  onFocusCapture={(e) => {
+                    console.log('FOCUS CAPTURE on:', doc.name);
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                   draggable={!doc.is_folder}
                   onDragStart={(e) => handleDragStart(e, doc)}
@@ -731,7 +748,8 @@ const Documents = () => {
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                     scrollMargin: '0px',
-                    scrollPadding: '0px'
+                    scrollPadding: '0px',
+                    outline: 'none'
                   }}
                 >
                   {/* Preview/Icon Area */}
