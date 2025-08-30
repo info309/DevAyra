@@ -271,10 +271,11 @@ Instructions for the AI:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'gpt-4.1-mini-2025-04-14',
         messages,
-        ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
+        ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : { tool_choice: 'none' }),
         max_completion_tokens: 1000,
+        temperature: 0.7,
       }),
     });
 
