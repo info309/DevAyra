@@ -126,4 +126,23 @@ All colors MUST be HSL.
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+
+  /* Calendar container styles to ensure tight fit */
+  .calendar-container {
+    width: fit-content;
+  }
+
+  .calendar-container .rdp {
+    margin: 0;
+    width: fit-content;
+  }
+
+  .calendar-container .rdp-table {
+    width: fit-content;
+  }
+
+  /* Ensure calendar doesn't expand beyond its content */
+  .rdp-months {
+    width: fit-content;
+  }
 }
