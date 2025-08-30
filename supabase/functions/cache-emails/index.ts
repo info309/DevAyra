@@ -65,6 +65,17 @@ serve(async (req) => {
             ? email.to.split('<')[0]?.trim().replace(/"/g, '') || ''
             : email.to || '';
 
+          // Parse the date to ISO format for PostgreSQL
+          let parsedDate = null;
+          if (email.date) {
+            try {
+              parsedDate = new Date(email.date).toISOString();
+            } catch (error) {
+              console.error('Failed to parse date:', email.date, error);
+              parsedDate = new Date().toISOString(); // Fallback to current time
+            }
+          }
+
           emailsToCache.push({
             user_id: user.id,
             gmail_message_id: email.id,
@@ -76,7 +87,7 @@ serve(async (req) => {
             recipient_name: recipientName,
             content: email.content || '',
             snippet: email.snippet || '',
-            date_sent: email.date,
+            date_sent: parsedDate,
             is_unread: email.unread || false,
             has_attachments: (email.attachments && email.attachments.length > 0) || false,
             attachment_info: email.attachments || null,
