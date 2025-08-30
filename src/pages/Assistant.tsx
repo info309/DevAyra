@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -417,45 +417,56 @@ const Assistant = () => {
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-2">
           {sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                currentSession?.id === session.id 
-                  ? 'bg-primary/10 border border-primary/20 shadow-sm' 
-                  : 'hover:bg-muted/50 border border-transparent'
-              }`}
+             <div
+               key={session.id}
+               className={`p-3 rounded-lg cursor-pointer transition-all duration-200 group relative ${
+                 currentSession?.id === session.id 
+                   ? 'bg-primary/10 border border-primary/20 shadow-sm' 
+                   : 'hover:bg-muted/50 border border-transparent'
+               }`}
                onClick={() => {
                  if (editingSessionId !== session.id) {
                    setCurrentSession(session);
                    onSessionSelect?.();
                  }
                }}
-            >
-               {editingSessionId === session.id ? (
-                 <Input
-                   value={editingTitle}
-                   onChange={(e) => setEditingTitle(e.target.value)}
-                   onKeyDown={handleTitleKeyPress}
-                   onBlur={saveTitle}
-                   className="text-sm font-medium h-auto p-0 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                   autoFocus
-                   onClick={(e) => e.stopPropagation()}
-                 />
-               ) : (
-                 <div 
-                   className="font-medium text-sm line-clamp-2 text-foreground"
-                   onDoubleClick={(e) => {
-                     e.stopPropagation();
-                     startEditing(session.id, session.title);
-                   }}
-                 >
-                   {session.title}
+             >
+               <div className="flex items-start justify-between">
+                 <div className="flex-1 min-w-0">
+                   {editingSessionId === session.id ? (
+                     <Input
+                       value={editingTitle}
+                       onChange={(e) => setEditingTitle(e.target.value)}
+                       onKeyDown={handleTitleKeyPress}
+                       onBlur={saveTitle}
+                       className="text-sm font-medium h-auto p-0 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                       autoFocus
+                       onClick={(e) => e.stopPropagation()}
+                     />
+                   ) : (
+                     <div className="font-medium text-sm line-clamp-2 text-foreground">
+                       {session.title}
+                     </div>
+                   )}
+                   <div className="text-xs text-muted-foreground mt-1">
+                     {new Date(session.updated_at).toLocaleDateString()}
+                   </div>
                  </div>
-               )}
-              <div className="text-xs text-muted-foreground mt-1">
-                {new Date(session.updated_at).toLocaleDateString()}
-              </div>
-            </div>
+                 {editingSessionId !== session.id && (
+                   <Button
+                     size="sm"
+                     variant="ghost"
+                     className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 shrink-0 ml-2"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       startEditing(session.id, session.title);
+                     }}
+                   >
+                     <Pencil className="h-3 w-3" />
+                   </Button>
+                 )}
+               </div>
+             </div>
           ))}
           {sessions.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
