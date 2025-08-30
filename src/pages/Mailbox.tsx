@@ -939,16 +939,24 @@ const Mailbox: React.FC = () => {
         hasContent: !!(att as any).content 
       })));
       
+      // Build request body with only defined fields
+      const requestBody: any = {
+        action: 'sendEmail',
+        to: composeForm.to,
+        subject: composeForm.subject,
+        content: composeForm.content
+      };
+
+      // Only add optional fields if they have valid values
+      if (composeForm.threadId) {
+        requestBody.threadId = composeForm.threadId;
+      }
+      if (allAttachments.length > 0) {
+        requestBody.attachments = allAttachments;
+      }
+
       const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'sendEmail',
-          to: composeForm.to,
-          subject: composeForm.subject,
-          content: composeForm.content,
-          replyTo: composeForm.replyTo,
-          threadId: composeForm.threadId,
-          attachments: allAttachments.length > 0 ? allAttachments : undefined
-        }
+        body: requestBody
       });
       
       console.log('Gmail API response:', { data, error });
