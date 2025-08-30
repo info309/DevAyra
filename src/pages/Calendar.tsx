@@ -465,7 +465,18 @@ const Calendar = () => {
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Desktop Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">Calendar</h1>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Dashboard
+            </Button>
+            <h1 className="text-2xl font-bold">Calendar</h1>
+          </div>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             Add Event
