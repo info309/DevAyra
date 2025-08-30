@@ -16,6 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const SYSTEM_PROMPT = `
 You are a magical AI assistant named "Ayra". You are friendly, human-like, witty, and concise.
 You have access to special tools like email search, document search, and soon calendar management, but you only use them when explicitly asked or triggered.
+The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
 Rules:
 1. Default to normal conversation. Do not call any tools unless a clear intent or trigger phrase is detected.
@@ -268,6 +269,19 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
+    // Get user profile for personalization
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
+      .single();
+
+    const userName = userProfile?.display_name ? 
+      userProfile.display_name.split('@')[0] : // Extract name from email if it's an email
+      'there';
+
+    console.log('User profile loaded:', userName);
+
     // Parse request
     const { message, sessionId, detectedTriggers = [] } = await req.json();
     console.log('Request params:', { 
@@ -352,9 +366,11 @@ serve(async (req) => {
 
     console.log('Conversation history length:', conversationHistory.length);
 
-    // Prepare messages for OpenAI
+    // Prepare messages for OpenAI with personalized system prompt
+    const personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
+    
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: personalizedSystemPrompt },
       ...conversationHistory
     ];
 
