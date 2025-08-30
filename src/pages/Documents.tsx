@@ -390,7 +390,7 @@ const Documents = () => {
   };
 
   const handleFolderDragOver = (e: React.DragEvent, folderId: string) => {
-    if (draggedItem && !draggedItem.is_folder) {
+    if (draggedItem && draggedItem.id !== folderId) {
       e.preventDefault();
       setDropTarget(folderId);
     }
@@ -404,8 +404,21 @@ const Documents = () => {
     e.preventDefault();
     setDropTarget(null);
     
-    if (!draggedItem || draggedItem.is_folder || draggedItem.id === targetFolder.id) {
+    if (!draggedItem || draggedItem.id === targetFolder.id) {
       return;
+    }
+
+    // Prevent dropping a folder into its own descendant (circular reference)
+    if (draggedItem.is_folder) {
+      const isDescendant = await checkIfDescendant(draggedItem.id, targetFolder.id);
+      if (isDescendant) {
+        toast({
+          title: "Invalid Move",
+          description: "Cannot move a folder into its own subfolder",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -416,22 +429,55 @@ const Documents = () => {
 
       if (error) throw error;
 
+      toast({
+        title: "Success",
+        description: `${draggedItem.is_folder ? 'Folder' : 'Document'} moved successfully`,
+      });
 
       loadDocuments();
     } catch (error) {
-      console.error('Error moving document:', error);
+      console.error('Error moving item:', error);
       toast({
         title: "Error",
-        description: "Failed to move document",
+        description: `Failed to move ${draggedItem.is_folder ? 'folder' : 'document'}`,
         variant: "destructive",
       });
     }
   };
 
+  // Helper function to check if targetId is a descendant of sourceId
+  const checkIfDescendant = async (sourceId: string, targetId: string): Promise<boolean> => {
+    const { data: folders } = await supabase
+      .from('user_documents')
+      .select('id, folder_id')
+      .eq('user_id', user?.id)
+      .eq('is_folder', true);
+
+    if (!folders) return false;
+
+    const findParents = (folderId: string): string[] => {
+      const parents: string[] = [];
+      let currentId = folderId;
+      
+      while (currentId) {
+        const folder = folders.find(f => f.id === currentId);
+        if (folder?.folder_id) {
+          parents.push(folder.folder_id);
+          currentId = folder.folder_id;
+        } else {
+          break;
+        }
+      }
+      
+      return parents;
+    };
+
+    const targetParents = findParents(targetId);
+    return targetParents.includes(sourceId);
+  };
+
   // Mobile touch handlers
   const handleTouchStart = (e: React.TouchEvent, doc: UserDocument) => {
-    if (doc.is_folder) return;
-    
     const touch = e.touches[0];
     setTouchStart({ x: touch.clientX, y: touch.clientY });
     setDraggedItem(doc);
@@ -474,6 +520,23 @@ const Documents = () => {
     
     const targetFolder = documents.find(doc => doc.id === dropTarget && doc.is_folder);
     if (targetFolder && draggedItem.id !== targetFolder.id) {
+      // Prevent dropping a folder into its own descendant (circular reference)
+      if (draggedItem.is_folder) {
+        const isDescendant = await checkIfDescendant(draggedItem.id, targetFolder.id);
+        if (isDescendant) {
+          toast({
+            title: "Invalid Move",
+            description: "Cannot move a folder into its own subfolder",
+            variant: "destructive",
+          });
+          setTouchStart(null);
+          setDraggedItem(null);
+          setDropTarget(null);
+          setIsDragging(false);
+          return;
+        }
+      }
+
       try {
         const { error } = await supabase
           .from('user_documents')
@@ -482,13 +545,17 @@ const Documents = () => {
 
         if (error) throw error;
 
+        toast({
+          title: "Success",
+          description: `${draggedItem.is_folder ? 'Folder' : 'Document'} moved successfully`,
+        });
 
         loadDocuments();
       } catch (error) {
-        console.error('Error moving document:', error);
+        console.error('Error moving item:', error);
         toast({
           title: "Error",
-          description: "Failed to move document",
+          description: `Failed to move ${draggedItem.is_folder ? 'folder' : 'document'}`,
           variant: "destructive",
         });
       }
@@ -888,7 +955,7 @@ const Documents = () => {
                     e.preventDefault();
                     e.stopPropagation();
                   }}
-                  draggable={!doc.is_folder}
+                  draggable={true}
                   onDragStart={(e) => handleDragStart(e, doc)}
                   onDragEnd={handleDragEnd}
                   onDragOver={doc.is_folder ? (e) => handleFolderDragOver(e, doc.id) : undefined}
