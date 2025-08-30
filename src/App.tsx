@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Mailbox from "./pages/Mailbox";
 import Documents from "./pages/Documents";
+import Calendar from "./pages/Calendar";
 import Account from "./pages/Account";
 import Assistant from "./pages/Assistant";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,11 @@ const App = () => (
             <Route path="/documents" element={
               <ProtectedRoute>
                 <Documents />
+              </ProtectedRoute>
+            } />
+            <Route path="/calendar" element={
+              <ProtectedRoute>
+                <Calendar />
               </ProtectedRoute>
             } />
             <Route path="/account" element={
