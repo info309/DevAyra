@@ -50,13 +50,13 @@ serve(async (req) => {
       throw new Error('Authentication failed');
     }
 
-    const { message, sessionId, tool } = await req.json();
+    const { message, sessionId, detectedTriggers = [] } = await req.json();
 
     console.log('Assistant request received:', { 
       userId: user.id, 
       sessionId, 
       message: message.substring(0, 100),
-      tool: tool,
+      detectedTriggers: detectedTriggers,
       timestamp: new Date().toISOString()
     });
 
@@ -257,11 +257,11 @@ Instructions for the AI:
       }
     ];
 
-    // Only include tools if trigger was detected
+    // Only include tools if triggers were detected
     const tools = [];
-    if (tool === 'email') tools.push(...emailToolDefinition);
-    if (tool === 'document') tools.push(...documentToolDefinition);
-    // if (tool === 'calendar') tools.push(...calendarToolDefinition); // future
+    if (detectedTriggers.includes('email')) tools.push(...emailToolDefinition);
+    if (detectedTriggers.includes('document')) tools.push(...documentToolDefinition);
+    // if (detectedTriggers.includes('calendar')) tools.push(...calendarToolDefinition); // future
 
     // Call OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {

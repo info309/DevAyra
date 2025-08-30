@@ -27,19 +27,15 @@ interface Session {
   updated_at: string;
 }
 
-const detectToolTrigger = (message: string): { tool?: string; triggerFound: boolean } => {
-  const triggers = [
-    { tool: 'email', regex: /\b(email|inbox|gmail|send|mail|find\s+emails|search\s+emails|check\s+emails|look\s+for\s+emails|show\s+me\s+emails|email\s+from|did\s+I\s+get\s+an?\s+email)\b/i },
-    { tool: 'document', regex: /\b(document|file|pdf|docx|upload|find\s+documents|search\s+documents|look\s+for\s+documents)\b/i },
-    { tool: 'calendar', regex: /\b(calendar|schedule|meeting|appointment)\b/i }, // future
-  ];
-
-  for (const t of triggers) {
-    if (t.regex.test(message)) return { tool: t.tool, triggerFound: true };
-  }
-
-  return { triggerFound: false };
-};
+// Local trigger detection for frontend (faster UX)
+function detectTriggers(message: string) {
+  const lower = message.toLowerCase();
+  const triggers: string[] = [];
+  if (["email","inbox","mail","message","reply"].some(k=>lower.includes(k))) triggers.push("email");
+  if (["document","doc","report","file","proposal"].some(k=>lower.includes(k))) triggers.push("document");
+  if (["meeting","schedule","appointment","calendar","event"].some(k=>lower.includes(k))) triggers.push("calendar");
+  return triggers;
+}
 
 const Assistant = () => {
   const { user } = useAuth();
@@ -145,7 +141,7 @@ const Assistant = () => {
     setIsLoading(true);
 
     try {
-      // Add user message to UI immediately
+      // Optimistic add
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -154,40 +150,29 @@ const Assistant = () => {
       };
       setMessages(prev => [...prev, userMessage]);
 
-      // Detect tool triggers
-      const { tool, triggerFound } = detectToolTrigger(message);
+      // Detect triggers locally (faster UX)
+      const detectedTriggers = detectTriggers(message);
 
-      // Call assistant function
+      // Call Lovable edge function
       const { data, error } = await supabase.functions.invoke('assistant', {
-        body: {
-          message,
-          sessionId: currentSession.id,
-          tool: triggerFound ? tool : null // only include tool if trigger detected
-        }
+        body: { message, sessionId: currentSession.id, detectedTriggers }
       });
 
       if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Assistant request failed');
 
-      if (!data.success) {
-        throw new Error(data.error || 'Assistant request failed');
-      }
-
-      // Refresh messages to show assistant response
+      // Update messages
       await fetchMessages(currentSession.id);
 
-      // Update session title if it's the first message
+      // Short session title for first message
       if (messages.length === 0) {
         const shortTitle = message.length > 30 ? message.substring(0, 30) + '...' : message;
-        await supabase
-          .from('assistant_sessions')
-          .update({ title: shortTitle })
-          .eq('id', currentSession.id);
-        
+        await supabase.from('assistant_sessions').update({ title: shortTitle }).eq('id', currentSession.id);
         setCurrentSession(prev => prev ? { ...prev, title: shortTitle } : null);
         setSessions(prev => prev.map(s => s.id === currentSession.id ? { ...s, title: shortTitle } : s));
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       
       // Extract error message from supabase function response
@@ -198,10 +183,10 @@ const Assistant = () => {
         errorMessage = error.error;
       }
       
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
+      toast({ 
+        title: "Error", 
+        description: errorMessage, 
+        variant: "destructive" 
       });
       
       // Remove the user message we optimistically added
