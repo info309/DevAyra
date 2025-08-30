@@ -353,7 +353,7 @@ const Assistant = () => {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-semibold text-foreground">Chat History</h3>
-        <Button onClick={createNewSession} size="sm" variant="outline">
+        <Button onClick={createNewSession} size="sm" variant="outline" className="md:hidden">
           <Plus className="w-4 h-4" />
         </Button>
       </div>
