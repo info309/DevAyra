@@ -497,12 +497,12 @@ const Assistant = () => {
           <div className="flex items-center gap-4 md:gap-6">
             <Button 
               variant="outline" 
-              size={isMobile ? "icon" : "sm"} 
+              size="sm" 
               onClick={() => navigate('/dashboard')}
-              className="shrink-0"
+              className="shrink-0 gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              {!isMobile && <span className="ml-2">Dashboard</span>}
+              <span className="hidden lg:inline">Dashboard</span>
             </Button>
             <h1 className="text-lg md:text-xl font-heading font-bold truncate">Ayra</h1>
           </div>
