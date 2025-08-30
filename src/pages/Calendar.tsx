@@ -383,8 +383,27 @@ const Calendar = () => {
             />
           </div>
 
-          {/* Events Section */}
-          <div className="flex-1 max-w-md">
+          {/* Right side content */}
+          <div className="flex-1 max-w-md space-y-6">
+            {/* Connection Status */}
+            {!gmailConnection && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <CalendarIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                    <h3 className="font-semibold mb-2">Connect Google Calendar</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Sync your events with Google Calendar to access them everywhere.
+                    </p>
+                    <Button onClick={connectGoogleCalendar} disabled={connecting} className="w-full">
+                      {connecting ? 'Connecting...' : 'Connect Google Calendar'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Events Section */}
             <EventsList
               selectedDate={selectedDate}
               events={events}
