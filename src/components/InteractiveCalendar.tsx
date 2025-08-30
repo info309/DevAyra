@@ -208,31 +208,11 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
             {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map((_, weekIndex) => {
               const weekDays = calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7);
               const weekSpanningEvents = spanningEvents.filter(se => se.row === weekIndex);
-              const maxLevel = Math.max(0, ...weekSpanningEvents.map(se => se.level));
               
               return (
-                <div key={weekIndex} className="relative mb-1" style={{ paddingTop: `${maxLevel * 24 + 8}px` }}>
-                  {/* Spanning event bars for this week */}
-                  {weekSpanningEvents.map((spanEvent, eventIndex) => (
-                    <div
-                      key={`${spanEvent.event.id}-${weekIndex}-${eventIndex}`}
-                      className={`absolute text-xs px-2 py-1 rounded text-white truncate ${
-                        spanEvent.event.is_synced ? 'bg-blue-500' : 'bg-green-500'
-                      }`}
-                      style={{
-                        left: `${(spanEvent.startCol / 7) * 100}%`,
-                        width: `${(spanEvent.span / 7) * 100}%`,
-                        top: `${spanEvent.level * 24}px`,
-                        height: '20px',
-                        zIndex: 10
-                      }}
-                    >
-                      {spanEvent.startCol === 0 || weekIndex === 0 ? spanEvent.event.title : ''}
-                    </div>
-                  ))}
-                  
+                <div key={weekIndex} className="relative">
                   {/* Week row of days */}
-                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1">
                     {weekDays.map((date, dayIndex) => {
                       const isSelected = isSameDay(date, selectedDate);
                       const isCurrentMonth = isSameMonth(date, currentMonth);
@@ -252,7 +232,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                           onMouseEnter={() => setHoveredDate(date)}
                           onMouseLeave={() => setHoveredDate(null)}
                         >
-                          <span className={`text-base ${
+                          <span className={`text-base relative z-20 ${
                             isSelected ? 'w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold' :
                             isCurrentDay ? 'w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white font-semibold' : ''
                           }`}>
@@ -261,7 +241,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                           
                           {/* Single-day event indicators */}
                           {hasEvents && (
-                            <div className="flex gap-0.5 sm:gap-1 mt-0.5">
+                            <div className="flex gap-0.5 sm:gap-1 mt-0.5 relative z-20">
                               {singleDayEvents.slice(0, 2).map((event, eventIndex) => (
                                 <div
                                   key={eventIndex}
@@ -280,6 +260,27 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                       );
                     })}
                   </div>
+                  
+                  {/* Spanning event bars overlaid in the middle of cells */}
+                  {weekSpanningEvents.map((spanEvent, eventIndex) => (
+                    <div
+                      key={`${spanEvent.event.id}-${weekIndex}-${eventIndex}`}
+                      className={`absolute text-xs px-2 py-1 rounded text-white truncate ${
+                        spanEvent.event.is_synced ? 'bg-blue-500/80' : 'bg-green-500/80'
+                      }`}
+                      style={{
+                        left: `calc(${(spanEvent.startCol / 7) * 100}% + ${spanEvent.startCol * 2}px)`,
+                        width: `calc(${(spanEvent.span / 7) * 100}% - ${(spanEvent.span - 1) * 2}px)`,
+                        top: `50%`,
+                        transform: 'translateY(-50%)',
+                        height: '18px',
+                        zIndex: 10,
+                        marginTop: `${spanEvent.level * 20}px`
+                      }}
+                    >
+                      {spanEvent.startCol === 0 || weekIndex === 0 ? spanEvent.event.title : ''}
+                    </div>
+                  ))}
                 </div>
               );
             })}
