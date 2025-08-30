@@ -511,7 +511,7 @@ const Calendar = () => {
                   modifiersStyles={{
                     hasEvents: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                   }}
-                  className="pointer-events-auto w-full [&_.rdp-table]:w-full [&_.rdp-head_cell]:w-full [&_.rdp-cell]:w-full [&_.rdp-day]:w-12 [&_.rdp-day]:h-12 [&_.rdp-head_cell]:text-center"
+                  className="pointer-events-auto w-full scale-125 lg:scale-150 xl:scale-[1.75] 2xl:scale-[2] origin-top-left"
                 />
               </CardContent>
             </Card>
