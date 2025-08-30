@@ -496,7 +496,7 @@ const Assistant = () => {
         <div className="container flex h-14 max-w-screen-2xl items-center px-4">
           <div className="flex items-center gap-2 md:gap-4">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size={isMobile ? "icon" : "sm"} 
               onClick={() => navigate('/dashboard')}
               className="shrink-0"
