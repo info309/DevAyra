@@ -789,7 +789,7 @@ const Assistant = () => {
                   onClick={sendMessage} 
                   disabled={!inputMessage.trim() || isLoading}
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 rounded-full"
                 >
                   <Send className="w-4 h-4" />
                   <span className="sr-only">Send message</span>
