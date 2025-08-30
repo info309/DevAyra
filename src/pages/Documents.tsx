@@ -480,6 +480,23 @@ const Documents = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Completely disable scroll behavior when breadcrumbs are present */}
+      {currentFolder && (
+        <style>{`
+          html, body {
+            overflow-anchor: none !important;
+            scroll-behavior: auto !important;
+          }
+          * {
+            scroll-behavior: auto !important;
+            scroll-margin: 0 !important;
+            scroll-padding: 0 !important;
+          }
+          .breadcrumb-container {
+            contain: layout !important;
+          }
+        `}</style>
+      )}
       {/* Header */}
       <div className="bg-background">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -624,15 +641,14 @@ const Documents = () => {
             />
           </div>
           
-          {/* Breadcrumbs - always reserve space to prevent layout shift */}
-          <div className="h-8 mb-6">
+          {/* Breadcrumbs - fixed height container */}
+          <div className="breadcrumb-container h-8 mb-6" style={{ contain: 'layout' }}>
             {currentFolder && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span
                   onClick={() => setCurrentFolder(null)}
                   className="cursor-pointer text-muted-foreground hover:text-foreground"
-                  style={{ userSelect: 'none' }}
-                  onMouseDown={(e) => e.preventDefault()}
+                  style={{ userSelect: 'none', touchAction: 'manipulation' }}
                 >
                   Documents
                 </span>
