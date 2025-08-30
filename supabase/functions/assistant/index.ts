@@ -267,10 +267,10 @@ Stay magical, helpful, and human! ✨
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: 'gpt-4o-mini',
         messages,
         ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : { tool_choice: 'none' }),
-        max_completion_tokens: 1000,
+        max_tokens: 1000,
         temperature: 0.7,
       }),
     });
