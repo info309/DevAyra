@@ -311,25 +311,65 @@ const Documents = () => {
   };
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
-    console.log('Document clicked:', doc.name, 'Scroll position before:', window.scrollY);
-    
-    // Prevent any automatic scrolling
-    const originalScrollY = window.scrollY;
-    
     if (doc.is_folder) {
+      // Store current scroll position before any state changes
+      const originalScrollY = window.scrollY;
+      
+      // Temporarily disable scroll restoration
+      const originalScrollBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
+      
+      // Override scroll methods on all elements to prevent any scrolling
+      const scrollMethods = ['scrollTo', 'scrollIntoView', 'scroll'];
+      const originalMethods: any = {};
+      
+      scrollMethods.forEach(method => {
+        originalMethods[method] = window[method as keyof Window];
+        (window as any)[method] = () => {};
+      });
+      
+      // Also override on document elements
+      const elements = document.querySelectorAll('*');
+      const elementMethods: any[] = [];
+      elements.forEach(el => {
+        const elMethods: any = {};
+        scrollMethods.forEach(method => {
+          if (method in el) {
+            elMethods[method] = (el as any)[method];
+            (el as any)[method] = () => {};
+          }
+        });
+        elementMethods.push({ el, methods: elMethods });
+      });
+      
       setCurrentFolder(doc);
       
-      // Force scroll position to stay the same after state update
+      // Restore scroll methods after a short delay
       setTimeout(() => {
+        // Restore window methods
+        scrollMethods.forEach(method => {
+          if (originalMethods[method]) {
+            (window as any)[method] = originalMethods[method];
+          }
+        });
+        
+        // Restore element methods
+        elementMethods.forEach(({ el, methods }) => {
+          Object.keys(methods).forEach(method => {
+            (el as any)[method] = methods[method];
+          });
+        });
+        
+        // Force scroll position back
         window.scrollTo(0, originalScrollY);
-        console.log('Forced scroll back to:', originalScrollY, 'Current:', window.scrollY);
-      }, 0);
+        
+        // Restore scroll behavior
+        document.documentElement.style.scrollBehavior = originalScrollBehavior;
+      }, 100);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
     }
-    
-    console.log('Document clicked:', doc.name, 'Scroll position after:', window.scrollY);
   }, []);
 
   const toggleFavorite = async (doc: UserDocument) => {
