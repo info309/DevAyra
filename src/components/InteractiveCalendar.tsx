@@ -75,7 +75,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <Card className={`w-fit bg-card ${className}`}>
+    <Card className={`w-full sm:w-[60%] max-w-none bg-card ${className}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <Button 
@@ -104,10 +104,10 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
       
       <CardContent className="p-4 pt-0">
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
           {/* Weekday headers */}
           {weekdays.map(day => (
-            <div key={day} className="h-8 flex items-center justify-center text-sm font-medium text-muted-foreground">
+            <div key={day} className="h-8 sm:h-10 flex items-center justify-center text-sm font-medium text-muted-foreground">
               {day}
             </div>
           ))}
@@ -125,7 +125,7 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
               <div
                 key={index}
                 className={`
-                  relative h-12 w-12 flex flex-col items-center justify-center text-sm cursor-pointer rounded-md border transition-all duration-200
+                  relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-sm cursor-pointer rounded-md border transition-all duration-200
                   ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
                   ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-transparent hover:bg-accent hover:text-accent-foreground'}
                   ${isCurrentDay && !isSelected ? 'bg-accent text-accent-foreground font-semibold' : ''}
@@ -135,24 +135,24 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
                 onMouseEnter={() => setHoveredDate(date)}
                 onMouseLeave={() => setHoveredDate(null)}
               >
-                <span className="text-xs">
+                <span className="text-xs sm:text-sm">
                   {format(date, 'd')}
                 </span>
                 
                 {/* Event indicators */}
                 {hasEvents && (
-                  <div className="flex gap-0.5 mt-0.5">
+                  <div className="flex gap-0.5 sm:gap-1 mt-0.5">
                     {dayEvents.slice(0, 2).map((event, eventIndex) => (
                       <div
                         key={eventIndex}
-                        className={`w-1 h-1 rounded-full ${
+                        className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                           event.is_synced ? 'bg-blue-500' : 'bg-green-500'
                         }`}
                         title={event.title}
                       />
                     ))}
                     {dayEvents.length > 2 && (
-                      <div className="w-1 h-1 rounded-full bg-muted-foreground" title={`+${dayEvents.length - 2} more`} />
+                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-muted-foreground" title={`+${dayEvents.length - 2} more`} />
                     )}
                   </div>
                 )}
@@ -163,8 +163,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
         
         {/* Selected date info */}
         <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm sm:text-base font-medium">
               {format(selectedDate, 'EEEE, MMMM d')}
             </h4>
             {onAddEvent && (
@@ -176,12 +176,12 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
           </div>
           
           {/* Events for selected date */}
-          <div className="space-y-2 max-h-32 overflow-y-auto">
+          <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
             {getEventsForDate(selectedDate).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No events scheduled</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">No events scheduled</p>
             ) : (
               getEventsForDate(selectedDate).map(event => (
-                <div key={event.id} className="flex items-start justify-between p-2 bg-accent/50 rounded text-xs">
+                <div key={event.id} className="flex items-start justify-between p-2 sm:p-3 bg-accent/50 rounded text-xs sm:text-sm">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{event.title}</p>
                     <div className="flex items-center gap-1 text-muted-foreground mt-1">

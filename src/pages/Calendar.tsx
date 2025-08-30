@@ -324,7 +324,7 @@ const Calendar = () => {
             </Card>}
 
           {/* Calendar View */}
-          <div className="mb-6">
+          <div className="mb-6 flex justify-start">
             <InteractiveCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
@@ -338,7 +338,6 @@ const Calendar = () => {
                   description: "Event creation coming soon!"
                 });
               }}
-              className="mx-auto"
             />
           </div>
 
