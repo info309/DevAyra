@@ -952,22 +952,11 @@ const Documents = () => {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className={`document-grid-item group relative cursor-pointer transition-all duration-300 ease-out ${
+                  className={`document-grid-item group relative transition-all duration-300 ease-out ${
                     draggedItem?.id === doc.id ? 'opacity-50 scale-95' : ''
                   }`}
                   data-folder-id={doc.is_folder ? doc.id : undefined}
                   tabIndex={-1}
-                  onMouseUp={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
-                    if (!isDragging) handleDocumentClick(doc);
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!isDragging) handleDocumentClick(doc);
-                  }}
                   onFocus={(e) => {
                     console.log('FOCUS EVENT on:', doc.name, 'Scroll position:', window.scrollY);
                     e.preventDefault();
@@ -995,10 +984,23 @@ const Documents = () => {
                     outline: 'none'
                   }}
                 >
-                  {/* Preview/Icon Area */}
-                  <div className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out ${
-                    doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
-                  }`}>
+                  {/* Preview/Icon Area - Only this area is clickable */}
+                  <div 
+                    className={`w-full aspect-[4/5] mb-2 flex items-center justify-center transition-transform duration-300 ease-out cursor-pointer ${
+                      doc.is_folder && dropTarget === doc.id ? 'scale-125' : 'group-hover:scale-110'
+                    }`}
+                    onMouseUp={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Mouse up on:', doc.name, 'Scroll before click:', window.scrollY);
+                      if (!isDragging) handleDocumentClick(doc);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isDragging) handleDocumentClick(doc);
+                    }}
+                  >
                     {doc.is_folder ? (
                       <div className="w-full h-full flex items-center justify-center">
                         {/* Simple Large Blue Folder Icon */}
