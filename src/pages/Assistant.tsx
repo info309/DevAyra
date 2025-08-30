@@ -736,8 +736,8 @@ const Assistant = () => {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="border-t bg-card/50 p-4">
-            <div className="container max-w-4xl mx-auto">
+          <div className="border-t bg-card/50 p-4 px-2 md:px-4">
+            <div className="container max-w-4xl mx-auto px-2 md:px-4">
               {/* Image previews */}
               {selectedImages.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2">
