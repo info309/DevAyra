@@ -29,6 +29,7 @@ const requestSchema = z.discriminatedUnion('action', [
     to: z.string().min(1),
     subject: z.string(),
     content: z.string(),
+    replyTo: z.string().optional(),
     threadId: z.string().optional(),
     attachments: z.array(z.any()).optional()
   }),
