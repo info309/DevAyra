@@ -131,10 +131,8 @@ export const InteractiveCalendar: React.FC<InteractiveCalendarProps> = ({
               <div
                 key={index}
                 className={`
-                  relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md border transition-all duration-200
+                  relative h-12 w-full sm:h-16 sm:w-full aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-md transition-all duration-200
                   ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground opacity-50'}
-                  ${isSelected ? 'border-transparent' : 'border-transparent hover:bg-accent hover:text-accent-foreground'}
-                  ${isHovered ? 'ring-2 ring-primary/50' : ''}
                 `}
                 onClick={() => handleDateClick(date)}
                 onMouseEnter={() => setHoveredDate(date)}
