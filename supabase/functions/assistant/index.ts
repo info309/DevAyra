@@ -271,8 +271,7 @@ CRITICAL: If the previous conversation was about emails/documents but the curren
       body: JSON.stringify({
         model: 'gpt-5-2025-08-07',
         messages,
-        tools: tools.length > 0 ? tools : undefined,
-        tool_choice: tools.length > 0 ? 'auto' : 'none',
+        ...(tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
         max_completion_tokens: 1000,
       }),
     });
