@@ -400,16 +400,27 @@ serve(async (req) => {
     console.log('User profile loaded:', userName);
 
     // Parse request
-    const { message, sessionId, detectedTriggers = [] } = await req.json();
+    const { message, sessionId, detectedTriggers = [], images = [] } = await req.json();
     console.log('Request params:', { 
       messageLength: message?.length, 
       sessionId, 
-      detectedTriggers 
+      detectedTriggers,
+      imageCount: images?.length || 0
     });
 
-    if (!message || !sessionId) {
+    if ((!message || !message.trim()) && (!images || images.length === 0)) {
       return new Response(JSON.stringify({ 
-        error: 'Missing message or sessionId',
+        error: 'Message or images required',
+        success: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!sessionId) {
+      return new Response(JSON.stringify({ 
+        error: 'Missing sessionId',
         success: false 
       }), {
         status: 400,
@@ -457,7 +468,7 @@ serve(async (req) => {
         session_id: session.id,
         user_id: user.id,
         role: 'user',
-        content: message
+        content: message || 'Sent images'
       });
 
     if (userMessageError) {
@@ -491,6 +502,31 @@ serve(async (req) => {
       ...conversationHistory
     ];
 
+    // Add current message with images if present
+    const currentMessage: any = {
+      role: 'user',
+      content: message || 'What can you see in these images?'
+    };
+
+    // Add images to the current message if present
+    if (images && images.length > 0) {
+      currentMessage.content = [
+        {
+          type: 'text',
+          text: message || 'What can you see in these images?'
+        },
+        ...images.map((img: any) => ({
+          type: 'image_url',
+          image_url: {
+            url: img.url,
+            detail: 'high'
+          }
+        }))
+      ];
+    }
+
+    messages.push(currentMessage);
+
     // Always include email tools since they're core functionality
     const tools = [...EMAIL_TOOLS];
     
@@ -502,9 +538,10 @@ serve(async (req) => {
 
     console.log('Tools to use:', tools.map(t => t.function.name));
 
-    // Call OpenAI
+    // Call OpenAI with vision model if images are present
+    const modelToUse = (images && images.length > 0) ? 'gpt-4o' : 'gpt-4o-mini';
     const openAIRequest = {
-      model: 'gpt-4o-mini',
+      model: modelToUse,
       messages,
       max_tokens: 1000,
       temperature: 0.7,

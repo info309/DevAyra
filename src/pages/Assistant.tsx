@@ -21,6 +21,14 @@ interface Message {
   created_at: string;
   tool_name?: string;
   tool_result?: any;
+  attachments?: ImageAttachment[];
+}
+
+interface ImageAttachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
 }
 
 interface Session {
@@ -67,7 +75,9 @@ const Assistant = () => {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -260,11 +270,67 @@ const Assistant = () => {
     }
   };
 
+  const handleImageUpload = async (files: FileList) => {
+    const imageFiles = Array.from(files).filter(file => 
+      ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)
+    );
+
+    if (imageFiles.length === 0) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select PNG, JPEG, WEBP, or GIF images only.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const uploadPromises = imageFiles.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${user!.id}/chat-images/${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('documents')
+          .getPublicUrl(filePath);
+
+        return {
+          id: crypto.randomUUID(),
+          name: file.name,
+          url: publicUrl,
+          type: file.type
+        };
+      });
+
+      const uploadedImages = await Promise.all(uploadPromises);
+      setSelectedImages(prev => [...prev, ...uploadedImages]);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const removeImage = (imageId: string) => {
+    setSelectedImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !currentSession || isLoading) return;
+    if ((!inputMessage.trim() && selectedImages.length === 0) || !currentSession || isLoading) return;
 
     const message = inputMessage.trim();
+    const attachments = [...selectedImages];
     setInputMessage('');
+    setSelectedImages([]);
     setIsLoading(true);
 
     try {
@@ -273,7 +339,8 @@ const Assistant = () => {
         id: crypto.randomUUID(),
         role: 'user',
         content: message,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        attachments: attachments
       };
       setMessages(prev => [...prev, userMessage]);
 
@@ -282,7 +349,12 @@ const Assistant = () => {
 
       // Call Lovable edge function
       const { data, error } = await supabase.functions.invoke('assistant', {
-        body: { message, sessionId: currentSession.id, detectedTriggers }
+        body: { 
+          message, 
+          sessionId: currentSession.id, 
+          detectedTriggers,
+          images: attachments.map(img => ({ url: img.url, type: img.type }))
+        }
       });
 
       if (error) throw error;
@@ -619,9 +691,23 @@ const Assistant = () => {
                         ? 'bg-primary/5 border border-primary/10 ml-auto max-w-2xl' 
                         : 'bg-muted/30'
                     }`}>
-                      <p className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
-                        {message.content}
-                      </p>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {message.attachments.map((attachment) => (
+                            <img 
+                              key={attachment.id}
+                              src={attachment.url} 
+                              alt={attachment.name}
+                              className="max-w-xs max-h-40 object-cover rounded border"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {message.content && (
+                        <p className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
+                          {message.content}
+                        </p>
+                      )}
                     </div>
                     {message.tool_name && message.tool_result && 
                       renderToolResult(message.tool_name, message.tool_result)
@@ -652,19 +738,44 @@ const Assistant = () => {
           {/* Input Area */}
           <div className="border-t bg-card/50 p-4">
             <div className="container max-w-4xl mx-auto">
+              {/* Image previews */}
+              {selectedImages.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {selectedImages.map((image) => (
+                    <div key={image.id} className="relative">
+                      <img 
+                        src={image.url} 
+                        alt={image.name}
+                        className="w-20 h-20 object-cover rounded-lg border"
+                      />
+                      <button
+                        onClick={() => removeImage(image.id)}
+                        className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-destructive/90"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2 md:gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-[44px] w-[44px] shrink-0"
-                  onClick={() => {
-                    // TODO: Implement attachment functionality
-                    console.log('Attachment clicked');
-                  }}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <Paperclip className="w-4 h-4" />
                   <span className="sr-only">Add attachment</span>
                 </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                  className="hidden"
+                />
                 <Textarea
                   value={inputMessage}
                   onChange={handleTextareaChange}
