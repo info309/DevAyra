@@ -312,70 +312,63 @@ const Documents = () => {
 
   const handleDocumentClick = useCallback((doc: UserDocument) => {
     if (doc.is_folder) {
-      // Store current scroll position BEFORE any state changes
+      // Capture exact scroll position
       const scrollY = window.pageYOffset;
-      const scrollX = window.pageXOffset;
       
-      // Completely disable scrolling temporarily
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
+      // Freeze the entire page layout
+      const body = document.body;
+      const html = document.documentElement;
       
-      // Override ALL scroll methods
-      const originalScrollTo = window.scrollTo;
-      const originalScrollBy = window.scrollBy;
-      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      // Get current page height
+      const currentHeight = Math.max(body.scrollHeight, html.scrollHeight);
+      
+      // Lock the page height to prevent layout shifts
+      body.style.height = `${currentHeight}px`;
+      body.style.overflow = 'hidden';
+      html.style.overflow = 'hidden';
+      
+      // Disable all scroll restoration
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+      
+      // Override ALL methods that could cause scrolling
+      const originalMethods = {
+        scrollTo: window.scrollTo,
+        scrollBy: window.scrollBy,
+        scroll: window.scroll,
+        scrollIntoView: Element.prototype.scrollIntoView,
+        focus: HTMLElement.prototype.focus
+      };
       
       window.scrollTo = () => {};
       window.scrollBy = () => {};
+      window.scroll = () => {};
       Element.prototype.scrollIntoView = () => {};
-      
-      // Prevent any focus events on the entire document
-      const preventAllFocus = (e: FocusEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        if (e.target !== document.body) {
-          (e.target as HTMLElement)?.blur?.();
-        }
-      };
-      
-      document.addEventListener('focus', preventAllFocus, true);
-      document.addEventListener('focusin', preventAllFocus, true);
+      HTMLElement.prototype.focus = function() { this.blur(); };
       
       setCurrentFolder(doc);
       
-      // Force scroll position immediately and repeatedly
-      const restoreScroll = () => {
-        window.scroll(scrollX, scrollY);
-        document.documentElement.scrollTop = scrollY;
-        document.body.scrollTop = scrollY;
-      };
-      
-      restoreScroll();
-      
-      // Restore everything after multiple frames
-      requestAnimationFrame(() => {
-        restoreScroll();
-        requestAnimationFrame(() => {
-          restoreScroll();
-          setTimeout(() => {
-            // Remove focus prevention
-            document.removeEventListener('focus', preventAllFocus, true);
-            document.removeEventListener('focusin', preventAllFocus, true);
-            
-            // Restore scroll methods
-            window.scrollTo = originalScrollTo;
-            window.scrollBy = originalScrollBy;
-            Element.prototype.scrollIntoView = originalScrollIntoView;
-            
-            // Restore scrolling
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            
-            // Final scroll position enforcement
-            restoreScroll();
-          }, 200);
-        });
-      });
+      // Restore everything after the render cycle completes
+      setTimeout(() => {
+        // Restore scroll methods
+        Object.assign(window, originalMethods);
+        Element.prototype.scrollIntoView = originalMethods.scrollIntoView;
+        HTMLElement.prototype.focus = originalMethods.focus;
+        
+        // Restore layout
+        body.style.height = '';
+        body.style.overflow = '';
+        html.style.overflow = '';
+        
+        // Force scroll position
+        window.scrollTo(0, scrollY);
+        
+        // Restore scroll restoration
+        if ('scrollRestoration' in history) {
+          history.scrollRestoration = 'auto';
+        }
+      }, 300);
     } else {
       setSelectedDocument(doc);
       setShowDocumentViewer(true);
