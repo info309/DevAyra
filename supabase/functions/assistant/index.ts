@@ -508,24 +508,7 @@ serve(async (req) => {
             result
           });
 
-          // Save tool message to database for UI rendering
-          await supabase
-            .from('assistant_messages')
-            .insert({
-              session_id: session.id,
-              user_id: user.id,
-              role: 'tool',
-              content: JSON.stringify({
-                tool_name: toolCall.function.name,
-                tool_args: args,
-                tool_result: result
-              }),
-              tool_name: toolCall.function.name,
-              tool_args: args,
-              tool_result: result
-            });
-
-          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || (result?.action ? 'draft' : 'error'));
+          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || 'error');
         } catch (toolError) {
           console.error('Tool execution error:', toolError);
           toolResults.push({
