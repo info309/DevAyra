@@ -184,10 +184,7 @@ const Documents = () => {
         if (error) throw error;
       }
 
-      toast({
-        title: "Success",
-        description: `Uploaded ${files.length} file${files.length > 1 ? 's' : ''} successfully`,
-      });
+      // Success - no toast message needed
 
       loadDocuments();
     } catch (error) {
@@ -265,10 +262,7 @@ const Documents = () => {
       window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast({
-        title: "Success",
-        description: `Downloaded ${doc.name}`,
-      });
+      // Success - no toast message needed
     } catch (error) {
       console.error('Error downloading file:', error);
       toast({
@@ -349,10 +343,7 @@ const Documents = () => {
         setSelectedDocument(prev => prev ? { ...prev, is_favorite: !prev.is_favorite } : null);
       }
 
-      toast({
-        title: "Success",
-        description: doc.is_favorite ? "Removed from favorites" : "Added to favorites",
-      });
+      // Success - no toast message needed
     } catch (error) {
       console.error('Error updating favorite:', error);
       toast({
@@ -393,13 +384,7 @@ const Documents = () => {
 
       if (error) throw error;
 
-      // Only show success message for file deletion, not folders
-      if (!doc.is_folder) {
-        toast({
-          title: "Success",
-          description: "File deleted successfully",
-        });
-      }
+      // Success - no toast message needed
 
       loadDocuments();
     } catch (error) {

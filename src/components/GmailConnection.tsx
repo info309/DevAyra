@@ -97,11 +97,7 @@ const GmailConnection: React.FC = () => {
           window.removeEventListener('message', handleMessage);
           popup?.close();
           
-          toast({
-            title: "Success!",
-            description: `Gmail account ${event.data.data.email} connected successfully.`,
-            variant: "default"
-          });
+          // Success - no toast message needed
           
           checkGmailConnection(); // Refresh connection status
         } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
@@ -157,11 +153,7 @@ const GmailConnection: React.FC = () => {
 
       setConnection(null);
       
-      toast({
-        title: "Disconnected",
-        description: "Gmail account has been disconnected successfully.",
-        variant: "default"
-      });
+      // Success - no toast message needed
       
     } catch (error) {
       console.error('Error disconnecting Gmail:', error);

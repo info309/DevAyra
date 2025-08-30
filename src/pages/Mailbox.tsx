@@ -682,11 +682,7 @@ const Mailbox: React.FC = () => {
       setSelectedEmail(null);
     }
 
-    // Show immediate success feedback
-    toast({
-      title: "Success",
-        description: "Conversation moved to trash."
-    });
+    // Success - no toast message needed
 
     // Make Gmail API call in the background - move to trash instead of delete
     gmailApi.trashThread(conversation.id).then((response) => {
@@ -744,11 +740,7 @@ const Mailbox: React.FC = () => {
       setSelectedEmail(null);
     }
 
-    // Show immediate success feedback
-    toast({
-      title: "Success",
-      description: "Email moved to trash."
-    });
+    // Success - no toast message needed
 
     // Make Gmail API call in the background - move to trash instead of delete
     gmailApi.trashMessage(emailId).then((response) => {
