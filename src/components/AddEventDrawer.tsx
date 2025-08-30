@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,14 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
     setReminderMinutes('none');
   };
+
+  // Update form dates when selectedDate changes
+  useEffect(() => {
+    setStartDate(format(selectedDate, 'yyyy-MM-dd'));
+    setStartTime(format(selectedDate, 'HH:mm'));
+    setEndDate(format(selectedDate, 'yyyy-MM-dd'));
+    setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
+  }, [selectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
