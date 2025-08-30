@@ -129,6 +129,9 @@ const Mailbox: React.FC = () => {
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   
+  // Track locally trashed items to prevent them from reappearing during background refresh
+  const [locallyTrashedIds, setLocallyTrashedIds] = useState<Set<string>>(new Set());
+  
   
   // Add files menu state for mobile compose
   const [showAddFilesMenu, setShowAddFilesMenu] = useState(false);
@@ -197,14 +200,17 @@ const Mailbox: React.FC = () => {
             const existingEmails = viewCache[currentView] || [];
             const newConversations = data.conversations;
             
+            // Filter out locally trashed conversations from new data
+            const filteredNewConversations = newConversations.filter(conv => !locallyTrashedIds.has(conv.id));
+            
             // Only update if we have new conversations (different count or different IDs)
             const existingIds = new Set(existingEmails.map(c => c.id));
-            const hasNewEmails = newConversations.some(c => !existingIds.has(c.id)) || 
-                               newConversations.length !== existingEmails.length;
+            const hasNewEmails = filteredNewConversations.some(c => !existingIds.has(c.id)) || 
+                               filteredNewConversations.length !== existingEmails.length;
             
             if (hasNewEmails) {
-              // Merge new emails with existing ones, preserving order
-              const mergedConversations = [...newConversations];
+              // Merge new emails with existing ones, preserving order, but exclude locally trashed
+              const mergedConversations = [...filteredNewConversations];
               
               setViewCache(prev => ({ ...prev, [currentView]: mergedConversations }));
               if (currentView === currentView) {
@@ -660,8 +666,15 @@ const Mailbox: React.FC = () => {
   const deleteConversation = async (conversation: Conversation) => {
     if (!user) return;
 
+    // Add to locally trashed set to prevent reappearing during background refresh
+    setLocallyTrashedIds(prev => new Set([...prev, conversation.id]));
+
     // Optimistic update - remove from UI immediately
     setCurrentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+    setViewCache(prev => ({ 
+      ...prev, 
+      [currentView]: prev[currentView]?.filter(conv => conv.id !== conversation.id) || []
+    }));
     
     // Clear selection if deleted conversation was selected
     if (selectedConversation?.id === conversation.id) {
@@ -696,6 +709,11 @@ const Mailbox: React.FC = () => {
     
     if (!originalConversation || !originalEmail) return;
 
+    // Add to locally trashed set if this results in removing the entire conversation
+    if (originalConversation.emails.length === 1) {
+      setLocallyTrashedIds(prev => new Set([...prev, conversationId]));
+    }
+
     // Optimistic update - remove email from UI immediately
     setCurrentConversations(prev => 
       prev.map(conv => 
@@ -708,6 +726,18 @@ const Mailbox: React.FC = () => {
           : conv
       ).filter(conv => conv.emails.length > 0) // Remove conversations with no emails
     );
+    setViewCache(prev => ({ 
+      ...prev, 
+      [currentView]: prev[currentView]?.map(conv => 
+        conv.id === conversationId 
+          ? { 
+              ...conv,
+              emails: conv.emails.filter(email => email.id !== emailId),
+              messageCount: conv.messageCount - 1
+            }
+          : conv
+      ).filter(conv => conv.emails.length > 0) || []
+    }));
 
     // Clear selection if deleted email was selected
     if (selectedEmail?.id === emailId) {
