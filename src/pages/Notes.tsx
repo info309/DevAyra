@@ -231,7 +231,6 @@ export default function Notes() {
             variant="outline"
             size="icon"
             onClick={() => navigate('/dashboard')}
-            className="lg:hidden"
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
