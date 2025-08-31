@@ -118,14 +118,15 @@ const Dashboard = () => {
                 onClick={() => navigate(tool.route)}
               >
                 <div className="flex h-full">
-                  <div className={`flex-1 flex flex-col justify-between ${tool.image ? 'pr-2' : ''}`}>
+                  <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{tool.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <CardDescription className="text-sm">
+                      <CardDescription className="text-sm mt-1">
                         {tool.description}
                       </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex-1">
+                      {/* Content area - can be used for future additions */}
                     </CardContent>
                   </div>
                   {tool.image && (
