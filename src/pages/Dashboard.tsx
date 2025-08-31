@@ -6,6 +6,14 @@ import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote } 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
+// Import images
+import mailboxImage from '@/assets/mailbox-card.jpg';
+import calendarImage from '@/assets/calendar-card.jpg';
+import notesImage from '@/assets/notes-card.jpg';
+import documentsImage from '@/assets/documents-card.jpg';
+import assistantImage from '@/assets/assistant-card.jpg';
+import accountImage from '@/assets/account-card.jpg';
+
 const Dashboard = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
@@ -47,32 +55,38 @@ const Dashboard = () => {
     {
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
-      route: '/mailbox'
+      route: '/mailbox',
+      image: mailboxImage
     },
     {
       title: 'Calendar',
       description: 'Schedule events and set reminders',
-      route: '/calendar'
+      route: '/calendar',
+      image: calendarImage
     },
     {
       title: 'Notes',
       description: 'Save and edit your notes',
-      route: '/notes'
+      route: '/notes',
+      image: notesImage
     },
     {
       title: 'Documents',
       description: 'Store and organize your files',
-      route: '/documents'
+      route: '/documents',
+      image: documentsImage
     },
     {
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
-      route: '/assistant'
+      route: '/assistant',
+      image: assistantImage
     },
     {
       title: 'Account',
       description: 'Manage account settings and connections',
-      route: '/account'
+      route: '/account',
+      image: accountImage
     }
   ];
 
@@ -108,17 +122,28 @@ const Dashboard = () => {
             return (
               <Card 
                 key={tool.title} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
+                className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
                 onClick={() => navigate(tool.route)}
               >
-                <CardHeader>
-                  <CardTitle className="text-lg">{tool.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {tool.description}
-                  </CardDescription>
-                </CardContent>
+                <div className="flex h-full">
+                  <div className="flex-1 flex flex-col justify-between">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{tool.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <CardDescription className="text-sm">
+                        {tool.description}
+                      </CardDescription>
+                    </CardContent>
+                  </div>
+                  <div className="w-[30%] min-h-[120px] relative">
+                    <img 
+                      src={tool.image} 
+                      alt={tool.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
               </Card>
             );
           })}
