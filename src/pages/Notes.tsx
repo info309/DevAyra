@@ -226,43 +226,59 @@ export default function Notes() {
 
   // Desktop view with permanent sidebar
   return (
-    <div className="flex h-screen w-full">
-      <div className="w-[40%]">
-        <NoteSidebar
-          notes={notes}
-          selectedNote={selectedNote}
-          onSelectNote={setSelectedNote}
-          onUpdateNote={updateNote}
-          onDeleteNote={deleteNote}
-          onCreateNote={createNote}
-          isLoading={isLoading}
-        />
-      </div>
-      
-      <main className="w-[60%] flex flex-col">
-        <div className="flex-1 p-6">
-          {selectedNote ? (
-            <NoteEditor
-              note={selectedNote}
-              onUpdateNote={updateNote}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <h2 className="text-lg font-medium text-muted-foreground mb-2">
-                  {notes.length === 0 ? "No notes yet" : "Select a note"}
-                </h2>
-                {notes.length === 0 && (
-                  <Button onClick={createNote}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create your first note
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+    <div className="flex h-screen w-full flex-col">
+      {/* Header for tablet */}
+      <header className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="text-xl font-semibold">Notes</h1>
         </div>
-      </main>
+      </header>
+
+      <div className="flex flex-1">
+        <div className="w-[40%]">
+          <NoteSidebar
+            notes={notes}
+            selectedNote={selectedNote}
+            onSelectNote={setSelectedNote}
+            onUpdateNote={updateNote}
+            onDeleteNote={deleteNote}
+            onCreateNote={createNote}
+            isLoading={isLoading}
+          />
+        </div>
+        
+        <main className="w-[60%] flex flex-col">
+          <div className="flex-1 p-6">
+            {selectedNote ? (
+              <NoteEditor
+                note={selectedNote}
+                onUpdateNote={updateNote}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h2 className="text-lg font-medium text-muted-foreground mb-2">
+                    {notes.length === 0 ? "No notes yet" : "Select a note"}
+                  </h2>
+                  {notes.length === 0 && (
+                    <Button onClick={createNote}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create your first note
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
