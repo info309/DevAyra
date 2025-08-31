@@ -1618,7 +1618,7 @@ const Mailbox: React.FC = () => {
                       
                       {/* Send Button */}
                       <Button 
-                        variant="compose"
+                        variant="send"
                         size="sm"
                         onClick={sendEmail}
                         disabled={sendingEmail || !composeForm.to || !composeForm.subject}
