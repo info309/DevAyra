@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut, Bot, StickyNote } from 'lucide-react';
+import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -73,19 +73,12 @@ const Dashboard = () => {
       color: 'text-orange-600'
     },
     {
-      icon: Lock,
-      title: 'Passwords',
-      description: 'Securely store your passwords',
-      route: '/passwords',
-      color: 'text-red-600'
+      icon: Bot,
+      title: 'AI Assistant',
+      description: 'Chat with AI about your emails and documents',
+      route: '/assistant',
+      color: 'text-violet-600'
     },
-        {
-          icon: Bot,
-          title: 'AI Assistant',
-          description: 'Chat with AI about your emails and documents',
-          route: '/assistant',
-          color: 'text-violet-600'
-        },
         {
           icon: Users,
           title: 'Account',
