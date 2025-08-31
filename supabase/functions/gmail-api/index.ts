@@ -708,15 +708,28 @@ const handler = async (req: Request): Promise<Response> => {
     let user;
     try {
       const tokenParts = token.split('.');
+      console.log(`[${requestId}] JWT parts count:`, tokenParts.length);
+      
       if (tokenParts.length !== 3) {
         throw new Error('Invalid JWT format');
       }
 
-      const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      // Decode the payload
+      const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+      console.log(`[${requestId}] Base64 payload length:`, base64Payload.length);
+      
+      const payload = JSON.parse(atob(base64Payload));
+      console.log(`[${requestId}] JWT payload:`, {
+        sub: payload.sub,
+        email: payload.email,
+        exp: payload.exp,
+        iat: payload.iat
+      });
       
       // Check if token is expired
       const now = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < now) {
+        console.error(`[${requestId}] Token expired. Now: ${now}, Exp: ${payload.exp}`);
         throw new Error('Token expired');
       }
 
@@ -725,9 +738,10 @@ const handler = async (req: Request): Promise<Response> => {
         email: payload.email
       };
       
-      console.log(`[${requestId}] User authenticated:`, user.email);
+      console.log(`[${requestId}] User authenticated successfully:`, user.email, 'ID:', user.id);
     } catch (error) {
-      console.error(`[${requestId}] JWT decoding error:`, error);
+      console.error(`[${requestId}] JWT decoding error:`, error.message);
+      console.error(`[${requestId}] JWT decoding stack:`, error.stack);
       throw new GmailApiError('Invalid authentication token', 401);
     }
 
