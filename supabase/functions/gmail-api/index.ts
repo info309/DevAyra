@@ -681,18 +681,20 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[${requestId}] Validating token for authentication`);
     console.log(`[${requestId}] Token length:`, token.length);
     
+    // Verify JWT token manually since verify_jwt is disabled
     let user;
     try {
-      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser(token);
+      // Use the anon client to verify the JWT token
+      const anonClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      );
       
-      if (userError) {
-        console.error(`[${requestId}] Auth validation failed:`, userError.message);
-        console.error(`[${requestId}] Error details:`, JSON.stringify(userError));
-        throw new GmailApiError('Invalid or expired authentication token', 401);
-      }
+      // Set the session with the provided token
+      const { data: { user: authUser }, error: userError } = await anonClient.auth.getUser(token);
       
-      if (!authUser) {
-        console.error(`[${requestId}] No user found in token`);
+      if (userError || !authUser) {
+        console.error(`[${requestId}] Auth validation failed:`, userError?.message || 'No user found');
         throw new GmailApiError('Invalid or expired authentication token', 401);
       }
       
