@@ -78,7 +78,7 @@ const Dashboard = () => {
       title: 'Account',
       description: 'Manage account settings and connections',
       route: '/account',
-      image: undefined // Add your account image here
+      image: '/lovable-uploads/f9af1339-8fe5-43b0-b36d-d146c3fa8c30.png'
     }
   ];
 
