@@ -19,10 +19,11 @@ You have access to special tools like email search, document search, calendar ev
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
 CRITICAL DATE & TIME AWARENESS:
-- The calendar tool automatically provides the user's current date/time and timezone
-- ALWAYS use the currentUserTime and userTimezone from calendar results to understand "today", "this week", "next week" etc.
-- When discussing calendar events, reference dates relative to the user's current time in their timezone
-- Do NOT assume dates - rely on the calendar tool's timeRange and currentUserTime for accurate date calculations
+- When users ask about time periods like "next week", "this week", "today", "tomorrow", use the "period" parameter in calendar_list_events
+- The tool automatically calculates correct date ranges based on the user's timezone
+- ALWAYS use the period parameter for natural language time requests instead of calculating dates yourself
+- The tool returns currentUserTime and userTimezone so you can reference the correct dates in your response
+- Examples: period: "next week", period: "today", period: "this week"
 
 HONESTY & ACCURACY RULES:
 - NEVER make up information when you don't know something
@@ -180,18 +181,23 @@ const CALENDAR_TOOLS = [
     type: 'function',
     function: {
       name: 'calendar_list_events',
-      description: 'Get upcoming calendar events for the user. Automatically called when user asks about their schedule, meetings, appointments, or calendar.',
+      description: 'Get calendar events for the user. When user asks for "next week", "this week", "today", etc., calculate proper date ranges and pass them.',
       parameters: {
         type: 'object',
         properties: {
           timeMin: {
             type: 'string',
-            description: 'Start time for events in ISO format (optional, defaults to now)',
+            description: 'Start time for events in ISO format (required for specific periods)',
             optional: true
           },
           timeMax: {
             type: 'string',
-            description: 'End time for events in ISO format (optional, defaults to 1 week from now)',
+            description: 'End time for events in ISO format (required for specific periods)',
+            optional: true
+          },
+          period: {
+            type: 'string',
+            description: 'Natural language period like "today", "tomorrow", "this week", "next week", "this month"',
             optional: true
           },
           maxResults: {
@@ -341,9 +347,9 @@ async function searchDocuments(userId: string, query: string) {
   }
 }
 
-async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20) {
+async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, period?: string, maxResults = 20) {
   try {
-    console.log(`Listing calendar events for user ${userId}`);
+    console.log(`Listing calendar events for user ${userId}, period: ${period}`);
     
     // Get user's timezone from their profile
     const { data: userProfile } = await supabase
@@ -370,17 +376,71 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
     
     console.log(`Current time in user timezone (${userTimezone}): ${currentUserTime}`);
     
-    // Set default time range if not provided
+    // Parse current user time to get proper Date object
+    const userNow = new Date(currentUserTime.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
+    
+    // Calculate date ranges based on period or use provided timeMin/timeMax
     let defaultTimeMin, defaultTimeMax;
     
-    if (timeMin && timeMax) {
+    if (period) {
+      const currentDate = new Date(userNow);
+      const currentDay = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      switch (period.toLowerCase()) {
+        case 'today':
+          defaultTimeMin = new Date(currentDate.setHours(0, 0, 0, 0)).toISOString();
+          defaultTimeMax = new Date(currentDate.setHours(23, 59, 59, 999)).toISOString();
+          break;
+          
+        case 'tomorrow':
+          const tomorrow = new Date(currentDate);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          defaultTimeMin = new Date(tomorrow.setHours(0, 0, 0, 0)).toISOString();
+          defaultTimeMax = new Date(tomorrow.setHours(23, 59, 59, 999)).toISOString();
+          break;
+          
+        case 'this week':
+          // Monday to Sunday of current week
+          const startOfWeek = new Date(currentDate);
+          const daysToMonday = currentDay === 0 ? 6 : currentDay - 1; // Handle Sunday
+          startOfWeek.setDate(startOfWeek.getDate() - daysToMonday);
+          startOfWeek.setHours(0, 0, 0, 0);
+          
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(endOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfWeek.toISOString();
+          defaultTimeMax = endOfWeek.toISOString();
+          break;
+          
+        case 'next week':
+          // Monday to Sunday of next week
+          const startOfNextWeek = new Date(currentDate);
+          const daysToNextMonday = currentDay === 0 ? 1 : 8 - currentDay; // Handle Sunday
+          startOfNextWeek.setDate(startOfNextWeek.getDate() + daysToNextMonday);
+          startOfNextWeek.setHours(0, 0, 0, 0);
+          
+          const endOfNextWeek = new Date(startOfNextWeek);
+          endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
+          endOfNextWeek.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfNextWeek.toISOString();
+          defaultTimeMax = endOfNextWeek.toISOString();
+          break;
+          
+        default:
+          // Default to next 7 days
+          defaultTimeMin = userNow.toISOString();
+          defaultTimeMax = new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      }
+    } else if (timeMin && timeMax) {
       defaultTimeMin = timeMin;
       defaultTimeMax = timeMax;
     } else {
-      // Use current user time as starting point
-      const userNow = new Date(currentUserTime.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
-      defaultTimeMin = timeMin || userNow.toISOString();
-      defaultTimeMax = timeMax || new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 1 week from user's current time
+      // Default to next 7 days from now
+      defaultTimeMin = userNow.toISOString();
+      defaultTimeMax = new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
     }
     
     console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
@@ -733,7 +793,7 @@ serve(async (req) => {
               result = await searchDocuments(user.id, args.query);
               break;
             case 'calendar_list_events':
-              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults);
+              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
