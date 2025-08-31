@@ -120,7 +120,9 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
                   placeholder="Note title..."
                   style={{ 
                     boxShadow: 'none', 
-                    outline: 'none'
+                    outline: 'none',
+                    fontSize: '1.25rem',
+                    lineHeight: '1.75rem'
                   }}
                 />
                 <Button size="sm" variant="ghost" onClick={handleTitleSave} className="h-8 w-8 p-0">
