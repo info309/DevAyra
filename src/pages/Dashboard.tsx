@@ -72,7 +72,7 @@ const Dashboard = () => {
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
       route: '/assistant',
-      image: undefined // Add your assistant image here
+      image: '/lovable-uploads/839337f2-f4b6-4401-abaf-a3a528fbb930.png'
     },
     {
       title: 'Account',
