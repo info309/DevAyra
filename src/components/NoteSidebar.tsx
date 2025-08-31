@@ -18,7 +18,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, MoreVertical, Edit2, Trash2, Check, X } from 'lucide-react'
+import { Plus, MoreVertical, Edit2, Trash2, Check, X, PenTool } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Note } from '@/pages/Notes'
 
@@ -93,7 +93,7 @@ export function NoteSidebar({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Notes</h2>
             <Button onClick={onCreateNote} size="sm">
-              <Plus className="h-4 w-4" />
+              <PenTool className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function NoteSidebar({
               <div className="p-4 text-center text-muted-foreground">
                 <p className="text-sm mb-2">No notes yet</p>
                 <Button onClick={onCreateNote} size="sm" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <PenTool className="h-4 w-4 mr-2" />
                   Create your first note
                 </Button>
               </div>
