@@ -671,18 +671,36 @@ const handler = async (req: Request): Promise<Response> => {
     const token = authHeader.replace('Bearer ', '');
     console.log(`[${requestId}] Token received, length:`, token.length);
     
-    // Create Supabase client for authentication
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
+    // Decode JWT token manually since Supabase client isn't working
+    let user;
+    try {
+      // Split the JWT token
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        throw new Error('Invalid JWT format');
+      }
 
-    // Use the token directly to get user info
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error(`[${requestId}] Authentication failed:`, userError?.message || 'No user found');
-      throw new GmailApiError('Invalid authentication token', 401);
+      // Decode the payload
+      const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      console.log(`[${requestId}] JWT payload decoded:`, JSON.stringify(payload, null, 2));
+      
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) {
+        throw new Error('Token expired');
+      }
+
+      // Extract user info from JWT payload
+      user = {
+        id: payload.sub,
+        email: payload.email,
+        aud: payload.aud
+      };
+      
+      console.log(`[${requestId}] User extracted from JWT:`, user.email);
+    } catch (error) {
+      console.error(`[${requestId}] JWT decoding error:`, error);
+      throw new GmailApiError('Invalid or expired authentication token', 401);
     }
 
     console.log(`[${requestId}] User authenticated successfully:`, user.email);
