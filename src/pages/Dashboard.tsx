@@ -60,7 +60,7 @@ const Dashboard = () => {
       title: 'Notes',
       description: 'Save and edit your notes',
       route: '/notes',
-      image: undefined // Add your notes image here
+      image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
     },
     {
       title: 'Documents',
