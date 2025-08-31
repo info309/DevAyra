@@ -224,13 +224,14 @@ export default function Notes() {
   // Desktop view with permanent sidebar
   return (
     <div className="flex h-screen w-full flex-col">
-      {/* Header for tablet */}
-      <header className="flex items-center justify-between p-4 border-b bg-background lg:hidden">
+      {/* Header for tablet and desktop */}
+      <header className="flex items-center justify-between p-4 border-b bg-background">
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigate('/dashboard')}
+            className="lg:hidden"
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
