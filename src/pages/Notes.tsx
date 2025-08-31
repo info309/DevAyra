@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sidebar, SidebarContent, SidebarHeader, SidebarTrigger } from '@/components/ui/sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useIsDrawerView } from '@/hooks/use-drawer-view'
 import { NoteSidebar } from '@/components/NoteSidebar'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -29,6 +28,7 @@ export default function Notes() {
   const [notes, setNotes] = useState<Note[]>([])
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -163,80 +163,32 @@ export default function Notes() {
     )
   }
 
+  // Mobile/tablet view with drawer-style sidebar
   if (isDrawerView) {
     return (
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <Sidebar className="hidden" />
-          
-          <main className="flex-1 flex flex-col">
-            <header className="flex items-center justify-between p-4 border-b bg-background">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <h1 className="text-xl font-semibold">Notes</h1>
-              </div>
-              <SidebarTrigger />
-            </header>
-
-            <div className="flex-1 p-4">
-              {selectedNote ? (
-                <NoteEditor
-                  note={selectedNote}
-                  onUpdateNote={updateNote}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <h2 className="text-lg font-medium text-muted-foreground mb-2">
-                      {notes.length === 0 ? "No notes yet" : "Select a note"}
-                    </h2>
-                    {notes.length === 0 && (
-                      <Button onClick={createNote}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create your first note
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+      <div className="flex h-screen w-full">
+        <div className="flex-1 flex flex-col">
+          <header className="flex items-center justify-between p-4 border-b bg-background">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate('/dashboard')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-xl font-semibold">Notes</h1>
             </div>
-          </main>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </header>
 
-          <NoteSidebar
-            notes={notes}
-            selectedNote={selectedNote}
-            onSelectNote={setSelectedNote}
-            onUpdateNote={updateNote}
-            onDeleteNote={deleteNote}
-            onCreateNote={createNote}
-            isLoading={isLoading}
-          />
-        </div>
-      </SidebarProvider>
-    )
-  }
-
-  return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <NoteSidebar
-          notes={notes}
-          selectedNote={selectedNote}
-          onSelectNote={setSelectedNote}
-          onUpdateNote={updateNote}
-          onDeleteNote={deleteNote}
-          onCreateNote={createNote}
-          isLoading={isLoading}
-        />
-        
-        <main className="flex-1 flex flex-col">
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-4">
             {selectedNote ? (
               <NoteEditor
                 note={selectedNote}
@@ -258,8 +210,66 @@ export default function Notes() {
               </div>
             )}
           </div>
-        </main>
+        </div>
+
+        {/* Sidebar as drawer on mobile/tablet */}
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="right" className="w-80 p-0">
+            <NoteSidebar
+              notes={notes}
+              selectedNote={selectedNote}
+              onSelectNote={(note) => {
+                setSelectedNote(note);
+                setSidebarOpen(false);
+              }}
+              onUpdateNote={updateNote}
+              onDeleteNote={deleteNote}
+              onCreateNote={createNote}
+              isLoading={isLoading}
+            />
+          </SheetContent>
+        </Sheet>
       </div>
-    </SidebarProvider>
+    )
+  }
+
+  // Desktop view with permanent sidebar
+  return (
+    <div className="flex h-screen w-full">
+      <NoteSidebar
+        notes={notes}
+        selectedNote={selectedNote}
+        onSelectNote={setSelectedNote}
+        onUpdateNote={updateNote}
+        onDeleteNote={deleteNote}
+        onCreateNote={createNote}
+        isLoading={isLoading}
+      />
+      
+      <main className="flex-1 flex flex-col">
+        <div className="flex-1 p-6">
+          {selectedNote ? (
+            <NoteEditor
+              note={selectedNote}
+              onUpdateNote={updateNote}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <h2 className="text-lg font-medium text-muted-foreground mb-2">
+                  {notes.length === 0 ? "No notes yet" : "Select a note"}
+                </h2>
+                {notes.length === 0 && (
+                  <Button onClick={createNote}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create your first note
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   )
 }
