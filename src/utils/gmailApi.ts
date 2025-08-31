@@ -76,12 +76,11 @@ export const gmailApi = {
         throw new GmailApiError('No authentication token available', 401);
       }
       
-      console.log('Making Gmail API request with token length:', authToken.length);
+      console.log('Making Gmail API request with body:', JSON.stringify(body));
 
       const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body,
+        body: JSON.stringify(body),
         headers: {
-          Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
