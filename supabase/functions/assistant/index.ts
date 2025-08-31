@@ -19,6 +19,7 @@ You have access to special tools like email search, document search, calendar ev
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
 CRITICAL DATE & TIME AWARENESS:
+- Current date and time: {{CURRENT_TIME}} ({{USER_TIMEZONE}})
 - When users ask about time periods like "next week", "this week", "today", "tomorrow", use the "period" parameter in calendar_list_events
 - The tool automatically calculates correct date ranges based on the user's timezone
 - ALWAYS use the period parameter for natural language time requests instead of calculating dates yourself
@@ -956,13 +957,14 @@ serve(async (req) => {
     console.log('User profile loaded:', userName);
 
     // Parse request
-    const { message, sessionId, detectedTriggers = [], images = [], client_timezone } = await req.json();
+    const { message, sessionId, detectedTriggers = [], images = [], client_timezone, current_time } = await req.json();
     console.log('Request params:', { 
       messageLength: message?.length, 
       sessionId, 
       detectedTriggers,
       imageCount: images?.length || 0,
-      clientTimezone: client_timezone
+      clientTimezone: client_timezone,
+      currentTime: current_time
     });
 
     if ((!message || !message.trim()) && (!images || images.length === 0)) {
@@ -1052,7 +1054,35 @@ serve(async (req) => {
     console.log('Conversation history length:', conversationHistory.length);
 
     // Prepare messages for OpenAI with personalized system prompt
-    const personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
+    let personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
+    
+    // Get user timezone and format current time
+    let userTimezone = 'UTC';
+    let currentUserTime = 'Unknown';
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      userTimezone = profile?.timezone || client_timezone || 'UTC';
+      
+      if (current_time) {
+        const { format } = await import('https://esm.sh/date-fns@3.6.0');  
+        const { toZonedTime } = await import('https://esm.sh/date-fns-tz@3.2.0');
+        const currentTimeDate = new Date(current_time);
+        const zonedTime = toZonedTime(currentTimeDate, userTimezone);
+        currentUserTime = format(zonedTime, 'PPpp');
+      }
+    } catch (tzError) {
+      console.log('Timezone formatting error:', tzError);
+    }
+    
+    // Replace timezone and current time placeholders
+    personalizedSystemPrompt = personalizedSystemPrompt
+      .replace('{{CURRENT_TIME}}', currentUserTime)
+      .replace('{{USER_TIMEZONE}}', userTimezone);
     
     const messages = [
       { role: 'system', content: personalizedSystemPrompt },

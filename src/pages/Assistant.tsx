@@ -357,7 +357,8 @@ const Assistant = () => {
           sessionId: currentSession.id, 
           detectedTriggers,
           images: attachments.map(img => ({ url: img.url, type: img.type })),
-          client_timezone: clientTimezone
+          client_timezone: clientTimezone,
+          current_time: new Date().toISOString()
         }
       });
 
