@@ -1725,9 +1725,9 @@ const Mailbox: React.FC = () => {
           </div>
         </div>
 
-        <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'lg:grid-cols-3'} flex-1 overflow-hidden`}>
-          {/* Email List */}
-          <Card className="lg:col-span-1 min-w-0 h-full overflow-hidden">
+        <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'grid-cols-5'} flex-1 overflow-hidden`}>
+          {/* Email List - 40% width (2 of 5 columns) */}
+          <Card className="col-span-2 min-w-0 h-full overflow-hidden">
             <CardContent className="p-0 overflow-hidden rounded-lg h-full">
               <ScrollArea className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] lg:h-[calc(100vh-10rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
@@ -1939,9 +1939,9 @@ const Mailbox: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Email/Thread Content - Desktop Only */}
+            {/* Email/Thread Content - Desktop Only - 60% width (3 of 5 columns) */}
             {!isDrawerView && (
-              <Card className="lg:col-span-2 min-w-0 overflow-hidden">
+              <Card className="col-span-3 min-w-0 overflow-hidden">
                 <CardContent className="p-0 h-full">
                   {selectedConversation ? (
                     <div className="h-full flex flex-col">
