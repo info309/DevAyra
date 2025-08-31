@@ -347,13 +347,17 @@ const Assistant = () => {
       // Detect triggers locally (faster UX)
       const detectedTriggers = detectTriggers(message);
 
+      // Get client timezone for calendar parsing
+      const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Call Lovable edge function
       const { data, error } = await supabase.functions.invoke('assistant', {
         body: { 
           message, 
           sessionId: currentSession.id, 
           detectedTriggers,
-          images: attachments.map(img => ({ url: img.url, type: img.type }))
+          images: attachments.map(img => ({ url: img.url, type: img.type })),
+          client_timezone: clientTimezone
         }
       });
 

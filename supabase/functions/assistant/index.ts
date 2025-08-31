@@ -25,6 +25,12 @@ CRITICAL DATE & TIME AWARENESS:
 - The tool returns currentUserTime and userTimezone so you can reference the correct dates in your response
 - Examples: period: "next week", period: "today", period: "this week"
 
+CALENDAR EVENT CREATION:
+- ALWAYS prefer using when_text for scheduling (e.g., "next Monday 3pm", "tomorrow 8:30", "in 2 hours")
+- Let the server parse natural language dates - don't calculate ISO timestamps yourself
+- If the server returns an ambiguity message, ask a clarifying question and retry
+- Examples: when_text: "next Monday 3pm", when_text: "tomorrow 8:30 for 45 minutes"
+
 HONESTY & ACCURACY RULES:
 - NEVER make up information when you don't know something
 - Say "I don't know" or "I'm not sure" when uncertain
@@ -214,7 +220,7 @@ const CALENDAR_TOOLS = [
     type: 'function',
     function: {
       name: 'calendar_create_event',
-      description: 'Create a new calendar event for the user. Use this when user asks to schedule, book, create, or add calendar events.',
+      description: 'Create a new calendar event for the user. PREFER using when_text for natural language scheduling (e.g., "next Monday 3pm") instead of calculating ISO timestamps yourself.',
       parameters: {
         type: 'object',
         properties: {
@@ -227,26 +233,41 @@ const CALENDAR_TOOLS = [
             description: 'Optional event description or details',
             optional: true
           },
+          when_text: {
+            type: 'string',
+            description: 'Natural language time like "next Monday 3pm", "tomorrow 8:30", "in 2 hours", "Mon 1st 15:00-16:00". Use this instead of start_time/end_time when user provides natural language.',
+            optional: true
+          },
+          duration_minutes: {
+            type: 'number',
+            description: 'Duration in minutes if no end time specified in when_text (default: 60)',
+            default: 60,
+            optional: true
+          },
           start_time: {
             type: 'string',
-            description: 'Event start time in ISO format (e.g., 2024-12-31T14:00:00Z)'
+            description: 'Event start time in ISO format (e.g., 2024-12-31T14:00:00Z). Only use if when_text is not provided.',
+            optional: true
           },
           end_time: {
             type: 'string',
-            description: 'Event end time in ISO format (e.g., 2024-12-31T15:00:00Z)'
+            description: 'Event end time in ISO format (e.g., 2024-12-31T15:00:00Z). Only use if when_text is not provided.',
+            optional: true
           },
           all_day: {
             type: 'boolean',
             description: 'Whether this is an all-day event (default: false)',
-            default: false
+            default: false,
+            optional: true
           },
           reminder_minutes: {
             type: 'number',
             description: 'Minutes before event to send reminder (default: 15)',
-            default: 15
+            default: 15,
+            optional: true
           }
         },
-        required: ['title', 'start_time', 'end_time']
+        required: ['title']
       }
     }
   }
@@ -623,16 +644,115 @@ async function createCalendarEvent(userId: string, eventData: any) {
   try {
     console.log(`Creating calendar event for user ${userId}:`, eventData);
     
-    // Validate required fields
-    const { title, start_time, end_time, description = '', all_day = false, reminder_minutes = 15 } = eventData;
+    const { 
+      title, 
+      when_text, 
+      duration_minutes = 60, 
+      start_time, 
+      end_time, 
+      description = '', 
+      all_day = false, 
+      reminder_minutes = 15,
+      client_timezone 
+    } = eventData;
     
-    if (!title || !start_time || !end_time) {
-      return { error: 'Title, start_time, and end_time are required' };
+    if (!title) {
+      return { error: 'Title is required' };
+    }
+    
+    let finalStartTime, finalEndTime, finalAllDay = all_day;
+    
+    // Parse natural language if when_text is provided
+    if (when_text) {
+      console.log(`Parsing natural language: "${when_text}"`);
+      
+      try {
+        // Get user timezone
+        let userTimezone = 'UTC';
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('timezone')
+            .eq('user_id', userId)
+            .maybeSingle();
+          userTimezone = profile?.timezone || client_timezone || 'UTC';
+        } catch (tzError) {
+          console.log('Using client timezone fallback:', client_timezone || 'UTC');
+          userTimezone = client_timezone || 'UTC';
+        }
+        
+        console.log(`Using timezone: ${userTimezone}`);
+        
+        // Import chrono for natural language date parsing
+        const { parse } = await import('https://esm.sh/chrono-node@2.7.5');
+        const { fromZonedTime, toZonedTime } = await import('https://esm.sh/date-fns-tz@3.2.0');
+        const { addMinutes, format } = await import('https://esm.sh/date-fns@3.6.0');
+        
+        // Parse the natural language date
+        const referenceDate = toZonedTime(new Date(), userTimezone);
+        const parsed = parse(when_text, referenceDate, { forwardDate: true });
+        console.log(`Parsed results:`, parsed);
+        
+        if (!parsed || parsed.length === 0) {
+          return { 
+            error: `I couldn't understand the time "${when_text}". Could you be more specific? For example: "next Monday 3pm", "tomorrow 8:30", or "September 1st at 2pm"` 
+          };
+        }
+        
+        const result = parsed[0];
+        
+        // Check if we have a confident parse
+        if (!result.start || !result.start.date()) {
+          return { 
+            error: `The time "${when_text}" is ambiguous. Could you specify the exact date and time? For example: "Monday September 1st at 3pm"` 
+          };
+        }
+        
+        let startLocal = result.start.date();
+        let endLocal;
+        
+        // Check if end time was detected
+        if (result.end && result.end.date()) {
+          endLocal = result.end.date();
+        } else {
+          // No end time detected, add duration
+          endLocal = addMinutes(startLocal, duration_minutes);
+        }
+        
+        // Check if this should be an all-day event (no specific time mentioned)
+        if (!result.start.get('hour') && !result.start.get('minute')) {
+          finalAllDay = true;
+          // For all-day events, set to start of day and end of day
+          startLocal.setHours(0, 0, 0, 0);
+          endLocal = new Date(startLocal);
+          endLocal.setHours(23, 59, 59, 999);
+        }
+        
+        // Convert to UTC for storage
+        finalStartTime = fromZonedTime(startLocal, userTimezone).toISOString();
+        finalEndTime = fromZonedTime(endLocal, userTimezone).toISOString();
+        
+        console.log(`Parsed times: ${format(startLocal, 'PPpp')} - ${format(endLocal, 'PPpp')} (${userTimezone})`);
+        console.log(`UTC times: ${finalStartTime} - ${finalEndTime}`);
+        
+      } catch (parseError) {
+        console.error('Date parsing error:', parseError);
+        return { 
+          error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
+        };
+      }
+      
+    } else if (start_time && end_time) {
+      // Use provided ISO times
+      finalStartTime = start_time;
+      finalEndTime = end_time;
+    } else {
+      return { error: 'Either when_text or both start_time and end_time must be provided' };
     }
     
     // Validate that end_time is after start_time
-    const startDate = new Date(start_time);
-    const endDate = new Date(end_time);
+    const startDate = new Date(finalStartTime);
+    const endDate = new Date(finalEndTime);
     
     if (endDate <= startDate) {
       return { error: 'End time must be after start time' };
@@ -645,9 +765,9 @@ async function createCalendarEvent(userId: string, eventData: any) {
         user_id: userId,
         title,
         description,
-        start_time,
-        end_time,
-        all_day,
+        start_time: finalStartTime,
+        end_time: finalEndTime,
+        all_day: finalAllDay,
         reminder_minutes,
         is_synced: false // Initially not synced to Google Calendar
       })
@@ -686,9 +806,9 @@ async function createCalendarEvent(userId: string, eventData: any) {
             event: {
               title,
               description,
-              start_time,
-              end_time,
-              all_day,
+              start_time: finalStartTime,
+              end_time: finalEndTime,
+              all_day: finalAllDay,
               reminder_minutes
             }
           }),
@@ -836,12 +956,13 @@ serve(async (req) => {
     console.log('User profile loaded:', userName);
 
     // Parse request
-    const { message, sessionId, detectedTriggers = [], images = [] } = await req.json();
+    const { message, sessionId, detectedTriggers = [], images = [], client_timezone } = await req.json();
     console.log('Request params:', { 
       messageLength: message?.length, 
       sessionId, 
       detectedTriggers,
-      imageCount: images?.length || 0
+      imageCount: images?.length || 0,
+      clientTimezone: client_timezone
     });
 
     if ((!message || !message.trim()) && (!images || images.length === 0)) {
@@ -1051,7 +1172,7 @@ serve(async (req) => {
               result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
               break;
             case 'calendar_create_event':
-              result = await createCalendarEvent(user.id, args);
+              result = await createCalendarEvent(user.id, { ...args, client_timezone });
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
