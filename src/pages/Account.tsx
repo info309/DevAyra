@@ -20,14 +20,14 @@ const Account: React.FC = () => {
   const { toast } = useToast();
 
   const timezones = [
-    { value: 'GMT', label: 'GMT (Greenwich Mean Time)' },
-    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    { value: 'EST', label: 'EST (Eastern Standard Time)' },
-    { value: 'PST', label: 'PST (Pacific Standard Time)' },
-    { value: 'CET', label: 'CET (Central European Time)' },
-    { value: 'JST', label: 'JST (Japan Standard Time)' },
-    { value: 'AEST', label: 'AEST (Australian Eastern Standard Time)' },
-    { value: 'IST', label: 'IST (India Standard Time)' },
+    { value: 'GMT', label: 'GMT (Greenwich Mean Time)', iana: 'GMT' },
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)', iana: 'UTC' },
+    { value: 'EST', label: 'EST (Eastern Standard Time)', iana: 'America/New_York' },
+    { value: 'PST', label: 'PST (Pacific Standard Time)', iana: 'America/Los_Angeles' },
+    { value: 'CET', label: 'CET (Central European Time)', iana: 'Europe/Paris' },
+    { value: 'JST', label: 'JST (Japan Standard Time)', iana: 'Asia/Tokyo' },
+    { value: 'AEST', label: 'AEST (Australian Eastern Standard Time)', iana: 'Australia/Sydney' },
+    { value: 'IST', label: 'IST (India Standard Time)', iana: 'Asia/Kolkata' },
   ];
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Account: React.FC = () => {
       setTimezone(newTimezone);
       toast({
         title: "Timezone Updated",
-        description: `Your timezone has been set to ${newTimezone}`,
+        description: `Your timezone has been set to ${timezones.find(tz => tz.value === newTimezone)?.label}`,
       });
     } catch (error) {
       toast({
@@ -145,11 +145,23 @@ const Account: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Current system time: {new Date().toLocaleString('en-US', { 
-              timeZone: timezone === 'GMT' ? 'GMT' : timezone,
-              timeZoneName: 'short'
-            })}
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">
+              <strong>System Time in {timezone}:</strong>
+            </div>
+            <div className="text-base font-mono bg-muted/50 p-2 rounded border">
+              {new Date().toLocaleString('en-US', { 
+                timeZone: timezones.find(tz => tz.value === timezone)?.iana || 'GMT',
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+              })}
+            </div>
           </div>
         </div>
       </CardContent>
