@@ -2008,8 +2008,8 @@ const Mailbox: React.FC = () => {
                     <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
                       <div className="text-center">
                         <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No email selected</h3>
-                        <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                        <h3 className="text-lg font-medium mb-2">Welcome to Mail</h3>
+                        <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
                       </div>
                     </div>
                   )}
@@ -2099,8 +2099,8 @@ const Mailbox: React.FC = () => {
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center">
                           <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-medium mb-2">No email selected</h3>
-                          <p className="text-muted-foreground">Select an email from the list to view its content</p>
+                          <h3 className="text-lg font-medium mb-2">Welcome to Mail</h3>
+                          <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
                         </div>
                       </div>
                     )}
