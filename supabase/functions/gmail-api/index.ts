@@ -702,14 +702,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[${requestId}] Parsing request body...`);
     let requestBody;
     try {
-      const bodyText = await req.text();
-      console.log(`[${requestId}] Request body text:`, bodyText.substring(0, 200));
-      
-      if (!bodyText.trim()) {
-        throw new GmailApiError('Empty request body', 400);
-      }
-      
-      requestBody = JSON.parse(bodyText);
+      requestBody = await req.json();
       console.log(`[${requestId}] Parsed request:`, JSON.stringify(requestBody));
     } catch (parseError) {
       console.error(`[${requestId}] Request parsing error:`, parseError);
