@@ -669,16 +669,31 @@ const handler = async (req: Request): Promise<Response> => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error(`[${requestId}] Missing Authorization header`);
+      console.error(`[${requestId}] Auth session missing!`);
       throw new GmailApiError('Authorization header required', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    console.log(`[${requestId}] Validating token for authentication`);
     
-    if (userError || !user) {
-      console.error(`[${requestId}] Auth validation failed:`, userError?.message || 'No user found');
-      throw new GmailApiError('Invalid or expired authentication token', 401);
+    let user;
+    try {
+      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser(token);
+      
+      if (userError) {
+        console.error(`[${requestId}] Auth validation failed:`, userError.message);
+        throw new GmailApiError('Invalid or expired authentication token', 401);
+      }
+      
+      if (!authUser) {
+        console.error(`[${requestId}] No user found in token`);
+        throw new GmailApiError('Invalid or expired authentication token', 401);
+      }
+      
+      user = authUser;
+    } catch (error) {
+      console.error(`[${requestId}] Token validation error:`, error);
+      throw new GmailApiError('Authentication failed', 401);
     }
 
     console.log(`[${requestId}] User authenticated: ${user.email}`);

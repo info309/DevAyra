@@ -45,6 +45,8 @@ export const gmailApi = {
         console.error('No access token in session');
         throw new GmailApiError('No active session found. Please log in.', 401);
       }
+      
+      console.log('Gmail API request - using session token');
 
       // Check if token is close to expiring (within 5 minutes)
       const now = Math.floor(Date.now() / 1000);
@@ -72,7 +74,8 @@ export const gmailApi = {
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body,
         headers: {
-          Authorization: `Bearer ${authToken}`
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
 
