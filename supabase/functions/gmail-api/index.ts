@@ -594,23 +594,18 @@ class GmailService {
   }
 }
 
-async function authenticateAndGetToken(userId: string): Promise<string> {
+async function authenticateAndGetToken(userId: string, supabaseClient: any): Promise<string> {
   console.log(`[AUTH] Starting authentication for user: ${userId}`);
   
-  const serviceRoleClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
   console.log(`[AUTH] Fetching Gmail connection from database...`);
   
-  // Get Gmail connection
-  const { data: connection, error: connectionError } = await serviceRoleClient
+  // Get Gmail connection for this specific user
+  const { data: connection, error: connectionError } = await supabaseClient
     .from('gmail_connections')
     .select('*')
     .eq('user_id', userId)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   console.log(`[AUTH] Database query result:`, { connection: connection ? 'found' : 'null', error: connectionError });
 
@@ -670,7 +665,7 @@ async function authenticateAndGetToken(userId: string): Promise<string> {
     console.log(`[AUTH] Token refreshed successfully, updating database...`);
 
     // Update token in database
-    await serviceRoleClient
+    await supabaseClient
       .from('gmail_connections')
       .update({ access_token: gmailToken, updated_at: new Date().toISOString() })
       .eq('id', connection.id);
@@ -694,48 +689,30 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] Gmail API request received`);
     
-    // Get user from Supabase auth context
-    let user;
-    try {
-      // Since verify_jwt is false, we need to manually verify the token
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader?.startsWith('Bearer ')) {
-        console.error(`[${requestId}] Missing authorization header`);
-        throw new GmailApiError('Authorization required', 401);
-      }
+    // 1. Create Supabase client with service role key for proper auth
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-      // Create a Supabase client with the user's token for this request
-      const token = authHeader.replace('Bearer ', '');
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        {
-          global: {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        }
-      );
-
-      // Get the current user using their token
-      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser();
-      
-      if (userError || !authUser) {
-        console.error(`[${requestId}] User authentication failed:`, userError);
-        throw new GmailApiError('Invalid authentication token', 401);
-      }
-
-      user = {
-        id: authUser.id,
-        email: authUser.email || ''
-      };
-      
-      console.log(`[${requestId}] User authenticated successfully:`, user.email, 'ID:', user.id);
-    } catch (error) {
-      console.error(`[${requestId}] Authentication error:`, error.message);
-      throw new GmailApiError('Authentication failed', 401);
+    // 2. Get authenticated user from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error(`[${requestId}] Missing authorization header`);
+      throw new GmailApiError('Authorization required', 401);
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Use Supabase to validate the user token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error(`[${requestId}] Authentication failed:`, authError);
+      throw new GmailApiError('Unauthorized', 401);
+    }
+
+    console.log(`[${requestId}] User authenticated:`, user.email, 'ID:', user.id);
 
     // Parse request
     console.log(`[${requestId}] Parsing request body...`);
@@ -766,8 +743,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get Gmail token
-    const gmailToken = await authenticateAndGetToken(user.id);
+    // Get Gmail token for this specific user
+    const gmailToken = await authenticateAndGetToken(user.id, supabase);
     const gmailService = new GmailService(gmailToken, requestId);
 
     // Handle actions
