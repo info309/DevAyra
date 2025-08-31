@@ -595,11 +595,15 @@ class GmailService {
 }
 
 async function authenticateAndGetToken(userId: string): Promise<string> {
+  console.log(`[AUTH] Starting authentication for user: ${userId}`);
+  
   const serviceRoleClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  console.log(`[AUTH] Fetching Gmail connection from database...`);
+  
   // Get Gmail connection
   const { data: connection, error: connectionError } = await serviceRoleClient
     .from('gmail_connections')
@@ -608,20 +612,38 @@ async function authenticateAndGetToken(userId: string): Promise<string> {
     .eq('is_active', true)
     .single();
 
+  console.log(`[AUTH] Database query result:`, { connection: connection ? 'found' : 'null', error: connectionError });
+
   if (connectionError || !connection) {
+    console.error(`[AUTH] No Gmail connection found:`, connectionError);
     throw new GmailApiError('No active Gmail connection found. Please reconnect your account.', 401);
   }
 
+  console.log(`[AUTH] Gmail connection found for email: ${connection.email}`);
+  console.log(`[AUTH] Connection details:`, {
+    id: connection.id,
+    email: connection.email,
+    is_active: connection.is_active,
+    created_at: connection.created_at,
+    updated_at: connection.updated_at,
+    has_access_token: !!connection.access_token,
+    has_refresh_token: !!connection.refresh_token
+  });
+
   let gmailToken = connection.access_token;
 
+  console.log(`[AUTH] Testing Gmail token validity...`);
+  
   // Test token validity
   const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
     headers: { 'Authorization': `Bearer ${gmailToken}` }
   });
 
+  console.log(`[AUTH] Gmail token test response status: ${testResponse.status}`);
+
   // Refresh token if expired
   if (testResponse.status === 401) {
-    console.log('Token expired, refreshing...');
+    console.log(`[AUTH] Token expired, attempting refresh...`);
     
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -634,20 +656,31 @@ async function authenticateAndGetToken(userId: string): Promise<string> {
       })
     });
 
+    console.log(`[AUTH] Token refresh response status: ${tokenResponse.status}`);
+
     if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error(`[AUTH] Token refresh failed:`, errorText);
       throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account.', 401);
     }
 
     const tokenData = await tokenResponse.json();
     gmailToken = tokenData.access_token;
+    
+    console.log(`[AUTH] Token refreshed successfully, updating database...`);
 
     // Update token in database
     await serviceRoleClient
       .from('gmail_connections')
       .update({ access_token: gmailToken, updated_at: new Date().toISOString() })
       .eq('id', connection.id);
+      
+    console.log(`[AUTH] Database updated with new token`);
+  } else {
+    console.log(`[AUTH] Existing token is valid`);
   }
 
+  console.log(`[AUTH] Authentication successful, returning token`);
   return gmailToken;
 }
 
