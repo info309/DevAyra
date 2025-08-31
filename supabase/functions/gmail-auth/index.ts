@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
             return new Response(null, {
               status: 302,
               headers: {
-                'Location': `/account?gmail_auth=error&error=${encodeURIComponent(error)}`,
+                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=error&error=${encodeURIComponent(error)}`,
                 ...corsHeaders
               }
             });
@@ -78,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
             return new Response(null, {
               status: 302,
               headers: {
-                'Location': `/account?gmail_auth=error&error=${encodeURIComponent('Missing authorization code')}`,
+                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=error&error=${encodeURIComponent('Missing authorization code')}`,
                 ...corsHeaders
               }
             });
@@ -171,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
             return new Response(null, {
               status: 302,
               headers: {
-                'Location': `/account?gmail_auth=success`,
+                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=success`,
                 ...corsHeaders
               }
             });
