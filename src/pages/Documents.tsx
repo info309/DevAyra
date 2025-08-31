@@ -803,7 +803,7 @@ const Documents = () => {
             
             <Drawer open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
               <Button
-                variant="outline"
+                variant="compose"
                 size="sm"
                 onClick={() => setIsCreateFolderOpen(true)}
                 className="gap-2"
@@ -841,6 +841,7 @@ const Documents = () => {
                     <Button 
                       onClick={createFolder}
                       disabled={!newFolderName.trim()}
+                      variant="compose"
                       className="gap-2"
                     >
                       <Folder className="w-4 h-4" />
