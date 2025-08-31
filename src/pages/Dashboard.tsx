@@ -129,11 +129,11 @@ const Dashboard = () => {
                     </CardContent>
                   </div>
                   {tool.image && (
-                    <div className="w-[30%] min-h-[120px] relative">
+                    <div className="w-[30%] min-h-[120px] relative flex items-center justify-center bg-muted/20">
                       <img 
                         src={tool.image} 
                         alt={tool.title}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                       />
                     </div>
                   )}
