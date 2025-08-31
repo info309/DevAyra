@@ -233,7 +233,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <p className="text-muted-foreground mb-4">
               Click download to open this document
             </p>
-            <Button onClick={handleDownload} className="gap-2">
+            <Button onClick={handleDownload} variant="compose" className="gap-2">
               <Download className="w-4 h-4" />
               Download to View
             </Button>
@@ -314,7 +314,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           <p className="text-muted-foreground mb-4">
             Click download to open this document
           </p>
-          <Button onClick={handleDownload} className="gap-2">
+          <Button onClick={handleDownload} variant="compose" className="gap-2">
             <Download className="w-4 h-4" />
             Download to View
           </Button>
