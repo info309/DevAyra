@@ -209,6 +209,46 @@ const CALENDAR_TOOLS = [
         required: []
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calendar_create_event',
+      description: 'Create a new calendar event for the user. Use this when user asks to schedule, book, create, or add calendar events.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Event title/name'
+          },
+          description: {
+            type: 'string',
+            description: 'Optional event description or details',
+            optional: true
+          },
+          start_time: {
+            type: 'string',
+            description: 'Event start time in ISO format (e.g., 2024-12-31T14:00:00Z)'
+          },
+          end_time: {
+            type: 'string',
+            description: 'Event end time in ISO format (e.g., 2024-12-31T15:00:00Z)'
+          },
+          all_day: {
+            type: 'boolean',
+            description: 'Whether this is an all-day event (default: false)',
+            default: false
+          },
+          reminder_minutes: {
+            type: 'number',
+            description: 'Minutes before event to send reminder (default: 15)',
+            default: 15
+          }
+        },
+        required: ['title', 'start_time', 'end_time']
+      }
+    }
   }
 ];
 
@@ -579,6 +619,127 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
   }
 }
 
+async function createCalendarEvent(userId: string, eventData: any) {
+  try {
+    console.log(`Creating calendar event for user ${userId}:`, eventData);
+    
+    // Validate required fields
+    const { title, start_time, end_time, description = '', all_day = false, reminder_minutes = 15 } = eventData;
+    
+    if (!title || !start_time || !end_time) {
+      return { error: 'Title, start_time, and end_time are required' };
+    }
+    
+    // Validate that end_time is after start_time
+    const startDate = new Date(start_time);
+    const endDate = new Date(end_time);
+    
+    if (endDate <= startDate) {
+      return { error: 'End time must be after start time' };
+    }
+    
+    // Insert into local calendar events table
+    const { data: newEvent, error } = await supabase
+      .from('calendar_events')
+      .insert({
+        user_id: userId,
+        title,
+        description,
+        start_time,
+        end_time,
+        all_day,
+        reminder_minutes,
+        is_synced: false // Initially not synced to Google Calendar
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Calendar event creation error:', error);
+      return { error: `Failed to create calendar event: ${error.message}` };
+    }
+    
+    console.log('Calendar event created successfully:', newEvent.id);
+    
+    // Try to sync with Google Calendar if user has active connection
+    const { data: gmailConnection } = await supabase
+      .from('gmail_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+    
+    let syncStatus = 'local_only';
+    let syncMessage = '';
+    
+    if (gmailConnection) {
+      try {
+        // Call the calendar API function to create the event in Google Calendar
+        const calendarApiResponse = await fetch(`${Deno.env.get('SUPABASE_URL')!}/functions/v1/calendar-api`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'create',
+            event: {
+              title,
+              description,
+              start_time,
+              end_time,
+              all_day,
+              reminder_minutes
+            }
+          }),
+        });
+        
+        if (calendarApiResponse.ok) {
+          const syncResult = await calendarApiResponse.json();
+          
+          // Update the local event with Google Calendar ID
+          await supabase
+            .from('calendar_events')
+            .update({ 
+              is_synced: true,
+              google_event_id: syncResult.eventId 
+            })
+            .eq('id', newEvent.id);
+            
+          syncStatus = 'synced';
+          syncMessage = ' and synced to Google Calendar';
+        } else {
+          console.log('Google Calendar sync failed, event saved locally');
+          syncMessage = ' (saved locally, Google Calendar sync failed)';
+        }
+      } catch (syncError) {
+        console.error('Google Calendar sync error:', syncError);
+        syncMessage = ' (saved locally, Google Calendar sync failed)';
+      }
+    } else {
+      syncMessage = ' (saved locally, no Google Calendar connection)';
+    }
+    
+    return {
+      success: true,
+      event: {
+        id: newEvent.id,
+        title: newEvent.title,
+        description: newEvent.description,
+        startTime: newEvent.start_time,
+        endTime: newEvent.end_time,
+        isAllDay: newEvent.all_day,
+        reminderMinutes: newEvent.reminder_minutes,
+        syncStatus
+      },
+      message: `Calendar event "${title}" created successfully${syncMessage}!`
+    };
+  } catch (error) {
+    console.error('Calendar event creation error:', error);
+    return { error: `Calendar event creation failed: ${error.message}` };
+  }
+}
+
 async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[], userName?: string) {
   console.log('Composing email draft:', { to, subject, threadId, attachments });
   
@@ -888,6 +1049,9 @@ serve(async (req) => {
               break;
             case 'calendar_list_events':
               result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
+              break;
+            case 'calendar_create_event':
+              result = await createCalendarEvent(user.id, args);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
