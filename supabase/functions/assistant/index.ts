@@ -296,59 +296,104 @@ async function searchEmails(userId: string, query: string) {
       /yesterday/i
     ];
 
-    // Parse date expressions
-    for (const pattern of datePatterns) {
-      const match = searchTerm.match(pattern);
-      if (match) {
-        console.log(`Detected date pattern: ${match[0]}`);
+    // Parse Gmail-style date queries first
+    const gmailAfterMatch = searchTerm.match(/after:(\d{4}-\d{2}-\d{2})/);
+    const gmailBeforeMatch = searchTerm.match(/before:(\d{4}-\d{2}-\d{2})/);
+    
+    if (gmailAfterMatch || gmailBeforeMatch) {
+      console.log('Detected Gmail-style date query');
+      try {
+        let startDate = null;
+        let endDate = null;
         
-        try {
-          const now = new Date();
-          let targetDate = new Date();
-          
-          if (match[0].includes('last thursday')) {
-            // Find last Thursday
-            const today = now.getDay(); // 0 = Sunday, 4 = Thursday
-            const daysBack = today >= 4 ? today - 4 : today + 3; // Days since last Thursday
-            targetDate.setDate(now.getDate() - daysBack - 7); // Go back to previous week's Thursday
-          } else if (match[0].includes('thursday') && match[0].includes('august') && match[0].includes('28')) {
-            // Parse "Thursday, August 28th" - use current year
-            targetDate = new Date(now.getFullYear(), 7, 28); // August is month 7 (0-indexed)
-          } else if (match[0].includes('yesterday')) {
-            targetDate.setDate(now.getDate() - 1);
-          } else if (match[0].includes('today')) {
-            targetDate = now;
-          } else if (match[0].includes('last week')) {
-            // Last week range
-            const startOfLastWeek = new Date(now);
-            startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
-            const endOfLastWeek = new Date(startOfLastWeek);
-            endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
-            dateRange = { start: startOfLastWeek, end: endOfLastWeek };
-          } else if (match[0].includes('this week')) {
-            // This week range  
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6);
-            dateRange = { start: startOfWeek, end: endOfWeek };
-          }
-          
-          if (!dateRange && targetDate) {
-            // Single day range
-            const startOfDay = new Date(targetDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(targetDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            dateRange = { start: startOfDay, end: endOfDay };
-          }
-          
-          console.log(`Parsed date range:`, dateRange);
-        } catch (dateError) {
-          console.warn('Date parsing failed:', dateError);
+        if (gmailAfterMatch) {
+          startDate = new Date(gmailAfterMatch[1]);
+          startDate.setHours(0, 0, 0, 0);
+          console.log('Gmail after date:', startDate.toISOString());
         }
         
-        break; // Stop after first match
+        if (gmailBeforeMatch) {
+          endDate = new Date(gmailBeforeMatch[1]);
+          endDate.setHours(23, 59, 59, 999);
+          console.log('Gmail before date:', endDate.toISOString());
+        }
+        
+        // If only one date is specified, create a single day range
+        if (startDate && !endDate) {
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 1);
+          endDate.setHours(23, 59, 59, 999);
+        } else if (!startDate && endDate) {
+          startDate = new Date(endDate);
+          startDate.setDate(endDate.getDate() - 1);  
+          startDate.setHours(0, 0, 0, 0);
+        }
+        
+        if (startDate && endDate) {
+          dateRange = { start: startDate, end: endDate };
+          console.log(`Parsed Gmail date range:`, dateRange);
+        }
+      } catch (gmailDateError) {
+        console.warn('Gmail date parsing failed:', gmailDateError);
+      }
+    }
+    
+    // If no Gmail date found, try natural language patterns
+    if (!dateRange) {
+      // Parse date expressions
+      for (const pattern of datePatterns) {
+        const match = searchTerm.match(pattern);
+        if (match) {
+          console.log(`Detected date pattern: ${match[0]}`);
+          
+          try {
+            const now = new Date();
+            let targetDate = new Date();
+            
+            if (match[0].includes('last thursday')) {
+              // Find last Thursday
+              const today = now.getDay(); // 0 = Sunday, 4 = Thursday
+              const daysBack = today >= 4 ? today - 4 : today + 3; // Days since last Thursday
+              targetDate.setDate(now.getDate() - daysBack - 7); // Go back to previous week's Thursday
+            } else if (match[0].includes('thursday') && match[0].includes('august') && match[0].includes('28')) {
+              // Parse "Thursday, August 28th" - use current year
+              targetDate = new Date(now.getFullYear(), 7, 28); // August is month 7 (0-indexed)
+            } else if (match[0].includes('yesterday')) {
+              targetDate.setDate(now.getDate() - 1);
+            } else if (match[0].includes('today')) {
+              targetDate = now;
+            } else if (match[0].includes('last week')) {
+              // Last week range
+              const startOfLastWeek = new Date(now);
+              startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
+              const endOfLastWeek = new Date(startOfLastWeek);
+              endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+              dateRange = { start: startOfLastWeek, end: endOfLastWeek };
+            } else if (match[0].includes('this week')) {
+              // This week range  
+              const startOfWeek = new Date(now);
+              startOfWeek.setDate(now.getDate() - now.getDay());
+              const endOfWeek = new Date(startOfWeek);
+              endOfWeek.setDate(startOfWeek.getDate() + 6);
+              dateRange = { start: startOfWeek, end: endOfWeek };
+            }
+            
+            if (!dateRange && targetDate) {
+              // Single day range
+              const startOfDay = new Date(targetDate);
+              startOfDay.setHours(0, 0, 0, 0);
+              const endOfDay = new Date(targetDate);
+              endOfDay.setHours(23, 59, 59, 999);
+              dateRange = { start: startOfDay, end: endOfDay };
+            }
+            
+            console.log(`Parsed date range:`, dateRange);
+          } catch (dateError) {
+            console.warn('Date parsing failed:', dateError);
+          }
+          
+          break; // Stop after first match
+        }
       }
     }
     
