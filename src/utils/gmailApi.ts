@@ -33,8 +33,10 @@ export const gmailApi = {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      // Get the current session to pass auth token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Getting current session for Gmail API request');
+      
+      // First, try to get the current session
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
@@ -46,26 +48,29 @@ export const gmailApi = {
         throw new GmailApiError('No active session found. Please log in.', 401);
       }
       
-      console.log('Gmail API request - using session token');
-
-      // Check if token is close to expiring (within 5 minutes)
+      console.log('Session found, checking token validity');
+      console.log('Token expires at:', new Date(session.expires_at! * 1000).toISOString());
+      
+      // Check if token is expired or close to expiring (within 1 minute)
       const now = Math.floor(Date.now() / 1000);
       const tokenExp = session.expires_at || 0;
       
-      if (tokenExp - now < 300) { // Less than 5 minutes until expiry
-        console.log('Token expiring soon, refreshing session...');
-        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+      if (tokenExp <= now || (tokenExp - now < 60)) {
+        console.log('Token expired or expiring soon, refreshing session...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (refreshError || !refreshedSession.session) {
+        if (refreshError || !refreshData.session) {
           console.error('Failed to refresh session:', refreshError);
+          // Clear potentially stale session
+          await supabase.auth.signOut();
           throw new GmailApiError('Session expired. Please log in again.', 401);
         }
         
-        console.log('Session refreshed successfully');
+        session = refreshData.session;
+        console.log('Session refreshed successfully, new expiry:', new Date(session.expires_at! * 1000).toISOString());
       }
-
-      const currentSession = await supabase.auth.getSession();
-      const authToken = currentSession.data.session?.access_token;
+      
+      const authToken = session.access_token;
       
       if (!authToken) {
         throw new GmailApiError('No authentication token available', 401);
