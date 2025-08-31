@@ -1,7 +1,7 @@
 import * as React from "react"
 
-// Use drawer view for mobile and tablet (< 1024px), desktop gets side-by-side (≥ 1024px)
-const DRAWER_BREAKPOINT = 1024
+// Use drawer view for mobile and tablet (< 800px), desktop gets side-by-side (≥ 800px)
+const DRAWER_BREAKPOINT = 800
 
 export function useIsDrawerView() {
   const [isDrawerView, setIsDrawerView] = React.useState<boolean | undefined>(undefined)
