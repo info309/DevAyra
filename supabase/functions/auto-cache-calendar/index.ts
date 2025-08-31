@@ -90,6 +90,14 @@ async function refreshAccessToken(connection: any): Promise<string> {
   });
 
   if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Token refresh failed:', errorData);
+    
+    // Check if it's an invalid_grant error (revoked access)
+    if (errorData.error === 'invalid_grant') {
+      throw new Error('INVALID_GRANT');
+    }
+    
     throw new Error('Failed to refresh access token');
   }
 
@@ -113,35 +121,57 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
   // If unauthorized, try refreshing token
   if (response.status === 401) {
     console.log('Access token expired, refreshing...');
-    accessToken = await refreshAccessToken(connection);
-    
-    // Persist the new access token to database
-    if (supabaseClient) {
-      console.log('Persisting refreshed access token to database');
-      const { error: updateError } = await supabaseClient
-        .from('gmail_connections')
-        .update({ 
-          access_token: accessToken, 
-          updated_at: new Date().toISOString(),
-          last_error: null 
-        })
-        .eq('id', connection.id);
+    try {
+      accessToken = await refreshAccessToken(connection);
       
-      if (updateError) {
-        console.error('Failed to persist access token:', updateError);
-      } else {
-        console.log('Successfully persisted refreshed access token');
+      // Persist the new access token to database
+      if (supabaseClient) {
+        console.log('Persisting refreshed access token to database');
+        const { error: updateError } = await supabaseClient
+          .from('gmail_connections')
+          .update({ 
+            access_token: accessToken, 
+            updated_at: new Date().toISOString(),
+            last_error: null 
+          })
+          .eq('id', connection.id);
+        
+        if (updateError) {
+          console.error('Failed to persist access token:', updateError);
+        } else {
+          console.log('Successfully persisted refreshed access token');
+        }
       }
+      
+      response = await fetch(`https://www.googleapis.com/calendar/v3${endpoint}`, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+    } catch (refreshError: any) {
+      console.error('Token refresh failed:', refreshError);
+      
+      // Check if it's an invalid_grant error (revoked access)
+      if (refreshError.message === 'INVALID_GRANT' && supabaseClient) {
+        console.log('Access revoked, marking connection as inactive');
+        await supabaseClient
+          .from('gmail_connections')
+          .update({ 
+            is_active: false,
+            last_error: 'Google account access has been revoked. Please reconnect your account.',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', connection.id);
+        
+        // Return empty results instead of failing
+        return [];
+      }
+      
+      throw refreshError;
     }
-    
-    response = await fetch(`https://www.googleapis.com/calendar/v3${endpoint}`, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
   }
 
   if (!response.ok) {

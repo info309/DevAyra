@@ -59,7 +59,8 @@ const GmailConnection: React.FC = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Check for active connection first
+      const { data: activeConnection, error } = await supabase
         .from('gmail_connections')
         .select('*')
         .eq('user_id', user.id)
@@ -76,7 +77,25 @@ const GmailConnection: React.FC = () => {
         return;
       }
 
-      setConnection(data);
+      // If no active connection, check for inactive connections with errors
+      if (!activeConnection) {
+        const { data: inactiveConnection } = await supabase
+          .from('gmail_connections')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', false)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (inactiveConnection && inactiveConnection.last_error) {
+          setConnection(inactiveConnection);
+        } else {
+          setConnection(null);
+        }
+      } else {
+        setConnection(activeConnection);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -252,7 +271,7 @@ const GmailConnection: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {connection ? (
+          {connection && connection.is_active ? (
             <div className="space-y-4">
               <div className={`flex ${isDrawerView ? 'flex-col gap-3' : 'items-center justify-between'} p-4 border rounded-lg`}>
                 <div className="flex items-center gap-3">
@@ -266,11 +285,6 @@ const GmailConnection: React.FC = () => {
                       {connection.last_email_sync_at && (
                         <p className="text-sm text-muted-foreground">
                           Last synced: {new Date(connection.last_email_sync_at).toLocaleString()}
-                        </p>
-                      )}
-                      {connection.last_error && (
-                        <p className="text-sm text-destructive">
-                          Error: {connection.last_error}
                         </p>
                       )}
                     </div>
@@ -293,6 +307,39 @@ const GmailConnection: React.FC = () => {
                   <Trash2 className="w-4 h-4 mr-2" />
                   {disconnecting ? 'Disconnecting...' : 'Disconnect'}
                 </Button>
+              </div>
+            </div>
+          ) : connection && !connection.is_active && connection.last_error ? (
+            <div className="space-y-4">
+              <div className={`flex ${isDrawerView ? 'flex-col gap-3' : 'items-center justify-between'} p-4 border rounded-lg border-destructive/20 bg-destructive/5`}>
+                <div className="flex items-center gap-3">
+                  <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-destructive">Connection Issue</p>
+                    <p className="text-sm text-muted-foreground truncate">{connection.email_address}</p>
+                    <p className="text-sm text-destructive mt-1">
+                      {connection.last_error}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="destructive" className="flex-shrink-0">
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Disconnected
+                </Badge>
+              </div>
+              
+              <Button
+                onClick={connectGmail}
+                disabled={connecting}
+                className="w-full"
+                size={isDrawerView ? "default" : "default"}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {connecting ? 'Reconnecting...' : 'Reconnect Google Account'}
+              </Button>
+              
+              <div className="text-xs text-muted-foreground">
+                <p>Your Google account access has been revoked or expired. Please reconnect to continue using email and calendar features.</p>
               </div>
             </div>
           ) : (

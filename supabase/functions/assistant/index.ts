@@ -495,6 +495,36 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
     
     console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
     
+    // Check if user has an active Gmail connection
+    const { data: gmailConnection } = await supabase
+      .from('gmail_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    // If no active connection, check if there's an inactive one with error
+    if (!gmailConnection) {
+      const { data: inactiveConnection } = await supabase
+        .from('gmail_connections')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', false)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (inactiveConnection && inactiveConnection.last_error) {
+        return {
+          requiresReconnect: true,
+          message: inactiveConnection.last_error,
+          events: [],
+          currentUserTime,
+          userTimezone
+        };
+      }
+    }
+
     // Read from cached calendar events only
     const { data: cachedEvents, error } = await supabase
       .from('calendar_events')
