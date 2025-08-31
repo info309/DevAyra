@@ -267,6 +267,7 @@ export type Database = {
           email_address: string
           id: string
           is_active: boolean | null
+          last_email_sync_at: string | null
           refresh_token: string
           updated_at: string
           user_id: string
@@ -277,6 +278,7 @@ export type Database = {
           email_address: string
           id?: string
           is_active?: boolean | null
+          last_email_sync_at?: string | null
           refresh_token: string
           updated_at?: string
           user_id: string
@@ -287,6 +289,7 @@ export type Database = {
           email_address?: string
           id?: string
           is_active?: boolean | null
+          last_email_sync_at?: string | null
           refresh_token?: string
           updated_at?: string
           user_id?: string
