@@ -6,18 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, User, LogOut, Clock } from 'lucide-react';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
+import GmailConnection from '@/components/GmailConnection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import GmailConnection from '@/components/GmailConnection';
 
 const Account: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isDrawerView = useIsDrawerView();
-  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [timezone, setTimezone] = useState<string>('GMT');
+  const [timezone, setTimezone] = useState('GMT');
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const timezones = [
     { value: 'GMT', label: 'GMT (Greenwich Mean Time)' },
@@ -27,28 +27,29 @@ const Account: React.FC = () => {
     { value: 'CET', label: 'CET (Central European Time)' },
     { value: 'JST', label: 'JST (Japan Standard Time)' },
     { value: 'AEST', label: 'AEST (Australian Eastern Standard Time)' },
+    { value: 'IST', label: 'IST (India Standard Time)' },
   ];
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user?.id) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('timezone')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (data?.timezone) {
-        setTimezone(data.timezone);
-      }
-    };
+    fetchUserTimezone();
+  }, [user]);
 
-    fetchProfile();
-  }, [user?.id]);
+  const fetchUserTimezone = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('timezone')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data?.timezone) {
+      setTimezone(data.timezone);
+    }
+  };
 
   const updateTimezone = async (newTimezone: string) => {
-    if (!user?.id) return;
+    if (!user) return;
     
     setLoading(true);
     try {
@@ -56,22 +57,19 @@ const Account: React.FC = () => {
         .from('profiles')
         .update({ timezone: newTimezone })
         .eq('user_id', user.id);
-
-      if (error) {
-        throw error;
-      }
-
+      
+      if (error) throw error;
+      
       setTimezone(newTimezone);
       toast({
-        title: 'Timezone updated',
+        title: "Timezone Updated",
         description: `Your timezone has been set to ${newTimezone}`,
       });
     } catch (error) {
-      console.error('Error updating timezone:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update timezone. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to update timezone preference.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
