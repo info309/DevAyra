@@ -175,7 +175,7 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Start writing your note..."
-          className="flex-1 resize-none border-none p-0 shadow-none focus-visible:ring-0 text-base leading-relaxed"
+          className="flex-1 resize-none border-none p-0 shadow-none focus-visible:ring-0 focus:ring-0 focus:outline-none focus:border-none text-base leading-relaxed bg-transparent"
           style={{ minHeight: '200px' }}
         />
       </div>
