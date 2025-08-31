@@ -6,7 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useIsDrawerView } from '@/hooks/use-drawer-view'
 import { NoteSidebar } from '@/components/NoteSidebar'
 import { NoteEditor } from '@/components/NoteEditor'
-import { Plus, ArrowLeft } from 'lucide-react'
+import { Plus, ArrowLeft, PanelLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 
@@ -170,11 +170,11 @@ export default function Notes() {
             <h1 className="text-xl font-semibold">Notes</h1>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
           >
-            <Plus className="w-4 h-4" />
+            <PanelLeft className="w-4 h-4" />
           </Button>
         </header>
 
