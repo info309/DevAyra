@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Save, Edit2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -105,8 +104,8 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex-shrink-0 space-y-4">
+    <div className="h-full flex flex-col">
+      <div className="flex-shrink-0 space-y-4 p-6 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0 mr-4">
             {isEditingTitle ? (
@@ -168,9 +167,9 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
             <span className="text-amber-600 font-medium">Unsaved changes</span>
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="flex-1 flex flex-col p-6 pt-0">
+      <div className="flex-1 flex flex-col px-6 pb-6">
         <Textarea
           ref={contentRef}
           value={content}
@@ -179,7 +178,7 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
           className="flex-1 resize-none border-none p-0 shadow-none focus-visible:ring-0 text-base leading-relaxed"
           style={{ minHeight: '200px' }}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
