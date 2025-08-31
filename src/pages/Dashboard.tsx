@@ -48,7 +48,7 @@ const Dashboard = () => {
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
       route: '/mailbox',
-      image: undefined // Add your mailbox image here
+      image: '/lovable-uploads/690a95aa-24fc-4792-aa90-f9cd1f512385.png'
     },
     {
       title: 'Calendar',
