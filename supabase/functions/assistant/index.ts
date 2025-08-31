@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const SYSTEM_PROMPT = `
 You are a magical AI assistant named "Ayra". You are friendly, human-like, witty, and concise.
-You have access to special tools like email search, document search, and email sending.
+You have access to special tools like email search, document search, calendar events, and email sending.
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
 HONESTY & ACCURACY RULES:
@@ -169,6 +169,37 @@ const DOCUMENT_TOOLS = [
   }
 ];
 
+const CALENDAR_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'calendar_list_events',
+      description: 'Get upcoming calendar events for the user. Automatically called when user asks about their schedule, meetings, appointments, or calendar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          timeMin: {
+            type: 'string',
+            description: 'Start time for events in ISO format (optional, defaults to now)',
+            optional: true
+          },
+          timeMax: {
+            type: 'string',
+            description: 'End time for events in ISO format (optional, defaults to 1 week from now)',
+            optional: true
+          },
+          maxResults: {
+            type: 'number',
+            description: 'Maximum number of events to return (default: 20)',
+            default: 20
+          }
+        },
+        required: []
+      }
+    }
+  }
+];
+
 // Tool execution functions
 async function searchEmails(userId: string, query: string) {
   try {
@@ -301,6 +332,87 @@ async function searchDocuments(userId: string, query: string) {
   } catch (error) {
     console.error('Document search error:', error);
     return { error: `Document search failed: ${error.message}` };
+  }
+}
+
+async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20) {
+  try {
+    console.log(`Listing calendar events for user ${userId}`);
+    
+    // Set default time range if not provided
+    const now = new Date();
+    const defaultTimeMin = timeMin || now.toISOString();
+    const defaultTimeMax = timeMax || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 1 week from now
+    
+    console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
+    
+    // First try to get events from Google Calendar via calendar-api edge function
+    try {
+      const calendarResponse = await supabase.functions.invoke('calendar-api', {
+        body: {
+          action: 'list',
+          timeMin: defaultTimeMin,
+          timeMax: defaultTimeMax,
+          maxResults
+        }
+      });
+      
+      if (calendarResponse.data && !calendarResponse.error && calendarResponse.data.items) {
+        console.log(`Found ${calendarResponse.data.items.length} events from Google Calendar`);
+        return {
+          events: calendarResponse.data.items.map((event: any) => ({
+            id: event.id,
+            title: event.summary,
+            description: event.description || '',
+            startTime: event.start?.dateTime || event.start?.date,
+            endTime: event.end?.dateTime || event.end?.date,
+            location: event.location || '',
+            isAllDay: !event.start?.dateTime, // If no time, it's all day
+            source: 'google'
+          })),
+          source: 'google',
+          totalResults: calendarResponse.data.items.length
+        };
+      }
+    } catch (googleError) {
+      console.log('Google Calendar not available, falling back to local events:', googleError);
+    }
+    
+    // Fallback to local calendar_events table
+    const { data: localEvents, error } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('start_time', defaultTimeMin)
+      .lte('start_time', defaultTimeMax)
+      .order('start_time', { ascending: true })
+      .limit(maxResults);
+    
+    if (error) {
+      console.error('Local calendar search error:', error);
+      return { error: `Calendar search failed: ${error.message}` };
+    }
+    
+    console.log(`Found ${localEvents?.length || 0} events from local calendar`);
+    
+    return {
+      events: (localEvents || []).map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description || '',
+        startTime: event.start_time,
+        endTime: event.end_time,
+        isAllDay: event.all_day,
+        reminderMinutes: event.reminder_minutes,
+        source: 'local'
+      })),
+      source: 'local',
+      totalResults: localEvents?.length || 0,
+      timeRange: { from: defaultTimeMin, to: defaultTimeMax }
+    };
+  } catch (error) {
+    console.error('Calendar events error:', error);
+    return { error: `Calendar events failed: ${error.message}` };
   }
 }
 
@@ -535,6 +647,17 @@ serve(async (req) => {
       tools.push(...DOCUMENT_TOOLS);
       console.log('Added document tools');
     }
+    
+    // Add calendar tools if requested
+    if (detectedTriggers.includes('calendar') || 
+        message.toLowerCase().includes('calendar') || 
+        message.toLowerCase().includes('schedule') || 
+        message.toLowerCase().includes('meeting') || 
+        message.toLowerCase().includes('appointment') || 
+        message.toLowerCase().includes('event')) {
+      tools.push(...CALENDAR_TOOLS);
+      console.log('Added calendar tools');
+    }
 
     console.log('Tools to use:', tools.map(t => t.function.name));
 
@@ -599,6 +722,9 @@ serve(async (req) => {
               break;
             case 'documents_search':
               result = await searchDocuments(user.id, args.query);
+              break;
+            case 'calendar_list_events':
+              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
