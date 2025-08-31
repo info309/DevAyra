@@ -2010,7 +2010,7 @@ const Mailbox: React.FC = () => {
                         <img 
                           src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
                           alt="Welcome to mail" 
-                          className="w-32 h-32 mx-auto mb-6 object-contain"
+                          className="w-48 h-48 mx-auto mb-3 object-contain"
                         />
                         <h3 className="text-xl font-medium mb-2">Welcome to mail</h3>
                         <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
@@ -2105,7 +2105,7 @@ const Mailbox: React.FC = () => {
                           <img 
                             src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
                             alt="Welcome to mail" 
-                            className="w-32 h-32 mx-auto mb-6 object-contain"
+                            className="w-48 h-48 mx-auto mb-3 object-contain"
                           />
                           <h3 className="text-xl font-medium mb-2">Welcome to mail</h3>
                           <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
