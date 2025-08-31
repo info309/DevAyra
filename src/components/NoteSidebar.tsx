@@ -30,6 +30,7 @@ interface NoteSidebarProps {
   onDeleteNote: (noteId: string) => void
   onCreateNote: () => void
   isLoading: boolean
+  showCreateButton?: boolean
 }
 
 export function NoteSidebar({
@@ -39,7 +40,8 @@ export function NoteSidebar({
   onUpdateNote,
   onDeleteNote,
   onCreateNote,
-  isLoading
+  isLoading,
+  showCreateButton = false
 }: NoteSidebarProps) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -89,14 +91,17 @@ export function NoteSidebar({
   return (
     <>
       <div className="w-full h-full border-r bg-muted/10 flex flex-col">
-        <div className="p-4 border-b md:hidden">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Notes</h2>
-            <Button onClick={onCreateNote} size="sm">
-              <PenTool className="h-4 w-4" />
-            </Button>
+        {showCreateButton && (
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Notes</h2>
+              <Button onClick={onCreateNote} size="sm">
+                <PenTool className="h-4 w-4 mr-2" />
+                New Note
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-2 space-y-1">

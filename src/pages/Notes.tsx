@@ -236,6 +236,7 @@ export default function Notes() {
               onDeleteNote={deleteNote}
               onCreateNote={createNote}
               isLoading={isLoading}
+              showCreateButton={true}
             />
           </SheetContent>
         </Sheet>
