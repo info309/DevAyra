@@ -155,9 +155,6 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
           {note.updated_at !== note.created_at && (
             <span>Modified: {formatDate(note.updated_at)}</span>
           )}
-          {hasUnsavedChanges && (
-            <span className="text-amber-600 font-medium">Unsaved changes</span>
-          )}
         </div>
       </div>
 
