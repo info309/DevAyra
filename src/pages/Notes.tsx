@@ -181,13 +181,7 @@ export default function Notes() {
                 </Button>
                 <h1 className="text-xl font-semibold">Notes</h1>
               </div>
-              <div className="flex items-center gap-2">
-                <SidebarTrigger />
-                <Button onClick={createNote} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Note
-                </Button>
-              </div>
+              <SidebarTrigger />
             </header>
 
             <div className="flex-1 p-4">
