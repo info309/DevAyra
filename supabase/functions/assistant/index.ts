@@ -1123,13 +1123,16 @@ serve(async (req) => {
       console.log('Added document tools');
     }
     
-    // Add calendar tools if requested
+    // Add calendar tools if requested - expanded triggers for natural language
+    const calendarKeywords = [
+      'calendar', 'schedule', 'meeting', 'appointment', 'event', 'busy', 'free', 'available', 
+      'space', 'time', 'today', 'tomorrow', 'yesterday', 'week', 'month', 'day',
+      'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+      'next', 'this', 'last', 'upcoming', 'when', 'what time', 'book', 'reserve'
+    ];
+    
     if (detectedTriggers.includes('calendar') || 
-        message.toLowerCase().includes('calendar') || 
-        message.toLowerCase().includes('schedule') || 
-        message.toLowerCase().includes('meeting') || 
-        message.toLowerCase().includes('appointment') || 
-        message.toLowerCase().includes('event')) {
+        calendarKeywords.some(keyword => message.toLowerCase().includes(keyword))) {
       tools.push(...CALENDAR_TOOLS);
       console.log('Added calendar tools');
     }
