@@ -236,15 +236,7 @@ export default function Notes() {
         />
         
         <main className="flex-1 flex flex-col">
-          <header className="flex items-center justify-between p-4 border-b bg-background">
-            <h1 className="text-xl font-semibold">Notes</h1>
-            <Button onClick={createNote} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Note
-            </Button>
-          </header>
-
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-6">
             {selectedNote ? (
               <NoteEditor
                 note={selectedNote}
