@@ -156,15 +156,21 @@ export function NoteSidebar({
                         <>
                           <div className="flex items-center gap-1">
                             <h3 className="font-medium text-sm truncate leading-tight">
-                              {note.title}
+                              {note.is_locked ? "Locked Note" : note.title}
                             </h3>
                             {note.is_locked && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
                           </div>
                           <p className="text-xs text-muted-foreground truncate mt-1">
-                            {note.content ? note.content.slice(0, 60) + (note.content.length > 60 ? '...' : '') : 'No content'}
+                            {note.is_locked 
+                              ? 'Content hidden - password required' 
+                              : (note.content ? note.content.slice(0, 60) + (note.content.length > 60 ? '...' : '') : 'No content')
+                            }
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Last edit on: {formatDate(note.updated_at)}
+                            {note.is_locked 
+                              ? 'Password protected' 
+                              : `Last edit on: ${formatDate(note.updated_at)}`
+                            }
                           </p>
                         </>
                       )}
