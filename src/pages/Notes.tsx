@@ -6,7 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useIsDrawerView } from '@/hooks/use-drawer-view'
 import { NoteSidebar } from '@/components/NoteSidebar'
 import { NoteEditor } from '@/components/NoteEditor'
-import { Plus, ArrowLeft, PanelLeft } from 'lucide-react'
+import { Plus, ArrowLeft, PanelLeft, PenTool } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 
@@ -192,7 +192,7 @@ export default function Notes() {
                 </h2>
                 {notes.length === 0 && (
                   <Button onClick={createNote}>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <PenTool className="h-4 w-4 mr-2" />
                     Create your first note
                   </Button>
                 )}
@@ -238,7 +238,7 @@ export default function Notes() {
           <h1 className="text-xl font-semibold">Notes</h1>
         </div>
         <Button onClick={createNote} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
+          <PenTool className="h-4 w-4 mr-2" />
           New Note
         </Button>
       </header>
@@ -271,7 +271,7 @@ export default function Notes() {
                   </h2>
                   {notes.length === 0 && (
                     <Button onClick={createNote}>
-                      <Plus className="h-4 w-4 mr-2" />
+                      <PenTool className="h-4 w-4 mr-2" />
                       Create your first note
                     </Button>
                   )}
