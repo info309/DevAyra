@@ -79,7 +79,7 @@ export const gmailApi = {
       console.log('Making Gmail API request for user:', JSON.stringify(body, null, 2));
 
       const { data, error } = await supabase.functions.invoke('gmail-api', {
-        body,
+        body: JSON.stringify(body),
         headers: {
           Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json'
