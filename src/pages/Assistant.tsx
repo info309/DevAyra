@@ -672,9 +672,9 @@ const Assistant = () => {
                   </p>
                   <div className="grid gap-3 max-w-md mx-auto">
                     {[
-                      "Did I get an email from Michelle?",
-                      "Show me my recent documents",
-                      "Help me find emails about the project"
+                      "What's on my schedule next week",
+                      "Can you show me my email's from last Monday",
+                      "Draft an email to John about our meeting next week"
                     ].map((example, idx) => (
                       <div 
                         key={idx}
