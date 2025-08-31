@@ -694,55 +694,47 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] Gmail API request received`);
     
-    // Get auth token from header and authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.error(`[${requestId}] Missing authorization header`);
-      throw new GmailApiError('Authorization required', 401);
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    console.log(`[${requestId}] Token received, length:`, token.length);
-    
-    // Decode JWT token to get user info
+    // Get user from Supabase auth context
     let user;
     try {
-      const tokenParts = token.split('.');
-      console.log(`[${requestId}] JWT parts count:`, tokenParts.length);
-      
-      if (tokenParts.length !== 3) {
-        throw new Error('Invalid JWT format');
+      // Since verify_jwt is false, we need to manually verify the token
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        console.error(`[${requestId}] Missing authorization header`);
+        throw new GmailApiError('Authorization required', 401);
       }
 
-      // Decode the payload
-      const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-      console.log(`[${requestId}] Base64 payload length:`, base64Payload.length);
+      // Create a Supabase client with the user's token for this request
+      const token = authHeader.replace('Bearer ', '');
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        }
+      );
+
+      // Get the current user using their token
+      const { data: { user: authUser }, error: userError } = await supabaseClient.auth.getUser();
       
-      const payload = JSON.parse(atob(base64Payload));
-      console.log(`[${requestId}] JWT payload:`, {
-        sub: payload.sub,
-        email: payload.email,
-        exp: payload.exp,
-        iat: payload.iat
-      });
-      
-      // Check if token is expired
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        console.error(`[${requestId}] Token expired. Now: ${now}, Exp: ${payload.exp}`);
-        throw new Error('Token expired');
+      if (userError || !authUser) {
+        console.error(`[${requestId}] User authentication failed:`, userError);
+        throw new GmailApiError('Invalid authentication token', 401);
       }
 
       user = {
-        id: payload.sub,
-        email: payload.email
+        id: authUser.id,
+        email: authUser.email || ''
       };
       
       console.log(`[${requestId}] User authenticated successfully:`, user.email, 'ID:', user.id);
     } catch (error) {
-      console.error(`[${requestId}] JWT decoding error:`, error.message);
-      console.error(`[${requestId}] JWT decoding stack:`, error.stack);
-      throw new GmailApiError('Invalid authentication token', 401);
+      console.error(`[${requestId}] Authentication error:`, error.message);
+      throw new GmailApiError('Authentication failed', 401);
     }
 
     // Parse request
