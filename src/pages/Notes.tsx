@@ -163,18 +163,18 @@ export default function Notes() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => navigate('/dashboard')}
             >
-              <Plus className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-xl font-semibold">Notes</h1>
           </div>
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => setSidebarOpen(true)}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
           </Button>
         </header>
 
