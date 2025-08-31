@@ -556,9 +556,43 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
           break;
           
         default:
-          // Default to next 7 days
-          defaultTimeMin = userNow.toISOString();
-          defaultTimeMax = new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          // Check for specific day patterns like "next friday", "this monday", etc.
+          const dayMatch = period.toLowerCase().match(/(this|next|last)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+          
+          if (dayMatch) {
+            const [, timeRef, dayName] = dayMatch;
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const targetDay = dayNames.indexOf(dayName); // 0 = Sunday, 1 = Monday, etc.
+            const currentDay = currentDate.getDay();
+            
+            let targetDate = new Date(currentDate);
+            
+            if (timeRef === 'next') {
+              // Find next occurrence of the day
+              let daysToAdd = targetDay - currentDay;
+              if (daysToAdd <= 0) daysToAdd += 7; // If today or past, go to next week
+              targetDate.setDate(targetDate.getDate() + daysToAdd);
+            } else if (timeRef === 'this') {
+              // Find this week's occurrence
+              let daysToAdd = targetDay - currentDay;
+              if (daysToAdd < 0) daysToAdd += 7; // If past in week, go to next occurrence
+              targetDate.setDate(targetDate.getDate() + daysToAdd);
+            } else if (timeRef === 'last') {
+              // Find last occurrence of the day
+              let daysToSubtract = currentDay - targetDay;
+              if (daysToSubtract <= 0) daysToSubtract += 7; // If today or future, go to last week
+              targetDate.setDate(targetDate.getDate() - daysToSubtract);
+            }
+            
+            // Set to start and end of that specific day
+            defaultTimeMin = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
+            defaultTimeMax = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
+            console.log(`Parsed "${period}" as ${targetDate.toDateString()}`);
+          } else {
+            // Default to next 7 days
+            defaultTimeMin = userNow.toISOString();
+            defaultTimeMax = new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+          }
       }
     } else if (timeMin && timeMax) {
       defaultTimeMin = timeMin;
