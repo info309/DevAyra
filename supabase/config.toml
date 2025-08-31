@@ -61,7 +61,7 @@ test_otp = "123456"
 verify_jwt = false
 
 [functions.gmail-api]
-verify_jwt = true
+verify_jwt = false
 
 [functions.save-attachment]
 verify_jwt = true
