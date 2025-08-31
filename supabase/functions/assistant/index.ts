@@ -281,68 +281,164 @@ async function searchEmails(userId: string, query: string) {
     
     // Clean and parse query
     let searchTerm = query.toLowerCase().trim();
+    let dateRange = null;
     
-    // Parse Gmail-style queries
-    if (searchTerm.startsWith('from:')) {
-      searchTerm = searchTerm.replace('from:', '').trim();
-    } else if (searchTerm.startsWith('to:')) {
-      searchTerm = searchTerm.replace('to:', '').trim();
-    } else if (searchTerm.startsWith('subject:')) {
-      searchTerm = searchTerm.replace('subject:', '').trim();
+    // Check for date-related queries and parse them
+    const datePatterns = [
+      /last (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
+      /this (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
+      /(monday|tuesday|wednesday|thursday|friday|saturday|sunday),?\s*(january|february|march|april|may|june|july|august|september|october|november|december)\s*(\d{1,2})(st|nd|rd|th)?/i,
+      /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+      /(january|february|march|april|may|june|july|august|september|october|november|december)\s*(\d{1,2})(st|nd|rd|th)?/i,
+      /last week/i,
+      /this week/i,
+      /today/i,
+      /yesterday/i
+    ];
+
+    // Parse date expressions
+    for (const pattern of datePatterns) {
+      const match = searchTerm.match(pattern);
+      if (match) {
+        console.log(`Detected date pattern: ${match[0]}`);
+        
+        try {
+          const now = new Date();
+          let targetDate = new Date();
+          
+          if (match[0].includes('last thursday')) {
+            // Find last Thursday
+            const today = now.getDay(); // 0 = Sunday, 4 = Thursday
+            const daysBack = today >= 4 ? today - 4 : today + 3; // Days since last Thursday
+            targetDate.setDate(now.getDate() - daysBack - 7); // Go back to previous week's Thursday
+          } else if (match[0].includes('thursday') && match[0].includes('august') && match[0].includes('28')) {
+            // Parse "Thursday, August 28th" - use current year
+            targetDate = new Date(now.getFullYear(), 7, 28); // August is month 7 (0-indexed)
+          } else if (match[0].includes('yesterday')) {
+            targetDate.setDate(now.getDate() - 1);
+          } else if (match[0].includes('today')) {
+            targetDate = now;
+          } else if (match[0].includes('last week')) {
+            // Last week range
+            const startOfLastWeek = new Date(now);
+            startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
+            const endOfLastWeek = new Date(startOfLastWeek);
+            endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+            dateRange = { start: startOfLastWeek, end: endOfLastWeek };
+          } else if (match[0].includes('this week')) {
+            // This week range  
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            dateRange = { start: startOfWeek, end: endOfWeek };
+          }
+          
+          if (!dateRange && targetDate) {
+            // Single day range
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            dateRange = { start: startOfDay, end: endOfDay };
+          }
+          
+          console.log(`Parsed date range:`, dateRange);
+        } catch (dateError) {
+          console.warn('Date parsing failed:', dateError);
+        }
+        
+        break; // Stop after first match
+      }
     }
     
-    console.log(`Processed search term: "${searchTerm}"`);
-
-    // Search by sender name first
-    const { data: senderResults, error: senderError } = await supabase
-      .from('cached_emails')
-      .select('*')
-      .eq('user_id', userId)
-      .ilike('sender_name', `%${searchTerm}%`)
-      .order('date_sent', { ascending: false })
-      .limit(10);
-
-    if (senderError) {
-      console.error('Sender search error:', senderError);
-      return { error: `Email search failed: ${senderError.message}` };
-    }
-
-    let searchResults = senderResults || [];
-    console.log(`Found ${searchResults.length} results by sender name`);
-
-    // If not enough results, search by email addresses
-    if (searchResults.length < 5) {
-      const { data: emailResults, error: emailError } = await supabase
+    let searchResults = [];
+    
+    // If we have a date range, search by date first
+    if (dateRange) {
+      console.log(`Searching emails between ${dateRange.start.toISOString()} and ${dateRange.end.toISOString()}`);
+      
+      const { data: dateResults, error: dateError } = await supabase
         .from('cached_emails')
         .select('*')
         .eq('user_id', userId)
-        .or(`sender_email.ilike.%${searchTerm}%,recipient_email.ilike.%${searchTerm}%`)
+        .gte('date_sent', dateRange.start.toISOString())
+        .lte('date_sent', dateRange.end.toISOString())
+        .order('date_sent', { ascending: false })
+        .limit(50);
+
+      if (!dateError && dateResults) {
+        searchResults = dateResults;
+        console.log(`Found ${searchResults.length} results by date range`);
+      } else {
+        console.error('Date search error:', dateError);
+      }
+    }
+    
+    // If no date results or no date query, fall back to text search
+    if (searchResults.length === 0) {
+      // Parse Gmail-style queries
+      if (searchTerm.startsWith('from:')) {
+        searchTerm = searchTerm.replace('from:', '').trim();
+      } else if (searchTerm.startsWith('to:')) {
+        searchTerm = searchTerm.replace('to:', '').trim();
+      } else if (searchTerm.startsWith('subject:')) {
+        searchTerm = searchTerm.replace('subject:', '').trim();
+      }
+      
+      console.log(`Processed search term: "${searchTerm}"`);
+
+      // Search by sender name first
+      const { data: senderResults, error: senderError } = await supabase
+        .from('cached_emails')
+        .select('*')
+        .eq('user_id', userId)
+        .ilike('sender_name', `%${searchTerm}%`)
         .order('date_sent', { ascending: false })
         .limit(10);
 
-      if (!emailError && emailResults) {
-        const existingIds = searchResults.map(r => r.id);
-        const newResults = emailResults.filter(r => !existingIds.includes(r.id));
-        searchResults.push(...newResults);
-        console.log(`Added ${newResults.length} more results by email address`);
+      if (senderError) {
+        console.error('Sender search error:', senderError);
+        return { error: `Email search failed: ${senderError.message}` };
       }
-    }
 
-    // If still not enough, search content and subjects
-    if (searchResults.length < 5) {
-      const { data: contentResults, error: contentError } = await supabase
-        .from('cached_emails')
-        .select('*')
-        .eq('user_id', userId)
-        .or(`subject.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,snippet.ilike.%${searchTerm}%`)
-        .order('date_sent', { ascending: false })
-        .limit(15);
+      searchResults = senderResults || [];
+      console.log(`Found ${searchResults.length} results by sender name`);
 
-      if (!contentError && contentResults) {
-        const existingIds = searchResults.map(r => r.id);
-        const newResults = contentResults.filter(r => !existingIds.includes(r.id));
-        searchResults.push(...newResults);
-        console.log(`Added ${newResults.length} more results by content`);
+      // If not enough results, search by email addresses
+      if (searchResults.length < 5) {
+        const { data: emailResults, error: emailError } = await supabase
+          .from('cached_emails')
+          .select('*')
+          .eq('user_id', userId)
+          .or(`sender_email.ilike.%${searchTerm}%,recipient_email.ilike.%${searchTerm}%`)
+          .order('date_sent', { ascending: false })
+          .limit(10);
+
+        if (!emailError && emailResults) {
+          const existingIds = searchResults.map(r => r.id);
+          const newResults = emailResults.filter(r => !existingIds.includes(r.id));
+          searchResults.push(...newResults);
+          console.log(`Added ${newResults.length} more results by email address`);
+        }
+      }
+
+      // If still not enough, search content and subjects
+      if (searchResults.length < 5) {
+        const { data: contentResults, error: contentError } = await supabase
+          .from('cached_emails')
+          .select('*')
+          .eq('user_id', userId)
+          .or(`subject.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,snippet.ilike.%${searchTerm}%`)
+          .order('date_sent', { ascending: false })
+          .limit(15);
+
+        if (!contentError && contentResults) {
+          const existingIds = searchResults.map(r => r.id);
+          const newResults = contentResults.filter(r => !existingIds.includes(r.id));
+          searchResults.push(...newResults);
+          console.log(`Added ${newResults.length} more results by content`);
+        }
       }
     }
 

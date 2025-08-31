@@ -156,13 +156,35 @@ class GmailService {
             .replace(/-23/g, '#');
           
           // Then try standard URL decoding for remaining % patterns
-          // Only decode if it looks like valid URL encoding
+          // Only decode if it looks like valid URL encoding and is safe
           if (decoded.match(/%[0-9A-F]{2}/gi)) {
-            decoded = decodeURIComponent(decoded);
+            // Split by segments and decode each valid segment individually
+            const segments = decoded.split(/%/);
+            let safeDecoded = segments[0]; // First segment is never URL-encoded
+            
+            for (let i = 1; i < segments.length; i++) {
+              const segment = segments[i];
+              if (segment.length >= 2 && /^[0-9A-F]{2}/i.test(segment.substring(0, 2))) {
+                try {
+                  // Valid hex pattern - try to decode just this part
+                  const hexPart = segment.substring(0, 2);
+                  const restPart = segment.substring(2);
+                  const decodedChar = decodeURIComponent('%' + hexPart);
+                  safeDecoded += decodedChar + restPart;
+                } catch (segmentError) {
+                  // If individual segment fails, keep the original
+                  safeDecoded += '%' + segment;
+                }
+              } else {
+                // Not a valid hex pattern, keep original
+                safeDecoded += '%' + segment;
+              }
+            }
+            decoded = safeDecoded;
           }
         } catch (urlDecodeError) {
-          // If URL decoding fails, continue with the partially decoded content
-          console.warn(`[${this.requestId}] URL decoding failed, using partially decoded content:`, urlDecodeError);
+          // If any URL decoding fails, continue with the partially decoded content
+          // Don't log warnings for common decoding issues to reduce noise
         }
       }
       
