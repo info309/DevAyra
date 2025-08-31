@@ -1410,7 +1410,7 @@ const Mailbox: React.FC = () => {
                     // Reset form to empty state for new email
                     setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                   }} size="sm">
-                    <Plus className="w-4 h-4" />
+                    <Send className="w-4 h-4" />
                     <span className="hidden sm:inline">Compose</span>
                   </Button>
                 </DrawerTrigger>
