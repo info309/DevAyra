@@ -66,7 +66,7 @@ const Dashboard = () => {
       title: 'Documents',
       description: 'Store and organize your files',
       route: '/documents',
-      image: undefined // Add your documents image here
+      image: '/lovable-uploads/3f43df0b-172f-41eb-900b-8e87884c3e13.png'
     },
     {
       title: 'AI Assistant',
