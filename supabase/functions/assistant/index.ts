@@ -335,7 +335,7 @@ async function searchDocuments(userId: string, query: string) {
   }
 }
 
-async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20) {
+async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20, authToken?: string) {
   try {
     console.log(`Listing calendar events for user ${userId}`);
     
@@ -347,35 +347,48 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
     console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
     
     // First try to get events from Google Calendar via calendar-api edge function
-    try {
-      const calendarResponse = await supabase.functions.invoke('calendar-api', {
-        body: {
-          action: 'list',
-          timeMin: defaultTimeMin,
-          timeMax: defaultTimeMax,
-          maxResults
+    if (authToken) {
+      try {
+        const calendarResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+          },
+          body: JSON.stringify({
+            action: 'list',
+            timeMin: defaultTimeMin,
+            timeMax: defaultTimeMax,
+            maxResults
+          })
+        });
+        
+        if (calendarResponse.ok) {
+          const calendarData = await calendarResponse.json();
+          if (calendarData?.events && calendarData.events.length > 0) {
+            console.log(`Found ${calendarData.events.length} events from Google Calendar`);
+            return {
+              events: calendarData.events.map((event: any) => ({
+                id: event.id,
+                title: event.summary,
+                description: event.description || '',
+                startTime: event.start?.dateTime || event.start?.date,
+                endTime: event.end?.dateTime || event.end?.date,
+                location: event.location || '',
+                isAllDay: !event.start?.dateTime, // If no time, it's all day
+                source: 'google'
+              })),
+              source: 'google',
+              totalResults: calendarData.events.length
+            };
+          }
+        } else {
+          console.log('Google Calendar API response not ok:', calendarResponse.status);
         }
-      });
-      
-      if (calendarResponse.data && !calendarResponse.error && calendarResponse.data.items) {
-        console.log(`Found ${calendarResponse.data.items.length} events from Google Calendar`);
-        return {
-          events: calendarResponse.data.items.map((event: any) => ({
-            id: event.id,
-            title: event.summary,
-            description: event.description || '',
-            startTime: event.start?.dateTime || event.start?.date,
-            endTime: event.end?.dateTime || event.end?.date,
-            location: event.location || '',
-            isAllDay: !event.start?.dateTime, // If no time, it's all day
-            source: 'google'
-          })),
-          source: 'google',
-          totalResults: calendarResponse.data.items.length
-        };
+      } catch (googleError) {
+        console.log('Google Calendar not available, falling back to local events:', googleError);
       }
-    } catch (googleError) {
-      console.log('Google Calendar not available, falling back to local events:', googleError);
     }
     
     // Fallback to local calendar_events table
@@ -724,7 +737,7 @@ serve(async (req) => {
               result = await searchDocuments(user.id, args.query);
               break;
             case 'calendar_list_events':
-              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults);
+              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults, token);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
