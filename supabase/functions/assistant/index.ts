@@ -428,6 +428,56 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
           defaultTimeMin = startOfNextWeek.toISOString();
           defaultTimeMax = endOfNextWeek.toISOString();
           break;
+
+        case 'this month':
+          // Current month from 1st to last day
+          const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+          startOfMonth.setHours(0, 0, 0, 0);
+          
+          const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+          endOfMonth.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfMonth.toISOString();
+          defaultTimeMax = endOfMonth.toISOString();
+          break;
+
+        case 'next month':
+          // Next month from 1st to last day
+          const startOfNextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+          startOfNextMonth.setHours(0, 0, 0, 0);
+          
+          const endOfNextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+          endOfNextMonth.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfNextMonth.toISOString();
+          defaultTimeMax = endOfNextMonth.toISOString();
+          break;
+
+        case 'october':
+        case 'october 2025':
+          // October 2025 specifically
+          const startOfOctober = new Date(2025, 9, 1); // Month is 0-indexed
+          startOfOctober.setHours(0, 0, 0, 0);
+          
+          const endOfOctober = new Date(2025, 10, 0);
+          endOfOctober.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfOctober.toISOString();
+          defaultTimeMax = endOfOctober.toISOString();
+          break;
+
+        case 'september':
+        case 'september 2025':
+          // September 2025 specifically
+          const startOfSeptember = new Date(2025, 8, 1); // Month is 0-indexed
+          startOfSeptember.setHours(0, 0, 0, 0);
+          
+          const endOfSeptember = new Date(2025, 9, 0);
+          endOfSeptember.setHours(23, 59, 59, 999);
+          
+          defaultTimeMin = startOfSeptember.toISOString();
+          defaultTimeMax = endOfSeptember.toISOString();
+          break;
           
         default:
           // Default to next 7 days
