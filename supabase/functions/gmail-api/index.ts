@@ -315,11 +315,18 @@ class GmailService {
       
       if (threads.length === 0) {
         console.log(`[${this.requestId}] WARNING: No threads returned from Gmail API`);
-        console.log(`[${this.requestId}] This could indicate:`);
-        console.log(`[${this.requestId}] - Empty mailbox for query: ${query}`);
-        console.log(`[${this.requestId}] - Insufficient OAuth scopes (need gmail.readonly, gmail.modify)`);
-        console.log(`[${this.requestId}] - Invalid or revoked token`);
-        console.log(`[${this.requestId}] - User has no emails matching query`);
+        console.log(`[${this.requestId}] Common causes for empty results:`);
+        console.log(`[${this.requestId}] 1. EMPTY INBOX: Account has zero emails matching query "${query}"`);
+        console.log(`[${this.requestId}] 2. SCOPE MISMATCH: OAuth token missing gmail.readonly scope`);
+        console.log(`[${this.requestId}] 3. INVALID QUERY: Query syntax might be incorrect`);
+        console.log(`[${this.requestId}] 4. PAGINATION: All emails might be on subsequent pages`);
+        console.log(`[${this.requestId}] 5. PERMISSIONS: Token can't access this mailbox`);
+        
+        // Try a simpler query to test basic access
+        if (query !== 'in:inbox') {
+          console.log(`[${this.requestId}] Suggestion: Try query "in:inbox" instead of "${query}"`);
+        }
+        
         return { conversations: [], nextPageToken: threadsData.nextPageToken };
       }
 
@@ -376,6 +383,14 @@ class GmailService {
               status: error.status,
               threadId: thread.id
             });
+            
+            // Check for specific permission errors
+            if (error.status === 403) {
+              console.error(`[${this.requestId}] PERMISSION ERROR: Cannot access thread ${thread.id} - insufficient scopes`);
+            } else if (error.status === 404) {
+              console.error(`[${this.requestId}] NOT FOUND: Thread ${thread.id} doesn't exist or is inaccessible`);
+            }
+            
             return null;
           }
         });
@@ -406,6 +421,12 @@ class GmailService {
       };
     } catch (error) {
       console.error(`[${this.requestId}] getEmails error:`, error);
+      
+      // Log pagination info if available
+      if (error.status === 403) {
+        console.error(`[${this.requestId}] CRITICAL: Gmail API access denied - check OAuth scopes`);
+      }
+      
       throw error;
     }
   }
@@ -682,7 +703,7 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
   console.log(`[AUTH] Testing Gmail token validity with length: ${gmailToken?.length || 0}...`);
   console.log(`[AUTH] Token preview: ${gmailToken?.substring(0, 20)}...${gmailToken?.substring(gmailToken.length - 10) || ''}`);
   
-  // Test token validity
+  // Test token validity AND check scopes
   const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
     headers: { 'Authorization': `Bearer ${gmailToken}` }
   });
@@ -692,6 +713,29 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
   if (!testResponse.ok) {
     const errorText = await testResponse.text();
     console.log(`[AUTH] Gmail token test error details:`, errorText);
+    
+    // Check for specific error types
+    if (testResponse.status === 403) {
+      console.error(`[AUTH] SCOPE ERROR: Token lacks required Gmail permissions`);
+      console.log(`[AUTH] Required OAuth scopes:`);
+      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.readonly (REQUIRED)`);
+      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.modify (for mark as read)`);
+      throw new GmailApiError('Gmail token lacks required scopes. Please reconnect with proper permissions.', 403);
+    }
+  } else {
+    // Also test a basic Gmail API call to verify scopes work
+    console.log(`[AUTH] Testing basic Gmail API access...`);
+    const basicTestResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=1', {
+      headers: { 'Authorization': `Bearer ${gmailToken}` }
+    });
+    
+    console.log(`[AUTH] Basic Gmail API test status: ${basicTestResponse.status}`);
+    
+    if (basicTestResponse.status === 403) {
+      const scopeError = await basicTestResponse.text();
+      console.error(`[AUTH] SCOPE VERIFICATION FAILED:`, scopeError);
+      throw new GmailApiError('Gmail token lacks gmail.readonly scope. Please reconnect with proper permissions.', 403);
+    }
   }
 
   // Refresh token if expired
