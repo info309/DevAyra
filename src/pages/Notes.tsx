@@ -157,52 +157,53 @@ export default function Notes() {
   // Mobile/tablet view with drawer-style sidebar
   if (isDrawerView) {
     return (
-      <div className="flex h-screen w-full">
-        <div className="flex-1 flex flex-col">
-          <header className="flex items-center justify-between p-4 border-b bg-background">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate('/dashboard')}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h1 className="text-xl font-semibold">Notes</h1>
-            </div>
-            <Button onClick={createNote} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Note
+      <div className="flex h-screen w-full flex-col">
+        <header className="flex items-center justify-between p-4 border-b bg-background">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
             </Button>
-          </header>
-
-          <div className="flex-1 p-4">
-            {selectedNote ? (
-              <NoteEditor
-                note={selectedNote}
-                onUpdateNote={updateNote}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <h2 className="text-lg font-medium text-muted-foreground mb-2">
-                    {notes.length === 0 ? "No notes yet" : "Select a note"}
-                  </h2>
-                  {notes.length === 0 && (
-                    <Button onClick={createNote}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create your first note
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
+            <h1 className="text-xl font-semibold">Notes</h1>
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+        </header>
+
+        <div className="flex-1 p-4">
+          {selectedNote ? (
+            <NoteEditor
+              note={selectedNote}
+              onUpdateNote={updateNote}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <h2 className="text-lg font-medium text-muted-foreground mb-2">
+                  {notes.length === 0 ? "No notes yet" : "Select a note"}
+                </h2>
+                {notes.length === 0 && (
+                  <Button onClick={createNote}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create your first note
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sidebar as drawer on mobile/tablet */}
+        {/* Sidebar menu on mobile - slides from left */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="right" className="w-80 p-0">
+          <SheetContent side="left" className="w-80 p-0">
             <NoteSidebar
               notes={notes}
               selectedNote={selectedNote}
