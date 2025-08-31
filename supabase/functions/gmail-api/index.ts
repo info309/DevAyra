@@ -333,17 +333,20 @@ class GmailService {
         const batch = threads.slice(i, i + batchSize);
         
         const batchPromises = batch.map(async (thread) => {
+          console.log(`[${this.requestId}] Processing thread ID: ${thread.id}`);
           try {
             const threadData = await this.makeGmailRequest(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
             );
+            
+            console.log(`[${this.requestId}] Thread ${thread.id} loaded successfully, messages count: ${threadData.messages?.length || 0}`);
             
             const messages = threadData.messages || [];
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
             // Transform to match UI expectations
             const firstEmail = processedMessages[0];
-            return {
+            const conversation = {
               id: thread.id,
               threadId: thread.id,
               subject: firstEmail?.subject || 'No Subject',
@@ -364,14 +367,31 @@ class GmailService {
               unreadCount: processedMessages.filter(msg => !msg.isRead).length,
               participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
             };
+            
+            console.log(`[${this.requestId}] Thread ${thread.id} processed successfully: "${conversation.subject}"`);
+            return conversation;
           } catch (error) {
-            console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
+            console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, {
+              error: error.message,
+              status: error.status,
+              threadId: thread.id
+            });
             return null;
           }
         });
 
-        const batchResults = await Promise.all(batchPromises);
-        conversations.push(...batchResults.filter(Boolean));
+        // Use Promise.all with individual error handling to prevent one failing thread from blocking the whole batch
+        const batchResults = await Promise.all(
+          batchPromises.map(p => p.catch(e => { 
+            console.error(`[${this.requestId}] Batch promise failed:`, e); 
+            return null; 
+          }))
+        );
+        
+        const successfulResults = batchResults.filter(Boolean);
+        console.log(`[${this.requestId}] Batch ${Math.floor(i/batchSize) + 1}: ${successfulResults.length}/${batch.length} threads processed successfully`);
+        
+        conversations.push(...successfulResults);
         
         // Small delay between batches to avoid rate limiting
         if (i + batchSize < threads.length) {
