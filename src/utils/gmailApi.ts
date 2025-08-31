@@ -70,6 +70,8 @@ export const gmailApi = {
       if (!authToken) {
         throw new GmailApiError('No authentication token available', 401);
       }
+      
+      console.log('Making Gmail API request with token length:', authToken.length);
 
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body,
@@ -81,6 +83,7 @@ export const gmailApi = {
 
       if (error) {
         console.error('Supabase function error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         
         // Check if it's a transient 5xx error and we have retries left
         if (attempt < retries && error.status && error.status >= 500) {

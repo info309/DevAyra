@@ -660,6 +660,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log(`[${requestId}] Gmail API request received`);
+    console.log(`[${requestId}] Request headers:`, Object.fromEntries(req.headers.entries()));
     
     // Authenticate user using service role for robust token validation
     const supabaseClient = createClient(
@@ -668,6 +669,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const authHeader = req.headers.get('Authorization');
+    console.log(`[${requestId}] Auth header present:`, !!authHeader);
+    console.log(`[${requestId}] Auth header format:`, authHeader?.substring(0, 20) + '...');
+    
     if (!authHeader?.startsWith('Bearer ')) {
       console.error(`[${requestId}] Auth session missing!`);
       throw new GmailApiError('Authorization header required', 401);
@@ -675,6 +679,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const token = authHeader.replace('Bearer ', '');
     console.log(`[${requestId}] Validating token for authentication`);
+    console.log(`[${requestId}] Token length:`, token.length);
     
     let user;
     try {
@@ -682,6 +687,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (userError) {
         console.error(`[${requestId}] Auth validation failed:`, userError.message);
+        console.error(`[${requestId}] Error details:`, JSON.stringify(userError));
         throw new GmailApiError('Invalid or expired authentication token', 401);
       }
       
@@ -691,8 +697,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       user = authUser;
+      console.log(`[${requestId}] Successfully authenticated user:`, user.email);
     } catch (error) {
       console.error(`[${requestId}] Token validation error:`, error);
+      if (error instanceof GmailApiError) {
+        throw error;
+      }
       throw new GmailApiError('Authentication failed', 401);
     }
 
