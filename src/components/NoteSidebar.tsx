@@ -79,19 +79,13 @@ export function NoteSidebar({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-    if (days === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    } else if (days === 1) {
-      return 'Yesterday'
-    } else if (days < 7) {
-      return `${days} days ago`
-    } else {
-      return date.toLocaleDateString()
-    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
@@ -162,7 +156,7 @@ export function NoteSidebar({
                             {note.content ? note.content.slice(0, 60) + (note.content.length > 60 ? '...' : '') : 'No content'}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatDate(note.updated_at)}
+                            Last edit on: {formatDate(note.updated_at)}
                           </p>
                         </>
                       )}
