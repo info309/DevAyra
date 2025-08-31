@@ -705,16 +705,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[${requestId}] Parsing request body...`);
     let requestBody;
     try {
-      const rawBody = await req.text();
-      console.log(`[${requestId}] Raw body received:`, rawBody);
-      
-      if (!rawBody || rawBody.trim() === '') {
-        console.error(`[${requestId}] Empty request body received`);
-        throw new GmailApiError('Request body cannot be empty', 400);
-      }
-      
-      requestBody = JSON.parse(rawBody);
-      console.log(`[${requestId}] Parsed request:`, JSON.stringify(requestBody));
+      requestBody = await req.json();
+      console.log(`[${requestId}] Parsed request successfully:`, JSON.stringify(requestBody, null, 2));
     } catch (parseError) {
       console.error(`[${requestId}] Request parsing error:`, parseError);
       throw new GmailApiError('Invalid JSON in request body', 400);
