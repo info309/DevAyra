@@ -236,17 +236,19 @@ export default function Notes() {
   // Desktop view with permanent sidebar
   return (
     <div className="flex h-screen w-full">
-      <NoteSidebar
-        notes={notes}
-        selectedNote={selectedNote}
-        onSelectNote={setSelectedNote}
-        onUpdateNote={updateNote}
-        onDeleteNote={deleteNote}
-        onCreateNote={createNote}
-        isLoading={isLoading}
-      />
+      <div className="w-[40%]">
+        <NoteSidebar
+          notes={notes}
+          selectedNote={selectedNote}
+          onSelectNote={setSelectedNote}
+          onUpdateNote={updateNote}
+          onDeleteNote={deleteNote}
+          onCreateNote={createNote}
+          isLoading={isLoading}
+        />
+      </div>
       
-      <main className="flex-1 flex flex-col">
+      <main className="w-[60%] flex flex-col">
         <div className="flex-1 p-6">
           {selectedNote ? (
             <NoteEditor
