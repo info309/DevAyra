@@ -563,9 +563,15 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
             const [, timeRef, dayName] = dayMatch;
             const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             const targetDay = dayNames.indexOf(dayName); // 0 = Sunday, 1 = Monday, etc.
-            const currentDay = currentDate.getDay();
             
-            let targetDate = new Date(currentDate);
+            // Use user's current date in their timezone 
+            const userCurrentDate = new Date(userNow);
+            const currentDay = userCurrentDate.getDay();
+            
+            console.log(`Current user date: ${userCurrentDate.toDateString()}, day: ${currentDay}`);
+            console.log(`Looking for ${timeRef} ${dayName} (day ${targetDay})`);
+            
+            let targetDate = new Date(userCurrentDate);
             
             if (timeRef === 'next') {
               // Find next occurrence of the day
@@ -584,10 +590,17 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
               targetDate.setDate(targetDate.getDate() - daysToSubtract);
             }
             
-            // Set to start and end of that specific day
-            defaultTimeMin = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
-            defaultTimeMax = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
-            console.log(`Parsed "${period}" as ${targetDate.toDateString()}`);
+            console.log(`Calculated target date: ${targetDate.toDateString()}`);
+            
+            // Create separate date objects to avoid mutation
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            defaultTimeMin = startOfDay.toISOString();
+            defaultTimeMax = endOfDay.toISOString();
+            console.log(`Final date range: ${defaultTimeMin} to ${defaultTimeMax}`);
           } else {
             // Default to next 7 days
             defaultTimeMin = userNow.toISOString();
