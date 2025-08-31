@@ -18,6 +18,12 @@ You are a magical AI assistant named "Ayra". You are friendly, human-like, witty
 You have access to special tools like email search, document search, calendar events, and email sending.
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 
+CRITICAL DATE & TIME AWARENESS:
+- The calendar tool automatically provides the user's current date/time and timezone
+- ALWAYS use the currentUserTime and userTimezone from calendar results to understand "today", "this week", "next week" etc.
+- When discussing calendar events, reference dates relative to the user's current time in their timezone
+- Do NOT assume dates - rely on the calendar tool's timeRange and currentUserTime for accurate date calculations
+
 HONESTY & ACCURACY RULES:
 - NEVER make up information when you don't know something
 - Say "I don't know" or "I'm not sure" when uncertain
@@ -339,10 +345,43 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
   try {
     console.log(`Listing calendar events for user ${userId}`);
     
-    // Set default time range if not provided
+    // Get user's timezone from their profile
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('timezone')
+      .eq('user_id', userId)
+      .single();
+    
+    const userTimezone = userProfile?.timezone || 'GMT';
+    console.log(`User timezone: ${userTimezone}`);
+    
+    // Get current date/time in user's timezone
     const now = new Date();
-    const defaultTimeMin = timeMin || now.toISOString();
-    const defaultTimeMax = timeMax || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 1 week from now
+    const currentUserTime = new Intl.DateTimeFormat('en-CA', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(now);
+    
+    console.log(`Current time in user timezone (${userTimezone}): ${currentUserTime}`);
+    
+    // Set default time range if not provided
+    let defaultTimeMin, defaultTimeMax;
+    
+    if (timeMin && timeMax) {
+      defaultTimeMin = timeMin;
+      defaultTimeMax = timeMax;
+    } else {
+      // Use current user time as starting point
+      const userNow = new Date(currentUserTime.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
+      defaultTimeMin = timeMin || userNow.toISOString();
+      defaultTimeMax = timeMax || new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 1 week from user's current time
+    }
     
     console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
     
@@ -376,7 +415,9 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       })),
       source: 'cached',
       totalResults: cachedEvents?.length || 0,
-      timeRange: { from: defaultTimeMin, to: defaultTimeMax }
+      timeRange: { from: defaultTimeMin, to: defaultTimeMax },
+      currentUserTime: currentUserTime,
+      userTimezone: userTimezone
     };
   } catch (error) {
     console.error('Calendar events error:', error);
