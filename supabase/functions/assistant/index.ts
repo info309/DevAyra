@@ -335,7 +335,7 @@ async function searchDocuments(userId: string, query: string) {
   }
 }
 
-async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20, authToken?: string) {
+async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: string, maxResults = 20) {
   try {
     console.log(`Listing calendar events for user ${userId}`);
     
@@ -346,53 +346,8 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
     
     console.log(`Time range: ${defaultTimeMin} to ${defaultTimeMax}`);
     
-    // First try to get events from Google Calendar via calendar-api edge function
-    if (authToken) {
-      try {
-        const calendarResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
-          },
-          body: JSON.stringify({
-            action: 'list',
-            timeMin: defaultTimeMin,
-            timeMax: defaultTimeMax,
-            maxResults
-          })
-        });
-        
-        if (calendarResponse.ok) {
-          const calendarData = await calendarResponse.json();
-          if (calendarData?.events && calendarData.events.length > 0) {
-            console.log(`Found ${calendarData.events.length} events from Google Calendar`);
-            return {
-              events: calendarData.events.map((event: any) => ({
-                id: event.id,
-                title: event.summary,
-                description: event.description || '',
-                startTime: event.start?.dateTime || event.start?.date,
-                endTime: event.end?.dateTime || event.end?.date,
-                location: event.location || '',
-                isAllDay: !event.start?.dateTime, // If no time, it's all day
-                source: 'google'
-              })),
-              source: 'google',
-              totalResults: calendarData.events.length
-            };
-          }
-        } else {
-          console.log('Google Calendar API response not ok:', calendarResponse.status);
-        }
-      } catch (googleError) {
-        console.log('Google Calendar not available, falling back to local events:', googleError);
-      }
-    }
-    
-    // Fallback to local calendar_events table
-    const { data: localEvents, error } = await supabase
+    // Read from cached calendar events only
+    const { data: cachedEvents, error } = await supabase
       .from('calendar_events')
       .select('*')
       .eq('user_id', userId)
@@ -402,14 +357,14 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       .limit(maxResults);
     
     if (error) {
-      console.error('Local calendar search error:', error);
+      console.error('Calendar events search error:', error);
       return { error: `Calendar search failed: ${error.message}` };
     }
     
-    console.log(`Found ${localEvents?.length || 0} events from local calendar`);
+    console.log(`Found ${cachedEvents?.length || 0} events from cached calendar`);
     
     return {
-      events: (localEvents || []).map(event => ({
+      events: (cachedEvents || []).map(event => ({
         id: event.id,
         title: event.title,
         description: event.description || '',
@@ -417,10 +372,10 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
         endTime: event.end_time,
         isAllDay: event.all_day,
         reminderMinutes: event.reminder_minutes,
-        source: 'local'
+        source: event.is_synced ? 'google_cached' : 'local'
       })),
-      source: 'local',
-      totalResults: localEvents?.length || 0,
+      source: 'cached',
+      totalResults: cachedEvents?.length || 0,
       timeRange: { from: defaultTimeMin, to: defaultTimeMax }
     };
   } catch (error) {
@@ -737,7 +692,7 @@ serve(async (req) => {
               result = await searchDocuments(user.id, args.query);
               break;
             case 'calendar_list_events':
-              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults, token);
+              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.maxResults);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
