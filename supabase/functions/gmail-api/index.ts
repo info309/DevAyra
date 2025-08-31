@@ -93,6 +93,7 @@ class GmailService {
 
   private async makeGmailRequest(url: string, options?: RequestInit) {
     console.log(`[${this.requestId}] Gmail API request: ${url}`);
+    console.log(`[${this.requestId}] Using Gmail token: ${this.token.substring(0, 20)}...${this.token.substring(this.token.length - 10)}`);
     
     const response = await fetch(url, {
       ...options,
@@ -101,6 +102,8 @@ class GmailService {
         ...options?.headers
       }
     });
+
+    console.log(`[${this.requestId}] Gmail API response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -614,20 +617,28 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
     throw new GmailApiError('No active Gmail connection found. Please reconnect your account.', 401);
   }
 
-  console.log(`[AUTH] Gmail connection found for email: ${connection.email}`);
+  console.log(`[AUTH] Gmail connection found for email: ${connection.email_address}`);
   console.log(`[AUTH] Connection details:`, {
     id: connection.id,
-    email: connection.email,
+    email: connection.email_address,
     is_active: connection.is_active,
     created_at: connection.created_at,
     updated_at: connection.updated_at,
     has_access_token: !!connection.access_token,
-    has_refresh_token: !!connection.refresh_token
+    has_refresh_token: !!connection.refresh_token,
+    access_token_length: connection.access_token?.length || 0,
+    refresh_token_length: connection.refresh_token?.length || 0
   });
+
+  if (!connection.refresh_token) {
+    console.error(`[AUTH] CRITICAL: No refresh token found for user ${userId}. User must reconnect Gmail account.`);
+    throw new GmailApiError('Gmail connection missing refresh token. Please reconnect your Gmail account.', 401);
+  }
 
   let gmailToken = connection.access_token;
 
-  console.log(`[AUTH] Testing Gmail token validity...`);
+  console.log(`[AUTH] Testing Gmail token validity with length: ${gmailToken?.length || 0}...`);
+  console.log(`[AUTH] Token preview: ${gmailToken?.substring(0, 20)}...${gmailToken?.substring(gmailToken.length - 10) || ''}`);
   
   // Test token validity
   const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
@@ -635,6 +646,11 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
   });
 
   console.log(`[AUTH] Gmail token test response status: ${testResponse.status}`);
+  
+  if (!testResponse.ok) {
+    const errorText = await testResponse.text();
+    console.log(`[AUTH] Gmail token test error details:`, errorText);
+  }
 
   // Refresh token if expired
   if (testResponse.status === 401) {
@@ -675,7 +691,8 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
     console.log(`[AUTH] Existing token is valid`);
   }
 
-  console.log(`[AUTH] Authentication successful, returning token`);
+  console.log(`[AUTH] Authentication successful, returning token with length: ${gmailToken?.length || 0}`);
+  console.log(`[AUTH] Final token preview: ${gmailToken?.substring(0, 20)}...${gmailToken?.substring(gmailToken.length - 10) || ''}`);
   return gmailToken;
 }
 
