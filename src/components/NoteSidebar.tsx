@@ -18,7 +18,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, MoreVertical, Edit2, Trash2, Check, X, PenTool } from 'lucide-react'
+import { Plus, MoreVertical, Edit2, Trash2, Check, X, PenTool, Lock, Unlock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Note } from '@/pages/Notes'
 
@@ -149,9 +149,12 @@ export function NoteSidebar({
                         </div>
                       ) : (
                         <>
-                          <h3 className="font-medium text-sm truncate leading-tight">
-                            {note.title}
-                          </h3>
+                          <div className="flex items-center gap-1">
+                            <h3 className="font-medium text-sm truncate leading-tight">
+                              {note.title}
+                            </h3>
+                            {note.is_locked && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
+                          </div>
                           <p className="text-xs text-muted-foreground truncate mt-1">
                             {note.content ? note.content.slice(0, 60) + (note.content.length > 60 ? '...' : '') : 'No content'}
                           </p>
@@ -178,6 +181,21 @@ export function NoteSidebar({
                           <DropdownMenuItem onClick={() => handleEditStart(note)}>
                             <Edit2 className="h-4 w-4 mr-2" />
                             Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => onUpdateNote(note.id, { is_locked: !note.is_locked })}
+                          >
+                            {note.is_locked ? (
+                              <>
+                                <Unlock className="h-4 w-4 mr-2" />
+                                Unlock Note
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-4 w-4 mr-2" />
+                                Lock Note
+                              </>
+                            )}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteClick(note)}

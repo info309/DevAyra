@@ -6,6 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useIsDrawerView } from '@/hooks/use-drawer-view'
 import { NoteSidebar } from '@/components/NoteSidebar'
 import { NoteEditor } from '@/components/NoteEditor'
+import { PasswordLockDialog } from '@/components/PasswordLockDialog'
 import { Plus, ArrowLeft, PanelLeft, PenTool } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
@@ -17,6 +18,7 @@ export interface Note {
   created_at: string
   updated_at: string
   user_id: string
+  is_locked: boolean
 }
 
 export default function Notes() {
@@ -29,6 +31,8 @@ export default function Notes() {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [lockedNote, setLockedNote] = useState<Note | null>(null)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -71,7 +75,8 @@ export default function Notes() {
         .insert({
           title: 'Untitled Note',
           content: '',
-          user_id: user.id
+          user_id: user.id,
+          is_locked: false
         })
         .select()
         .single()
@@ -143,6 +148,22 @@ export default function Notes() {
     }
   }
 
+  const handleNoteSelection = (note: Note) => {
+    if (note.is_locked) {
+      setLockedNote(note)
+      setPasswordDialogOpen(true)
+    } else {
+      setSelectedNote(note)
+    }
+  }
+
+  const handlePasswordVerified = () => {
+    if (lockedNote) {
+      setSelectedNote(lockedNote)
+      setLockedNote(null)
+    }
+  }
+
   if (!user) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -208,7 +229,7 @@ export default function Notes() {
               notes={notes}
               selectedNote={selectedNote}
               onSelectNote={(note) => {
-                setSelectedNote(note);
+                handleNoteSelection(note);
                 setSidebarOpen(false);
               }}
               onUpdateNote={updateNote}
@@ -218,6 +239,13 @@ export default function Notes() {
             />
           </SheetContent>
         </Sheet>
+
+        <PasswordLockDialog
+          open={passwordDialogOpen}
+          onOpenChange={setPasswordDialogOpen}
+          onPasswordVerified={handlePasswordVerified}
+          noteTitle={lockedNote?.title || ''}
+        />
       </div>
     )
   }
@@ -248,7 +276,7 @@ export default function Notes() {
           <NoteSidebar
             notes={notes}
             selectedNote={selectedNote}
-            onSelectNote={setSelectedNote}
+            onSelectNote={handleNoteSelection}
             onUpdateNote={updateNote}
             onDeleteNote={deleteNote}
             onCreateNote={createNote}
@@ -281,6 +309,13 @@ export default function Notes() {
           </div>
         </main>
       </div>
+
+      <PasswordLockDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        onPasswordVerified={handlePasswordVerified}
+        noteTitle={lockedNote?.title || ''}
+      />
     </div>
   )
 }

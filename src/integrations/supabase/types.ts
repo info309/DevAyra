@@ -304,6 +304,7 @@ export type Database = {
           content: string | null
           created_at: string
           id: string
+          is_locked: boolean
           title: string
           updated_at: string
           user_id: string
@@ -312,6 +313,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           title?: string
           updated_at?: string
           user_id: string
@@ -320,6 +322,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          is_locked?: boolean
           title?: string
           updated_at?: string
           user_id?: string

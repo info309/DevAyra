@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Save, Edit2, Check, X } from 'lucide-react'
+import { Save, Edit2, Check, X, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Note } from '@/pages/Notes'
 import { useToast } from '@/hooks/use-toast'
@@ -106,6 +106,12 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
       <div className="flex-shrink-0 space-y-4 p-6 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0 mr-4">
+            {note.is_locked && (
+              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4" />
+                <span>This note is password protected</span>
+              </div>
+            )}
             {isEditingTitle ? (
               <div className="flex items-center gap-2">
                 <Input
