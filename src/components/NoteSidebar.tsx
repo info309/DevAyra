@@ -89,7 +89,7 @@ export function NoteSidebar({
   return (
     <>
       <div className="w-full h-full border-r bg-muted/10 flex flex-col">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b md:hidden">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Notes</h2>
             <Button onClick={onCreateNote} size="sm">
