@@ -29,6 +29,26 @@ const GmailConnection: React.FC = () => {
     if (user) {
       checkGmailConnection();
     }
+    
+    // Check for successful auth return on page load (mobile redirect flow)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('gmail_auth') === 'success') {
+      toast({
+        title: "Gmail Connected",
+        description: "Your Gmail account has been successfully connected.",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      checkGmailConnection();
+    } else if (urlParams.get('gmail_auth') === 'error') {
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect your Gmail account. Please try again.",
+        variant: "destructive"
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [user]);
 
   const checkGmailConnection = async () => {
@@ -62,6 +82,11 @@ const GmailConnection: React.FC = () => {
     }
   };
 
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth <= 768;
+  };
+
   const connectGmail = async () => {
     if (!user) return;
     
@@ -84,44 +109,70 @@ const GmailConnection: React.FC = () => {
 
       const { authUrl } = await response.json();
 
-      // Open popup for OAuth
-      const popup = window.open(
-        authUrl,
-        'gmail-auth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      );
+      if (isMobile()) {
+        // On mobile, use direct redirect instead of popup
+        toast({
+          title: "Redirecting to Google",
+          description: "You'll be redirected to Google to authorize access.",
+        });
+        
+        // Add a small delay to show the toast
+        setTimeout(() => {
+          window.location.href = authUrl;
+        }, 1000);
+      } else {
+        // Desktop: Use popup window
+        const popup = window.open(
+          authUrl,
+          'gmail-auth',
+          'width=500,height=600,scrollbars=yes,resizable=yes'
+        );
 
-      // Listen for messages from the popup
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
-          window.removeEventListener('message', handleMessage);
-          popup?.close();
-          
-          // Success - no toast message needed
-          
-          checkGmailConnection(); // Refresh connection status
-        } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
-          window.removeEventListener('message', handleMessage);
-          popup?.close();
-          
+        if (!popup) {
           toast({
-            title: "Connection Failed",
-            description: event.data.error || "Failed to connect Gmail account.",
+            title: "Popup Blocked",
+            description: "Please allow popups for this site and try again.",
             variant: "destructive"
           });
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-      // Check if popup was closed manually
-      const checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
           setConnecting(false);
+          return;
         }
-      }, 1000);
+
+        // Listen for messages from the popup
+        const handleMessage = (event: MessageEvent) => {
+          if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
+            window.removeEventListener('message', handleMessage);
+            popup?.close();
+            
+            toast({
+              title: "Gmail Connected",
+              description: "Your Gmail account has been successfully connected.",
+            });
+            
+            checkGmailConnection(); // Refresh connection status
+          } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
+            window.removeEventListener('message', handleMessage);
+            popup?.close();
+            
+            toast({
+              title: "Connection Failed",
+              description: event.data.error || "Failed to connect Gmail account.",
+              variant: "destructive"
+            });
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+
+        // Check if popup was closed manually
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', handleMessage);
+            setConnecting(false);
+          }
+        }, 1000);
+      }
 
     } catch (error) {
       console.error('Error connecting Gmail:', error);
@@ -130,7 +181,6 @@ const GmailConnection: React.FC = () => {
         description: "Failed to initiate Gmail connection.",
         variant: "destructive"
       });
-    } finally {
       setConnecting(false);
     }
   };
@@ -254,9 +304,10 @@ const GmailConnection: React.FC = () => {
               </Button>
               
               <div className="text-xs text-muted-foreground space-y-1">
-                <p>• This will open a Google authentication window</p>
+                <p>• {isMobile() ? 'You will be redirected to Google for authentication' : 'This will open a Google authentication window'}</p>
                 <p>• You'll need to grant permission to read and send emails</p>
                 <p>• Your credentials are stored securely and can be disconnected anytime</p>
+                {isMobile() && <p>• After authentication, you'll be redirected back to this page</p>}
               </div>
             </div>
           )}

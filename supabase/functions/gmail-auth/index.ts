@@ -37,6 +37,20 @@ const handler = async (req: Request): Promise<Response> => {
         const error = url.searchParams.get('error');
         
         if (error) {
+          // Check if this looks like a mobile request
+          const userAgent = req.headers.get('user-agent') || '';
+          const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+          
+          if (isMobile) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                'Location': `/account?gmail_auth=error&error=${encodeURIComponent(error)}`,
+                ...corsHeaders
+              }
+            });
+          }
+          
           return new Response(`
             <html>
               <body>
@@ -56,6 +70,20 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         if (!code || !state) {
+          // Check if this looks like a mobile request
+          const userAgent = req.headers.get('user-agent') || '';
+          const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+          
+          if (isMobile) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                'Location': `/account?gmail_auth=error&error=${encodeURIComponent('Missing authorization code')}`,
+                ...corsHeaders
+              }
+            });
+          }
+          
           return new Response(`
             <html>
               <body>
@@ -134,20 +162,35 @@ const handler = async (req: Request): Promise<Response> => {
 
           console.log('Gmail connection saved successfully');
 
-          // Return minimal success page that closes popup immediately
-          return new Response(`<html><head><title>Success</title></head><body><script>
-            window.opener?.postMessage({
-              type: 'GMAIL_AUTH_SUCCESS',
-              data: { email: '${userInfo.email}' }
-            }, '*');
-            window.close();
-          </script><p>Gmail connected successfully. Closing...</p></body></html>`, {
-            status: 200,
-            headers: { 
-              'Content-Type': 'text/html; charset=utf-8',
-              ...corsHeaders 
-            },
-          });
+          // Check if this looks like a mobile request
+          const userAgent = req.headers.get('user-agent') || '';
+          const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+          
+          if (isMobile) {
+            // Mobile: Redirect back to the account page with success parameter
+            return new Response(null, {
+              status: 302,
+              headers: {
+                'Location': `/account?gmail_auth=success`,
+                ...corsHeaders
+              }
+            });
+          } else {
+            // Desktop: Close popup and notify parent window
+            return new Response(`<html><head><title>Success</title></head><body><script>
+              window.opener?.postMessage({
+                type: 'GMAIL_AUTH_SUCCESS',
+                data: { email: '${userInfo.email}' }
+              }, '*');
+              window.close();
+            </script><p>Gmail connected successfully. Closing...</p></body></html>`, {
+              status: 200,
+              headers: { 
+                'Content-Type': 'text/html; charset=utf-8',
+                ...corsHeaders 
+              },
+            });
+          }
 
         } catch (err: any) {
           console.error('Error processing OAuth callback:', err);
