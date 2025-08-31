@@ -1,17 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User, LogOut } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, User, LogOut, Clock } from 'lucide-react';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import GmailConnection from '@/components/GmailConnection';
 
 const Account: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isDrawerView = useIsDrawerView();
+  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [timezone, setTimezone] = useState<string>('GMT');
+  const [loading, setLoading] = useState(false);
+
+  const timezones = [
+    { value: 'GMT', label: 'GMT (Greenwich Mean Time)' },
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    { value: 'EST', label: 'EST (Eastern Standard Time)' },
+    { value: 'PST', label: 'PST (Pacific Standard Time)' },
+    { value: 'CET', label: 'CET (Central European Time)' },
+    { value: 'JST', label: 'JST (Japan Standard Time)' },
+    { value: 'AEST', label: 'AEST (Australian Eastern Standard Time)' },
+  ];
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data?.timezone) {
+        setTimezone(data.timezone);
+      }
+    };
+
+    fetchProfile();
+  }, [user?.id]);
+
+  const updateTimezone = async (newTimezone: string) => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ timezone: newTimezone })
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setTimezone(newTimezone);
+      toast({
+        title: 'Timezone updated',
+        description: `Your timezone has been set to ${newTimezone}`,
+      });
+    } catch (error) {
+      console.error('Error updating timezone:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update timezone. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -54,6 +119,45 @@ const Account: React.FC = () => {
     </Card>
   );
 
+  const TimezoneCard = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="w-5 h-5" />
+          Timezone Settings
+        </CardTitle>
+        <CardDescription>
+          Set your preferred timezone for calendar events and scheduling
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Current Timezone</label>
+            <Select value={timezone} onValueChange={updateTimezone} disabled={loading}>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                {timezones.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Current system time: {new Date().toLocaleString('en-US', { 
+              timeZone: timezone === 'GMT' ? 'GMT' : timezone,
+              timeZoneName: 'short'
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (isDrawerView) {
     return (
       <div className="min-h-screen bg-background">
@@ -86,6 +190,7 @@ const Account: React.FC = () => {
           </div>
 
           <ProfileCard />
+          <TimezoneCard />
           <GmailConnection />
         </div>
       </div>
@@ -145,6 +250,7 @@ const Account: React.FC = () => {
 
         <div className="grid gap-6">
           <ProfileCard />
+          <TimezoneCard />
           <GmailConnection />
         </div>
       </div>
