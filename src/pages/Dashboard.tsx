@@ -54,7 +54,7 @@ const Dashboard = () => {
       title: 'Calendar',
       description: 'Schedule events and set reminders',
       route: '/calendar',
-      image: undefined // Add your calendar image here
+      image: '/lovable-uploads/77033c20-8408-4764-a8de-03af915812c4.png'
     },
     {
       title: 'Notes',
