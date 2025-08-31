@@ -517,7 +517,7 @@ const Assistant = () => {
       <div className="flex items-center justify-between p-4">
         <h3 className="font-semibold text-foreground">Chat History</h3>
         <Button onClick={createNewSession} size="sm" variant="outline" className="md:hidden">
-          <Plus className="w-4 h-4" />
+          <MessageSquare className="w-4 h-4" />
         </Button>
       </div>
       <ScrollArea className="flex-1 p-4">
