@@ -212,7 +212,7 @@ export default function Notes() {
                   {notes.length === 0 ? "No notes yet" : "Select a note"}
                 </h2>
                 {notes.length === 0 && (
-                  <Button onClick={createNote}>
+                  <Button onClick={createNote} variant="compose">
                     <PenTool className="h-4 w-4 mr-2" />
                     Create your first note
                   </Button>
@@ -266,7 +266,7 @@ export default function Notes() {
           </Button>
           <h1 className="text-xl font-semibold">Notes</h1>
         </div>
-        <Button onClick={createNote} size="sm">
+        <Button onClick={createNote} size="sm" variant="compose">
           <PenTool className="h-4 w-4 mr-2" />
           New Note
         </Button>
@@ -299,7 +299,7 @@ export default function Notes() {
                     {notes.length === 0 ? "No notes yet" : "Select a note"}
                   </h2>
                   {notes.length === 0 && (
-                    <Button onClick={createNote}>
+                    <Button onClick={createNote} variant="compose">
                       <PenTool className="h-4 w-4 mr-2" />
                       Create your first note
                     </Button>
