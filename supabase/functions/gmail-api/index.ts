@@ -93,7 +93,6 @@ class GmailService {
 
   private async makeGmailRequest(url: string, options?: RequestInit) {
     console.log(`[${this.requestId}] Gmail API request: ${url}`);
-    console.log(`[${this.requestId}] Using Gmail token: ${this.token.substring(0, 20)}...${this.token.substring(this.token.length - 10)}`);
     
     const response = await fetch(url, {
       ...options,
@@ -102,8 +101,6 @@ class GmailService {
         ...options?.headers
       }
     });
-
-    console.log(`[${this.requestId}] Gmail API response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -294,39 +291,10 @@ class GmailService {
       let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
       if (pageToken) threadsUrl += `&pageToken=${pageToken}`;
       
-      console.log(`[${this.requestId}] Constructed threadsUrl: ${threadsUrl}`);
-      console.log(`[${this.requestId}] Query parameters:`, {
-        query,
-        maxResults,
-        pageToken: pageToken || 'none',
-        encodedQuery: encodeURIComponent(query)
-      });
-      
       const threadsData = await this.makeGmailRequest(threadsUrl);
-      
-      console.log(`[${this.requestId}] threadsData response:`, {
-        threadsCount: threadsData.threads?.length || 0,
-        nextPageToken: threadsData.nextPageToken || 'none',
-        hasThreads: !!threadsData.threads,
-        fullResponse: JSON.stringify(threadsData, null, 2)
-      });
-      
       const threads = threadsData.threads || [];
       
       if (threads.length === 0) {
-        console.log(`[${this.requestId}] WARNING: No threads returned from Gmail API`);
-        console.log(`[${this.requestId}] Common causes for empty results:`);
-        console.log(`[${this.requestId}] 1. EMPTY INBOX: Account has zero emails matching query "${query}"`);
-        console.log(`[${this.requestId}] 2. SCOPE MISMATCH: OAuth token missing gmail.readonly scope`);
-        console.log(`[${this.requestId}] 3. INVALID QUERY: Query syntax might be incorrect`);
-        console.log(`[${this.requestId}] 4. PAGINATION: All emails might be on subsequent pages`);
-        console.log(`[${this.requestId}] 5. PERMISSIONS: Token can't access this mailbox`);
-        
-        // Try a simpler query to test basic access
-        if (query !== 'in:inbox') {
-          console.log(`[${this.requestId}] Suggestion: Try query "in:inbox" instead of "${query}"`);
-        }
-        
         return { conversations: [], nextPageToken: threadsData.nextPageToken };
       }
 
@@ -340,20 +308,17 @@ class GmailService {
         const batch = threads.slice(i, i + batchSize);
         
         const batchPromises = batch.map(async (thread) => {
-          console.log(`[${this.requestId}] Processing thread ID: ${thread.id}`);
           try {
             const threadData = await this.makeGmailRequest(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
             );
-            
-            console.log(`[${this.requestId}] Thread ${thread.id} loaded successfully, messages count: ${threadData.messages?.length || 0}`);
             
             const messages = threadData.messages || [];
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
             // Transform to match UI expectations
             const firstEmail = processedMessages[0];
-            const conversation = {
+            return {
               id: thread.id,
               threadId: thread.id,
               subject: firstEmail?.subject || 'No Subject',
@@ -374,39 +339,14 @@ class GmailService {
               unreadCount: processedMessages.filter(msg => !msg.isRead).length,
               participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
             };
-            
-            console.log(`[${this.requestId}] Thread ${thread.id} processed successfully: "${conversation.subject}"`);
-            return conversation;
           } catch (error) {
-            console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, {
-              error: error.message,
-              status: error.status,
-              threadId: thread.id
-            });
-            
-            // Check for specific permission errors
-            if (error.status === 403) {
-              console.error(`[${this.requestId}] PERMISSION ERROR: Cannot access thread ${thread.id} - insufficient scopes`);
-            } else if (error.status === 404) {
-              console.error(`[${this.requestId}] NOT FOUND: Thread ${thread.id} doesn't exist or is inaccessible`);
-            }
-            
+            console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
             return null;
           }
         });
 
-        // Use Promise.all with individual error handling to prevent one failing thread from blocking the whole batch
-        const batchResults = await Promise.all(
-          batchPromises.map(p => p.catch(e => { 
-            console.error(`[${this.requestId}] Batch promise failed:`, e); 
-            return null; 
-          }))
-        );
-        
-        const successfulResults = batchResults.filter(Boolean);
-        console.log(`[${this.requestId}] Batch ${Math.floor(i/batchSize) + 1}: ${successfulResults.length}/${batch.length} threads processed successfully`);
-        
-        conversations.push(...successfulResults);
+        const batchResults = await Promise.all(batchPromises);
+        conversations.push(...batchResults.filter(Boolean));
         
         // Small delay between batches to avoid rate limiting
         if (i + batchSize < threads.length) {
@@ -421,12 +361,6 @@ class GmailService {
       };
     } catch (error) {
       console.error(`[${this.requestId}] getEmails error:`, error);
-      
-      // Log pagination info if available
-      if (error.status === 403) {
-        console.error(`[${this.requestId}] CRITICAL: Gmail API access denied - check OAuth scopes`);
-      }
-      
       throw error;
     }
   }
@@ -660,87 +594,34 @@ class GmailService {
   }
 }
 
-async function authenticateAndGetToken(userId: string, supabaseClient: any): Promise<string> {
-  console.log(`[AUTH] Starting authentication for user: ${userId}`);
-  
-  console.log(`[AUTH] Fetching Gmail connection from database...`);
-  
-  // Get Gmail connection for this specific user
-  const { data: connection, error: connectionError } = await supabaseClient
+async function authenticateAndGetToken(userId: string): Promise<string> {
+  const serviceRoleClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Get Gmail connection
+  const { data: connection, error: connectionError } = await serviceRoleClient
     .from('gmail_connections')
     .select('*')
     .eq('user_id', userId)
     .eq('is_active', true)
-    .maybeSingle();
-
-  console.log(`[AUTH] Database query result:`, { connection: connection ? 'found' : 'null', error: connectionError });
+    .single();
 
   if (connectionError || !connection) {
-    console.error(`[AUTH] No Gmail connection found:`, connectionError);
     throw new GmailApiError('No active Gmail connection found. Please reconnect your account.', 401);
-  }
-
-  console.log(`[AUTH] Gmail connection found for email: ${connection.email_address}`);
-  console.log(`[AUTH] Connection details:`, {
-    id: connection.id,
-    email: connection.email_address,
-    is_active: connection.is_active,
-    created_at: connection.created_at,
-    updated_at: connection.updated_at,
-    has_access_token: !!connection.access_token,
-    has_refresh_token: !!connection.refresh_token,
-    access_token_length: connection.access_token?.length || 0,
-    refresh_token_length: connection.refresh_token?.length || 0
-  });
-
-  if (!connection.refresh_token) {
-    console.error(`[AUTH] CRITICAL: No refresh token found for user ${userId}. User must reconnect Gmail account.`);
-    throw new GmailApiError('Gmail connection missing refresh token. Please reconnect your Gmail account.', 401);
   }
 
   let gmailToken = connection.access_token;
 
-  console.log(`[AUTH] Testing Gmail token validity with length: ${gmailToken?.length || 0}...`);
-  console.log(`[AUTH] Token preview: ${gmailToken?.substring(0, 20)}...${gmailToken?.substring(gmailToken.length - 10) || ''}`);
-  
-  // Test token validity AND check scopes
+  // Test token validity
   const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
     headers: { 'Authorization': `Bearer ${gmailToken}` }
   });
 
-  console.log(`[AUTH] Gmail token test response status: ${testResponse.status}`);
-  
-  if (!testResponse.ok) {
-    const errorText = await testResponse.text();
-    console.log(`[AUTH] Gmail token test error details:`, errorText);
-    
-    // Check for specific error types
-    if (testResponse.status === 403) {
-      console.error(`[AUTH] SCOPE ERROR: Token lacks required Gmail permissions`);
-      console.log(`[AUTH] Required OAuth scopes:`);
-      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.readonly (REQUIRED)`);
-      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.modify (for mark as read)`);
-      throw new GmailApiError('Gmail token lacks required scopes. Please reconnect with proper permissions.', 403);
-    }
-  } else {
-    // Also test a basic Gmail API call to verify scopes work
-    console.log(`[AUTH] Testing basic Gmail API access...`);
-    const basicTestResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=1', {
-      headers: { 'Authorization': `Bearer ${gmailToken}` }
-    });
-    
-    console.log(`[AUTH] Basic Gmail API test status: ${basicTestResponse.status}`);
-    
-    if (basicTestResponse.status === 403) {
-      const scopeError = await basicTestResponse.text();
-      console.error(`[AUTH] SCOPE VERIFICATION FAILED:`, scopeError);
-      throw new GmailApiError('Gmail token lacks gmail.readonly scope. Please reconnect with proper permissions.', 403);
-    }
-  }
-
   // Refresh token if expired
   if (testResponse.status === 401) {
-    console.log(`[AUTH] Token expired, attempting refresh...`);
+    console.log('Token expired, refreshing...');
     
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -753,35 +634,20 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
       })
     });
 
-    console.log(`[AUTH] Token refresh response status: ${tokenResponse.status}`);
-
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error(`[AUTH] Token refresh failed:`, errorText);
-      console.log(`[AUTH] OAuth scopes may be insufficient. Required scopes:`);
-      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.readonly`);
-      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.modify`);
-      throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account with proper scopes.', 401);
+      throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account.', 401);
     }
 
     const tokenData = await tokenResponse.json();
     gmailToken = tokenData.access_token;
-    
-    console.log(`[AUTH] Token refreshed successfully, updating database...`);
 
     // Update token in database
-    await supabaseClient
+    await serviceRoleClient
       .from('gmail_connections')
       .update({ access_token: gmailToken, updated_at: new Date().toISOString() })
       .eq('id', connection.id);
-      
-    console.log(`[AUTH] Database updated with new token`);
-  } else {
-    console.log(`[AUTH] Existing token is valid`);
   }
 
-  console.log(`[AUTH] Authentication successful, returning token with length: ${gmailToken?.length || 0}`);
-  console.log(`[AUTH] Final token preview: ${gmailToken?.substring(0, 20)}...${gmailToken?.substring(gmailToken.length - 10) || ''}`);
   return gmailToken;
 }
 
@@ -795,57 +661,30 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log(`[${requestId}] Gmail API request received`);
     
-    // 1. Create Supabase client with service role key for proper auth
-    const supabase = createClient(
+    // Authenticate user using service role for robust token validation
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // 2. Get authenticated user from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error(`[${requestId}] Missing authorization header`);
-      throw new GmailApiError('Authorization required', 401);
+      console.error(`[${requestId}] Missing Authorization header`);
+      throw new GmailApiError('Authorization header required', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
-    // Use Supabase to validate the user token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error(`[${requestId}] Authentication failed:`, authError);
-      throw new GmailApiError('Unauthorized', 401);
+    if (userError || !user) {
+      console.error(`[${requestId}] Auth validation failed:`, userError?.message || 'No user found');
+      throw new GmailApiError('Invalid or expired authentication token', 401);
     }
 
-    console.log(`[${requestId}] User authenticated:`, user.email, 'ID:', user.id);
+    console.log(`[${requestId}] User authenticated: ${user.email}`);
 
     // Parse request
-    console.log(`[${requestId}] Parsing request body...`);
-    console.log(`[${requestId}] Request method: ${req.method}`);
-    console.log(`[${requestId}] Content-Type header: ${req.headers.get('content-type')}`);
-    
-    let requestBody;
-    try {
-      // Get the raw text first to debug
-      const bodyText = await req.text();
-      console.log(`[${requestId}] Raw request body text:`, bodyText);
-      console.log(`[${requestId}] Body text length:`, bodyText?.length || 0);
-      
-      if (!bodyText || bodyText.trim() === '') {
-        console.error(`[${requestId}] Empty request body received`);
-        throw new GmailApiError('Request body cannot be empty', 400);
-      }
-      
-      // Parse the JSON
-      requestBody = JSON.parse(bodyText);
-      console.log(`[${requestId}] Parsed request successfully:`, JSON.stringify(requestBody, null, 2));
-    } catch (parseError) {
-      console.error(`[${requestId}] Request parsing error:`, parseError);
-      console.error(`[${requestId}] Error type:`, parseError.constructor.name);
-      throw new GmailApiError('Invalid JSON in request body', 400);
-    }
-    
+    const requestBody = await req.json();
     const validation = requestSchema.safeParse(requestBody);
     
     if (!validation.success) {
@@ -864,8 +703,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get Gmail token for this specific user
-    const gmailToken = await authenticateAndGetToken(user.id, supabase);
+    // Get Gmail token
+    const gmailToken = await authenticateAndGetToken(user.id);
     const gmailService = new GmailService(gmailToken, requestId);
 
     // Handle actions
