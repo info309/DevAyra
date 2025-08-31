@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, ArrowLeft, Clock, MapPin, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWithinInterval, startOfDay, endOfDay, differenceInDays, addDays } from 'date-fns';
@@ -234,6 +234,40 @@ const Calendar = () => {
     }
   };
 
+  const syncCalendarEvents = async () => {
+    if (!gmailConnection) return;
+    try {
+      setLoading(true);
+      toast({
+        title: "Syncing",
+        description: "Fetching your calendar events..."
+      });
+
+      const { data, error } = await supabase.functions.invoke('auto-cache-calendar');
+      
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success", 
+        description: "Calendar events synced successfully!"
+      });
+      
+      // Reload events after sync
+      await loadEvents();
+    } catch (error) {
+      console.error('Error syncing calendar events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sync calendar events",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Get events for selected date - including multi-day events that span this date
   const selectedDateEvents = events.filter(event => {
     const eventStart = new Date(event.start_time);
@@ -368,16 +402,28 @@ const Calendar = () => {
               </h1>
             </div>
             
-            <AddEventDrawer
-              selectedDate={selectedDate}
-              onEventAdded={loadEvents}
-              gmailConnection={gmailConnection}
-              trigger={
-                <Button size="icon">
-                  <Plus className="w-4 h-4" />
+            <div className="flex gap-2">
+              {gmailConnection && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={syncCalendarEvents}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
-              }
-            />
+              )}
+              <AddEventDrawer
+                selectedDate={selectedDate}
+                onEventAdded={loadEvents}
+                gmailConnection={gmailConnection}
+                trigger={
+                  <Button size="icon">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                }
+              />
+            </div>
           </div>
 
           {/* Connection Status */}
@@ -439,17 +485,29 @@ const Calendar = () => {
             </h1>
           </div>
           
-          <AddEventDrawer
-            selectedDate={selectedDate}
-            onEventAdded={loadEvents}
-            gmailConnection={gmailConnection}
-            trigger={
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Event
+          <div className="flex gap-3">
+            {gmailConnection && (
+              <Button 
+                variant="outline" 
+                onClick={syncCalendarEvents}
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Sync Events
               </Button>
-            }
-          />
+            )}
+            <AddEventDrawer
+              selectedDate={selectedDate}
+              onEventAdded={loadEvents}
+              gmailConnection={gmailConnection}
+              trigger={
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Event
+                </Button>
+              }
+            />
+          </div>
         </div>
 
         {/* Google Calendar Connection - show at top if not connected */}
