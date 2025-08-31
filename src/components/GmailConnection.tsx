@@ -14,6 +14,8 @@ interface GmailConnectionData {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  last_email_sync_at: string | null;
+  last_error: string | null;
 }
 
 const GmailConnection: React.FC = () => {
@@ -257,9 +259,21 @@ const GmailConnection: React.FC = () => {
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium truncate">{connection.email_address}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Connected on {new Date(connection.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Connected on {new Date(connection.created_at).toLocaleDateString()}
+                      </p>
+                      {connection.last_email_sync_at && (
+                        <p className="text-sm text-muted-foreground">
+                          Last synced: {new Date(connection.last_email_sync_at).toLocaleString()}
+                        </p>
+                      )}
+                      {connection.last_error && (
+                        <p className="text-sm text-destructive">
+                          Error: {connection.last_error}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0">
