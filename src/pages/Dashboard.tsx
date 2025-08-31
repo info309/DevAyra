@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut, Bot } from 'lucide-react';
+import { Mail, Calendar, FileText, FolderOpen, Lock, Users, LogOut, Bot, StickyNote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 

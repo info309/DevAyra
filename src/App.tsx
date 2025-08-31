@@ -13,6 +13,7 @@ import Documents from "./pages/Documents";
 import Calendar from "./pages/Calendar";
 import Account from "./pages/Account";
 import Assistant from "./pages/Assistant";
+import Notes from "./pages/Notes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,11 @@ const App = () => (
             <Route path="/assistant" element={
               <ProtectedRoute>
                 <Assistant />
+              </ProtectedRoute>
+            } />
+            <Route path="/notes" element={
+              <ProtectedRoute>
+                <Notes />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
