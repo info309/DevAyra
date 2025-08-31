@@ -1732,7 +1732,11 @@ const Mailbox: React.FC = () => {
               <ScrollArea className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] lg:h-[calc(100vh-10rem)] w-full rounded-lg overflow-hidden">
                 {emailLoading && filteredConversations.length === 0 ? (
                   <div className="p-6 text-center">
-                    <RefreshCw className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2" />
+                    <img 
+                      src="/lovable-uploads/41e96c75-18f1-45a5-93fe-bda1bd4b1fca.png"
+                      alt="Loading"
+                      className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2"
+                    />
                     <p className="text-muted-foreground">Loading emails...</p>
                   </div>
                 ) : filteredConversations.length === 0 ? (
