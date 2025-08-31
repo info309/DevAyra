@@ -294,10 +294,32 @@ class GmailService {
       let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
       if (pageToken) threadsUrl += `&pageToken=${pageToken}`;
       
+      console.log(`[${this.requestId}] Constructed threadsUrl: ${threadsUrl}`);
+      console.log(`[${this.requestId}] Query parameters:`, {
+        query,
+        maxResults,
+        pageToken: pageToken || 'none',
+        encodedQuery: encodeURIComponent(query)
+      });
+      
       const threadsData = await this.makeGmailRequest(threadsUrl);
+      
+      console.log(`[${this.requestId}] threadsData response:`, {
+        threadsCount: threadsData.threads?.length || 0,
+        nextPageToken: threadsData.nextPageToken || 'none',
+        hasThreads: !!threadsData.threads,
+        fullResponse: JSON.stringify(threadsData, null, 2)
+      });
+      
       const threads = threadsData.threads || [];
       
       if (threads.length === 0) {
+        console.log(`[${this.requestId}] WARNING: No threads returned from Gmail API`);
+        console.log(`[${this.requestId}] This could indicate:`);
+        console.log(`[${this.requestId}] - Empty mailbox for query: ${query}`);
+        console.log(`[${this.requestId}] - Insufficient OAuth scopes (need gmail.readonly, gmail.modify)`);
+        console.log(`[${this.requestId}] - Invalid or revoked token`);
+        console.log(`[${this.requestId}] - User has no emails matching query`);
         return { conversations: [], nextPageToken: threadsData.nextPageToken };
       }
 
@@ -672,7 +694,10 @@ async function authenticateAndGetToken(userId: string, supabaseClient: any): Pro
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error(`[AUTH] Token refresh failed:`, errorText);
-      throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account.', 401);
+      console.log(`[AUTH] OAuth scopes may be insufficient. Required scopes:`);
+      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.readonly`);
+      console.log(`[AUTH] - https://www.googleapis.com/auth/gmail.modify`);
+      throw new GmailApiError('Gmail token expired and refresh failed. Please reconnect your Gmail account with proper scopes.', 401);
     }
 
     const tokenData = await tokenResponse.json();
