@@ -1222,16 +1222,16 @@ serve(async (req) => {
       console.error('Error saving user message:', userMessageError);
     }
 
-    // Get conversation history (last 6 messages)
+    // Get conversation history (last 12 messages for better context)
     const { data: historyRaw } = await supabase
       .from('assistant_messages')
       .select('*')
       .eq('session_id', session.id)
       .order('created_at', { ascending: true })
-      .limit(6);
+      .limit(12);
 
     const conversationHistory = (historyRaw || [])
-      .slice(-6)
+      .slice(-12)
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .filter(msg => msg.content && msg.content.trim().length > 0)
       .map(msg => ({
@@ -1240,6 +1240,23 @@ serve(async (req) => {
       }));
 
     console.log('Conversation history length:', conversationHistory.length);
+
+    // Context stitching: if user gives short response, add context from last assistant message
+    const isShortResponse = message && message.trim().length <= 10 && 
+      /^(yes|no|ok|sure|send|send it|confirm|cancel|proceed|go ahead)$/i.test(message.trim());
+    
+    let contextEnhancedMessage = message;
+    if (isShortResponse && conversationHistory.length > 0) {
+      const lastAssistantMessage = conversationHistory
+        .slice()
+        .reverse()
+        .find(msg => msg.role === 'assistant');
+      
+      if (lastAssistantMessage) {
+        contextEnhancedMessage = `Previous context: "${lastAssistantMessage.content.slice(0, 200)}..."\n\nUser response: ${message}`;
+        console.log('Enhanced short response with context');
+      }
+    }
 
     // Prepare messages for OpenAI with personalized system prompt
     let personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
@@ -1280,7 +1297,7 @@ serve(async (req) => {
     // Add current message with images if present
     const currentMessage: any = {
       role: 'user',
-      content: message || 'What can you see in these images?'
+      content: contextEnhancedMessage || 'What can you see in these images?'
     };
 
     // Add images to the current message if present
@@ -1288,7 +1305,7 @@ serve(async (req) => {
       currentMessage.content = [
         {
           type: 'text',
-          text: message || 'What can you see in these images?'
+          text: contextEnhancedMessage || 'What can you see in these images?'
         },
         ...images.map((img: any) => ({
           type: 'image_url',
