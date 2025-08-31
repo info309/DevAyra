@@ -6,14 +6,6 @@ import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote } 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-// Import images
-import mailboxImage from '@/assets/mailbox-card.jpg';
-import calendarImage from '@/assets/calendar-card.jpg';
-import notesImage from '@/assets/notes-card.jpg';
-import documentsImage from '@/assets/documents-card.jpg';
-import assistantImage from '@/assets/assistant-card.jpg';
-import accountImage from '@/assets/account-card.jpg';
-
 const Dashboard = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
@@ -56,37 +48,37 @@ const Dashboard = () => {
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
       route: '/mailbox',
-      image: mailboxImage
+      image: undefined // Add your mailbox image here
     },
     {
       title: 'Calendar',
       description: 'Schedule events and set reminders',
       route: '/calendar',
-      image: calendarImage
+      image: undefined // Add your calendar image here
     },
     {
       title: 'Notes',
       description: 'Save and edit your notes',
       route: '/notes',
-      image: notesImage
+      image: undefined // Add your notes image here
     },
     {
       title: 'Documents',
       description: 'Store and organize your files',
       route: '/documents',
-      image: documentsImage
+      image: undefined // Add your documents image here
     },
     {
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
       route: '/assistant',
-      image: assistantImage
+      image: undefined // Add your assistant image here
     },
     {
       title: 'Account',
       description: 'Manage account settings and connections',
       route: '/account',
-      image: accountImage
+      image: undefined // Add your account image here
     }
   ];
 
@@ -126,7 +118,7 @@ const Dashboard = () => {
                 onClick={() => navigate(tool.route)}
               >
                 <div className="flex h-full">
-                  <div className="flex-1 flex flex-col justify-between">
+                  <div className={`flex-1 flex flex-col justify-between ${tool.image ? 'pr-2' : ''}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{tool.title}</CardTitle>
                     </CardHeader>
@@ -136,13 +128,15 @@ const Dashboard = () => {
                       </CardDescription>
                     </CardContent>
                   </div>
-                  <div className="w-[30%] min-h-[120px] relative">
-                    <img 
-                      src={tool.image} 
-                      alt={tool.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </div>
+                  {tool.image && (
+                    <div className="w-[30%] min-h-[120px] relative">
+                      <img 
+                        src={tool.image} 
+                        alt={tool.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
               </Card>
             );
