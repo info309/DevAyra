@@ -286,11 +286,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
           if (googleError) {
             console.error('Failed to create Google Calendar event:', googleError);
             
-            // Check if it's an access revoked error
-            if (googleError.message && googleError.message.includes('GOOGLE_ACCESS_REVOKED')) {
+            // Check if it's a scope insufficient error
+            if (googleError.message && googleError.message.includes('insufficient authentication scopes')) {
+              toast({
+                title: "Calendar Permission Required",
+                description: "Please disconnect and reconnect your Google account to enable calendar access. Go to Account → Gmail Integration → Disconnect, then reconnect.",
+                variant: "destructive"
+              });
+            } else if (googleError.message && googleError.message.includes('GOOGLE_ACCESS_REVOKED')) {
               toast({
                 title: "Google Account Disconnected",
-                description: "Your Google account access has been revoked. Please reconnect your account in Settings.",
+                description: "Your Google account access has been revoked. Please reconnect your account in Account settings.",
                 variant: "destructive"
               });
             } else {
