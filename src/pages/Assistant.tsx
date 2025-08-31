@@ -619,7 +619,7 @@ const Assistant = () => {
           <div className="ml-auto flex items-center gap-2">
             {!isMobile && (
               <Button onClick={createNewSession} size="sm" className="bg-send hover:bg-send/90 text-send-foreground">
-                <Plus className="w-4 h-4 mr-2" />
+                <MessageSquare className="w-4 h-4 mr-2" />
                 New Chat
               </Button>
             )}
