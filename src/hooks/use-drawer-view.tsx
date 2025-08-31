@@ -1,7 +1,7 @@
 import * as React from "react"
 
-// MacBook Air is typically 1440px wide - use drawer for smaller screens only
-const DRAWER_BREAKPOINT = 1024
+// Use drawer view for screens smaller than 1090px (tablet breakpoint)
+const DRAWER_BREAKPOINT = 1090
 
 export function useIsDrawerView() {
   const [isDrawerView, setIsDrawerView] = React.useState<boolean | undefined>(undefined)
