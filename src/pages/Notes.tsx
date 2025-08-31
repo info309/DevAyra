@@ -7,8 +7,9 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { useIsDrawerView } from '@/hooks/use-drawer-view'
 import { NoteSidebar } from '@/components/NoteSidebar'
 import { NoteEditor } from '@/components/NoteEditor'
-import { Plus } from 'lucide-react'
+import { Plus, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useNavigate } from 'react-router-dom'
 
 export interface Note {
   id: string
@@ -22,6 +23,7 @@ export interface Note {
 export default function Notes() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const isDrawerView = useIsDrawerView()
   
   const [notes, setNotes] = useState<Note[]>([])
@@ -169,14 +171,23 @@ export default function Notes() {
           
           <main className="flex-1 flex flex-col">
             <header className="flex items-center justify-between p-4 border-b bg-background">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger />
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
                 <h1 className="text-xl font-semibold">Notes</h1>
               </div>
-              <Button onClick={createNote} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                New Note
-              </Button>
+              <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <Button onClick={createNote} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Note
+                </Button>
+              </div>
             </header>
 
             <div className="flex-1 p-4">
