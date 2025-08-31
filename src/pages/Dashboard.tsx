@@ -45,47 +45,35 @@ const Dashboard = () => {
 
   const tools = [
     {
-      icon: Mail,
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
-      route: '/mailbox',
-      color: 'text-blue-600'
+      route: '/mailbox'
     },
     {
-      icon: Calendar,
       title: 'Calendar',
       description: 'Schedule events and set reminders',
-      route: '/calendar',
-      color: 'text-green-600'
+      route: '/calendar'
     },
     {
-      icon: FileText,
       title: 'Notes',
       description: 'Save and edit your notes',
-      route: '/notes',
-      color: 'text-purple-600'
+      route: '/notes'
     },
     {
-      icon: FolderOpen,
       title: 'Documents',
       description: 'Store and organize your files',
-      route: '/documents',
-      color: 'text-orange-600'
+      route: '/documents'
     },
     {
-      icon: Bot,
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
-      route: '/assistant',
-      color: 'text-violet-600'
+      route: '/assistant'
     },
-        {
-          icon: Users,
-          title: 'Account',
-          description: 'Manage account settings and connections',
-          route: '/account',
-          color: 'text-indigo-600'
-        }
+    {
+      title: 'Account',
+      description: 'Manage account settings and connections',
+      route: '/account'
+    }
   ];
 
   return (
@@ -117,7 +105,6 @@ const Dashboard = () => {
         {/* Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tools.map((tool) => {
-            const Icon = tool.icon;
             return (
               <Card 
                 key={tool.title} 
@@ -125,14 +112,7 @@ const Dashboard = () => {
                 onClick={() => navigate(tool.route)}
               >
                 <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-secondary ${tool.color}`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{tool.title}</CardTitle>
-                    </div>
-                  </div>
+                  <CardTitle className="text-lg">{tool.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-sm">
