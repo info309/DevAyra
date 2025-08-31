@@ -358,13 +358,27 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       .eq('user_id', userId)
       .single();
     
-    const userTimezone = userProfile?.timezone || 'GMT';
-    console.log(`User timezone: ${userTimezone}`);
+    // Map common timezone names to proper IANA timezone identifiers
+    let userTimezone = userProfile?.timezone || 'GMT';
     
-    // Get current date/time in user's timezone
+    // Handle common timezone mappings
+    const timezoneMap: Record<string, string> = {
+      'GMT': 'Europe/London', // This properly handles GMT/BST transitions
+      'UTC': 'UTC',
+      'EST': 'America/New_York',
+      'PST': 'America/Los_Angeles',
+      'CST': 'America/Chicago',
+      'MST': 'America/Denver'
+    };
+    
+    // Use IANA timezone if available, otherwise keep the original
+    const ianaTimezone = timezoneMap[userTimezone] || userTimezone;
+    console.log(`User timezone: ${userTimezone} -> ${ianaTimezone}`);
+    
+    // Get current date/time in user's timezone using proper IANA timezone
     const now = new Date();
     const currentUserTime = new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimezone,
+      timeZone: ianaTimezone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -374,7 +388,7 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       hour12: false
     }).format(now);
     
-    console.log(`Current time in user timezone (${userTimezone}): ${currentUserTime}`);
+    console.log(`Current time in user timezone (${ianaTimezone}): ${currentUserTime}`);
     
     // Parse current user time to get proper Date object
     const userNow = new Date(currentUserTime.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
@@ -557,7 +571,7 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       totalResults: cachedEvents?.length || 0,
       timeRange: { from: defaultTimeMin, to: defaultTimeMax },
       currentUserTime: currentUserTime,
-      userTimezone: userTimezone
+      userTimezone: ianaTimezone
     };
   } catch (error) {
     console.error('Calendar events error:', error);
