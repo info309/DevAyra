@@ -1,7 +1,7 @@
 import * as React from "react"
 
-// Use drawer view for screens smaller than 1090px (tablet breakpoint)
-const DRAWER_BREAKPOINT = 1090
+// Use drawer view for screens smaller than 768px (mobile only)
+const DRAWER_BREAKPOINT = 768
 
 export function useIsDrawerView() {
   const [isDrawerView, setIsDrawerView] = React.useState<boolean | undefined>(undefined)
