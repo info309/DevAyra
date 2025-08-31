@@ -120,8 +120,10 @@ export function NoteSidebar({
                 <div key={note.id}>
                   <button
                     className={cn(
-                      "w-full flex items-start justify-between p-3 h-auto hover:bg-muted/50 group rounded-md text-left transition-colors",
-                      selectedNote?.id === note.id && "bg-muted border-l-2 border-l-primary"
+                      "w-full flex items-start justify-between p-3 h-auto group rounded-lg text-left transition-all duration-200 relative",
+                      selectedNote?.id === note.id 
+                        ? "bg-primary/10 border border-primary/20 shadow-sm" 
+                        : "hover:bg-muted/50 border border-transparent"
                     )}
                     onClick={() => onSelectNote(note)}
                   >
