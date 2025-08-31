@@ -209,44 +209,6 @@ const CALENDAR_TOOLS = [
         required: []
       }
     }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'calendar_find_availability',
-      description: 'Find available time slots in the calendar for scheduling meetings. Analyzes gaps between existing events and suggests available periods.',
-      parameters: {
-        type: 'object',
-        properties: {
-          period: {
-            type: 'string',
-            description: 'Time period to check availability: "today", "tomorrow", "this week", "next week", "october", etc.',
-            default: 'this week'
-          },
-          duration: {
-            type: 'number',
-            description: 'Required meeting duration in minutes (default: 60)',
-            default: 60
-          },
-          workingHoursOnly: {
-            type: 'boolean',
-            description: 'Only show availability during working hours (9 AM - 6 PM)',
-            default: true
-          },
-          timeMin: {
-            type: 'string',
-            description: 'Start time for availability search in ISO format (optional)',
-            optional: true
-          },
-          timeMax: {
-            type: 'string',
-            description: 'End time for availability search in ISO format (optional)',
-            optional: true
-          }
-        },
-        required: []
-      }
-    }
   }
 ];
 
@@ -573,245 +535,6 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
   }
 }
 
-async function findCalendarAvailability(userId: string, period = 'this week', duration = 60, workingHoursOnly = true, timeMin?: string, timeMax?: string) {
-  try {
-    console.log(`Finding availability for user ${userId}, period: ${period}, duration: ${duration} minutes`);
-    
-    // First get all events for the specified period
-    const eventsResult = await listCalendarEvents(userId, timeMin, timeMax, period, 100);
-    
-    if (eventsResult.error) {
-      return { error: eventsResult.error };
-    }
-    
-    const events = eventsResult.events || [];
-    console.log(`Found ${events.length} existing events`);
-    
-    // Get user's timezone
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('timezone')
-      .eq('user_id', userId)
-      .single();
-    
-    const userTimezone = userProfile?.timezone || 'GMT';
-    
-    // Get current time in user's timezone
-    const now = new Date();
-    const currentUserTime = new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).format(now);
-    
-    const userNow = new Date(currentUserTime.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
-    
-    // Calculate search period dates if not provided
-    let searchStart, searchEnd;
-    
-    if (timeMin && timeMax) {
-      searchStart = new Date(timeMin);
-      searchEnd = new Date(timeMax);
-    } else {
-      const currentDate = new Date(userNow);
-      const currentDay = currentDate.getDay();
-      
-      switch (period.toLowerCase()) {
-        case 'today':
-          searchStart = new Date(currentDate.setHours(0, 0, 0, 0));
-          searchEnd = new Date(currentDate.setHours(23, 59, 59, 999));
-          break;
-          
-        case 'tomorrow':
-          const tomorrow = new Date(currentDate);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          searchStart = new Date(tomorrow.setHours(0, 0, 0, 0));
-          searchEnd = new Date(tomorrow.setHours(23, 59, 59, 999));
-          break;
-          
-        case 'this week':
-          const startOfWeek = new Date(currentDate);
-          const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-          startOfWeek.setDate(startOfWeek.getDate() - daysToMonday);
-          startOfWeek.setHours(0, 0, 0, 0);
-          
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(endOfWeek.getDate() + 6);
-          endOfWeek.setHours(23, 59, 59, 999);
-          
-          searchStart = startOfWeek;
-          searchEnd = endOfWeek;
-          break;
-          
-        case 'next week':
-          const startOfNextWeek = new Date(currentDate);
-          const daysToNextMonday = currentDay === 0 ? 1 : 8 - currentDay;
-          startOfNextWeek.setDate(startOfNextWeek.getDate() + daysToNextMonday);
-          startOfNextWeek.setHours(0, 0, 0, 0);
-          
-          const endOfNextWeek = new Date(startOfNextWeek);
-          endOfNextWeek.setDate(endOfNextWeek.getDate() + 6);
-          endOfNextWeek.setHours(23, 59, 59, 999);
-          
-          searchStart = startOfNextWeek;
-          searchEnd = endOfNextWeek;
-          break;
-          
-        default:
-          // Default to next 7 days
-          searchStart = new Date(userNow);
-          searchEnd = new Date(userNow.getTime() + 7 * 24 * 60 * 60 * 1000);
-      }
-    }
-    
-    // Working hours configuration
-    const workingStartHour = 9; // 9 AM
-    const workingEndHour = 18; // 6 PM
-    
-    // Generate time slots and check availability
-    const availableSlots = [];
-    const busyPeriods = [];
-    
-    // Sort events by start time
-    const sortedEvents = events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    
-    // Convert events to busy periods
-    for (const event of sortedEvents) {
-      const startTime = new Date(event.startTime);
-      const endTime = new Date(event.endTime);
-      
-      busyPeriods.push({
-        start: startTime,
-        end: endTime,
-        title: event.title
-      });
-    }
-    
-    // Check each day in the search period
-    const currentDay = new Date(searchStart);
-    
-    while (currentDay <= searchEnd) {
-      // Skip weekends if working hours only
-      if (workingHoursOnly && (currentDay.getDay() === 0 || currentDay.getDay() === 6)) {
-        currentDay.setDate(currentDay.getDate() + 1);
-        continue;
-      }
-      
-      // Set working hours for this day
-      const dayStart = new Date(currentDay);
-      const dayEnd = new Date(currentDay);
-      
-      if (workingHoursOnly) {
-        dayStart.setHours(workingStartHour, 0, 0, 0);
-        dayEnd.setHours(workingEndHour, 0, 0, 0);
-      } else {
-        dayStart.setHours(8, 0, 0, 0); // 8 AM earliest
-        dayEnd.setHours(22, 0, 0, 0); // 10 PM latest
-      }
-      
-      // Skip if day is in the past
-      if (dayEnd < userNow) {
-        currentDay.setDate(currentDay.getDate() + 1);
-        continue;
-      }
-      
-      // Adjust start time if it's today and before current time
-      if (dayStart < userNow && dayStart.toDateString() === userNow.toDateString()) {
-        dayStart.setTime(Math.max(dayStart.getTime(), userNow.getTime()));
-        // Round up to next 15-minute interval
-        const minutes = dayStart.getMinutes();
-        const roundedMinutes = Math.ceil(minutes / 15) * 15;
-        dayStart.setMinutes(roundedMinutes, 0, 0);
-      }
-      
-      // Get busy periods for this day
-      const dayBusyPeriods = busyPeriods.filter(busy => {
-        const busyStart = new Date(busy.start);
-        const busyEnd = new Date(busy.end);
-        return (busyStart < dayEnd && busyEnd > dayStart);
-      });
-      
-      // Find gaps between events
-      const daySlots = [];
-      let currentTime = new Date(dayStart);
-      
-      for (const busy of dayBusyPeriods.sort((a, b) => a.start.getTime() - b.start.getTime())) {
-        const busyStart = new Date(Math.max(busy.start.getTime(), dayStart.getTime()));
-        const busyEnd = new Date(Math.min(busy.end.getTime(), dayEnd.getTime()));
-        
-        // Check if there's a gap before this busy period
-        if (currentTime < busyStart) {
-          const gapDuration = (busyStart.getTime() - currentTime.getTime()) / (1000 * 60);
-          if (gapDuration >= duration) {
-            daySlots.push({
-              start: new Date(currentTime),
-              end: new Date(busyStart),
-              duration: Math.floor(gapDuration)
-            });
-          }
-        }
-        
-        currentTime = new Date(Math.max(currentTime.getTime(), busyEnd.getTime()));
-      }
-      
-      // Check if there's time after the last event
-      if (currentTime < dayEnd) {
-        const gapDuration = (dayEnd.getTime() - currentTime.getTime()) / (1000 * 60);
-        if (gapDuration >= duration) {
-          daySlots.push({
-            start: new Date(currentTime),
-            end: new Date(dayEnd),
-            duration: Math.floor(gapDuration)
-          });
-        }
-      }
-      
-      // If no events on this day, the whole day is free
-      if (dayBusyPeriods.length === 0) {
-        const totalDuration = (dayEnd.getTime() - dayStart.getTime()) / (1000 * 60);
-        daySlots.push({
-          start: new Date(dayStart),
-          end: new Date(dayEnd),
-          duration: Math.floor(totalDuration)
-        });
-      }
-      
-      availableSlots.push(...daySlots);
-      currentDay.setDate(currentDay.getDate() + 1);
-    }
-    
-    // Format the results
-    const formattedSlots = availableSlots.map(slot => ({
-      date: slot.start.toISOString().split('T')[0],
-      startTime: slot.start.toISOString(),
-      endTime: slot.end.toISOString(),
-      duration: slot.duration,
-      displayTime: `${slot.start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${slot.end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`,
-      displayDate: slot.start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    }));
-    
-    console.log(`Found ${formattedSlots.length} available time slots`);
-    
-    return {
-      availableSlots: formattedSlots,
-      requestedDuration: duration,
-      searchPeriod: period,
-      workingHoursOnly,
-      totalSlots: formattedSlots.length,
-      hasAvailability: formattedSlots.length > 0
-    };
-    
-  } catch (error) {
-    console.error('Calendar availability search error:', error);
-    return { error: `Availability search failed: ${error.message}` };
-  }
-}
-
 async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[], userName?: string) {
   console.log('Composing email draft:', { to, subject, threadId, attachments });
   
@@ -841,110 +564,6 @@ async function composeEmailDraft(to: string, subject: string, content: string, t
   }
   
   return draftData;
-}
-
-// Tool execution router
-async function executeTools(userId: string, userName: string, toolCalls: any[]) {
-  const toolResults = [];
-  
-  for (const toolCall of toolCalls) {
-    try {
-      const args = JSON.parse(toolCall.function.arguments);
-      let result;
-
-      console.log(`Executing tool: ${toolCall.function.name} with args:`, args);
-
-      switch (toolCall.function.name) {
-        case 'emails_search':
-          result = await searchEmails(userId, args.query);
-          toolResults.push({
-            tool: 'emails_search',
-            result: result.error ? 'error' : result.conversations?.length || 0
-          });
-          break;
-          
-        case 'documents_search':
-          result = await searchDocuments(userId, args.query);
-          toolResults.push({
-            tool: 'documents_search',
-            result: result.error ? 'error' : result.documents?.length || 0
-          });
-          break;
-          
-        case 'calendar_list_events':
-          const { timeMin, timeMax, period, maxResults } = args;
-          result = await listCalendarEvents(userId, timeMin, timeMax, period, maxResults);
-          toolResults.push({
-            tool: 'calendar_list_events',
-            result: result.error ? 'error' : result.events?.length || 0
-          });
-          break;
-          
-        case 'calendar_find_availability':
-          const { period: availPeriod = 'this week', duration = 60, workingHoursOnly = true, timeMin: availTimeMin, timeMax: availTimeMax } = args;
-          result = await findCalendarAvailability(userId, availPeriod, duration, workingHoursOnly, availTimeMin, availTimeMax);
-          toolResults.push({
-            tool: 'calendar_find_availability',
-            result: result.error ? 'error' : result.totalSlots || 0
-          });
-          break;
-          
-        case 'emails_compose_draft':
-          const { to, subject, content, threadId, attachments } = args;
-          result = await composeEmailDraft(to, subject, content, threadId, attachments, userName);
-          
-          // If attachments were provided, fetch document details
-          if (attachments && attachments.length > 0) {
-            // Try to find documents by name (since AI might pass names instead of IDs)
-            const { data: attachedDocs } = await supabase
-              .from('user_documents')
-              .select('id, name, file_path, mime_type, file_size')
-              .eq('user_id', userId)
-              .or(attachments.map(att => `name.ilike.%${att}%`).join(','));
-              
-            result.attachedDocuments = attachedDocs || [];
-            console.log('Found attached documents:', attachedDocs?.length || 0);
-          }
-          
-          toolResults.push({
-            tool: 'emails_compose_draft', 
-            result: result.error ? 'error' : 'draft_created'
-          });
-          break;
-          
-        default:
-          result = { error: `Unknown tool: ${toolCall.function.name}` };
-          toolResults.push({
-            tool: toolCall.function.name,
-            result: 'error'
-          });
-      }
-
-      // Save tool message to database for UI rendering
-      await supabase
-        .from('assistant_messages')
-        .insert({
-          session_id: userId, // This should be session ID but keeping for compatibility
-          user_id: userId,
-          role: 'tool',
-          content: JSON.stringify(result),
-          tool_name: toolCall.function.name,
-          tool_args: JSON.stringify(args),
-          tool_result: JSON.stringify(result)
-        });
-
-      console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || result?.events?.length || result?.totalSlots || 'error');
-    } catch (toolError) {
-      console.error('Tool execution error:', toolError);
-      const errorResult = { error: `Tool execution failed: ${toolError.message}` };
-      toolResults.push({
-        toolCall,
-        result: errorResult
-      });
-    }
-  }
-  
-  return toolResults;
 }
 
 // Main handler
@@ -1000,7 +619,7 @@ serve(async (req) => {
     // Get user profile for personalization - now synced from Auth metadata
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('display_name, timezone')
+      .select('display_name')
       .eq('user_id', user.id)
       .single();
 
@@ -1106,77 +725,8 @@ serve(async (req) => {
 
     console.log('Conversation history length:', conversationHistory.length);
 
-    // Check if user has calendar connection
-    const { data: hasCalendarConnection } = await supabase
-      .from('gmail_connections')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1);
-
-    // Get user's timezone for dynamic prompt
-    const userTimezone = userProfile?.timezone || 'GMT';
-    const now = new Date();
-    const currentUserTime = new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).format(now);
-
-    // Create dynamic system prompt with available tools
-    const availableTools = ['emails_search', 'emails_compose_draft'];
-    
-    // Add document tools if requested
-    if (detectedTriggers.includes('document') || message.toLowerCase().includes('document') || message.toLowerCase().includes('file')) {
-      availableTools.push('documents_search');
-      console.log('Added document tools');
-    }
-    
-    // Add calendar tools if user has connection
-    if (hasCalendarConnection && hasCalendarConnection.length > 0) {
-      availableTools.push('calendar_list_events', 'calendar_find_availability');
-      console.log('Added calendar tools');
-    }
-
-    console.log('Tools to use:', availableTools);
-
-    // Prepare tools array
-    const tools = [];
-    if (availableTools.includes('emails_search') || availableTools.includes('emails_compose_draft')) {
-      tools.push(...EMAIL_TOOLS);
-    }
-    if (availableTools.includes('documents_search')) {
-      tools.push(...DOCUMENT_TOOLS);
-    }
-    if (availableTools.includes('calendar_list_events') || availableTools.includes('calendar_find_availability')) {
-      tools.push(...CALENDAR_TOOLS);
-    }
-
-    // Create dynamic system prompt
-    const dynamicSystemPrompt = SYSTEM_PROMPT + `
-
-You have access to these tools:
-- emails_search: Search through the user's emails with various filters
-- emails_compose_draft: Create email drafts
-${hasCalendarConnection && hasCalendarConnection.length > 0 ? `- calendar_list_events: Get calendar events for specific time periods
-- calendar_find_availability: Find available time slots for scheduling meetings (analyzes gaps between events)` : ''}
-
-Current date and time: ${currentUserTime}
-User timezone: ${userTimezone}
-
-When users ask about calendar events, use the period parameter with natural language like "today", "tomorrow", "this week", "next week", "october", etc. Do not calculate dates manually - let the system handle period calculations using the user's timezone.
-
-For availability requests like "Do I have time for a meeting?" or "When am I free?", use the calendar_find_availability tool with appropriate period and duration parameters.
-
-Be helpful, friendly, and concise in your responses. Always acknowledge the user's request and provide relevant information from their emails and calendar.`;
-
     // Prepare messages for OpenAI with personalized system prompt
-    const personalizedSystemPrompt = dynamicSystemPrompt.replace('{{USER_NAME}}', userName);
+    const personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
     
     const messages = [
       { role: 'system', content: personalizedSystemPrompt },
@@ -1207,6 +757,28 @@ Be helpful, friendly, and concise in your responses. Always acknowledge the user
     }
 
     messages.push(currentMessage);
+
+    // Always include email tools since they're core functionality
+    const tools = [...EMAIL_TOOLS];
+    
+    // Add document tools if requested
+    if (detectedTriggers.includes('document') || message.toLowerCase().includes('document') || message.toLowerCase().includes('file')) {
+      tools.push(...DOCUMENT_TOOLS);
+      console.log('Added document tools');
+    }
+    
+    // Add calendar tools if requested
+    if (detectedTriggers.includes('calendar') || 
+        message.toLowerCase().includes('calendar') || 
+        message.toLowerCase().includes('schedule') || 
+        message.toLowerCase().includes('meeting') || 
+        message.toLowerCase().includes('appointment') || 
+        message.toLowerCase().includes('event')) {
+      tools.push(...CALENDAR_TOOLS);
+      console.log('Added calendar tools');
+    }
+
+    console.log('Tools to use:', tools.map(t => t.function.name));
 
     // Call OpenAI with vision model if images are present
     const modelToUse = (images && images.length > 0) ? 'gpt-4o' : 'gpt-4o-mini';
@@ -1256,7 +828,71 @@ Be helpful, friendly, and concise in your responses. Always acknowledge the user
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       console.log('Executing tool calls...');
       
-      toolResults = await executeTools(user.id, userName, assistantMessage.tool_calls);
+      for (const toolCall of assistantMessage.tool_calls) {
+        try {
+          const args = JSON.parse(toolCall.function.arguments);
+          let result;
+
+          console.log(`Executing tool: ${toolCall.function.name} with args:`, args);
+
+          switch (toolCall.function.name) {
+            case 'emails_search':
+              result = await searchEmails(user.id, args.query);
+              break;
+            case 'documents_search':
+              result = await searchDocuments(user.id, args.query);
+              break;
+            case 'calendar_list_events':
+              result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
+              break;
+            case 'emails_compose_draft':
+              const { to, subject, content, threadId, attachments } = args;
+              result = await composeEmailDraft(to, subject, content, threadId, attachments, userName);
+              
+              // If attachments were provided, fetch document details
+              if (attachments && attachments.length > 0) {
+                // Try to find documents by name (since AI might pass names instead of IDs)
+                const { data: attachedDocs } = await supabase
+                  .from('user_documents')
+                  .select('id, name, file_path, mime_type, file_size')
+                  .eq('user_id', user.id)
+                  .or(attachments.map(att => `name.ilike.%${att}%`).join(','));
+                  
+                result.attachedDocuments = attachedDocs || [];
+                console.log('Found attached documents:', attachedDocs?.length || 0);
+              }
+              break;
+            default:
+              result = { error: `Unknown tool: ${toolCall.function.name}` };
+          }
+
+          toolResults.push({
+            toolCall,
+            result
+          });
+
+          // Save tool message to database for UI rendering
+          await supabase
+            .from('assistant_messages')
+            .insert({
+              session_id: session.id,
+              user_id: user.id,
+              role: 'tool',
+              content: JSON.stringify(result),
+              tool_name: toolCall.function.name,
+              tool_args: JSON.stringify(args),
+              tool_result: JSON.stringify(result)
+            });
+
+          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || 'error');
+        } catch (toolError) {
+          console.error('Tool execution error:', toolError);
+          toolResults.push({
+            toolCall,
+            result: { error: `Tool execution failed: ${toolError.message}` }
+          });
+        }
+      }
 
       // Get follow-up response from OpenAI with tool results
       if (toolResults.length > 0) {
@@ -1264,7 +900,7 @@ Be helpful, friendly, and concise in your responses. Always acknowledge the user
         
         const toolMessages = toolResults.map(tr => ({
           role: 'tool',
-          tool_call_id: tr.toolCall?.id || 'unknown',
+          tool_call_id: tr.toolCall.id,
           content: JSON.stringify(tr.result)
         }));
 
@@ -1298,10 +934,10 @@ Be helpful, friendly, and concise in your responses. Always acknowledge the user
         } else {
           console.error('Follow-up OpenAI call failed:', followUpData);
           // Use fallback response
-          if (toolResults.some(tr => tr.tool === 'emails_search')) {
-            const emailResults = toolResults.find(tr => tr.tool === 'emails_search');
-            if (emailResults?.result && typeof emailResults.result === 'number' && emailResults.result > 0) {
-              finalResponse = `✨ I found ${emailResults.result} email(s) matching your search! Let me know if you'd like me to help with anything specific about these emails.`;
+          if (toolResults.some(tr => tr.toolCall.function.name === 'emails_search')) {
+            const emailResults = toolResults.find(tr => tr.toolCall.function.name === 'emails_search');
+            if (emailResults?.result?.conversations?.length > 0) {
+              finalResponse = `✨ I found ${emailResults.result.conversations.length} email(s) matching your search! Let me know if you'd like me to help with anything specific about these emails.`;
             }
           }
         }
