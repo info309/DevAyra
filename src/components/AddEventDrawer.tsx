@@ -491,7 +491,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
                   Cancel
                 </Button>
               </DrawerClose>
-              <Button type="submit" disabled={loading || !title.trim()}>
+              <Button type="submit" variant="compose" disabled={loading || !title.trim()}>
                 {loading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Event' : 'Create Event')}
               </Button>
             </div>
