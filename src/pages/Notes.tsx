@@ -170,12 +170,9 @@ export default function Notes() {
               </Button>
               <h1 className="text-xl font-semibold">Notes</h1>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Plus className="w-4 h-4" />
+            <Button onClick={createNote} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              New Note
             </Button>
           </header>
 
@@ -239,6 +236,10 @@ export default function Notes() {
           </Button>
           <h1 className="text-xl font-semibold">Notes</h1>
         </div>
+        <Button onClick={createNote} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          New Note
+        </Button>
       </header>
 
       <div className="flex flex-1">
