@@ -660,58 +660,51 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log(`[${requestId}] Gmail API request received`);
-    console.log(`[${requestId}] Request headers:`, Object.fromEntries(req.headers.entries()));
     
-    // Authenticate user using service role for robust token validation
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
+    // Get auth token from header
     const authHeader = req.headers.get('Authorization');
-    console.log(`[${requestId}] Auth header present:`, !!authHeader);
-    console.log(`[${requestId}] Auth header format:`, authHeader?.substring(0, 20) + '...');
-    
     if (!authHeader?.startsWith('Bearer ')) {
-      console.error(`[${requestId}] Auth session missing!`);
+      console.error(`[${requestId}] Missing or invalid authorization header`);
       throw new GmailApiError('Authorization header required', 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log(`[${requestId}] Validating token for authentication`);
-    console.log(`[${requestId}] Token length:`, token.length);
+    console.log(`[${requestId}] Token received, length:`, token.length);
     
-    // Verify JWT token manually since verify_jwt is disabled
-    let user;
-    try {
-      // Use the anon client to verify the JWT token
-      const anonClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-      );
-      
-      // Set the session with the provided token
-      const { data: { user: authUser }, error: userError } = await anonClient.auth.getUser(token);
-      
-      if (userError || !authUser) {
-        console.error(`[${requestId}] Auth validation failed:`, userError?.message || 'No user found');
-        throw new GmailApiError('Invalid or expired authentication token', 401);
-      }
-      
-      user = authUser;
-      console.log(`[${requestId}] Successfully authenticated user:`, user.email);
-    } catch (error) {
-      console.error(`[${requestId}] Token validation error:`, error);
-      if (error instanceof GmailApiError) {
-        throw error;
-      }
-      throw new GmailApiError('Authentication failed', 401);
+    // Create Supabase client for authentication
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    // Use the token directly to get user info
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error(`[${requestId}] Authentication failed:`, userError?.message || 'No user found');
+      throw new GmailApiError('Invalid authentication token', 401);
     }
 
-    console.log(`[${requestId}] User authenticated: ${user.email}`);
+    console.log(`[${requestId}] User authenticated successfully:`, user.email);
 
     // Parse request
-    const requestBody = await req.json();
+    console.log(`[${requestId}] Parsing request body...`);
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log(`[${requestId}] Request body text:`, bodyText.substring(0, 200));
+      
+      if (!bodyText.trim()) {
+        throw new GmailApiError('Empty request body', 400);
+      }
+      
+      requestBody = JSON.parse(bodyText);
+      console.log(`[${requestId}] Parsed request:`, JSON.stringify(requestBody));
+    } catch (parseError) {
+      console.error(`[${requestId}] Request parsing error:`, parseError);
+      throw new GmailApiError('Invalid JSON in request body', 400);
+    }
+    
     const validation = requestSchema.safeParse(requestBody);
     
     if (!validation.success) {
