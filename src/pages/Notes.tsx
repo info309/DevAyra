@@ -203,7 +203,7 @@ export default function Notes() {
 
         {/* Sidebar menu on mobile - slides from left */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="w-80 p-0">
+          <SheetContent side="left" className="w-80 p-0 [&>button]:hidden">
             <NoteSidebar
               notes={notes}
               selectedNote={selectedNote}
