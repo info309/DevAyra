@@ -802,14 +802,15 @@ const Documents = () => {
             </h2>
             
             <Drawer open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setIsCreateFolderOpen(true)}
-                className="gap-2 shrink-0 h-auto p-0 text-primary hover:text-primary/80 bg-transparent border-0 cursor-pointer flex items-center"
+                className="gap-2"
               >
                 <Folder className="w-4 h-4" />
                 New Folder
-              </button>
+              </Button>
               <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                   <DrawerHeader>
