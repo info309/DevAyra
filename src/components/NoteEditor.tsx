@@ -148,20 +148,6 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
               </div>
             )}
           </div>
-          
-          <div className="flex items-center gap-2">
-            {hasUnsavedChanges && (
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving}
-                size="sm"
-                className="gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            )}
-          </div>
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
