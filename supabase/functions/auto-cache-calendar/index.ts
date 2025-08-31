@@ -40,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Caching calendar events for user: ${connection.user_id}`);
         
         // Fetch calendar events from Google Calendar API
-        const events = await fetchGoogleCalendarEvents(connection);
+        const events = await fetchGoogleCalendarEvents(connection, supabase);
         
         if (events && events.length > 0) {
           // Cache events in our database
@@ -97,7 +97,7 @@ async function refreshAccessToken(connection: any): Promise<string> {
   return tokens.access_token;
 }
 
-async function makeCalendarRequest(connection: any, endpoint: string, options: any = {}) {
+async function makeCalendarRequest(connection: any, endpoint: string, options: any = {}, supabaseClient?: any) {
   let accessToken = connection.access_token;
   
   // Try request with current token
@@ -114,6 +114,25 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
   if (response.status === 401) {
     console.log('Access token expired, refreshing...');
     accessToken = await refreshAccessToken(connection);
+    
+    // Persist the new access token to database
+    if (supabaseClient) {
+      console.log('Persisting refreshed access token to database');
+      const { error: updateError } = await supabaseClient
+        .from('gmail_connections')
+        .update({ 
+          access_token: accessToken, 
+          updated_at: new Date().toISOString(),
+          last_error: null 
+        })
+        .eq('id', connection.id);
+      
+      if (updateError) {
+        console.error('Failed to persist access token:', updateError);
+      } else {
+        console.log('Successfully persisted refreshed access token');
+      }
+    }
     
     response = await fetch(`https://www.googleapis.com/calendar/v3${endpoint}`, {
       ...options,
@@ -134,7 +153,7 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
   return response.json();
 }
 
-async function fetchGoogleCalendarEvents(connection: any) {
+async function fetchGoogleCalendarEvents(connection: any, supabaseClient: any) {
   try {
     // Get events from the next 3 months
     const now = new Date();
@@ -149,7 +168,7 @@ async function fetchGoogleCalendarEvents(connection: any) {
       maxResults: '250'
     });
 
-    const data = await makeCalendarRequest(connection, `/calendars/primary/events?${params}`);
+    const data = await makeCalendarRequest(connection, `/calendars/primary/events?${params}`, {}, supabaseClient);
     return data.items || [];
     
   } catch (error) {

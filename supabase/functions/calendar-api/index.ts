@@ -78,9 +78,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     switch (action) {
       case 'list':
-        return await listEvents(connection, requestData);
+        return await listEvents(connection, requestData, supabaseClient);
       case 'create':
-        return await createEvent(connection, requestData);
+        return await createEvent(connection, requestData, supabaseClient);
       case 'update':
         return await updateEvent(connection, requestData, supabaseClient, user.id);
       case 'delete':
@@ -126,7 +126,7 @@ async function refreshAccessToken(connection: any): Promise<string> {
   return tokens.access_token;
 }
 
-async function makeCalendarRequest(connection: any, endpoint: string, options: any = {}) {
+async function makeCalendarRequest(connection: any, endpoint: string, options: any = {}, supabaseClient?: any) {
   let accessToken = connection.access_token;
   
   // Try request with current token
@@ -143,6 +143,25 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
   if (response.status === 401) {
     console.log('Access token expired, refreshing...');
     accessToken = await refreshAccessToken(connection);
+    
+    // Persist the new access token to database
+    if (supabaseClient) {
+      console.log('Persisting refreshed access token to database');
+      const { error: updateError } = await supabaseClient
+        .from('gmail_connections')
+        .update({ 
+          access_token: accessToken, 
+          updated_at: new Date().toISOString(),
+          last_error: null 
+        })
+        .eq('id', connection.id);
+      
+      if (updateError) {
+        console.error('Failed to persist access token:', updateError);
+      } else {
+        console.log('Successfully persisted refreshed access token');
+      }
+    }
     
     response = await fetch(`https://www.googleapis.com/calendar/v3${endpoint}`, {
       ...options,
@@ -163,7 +182,7 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
   return response.json();
 }
 
-async function listEvents(connection: any, { timeMin, timeMax }: any) {
+async function listEvents(connection: any, { timeMin, timeMax }: any, supabaseClient: any) {
   console.log('Listing calendar events');
   
   const params = new URLSearchParams({
@@ -174,7 +193,7 @@ async function listEvents(connection: any, { timeMin, timeMax }: any) {
     ...(timeMax && { timeMax }),
   });
 
-  const data = await makeCalendarRequest(connection, `/calendars/primary/events?${params}`);
+  const data = await makeCalendarRequest(connection, `/calendars/primary/events?${params}`, {}, supabaseClient);
   
   return new Response(
     JSON.stringify({ events: data.items || [] }),
@@ -185,13 +204,13 @@ async function listEvents(connection: any, { timeMin, timeMax }: any) {
   );
 }
 
-async function createEvent(connection: any, { event }: { event: CalendarEvent }) {
+async function createEvent(connection: any, { event }: { event: CalendarEvent }, supabaseClient: any) {
   console.log('Creating calendar event in Google Calendar only');
   
   const data = await makeCalendarRequest(connection, '/calendars/primary/events', {
     method: 'POST',
     body: JSON.stringify(event),
-  });
+  }, supabaseClient);
 
   return new Response(
     JSON.stringify({ event: data }),
@@ -208,7 +227,7 @@ async function updateEvent(connection: any, { eventId, event }: { eventId: strin
   const data = await makeCalendarRequest(connection, `/calendars/primary/events/${eventId}`, {
     method: 'PUT',
     body: JSON.stringify(event),
-  });
+  }, supabaseClient);
 
   return new Response(
     JSON.stringify({ event: data }),
@@ -224,7 +243,7 @@ async function deleteEvent(connection: any, { eventId }: { eventId: string }, su
   
   await makeCalendarRequest(connection, `/calendars/primary/events/${eventId}`, {
     method: 'DELETE',
-  });
+  }, supabaseClient);
 
   return new Response(
     JSON.stringify({ success: true }),
