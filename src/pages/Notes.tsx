@@ -81,11 +81,6 @@ export default function Notes() {
       const newNote = data as Note
       setNotes(prev => [newNote, ...prev])
       setSelectedNote(newNote)
-
-      toast({
-        title: "Success",
-        description: "New note created"
-      })
     } catch (error) {
       console.error('Error creating note:', error)
       toast({
@@ -138,10 +133,6 @@ export default function Notes() {
         setSelectedNote(remainingNotes[0] || null)
       }
 
-      toast({
-        title: "Success",
-        description: "Note deleted"
-      })
     } catch (error) {
       console.error('Error deleting note:', error)
       toast({
