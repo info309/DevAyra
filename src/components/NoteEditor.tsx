@@ -116,8 +116,9 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
                   onChange={(e) => setTitle(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onBlur={handleTitleSave}
-                  className="text-xl font-semibold border-none p-0 h-auto shadow-none focus-visible:ring-0"
+                  className="text-xl font-semibold border-none p-0 h-auto shadow-none focus-visible:ring-0 focus:ring-0 focus:outline-none focus:border-none bg-transparent rounded-none focus:rounded-none"
                   placeholder="Note title..."
+                  style={{ boxShadow: 'none', outline: 'none' }}
                 />
                 <Button size="sm" variant="ghost" onClick={handleTitleSave} className="h-8 w-8 p-0">
                   <Check className="h-4 w-4" />
