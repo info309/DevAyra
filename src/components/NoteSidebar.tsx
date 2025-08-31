@@ -95,7 +95,7 @@ export function NoteSidebar({
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Notes</h2>
-              <Button onClick={onCreateNote} size="sm">
+              <Button onClick={onCreateNote} size="sm" variant="compose">
                 <PenTool className="h-4 w-4 mr-2" />
                 New Note
               </Button>
@@ -115,7 +115,7 @@ export function NoteSidebar({
             ) : notes.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 <p className="text-sm mb-2">No notes yet</p>
-                <Button onClick={onCreateNote} size="sm" variant="outline">
+                <Button onClick={onCreateNote} size="sm" variant="compose">
                   <PenTool className="h-4 w-4 mr-2" />
                   Create your first note
                 </Button>
