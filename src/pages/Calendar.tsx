@@ -90,6 +90,17 @@ const Calendar = () => {
           });
           if (googleError) {
             console.error('Google Calendar API error:', googleError);
+            
+            // Check if it's an access revoked error
+            if (googleError.message && googleError.message.includes('GOOGLE_ACCESS_REVOKED')) {
+              toast({
+                title: "Google Account Disconnected",
+                description: "Your Google account access has been revoked. Please reconnect your account in Account settings.",
+                variant: "destructive"
+              });
+              // Clear the connection state to trigger reconnect UI
+              setGmailConnection(null);
+            }
             // Continue to load local events
           } else if (googleEvents?.events) {
             console.log('Received Google Calendar events:', googleEvents.events.length);

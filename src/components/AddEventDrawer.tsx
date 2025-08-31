@@ -285,11 +285,21 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
 
           if (googleError) {
             console.error('Failed to create Google Calendar event:', googleError);
-            toast({
-              title: "Sync failed",
-              description: "Failed to create event in Google Calendar",
-              variant: "destructive"
-            });
+            
+            // Check if it's an access revoked error
+            if (googleError.message && googleError.message.includes('GOOGLE_ACCESS_REVOKED')) {
+              toast({
+                title: "Google Account Disconnected",
+                description: "Your Google account access has been revoked. Please reconnect your account in Settings.",
+                variant: "destructive"
+              });
+            } else {
+              toast({
+                title: "Sync failed",
+                description: googleError.message || "Failed to create event in Google Calendar",
+                variant: "destructive"
+              });
+            }
             return; // Don't create local event if Google Calendar fails
           } else if (googleEvent?.event) {
             console.log('Successfully created Google Calendar event:', googleEvent.event);
