@@ -2007,7 +2007,11 @@ const Mailbox: React.FC = () => {
                   ) : (
                     <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
                       <div className="text-center">
-                        <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <img 
+                          src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
+                          alt="Welcome to Mail" 
+                          className="w-16 h-16 mx-auto mb-4 object-contain"
+                        />
                         <h3 className="text-lg font-medium mb-2">Welcome to Mail</h3>
                         <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
                       </div>
@@ -2098,7 +2102,11 @@ const Mailbox: React.FC = () => {
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center">
-                          <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                          <img 
+                            src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
+                            alt="Welcome to Mail" 
+                            className="w-16 h-16 mx-auto mb-4 object-contain"
+                          />
                           <h3 className="text-lg font-medium mb-2">Welcome to Mail</h3>
                           <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
                         </div>
