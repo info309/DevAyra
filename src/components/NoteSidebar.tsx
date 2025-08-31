@@ -1,13 +1,4 @@
 import { useState } from 'react'
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarHeader, 
-  SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem,
-  SidebarTrigger
-} from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
@@ -105,26 +96,24 @@ export function NoteSidebar({
 
   return (
     <>
-      <Sidebar className="w-80 border-r bg-muted/10">
-        <SidebarHeader className="p-4 border-b">
+      <div className="w-80 border-r bg-muted/10 flex flex-col">
+        <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Notes</h2>
             <Button onClick={onCreateNote} size="sm">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-        </SidebarHeader>
+        </div>
 
-        <SidebarContent className="p-0">
-          <SidebarMenu className="p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-2 space-y-1">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <SidebarMenuItem key={i}>
-                  <div className="p-3 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </SidebarMenuItem>
+                <div key={i} className="p-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
               ))
             ) : notes.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
@@ -136,10 +125,10 @@ export function NoteSidebar({
               </div>
             ) : (
               notes.map((note) => (
-                <SidebarMenuItem key={note.id}>
-                  <SidebarMenuButton
+                <div key={note.id}>
+                  <button
                     className={cn(
-                      "flex items-start justify-between p-3 h-auto hover:bg-muted/50 group",
+                      "w-full flex items-start justify-between p-3 h-auto hover:bg-muted/50 group rounded-md text-left transition-colors",
                       selectedNote?.id === note.id && "bg-muted border-l-2 border-l-primary"
                     )}
                     onClick={() => onSelectNote(note)}
@@ -206,13 +195,13 @@ export function NoteSidebar({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </button>
+                </div>
               ))
             )}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+          </div>
+        </div>
+      </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
