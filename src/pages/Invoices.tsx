@@ -193,83 +193,20 @@ const Invoices = () => {
   };
 
   const handleSendInvoice = (invoice: Invoice) => {
-    // Format helper functions
-    const formatCurrency = (cents: number, currency: string) => {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-      }).format(cents / 100);
-    };
-
-    const formatDate = (date: string) => {
-      return new Date(date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    };
-
-    // Create payment link using window.location.origin for reliability
+    // Simple email content to avoid security filters
+    const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
+    
+    // Create simple payment link
     const paymentLink = `${window.location.origin}/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
     
-    // Email subject
-    const subject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
-    
-    // Email body
-    const body = `Hi ${invoice.customer_name},
+    const simpleBody = `Hi ${invoice.customer_name},
 
-I hope this email finds you well. Please find your invoice details below:
+Thanks for your business! Please click the link below to view your invoice.
 
-INVOICE DETAILS
-===============
-Invoice #: ${invoice.invoice_number || invoice.id.slice(0, 8)}
-Issue Date: ${formatDate(invoice.issue_date)}${invoice.due_date ? `
-Due Date: ${formatDate(invoice.due_date)}` : ''}
-Amount: ${formatCurrency(invoice.total_cents, invoice.currency)}
-
-BILL TO:
-========
-${invoice.customer_name}
-${invoice.customer_email}${invoice.customer_address ? `
-${invoice.customer_address.replace(/\n/g, '\n')}` : ''}
-
-ITEMS:
-======`;
-
-    // Add line items
-    const lineItemsText = invoice.line_items && Array.isArray(invoice.line_items) 
-      ? (invoice.line_items as LineItem[]).map((item: LineItem) => 
-          `${item.description} - Qty: ${item.quantity} - ${formatCurrency(item.amount_cents, invoice.currency)}`
-        ).join('\n')
-      : '';
-
-    const totalsText = `
-
-TOTALS:
-=======
-Subtotal: ${formatCurrency(invoice.subtotal_cents, invoice.currency)}
-Tax: ${formatCurrency(invoice.tax_cents, invoice.currency)}
-Total: ${formatCurrency(invoice.total_cents, invoice.currency)}`;
-
-    const notesText = invoice.notes ? `
-
-NOTES:
-======
-${invoice.notes}` : '';
-
-    const paymentText = `
-
-💳 PAY ONLINE:
 ${paymentLink}
 
-You can click the link above or copy and paste it into your browser to pay securely online.
-
-Thank you for your business!
-
-${invoice.company_name || 'Your Company'}${invoice.company_email ? `
-${invoice.company_email}` : ''}`;
-
-    const fullBody = body + '\n' + lineItemsText + totalsText + notesText + paymentText;
+Best regards,
+${invoice.company_name || 'Your Company'}`;
 
     // Navigate to mailbox with compose draft
     navigate('/mailbox', { 
@@ -277,7 +214,7 @@ ${invoice.company_email}` : ''}`;
         composeDraft: { 
           to: invoice.customer_email, 
           subject, 
-          content: fullBody 
+          content: simpleBody 
         } 
       } 
     });
