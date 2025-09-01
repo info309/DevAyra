@@ -160,16 +160,32 @@ serve(async (req) => {
           ` : ''}
 
           <div style="text-align: center; margin: 40px 0;">
-            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-              <tr>
-                <td style="background-color: #2563eb; border-radius: 8px;">
-                  <a href="${paymentLink}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
-                </td>
-              </tr>
-            </table>
-            <p style="margin-top: 15px; font-size: 14px; color: #666;">
-              Payment Link:<br>
-              <span style="color: #2563eb; word-break: break-all; font-family: monospace;">${paymentLink}</span>
+            <!-- Simple HTML Button for Payment -->
+            <div style="margin-bottom: 20px;">
+              <a href="${paymentLink}" 
+                 style="
+                   display: inline-block;
+                   background-color: #2563eb;
+                   color: #ffffff !important;
+                   padding: 16px 32px;
+                   text-decoration: none;
+                   font-weight: bold;
+                   font-size: 18px;
+                   font-family: Arial, sans-serif;
+                   border-radius: 8px;
+                   border: none;
+                   cursor: pointer;
+                   text-align: center;
+                   line-height: 1.4;
+                 ">
+                💳 Pay Invoice Online
+              </a>
+            </div>
+            
+            <!-- Fallback text link in case button doesn't work -->
+            <p style="margin-top: 20px; font-size: 14px; color: #666; line-height: 1.5;">
+              Can't see the button? Copy and paste this link into your browser:<br>
+              <a href="${paymentLink}" style="color: #2563eb; word-break: break-all; text-decoration: underline;">${paymentLink}</a>
             </p>
           </div>
 
