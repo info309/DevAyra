@@ -31,6 +31,8 @@ serve(async (req) => {
 
     const { invoiceId } = await req.json();
     console.log('Invoice ID received:', invoiceId);
+    console.log('Invoice ID type:', typeof invoiceId);
+    console.log('Invoice ID length:', invoiceId ? invoiceId.length : 'null');
     if (!invoiceId) throw new Error("Invoice ID is required");
 
     // Fetch invoice details
