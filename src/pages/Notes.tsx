@@ -274,7 +274,7 @@ export default function Notes() {
         </Button>
       </header>
 
-      <div className="flex flex-1">
+      <div className="max-w-7xl mx-auto flex flex-1">
         <div className="w-[40%]">
           <NoteSidebar
             notes={notes}
