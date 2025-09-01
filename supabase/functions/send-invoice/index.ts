@@ -80,12 +80,26 @@ serve(async (req) => {
       });
     };
 
-    // Create payment link - use simple concatenation to avoid encoding issues
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
-    const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
-    console.log('Payment link created:', paymentLink);
-    console.log('Invoice ID:', invoiceId);
-    console.log('Origin:', origin);
+    // Create Stripe checkout session for payment
+    console.log('Creating Stripe checkout session');
+    const checkoutResponse = await supabaseClient.functions.invoke('create-invoice-checkout', {
+      body: { invoiceId: invoiceId },
+      headers: {
+        Authorization: authHeader
+      }
+    });
+
+    if (checkoutResponse.error) {
+      console.error('Checkout session creation error:', checkoutResponse.error);
+      throw new Error(`Failed to create checkout session: ${checkoutResponse.error.message}`);
+    }
+
+    const paymentLink = checkoutResponse.data?.url;
+    if (!paymentLink) {
+      throw new Error('No checkout URL received from Stripe');
+    }
+    
+    console.log('Stripe checkout URL created:', paymentLink);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -156,13 +170,12 @@ serve(async (req) => {
             <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
               <tr>
                 <td style="background-color: #2563eb; border-radius: 8px;">
-                  <a href="${paymentLink.replace(/&/g, '&amp;')}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
+                  <a href="${paymentLink}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
                 </td>
               </tr>
             </table>
-            <p style="margin-top: 15px; font-size: 14px; color: #666;">
-              Payment Link:<br>
-              <span style="color: #2563eb; word-break: break-all; font-family: monospace;">${paymentLink.replace(/&/g, '&amp;')}</span>
+            <p style="margin-top: 15px; font-size: 12px; color: #666;">
+              Secure payment powered by Stripe
             </p>
           </div>
 
