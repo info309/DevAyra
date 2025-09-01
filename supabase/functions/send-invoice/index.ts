@@ -80,17 +80,19 @@ serve(async (req) => {
       });
     };
 
-    // Get frontend URL from environment variable
+    // Get frontend URL from environment variable with detailed logging
     const frontendUrl = Deno.env.get("FRONTEND_URL");
+    console.log('FRONTEND_URL from environment:', frontendUrl);
     if (!frontendUrl) {
-      throw new Error("FRONTEND_URL is not configured");
+      console.error('FRONTEND_URL is not configured in secrets');
+      throw new Error("FRONTEND_URL is not configured. Please add it to your Supabase Edge Function secrets.");
     }
     
-    // Create payment link using the configured frontend URL
+    // Create payment link using the configured frontend URL (no HTML escaping needed here)
     const paymentLink = `${frontendUrl}/payment?invoice=${invoiceId}`;
     console.log('Payment link created:', paymentLink);
     console.log('Invoice ID:', invoiceId);
-    console.log('Frontend URL:', frontendUrl);
+    console.log('Frontend URL used:', frontendUrl);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -161,13 +163,13 @@ serve(async (req) => {
             <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
               <tr>
                 <td style="background-color: #2563eb; border-radius: 8px;">
-                  <a href="${paymentLink.replace(/&/g, '&amp;')}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
+                  <a href="${paymentLink}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
                 </td>
               </tr>
             </table>
             <p style="margin-top: 15px; font-size: 14px; color: #666;">
               Payment Link:<br>
-              <span style="color: #2563eb; word-break: break-all; font-family: monospace;">${paymentLink.replace(/&/g, '&amp;')}</span>
+              <span style="color: #2563eb; word-break: break-all; font-family: monospace;">${paymentLink}</span>
             </p>
           </div>
 
