@@ -227,7 +227,8 @@ serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from('invoices')
       .update({ status: 'sent' })
-      .eq('id', invoiceId);
+      .eq('id', invoiceId)
+      .eq('user_id', user.id);
 
     if (updateError) throw updateError;
 
