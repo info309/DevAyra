@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+
 import { supabase } from '@/integrations/supabase/client';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
@@ -32,7 +32,7 @@ interface LineItem {
 const Invoices = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -72,11 +72,7 @@ const Invoices = () => {
       if (error) throw error;
       setInvoices(data || []);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch invoices.",
-        variant: "destructive",
-      });
+      console.error('Error fetching invoices:', error);
     } finally {
       setLoading(false);
     }
@@ -112,13 +108,13 @@ const Invoices = () => {
           .update(invoiceData as InvoiceUpdate)
           .eq('id', editingInvoice.id);
         if (error) throw error;
-        toast({ title: "Success", description: "Invoice updated successfully" });
+        console.log('Invoice updated successfully');
       } else {
         const { error } = await supabase
           .from('invoices')
           .insert(invoiceData);
         if (error) throw error;
-        toast({ title: "Success", description: "Invoice created successfully" });
+        console.log('Invoice created successfully');
       }
 
       setIsCreateOpen(false);
@@ -127,11 +123,6 @@ const Invoices = () => {
       fetchInvoices();
     } catch (error) {
       console.error('Invoice save error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save invoice.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -181,14 +172,10 @@ const Invoices = () => {
 
       if (error) throw error;
       
-      toast({ title: "Success", description: "Invoice deleted successfully" });
+      console.log('Invoice deleted successfully');
       fetchInvoices();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete invoice.",
-        variant: "destructive",
-      });
+      console.error('Failed to delete invoice:', error);
     }
   };
 
@@ -231,14 +218,9 @@ ${invoice.company_name || 'Your Company'}`;
       // Open Stripe checkout in a new tab
       window.open(data.url, '_blank');
       
-      toast({ title: "Success", description: "Payment link created. Opening payment page..." });
+      console.log('Payment link created. Opening payment page...');
     } catch (error) {
       console.error('Payment link error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create payment link.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -250,13 +232,9 @@ ${invoice.company_name || 'Your Company'}`;
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "PDF generated successfully" });
+      console.log('PDF generated successfully');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF.",
-        variant: "destructive",
-      });
+      console.error('Failed to generate PDF:', error);
     }
   };
 
