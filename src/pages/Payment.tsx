@@ -39,7 +39,7 @@ const Payment = () => {
           .from("invoices")
           .select("*")
           .eq("id", invoiceId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         setInvoice(data);
