@@ -26,10 +26,6 @@ const PaymentCancel = () => {
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
             </Button>
-            <Button onClick={() => navigate('/')} className="w-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Return to Dashboard
-            </Button>
           </div>
         </CardContent>
       </Card>
