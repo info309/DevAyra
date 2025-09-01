@@ -192,7 +192,7 @@ const Invoices = () => {
 
   const handleSendInvoice = async (invoice: Invoice) => {
     try {
-      const { error } = await supabase.functions.invoke('send-invoice', {
+      const { data, error } = await supabase.functions.invoke('send-invoice', {
         body: { invoiceId: invoice.id }
       });
 
@@ -200,10 +200,11 @@ const Invoices = () => {
 
       toast({ title: "Success", description: "Invoice sent successfully" });
       fetchInvoices();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Send invoice error:', error);
       toast({
         title: "Error",
-        description: "Failed to send invoice.",
+        description: error?.message || "Failed to send invoice.",
         variant: "destructive",
       });
     }
