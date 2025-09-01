@@ -84,8 +84,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/payment-cancel`,
+      success_url: `${Deno.env.get("FRONTEND_URL")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${Deno.env.get("FRONTEND_URL")}/payment-cancel`,
       metadata: {
         invoice_id: invoiceId,
         user_id: invoice.user_id,
