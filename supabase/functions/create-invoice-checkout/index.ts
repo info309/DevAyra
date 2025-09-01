@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -22,13 +23,6 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user) throw new Error("User not authenticated");
-
     const { invoiceId } = await req.json();
     if (!invoiceId) throw new Error("Invoice ID is required");
 
@@ -37,18 +31,34 @@ serve(async (req) => {
       .from('invoices')
       .select('*')
       .eq('id', invoiceId)
-      .eq('user_id', user.id)
       .single();
 
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Invoice not found");
 
+    // Get the user's Stripe account ID
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('stripe_account_id, stripe_charges_enabled')
+      .eq('user_id', invoice.user_id)
+      .single();
+
+    if (profileError) throw profileError;
+    if (!profile?.stripe_account_id) {
+      throw new Error("User must connect their Stripe account first");
+    }
+    if (!profile.stripe_charges_enabled) {
+      throw new Error("User's Stripe account is not yet enabled for charges");
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Check if customer exists
+    // Check if customer exists on the connected account
     const customers = await stripe.customers.list({ 
       email: invoice.customer_email, 
       limit: 1 
+    }, {
+      stripeAccount: profile.stripe_account_id
     });
     
     let customerId;
@@ -56,7 +66,7 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // Create checkout session
+    // Create checkout session on the connected account
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : invoice.customer_email,
@@ -78,8 +88,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/payment-cancel`,
       metadata: {
         invoice_id: invoiceId,
-        user_id: user.id,
+        user_id: invoice.user_id,
       },
+    }, {
+      stripeAccount: profile.stripe_account_id
     });
 
     // Update invoice with Stripe session ID

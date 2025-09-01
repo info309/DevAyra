@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, User, LogOut, Clock } from 'lucide-react';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import GmailConnection from '@/components/GmailConnection';
+import StripeConnectionCard from '@/components/StripeConnectionCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -201,6 +202,7 @@ const Account: React.FC = () => {
 
           <ProfileCard />
           <TimezoneCard />
+          <StripeConnectionCard />
           <GmailConnection />
         </div>
       </div>
@@ -261,6 +263,7 @@ const Account: React.FC = () => {
         <div className="grid gap-6">
           <ProfileCard />
           <TimezoneCard />
+          <StripeConnectionCard />
           <GmailConnection />
         </div>
       </div>

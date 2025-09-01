@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -27,22 +28,33 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Retrieve checkout session
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (!session) throw new Error("Session not found");
-
-    const invoiceId = session.metadata?.invoice_id;
-    if (!invoiceId) throw new Error("Invoice ID not found in session metadata");
-
-    // Fetch invoice
+    // First, get the invoice to find the user's connected account
+    const invoiceIdFromMetadata = sessionId; // This might need adjustment based on how you pass the data
+    
+    // Get invoice and user's stripe account
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from('invoices')
-      .select('*')
-      .eq('id', invoiceId)
+      .select(`
+        *,
+        profiles!inner (
+          stripe_account_id
+        )
+      `)
+      .eq('stripe_session_id', sessionId)
       .single();
 
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Invoice not found");
+
+    const stripeAccountId = (invoice as any).profiles.stripe_account_id;
+    if (!stripeAccountId) throw new Error("User's Stripe account not found");
+
+    // Retrieve checkout session from the connected account
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      stripeAccount: stripeAccountId
+    });
+
+    if (!session) throw new Error("Session not found");
 
     // Check if payment was successful
     if (session.payment_status === 'paid') {
@@ -54,7 +66,7 @@ serve(async (req) => {
           paid_at: new Date().toISOString(),
           stripe_payment_intent_id: session.payment_intent as string,
         })
-        .eq('id', invoiceId);
+        .eq('id', invoice.id);
 
       if (updateError) throw updateError;
 
