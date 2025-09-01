@@ -63,7 +63,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const emailData = {
-      from: `${invoice.company_name || 'Your Company'} <invoices@${invoice.company_email?.split('@')[1] || 'yourdomain.com'}>`,
+      from: `${invoice.company_name || 'Your Company'} <onboarding@resend.dev>`,
       to: [invoice.customer_email],
       subject: `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`,
       html: `
