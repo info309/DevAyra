@@ -504,8 +504,22 @@ class GmailService {
       
       console.log(`[${this.requestId}] Email content preview:`, emailContent.substring(0, 500));
       
-      // Encode the entire message in base64url
-      const encodedMessage = btoa(emailContent)
+      // Properly encode the entire message in base64url
+      // First convert to UTF-8 bytes, then to base64, then to base64url
+      const utf8Encoder = new TextEncoder();
+      const utf8Bytes = utf8Encoder.encode(emailContent);
+      
+      // Convert bytes to base64 string
+      let base64String = '';
+      const chunk = 1024;
+      for (let i = 0; i < utf8Bytes.length; i += chunk) {
+        const slice = utf8Bytes.slice(i, i + chunk);
+        const binaryString = Array.from(slice, byte => String.fromCharCode(byte)).join('');
+        base64String += btoa(binaryString);
+      }
+      
+      // Convert base64 to base64url (Gmail's format)
+      const encodedMessage = base64String
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
@@ -733,8 +747,12 @@ const handler = async (req: Request): Promise<Response> => {
             to: request.to, 
             subject: request.subject, 
             hasContent: !!request.content,
+            contentLength: request.content?.length || 0,
             attachmentCount: request.attachments?.length || 0 
           });
+          
+          // Add more detailed debugging for the content
+          console.log(`[${requestId}] Email content preview:`, request.content?.substring(0, 200) || 'NO CONTENT');
           
           result = await gmailService.sendEmail(
             request.to,
@@ -746,6 +764,11 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`[${requestId}] sendEmail completed successfully`);
         } catch (error) {
           console.error(`[${requestId}] sendEmail failed:`, error);
+          console.error(`[${requestId}] Error details:`, {
+            name: error?.name,
+            message: error?.message,
+            stack: error?.stack?.substring(0, 500)
+          });
           throw error; // Re-throw to be caught by outer try-catch
         }
         break;
