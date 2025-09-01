@@ -154,6 +154,9 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Resend API error response:', errorData);
+      console.error('Response status:', response.status);
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
       throw new Error(`Failed to send email: ${errorData.message || response.statusText}`);
     }
 
