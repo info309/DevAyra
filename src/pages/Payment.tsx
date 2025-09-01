@@ -10,18 +10,19 @@ interface Invoice {
   id: string;
   invoice_number: string;
   customer_name: string;
-  customer_email: string;
+  customer_email?: string;
   total_cents: number;
   currency: string;
   status: string;
   company_name: string;
-  issue_date: string;
+  issue_date?: string;
   due_date?: string;
 }
 
 const Payment = () => {
   const [searchParams] = useSearchParams();
   const invoiceId = searchParams.get("invoice");
+  const token = searchParams.get("token");
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -29,20 +30,21 @@ const Payment = () => {
 
   useEffect(() => {
     const fetchInvoice = async () => {
-      if (!invoiceId) {
-        console.log('No invoice ID provided');
+      if (!invoiceId || !token) {
+        console.log('No invoice ID or token provided');
         setLoading(false);
         return;
       }
 
-      console.log('Fetching invoice with ID:', invoiceId);
+      console.log('Fetching invoice with ID:', invoiceId, 'and token:', token);
 
       try {
+        // Use the secure function to get invoice data with token verification
         const { data, error } = await supabase
-          .from("invoices")
-          .select("*")
-          .eq("id", invoiceId)
-          .maybeSingle();
+          .rpc('get_invoice_for_payment', {
+            invoice_id: invoiceId,
+            token: token
+          });
 
         console.log('Supabase response:', { data, error });
 
@@ -51,13 +53,13 @@ const Payment = () => {
           throw error;
         }
         
-        if (!data) {
-          console.log('No invoice data returned');
+        if (!data || data.length === 0) {
+          console.log('No invoice data returned - invalid token or invoice not found');
+          setInvoice(null);
         } else {
-          console.log('Invoice data found:', data);
+          console.log('Invoice data found:', data[0]);
+          setInvoice(data[0]);
         }
-        
-        setInvoice(data);
       } catch (error: any) {
         console.error('Error fetching invoice:', error);
         toast({
@@ -71,7 +73,7 @@ const Payment = () => {
     };
 
     fetchInvoice();
-  }, [invoiceId, toast]);
+  }, [invoiceId, token, toast]);
 
   const handlePayment = async () => {
     if (!invoice) return;
@@ -122,14 +124,14 @@ const Payment = () => {
     );
   }
 
-  if (!invoiceId || !invoice) {
+  if (!invoiceId || !token || !invoice) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Invoice Not Found</CardTitle>
+            <CardTitle className="text-destructive">Invalid Payment Link</CardTitle>
             <CardDescription>
-              The invoice you're looking for doesn't exist or has been removed.
+              The payment link is invalid or expired. Please contact the invoice sender for a new payment link.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -169,7 +171,8 @@ const Payment = () => {
               Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}
             </CardTitle>
             <CardDescription>
-              From {invoice.company_name} • Issued {formatDate(invoice.issue_date)}
+              From {invoice.company_name}
+              {invoice.issue_date && ` • Issued ${formatDate(invoice.issue_date)}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -177,7 +180,9 @@ const Payment = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Bill To:</p>
                 <p className="font-medium">{invoice.customer_name}</p>
-                <p className="text-sm text-muted-foreground">{invoice.customer_email}</p>
+                {invoice.customer_email && (
+                  <p className="text-sm text-muted-foreground">{invoice.customer_email}</p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-muted-foreground">Amount Due:</p>

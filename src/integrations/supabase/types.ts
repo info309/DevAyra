@@ -317,6 +317,7 @@ export type Database = {
           line_items: Json
           notes: string | null
           paid_at: string | null
+          payment_token: string | null
           pdf_path: string | null
           status: string
           stripe_payment_intent_id: string | null
@@ -344,6 +345,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           paid_at?: string | null
+          payment_token?: string | null
           pdf_path?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -371,6 +373,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           paid_at?: string | null
+          payment_token?: string | null
           pdf_path?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -567,7 +570,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_invoice_for_payment: {
+        Args: { invoice_id: string; token: string }
+        Returns: {
+          company_name: string
+          currency: string
+          customer_name: string
+          id: string
+          invoice_number: string
+          status: string
+          total_cents: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

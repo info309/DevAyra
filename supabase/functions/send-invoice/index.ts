@@ -88,8 +88,8 @@ serve(async (req) => {
       throw new Error("FRONTEND_URL is not configured. Please add it to your Supabase Edge Function secrets.");
     }
     
-    // Create payment link using the configured frontend URL (no HTML escaping needed here)
-    const paymentLink = `${frontendUrl}/payment?invoice=${invoiceId}`;
+    // Create secure payment link with token
+    const paymentLink = `${frontendUrl}/payment?invoice=${invoiceId}&token=${invoice.payment_token}`;
     console.log('Payment link created:', paymentLink);
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
