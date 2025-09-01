@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ interface LineItem {
 
 const Invoices = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,13 +209,13 @@ const Invoices = () => {
       });
     };
 
-    // Create payment link
-    const paymentLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
+    // Create payment link using window.location.origin for reliability
+    const paymentLink = `${window.location.origin}/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
     
     // Email subject
     const subject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
     
-    // Email body (plain text format for Gmail compose)
+    // Email body
     const body = `Hi ${invoice.customer_name},
 
 I hope this email finds you well. Please find your invoice details below:
@@ -269,15 +271,15 @@ ${invoice.company_email}` : ''}`;
 
     const fullBody = body + '\n' + lineItemsText + totalsText + notesText + paymentText;
 
-    // Create Gmail compose URL
-    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(invoice.customer_email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
-    
-    // Open Gmail compose in new tab
-    window.open(gmailComposeUrl, '_blank');
-    
-    toast({ 
-      title: "Email Draft Opened", 
-      description: "Gmail compose opened with your invoice email. Review and send when ready!" 
+    // Navigate to mailbox with compose draft
+    navigate('/mailbox', { 
+      state: { 
+        composeDraft: { 
+          to: invoice.customer_email, 
+          subject, 
+          content: fullBody 
+        } 
+      } 
     });
   };
 
