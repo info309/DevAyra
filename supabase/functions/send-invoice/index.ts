@@ -80,8 +80,9 @@ serve(async (req) => {
 
     // Create payment link
     const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
-    const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
+    const paymentLink = `${origin}/payment?invoice=${encodeURIComponent(invoiceId)}`;
     console.log('Payment link created:', paymentLink);
+    console.log('Invoice ID:', invoiceId);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -157,7 +158,8 @@ serve(async (req) => {
               </tr>
             </table>
             <p style="margin-top: 15px; font-size: 14px; color: #666;">
-              Or copy this link: <a href="${paymentLink}" style="color: #2563eb; text-decoration: underline;">${paymentLink}</a>
+              Or copy this link: <br>
+              <a href="${paymentLink}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">${paymentLink}</a>
             </p>
           </div>
 
