@@ -80,12 +80,12 @@ serve(async (req) => {
       });
     };
 
-    // Create payment link using the configured frontend URL
-    const frontendUrl = Deno.env.get("FRONTEND_URL");
-    if (!frontendUrl) throw new Error("FRONTEND_URL is not configured");
-    const paymentLink = `${frontendUrl}/payment?invoice=${encodeURIComponent(invoiceId)}`;
+    // Create payment link - use simple concatenation to avoid encoding issues
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
+    const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
     console.log('Payment link created:', paymentLink);
     console.log('Invoice ID:', invoiceId);
+    console.log('Origin:', origin);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -156,13 +156,13 @@ serve(async (req) => {
             <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
               <tr>
                 <td style="background-color: #2563eb; border-radius: 8px;">
-                  <a href="${paymentLink}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
+                  <a href="${paymentLink.replace(/&/g, '&amp;')}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
                 </td>
               </tr>
             </table>
             <p style="margin-top: 15px; font-size: 14px; color: #666;">
-              Or copy this link: <br>
-              <a href="${paymentLink}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">${paymentLink}</a>
+              Payment Link:<br>
+              <span style="color: #2563eb; word-break: break-all; font-family: monospace;">${paymentLink.replace(/&/g, '&amp;')}</span>
             </p>
           </div>
 
