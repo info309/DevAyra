@@ -161,7 +161,7 @@ serve(async (req) => {
           ` : ''}
 
           <div style="text-align: center; margin: 40px 0;">
-            <!-- Simple HTML Button for Payment -->
+            <!-- Simple HTML Button for Invoice -->
             <div style="margin-bottom: 20px;">
               <a href="${paymentLink}" 
                  style="
@@ -179,7 +179,7 @@ serve(async (req) => {
                    text-align: center;
                    line-height: 1.4;
                  ">
-                💳 Pay Invoice Online
+                📄 View Your Invoice
               </a>
             </div>
             
