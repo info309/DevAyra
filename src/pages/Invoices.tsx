@@ -121,6 +121,7 @@ const Invoices = () => {
       resetForm();
       fetchInvoices();
     } catch (error) {
+      console.error('Invoice save error:', error);
       toast({
         title: "Error",
         description: "Failed to save invoice.",
