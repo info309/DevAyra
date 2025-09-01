@@ -196,8 +196,8 @@ const Invoices = () => {
     // Simple email content to avoid security filters
     const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
     
-    // Create invoice viewing link
-    const invoiceLink = `${window.location.origin}/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
+    // Create invoice viewing link with production domain
+    const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
     
     const simpleBody = `Hi ${invoice.customer_name},
 
