@@ -45,6 +45,12 @@ const Dashboard = () => {
 
   const tools = [
     {
+      title: 'AI Assistant',
+      description: 'Chat with AI about your emails and documents',
+      route: '/assistant',
+      image: '/lovable-uploads/839337f2-f4b6-4401-abaf-a3a528fbb930.png'
+    },
+    {
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
       route: '/mailbox',
@@ -67,12 +73,6 @@ const Dashboard = () => {
       description: 'Store and organize your files',
       route: '/documents',
       image: '/lovable-uploads/3f43df0b-172f-41eb-900b-8e87884c3e13.png'
-    },
-    {
-      title: 'AI Assistant',
-      description: 'Chat with AI about your emails and documents',
-      route: '/assistant',
-      image: '/lovable-uploads/839337f2-f4b6-4401-abaf-a3a528fbb930.png'
     },
     {
       title: 'Account',
