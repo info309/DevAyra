@@ -85,10 +85,12 @@ class GmailApiError extends Error {
 class GmailService {
   private token: string;
   private requestId: string;
+  private userEmail: string;
 
-  constructor(token: string, requestId: string) {
+  constructor(token: string, requestId: string, userEmail: string) {
     this.token = token;
     this.requestId = requestId;
+    this.userEmail = userEmail;
   }
 
   private async makeGmailRequest(url: string, options?: RequestInit) {
@@ -444,10 +446,16 @@ class GmailService {
       // Generate boundary for multipart message
       const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Build email headers
+      // Get user's email from auth context
+      const fromEmail = this.userEmail || 'noreply@example.com';
+      
+      // Build email headers with required fields for delivery
       const headers = [
+        `From: ${fromEmail}`,
         `To: ${to}`,
         `Subject: ${subject}`,
+        `Date: ${new Date().toUTCString()}`,
+        `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@gmail.com>`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
         `MIME-Version: 1.0`,
         '',
@@ -719,7 +727,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get Gmail token
     const gmailToken = await authenticateAndGetToken(user.id);
-    const gmailService = new GmailService(gmailToken, requestId);
+    const gmailService = new GmailService(gmailToken, requestId, user.email || 'noreply@example.com');
 
     // Handle actions
     let result;
