@@ -66,11 +66,8 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // Get frontend URL from environment variable
-    const frontendUrl = Deno.env.get("FRONTEND_URL");
-    if (!frontendUrl) {
-      throw new Error("FRONTEND_URL is not configured");
-    }
+    // Use production domain for checkout URLs
+    const frontendUrl = "https://ayra.app";
 
     // Create checkout session on the connected account
     const session = await stripe.checkout.sessions.create({
