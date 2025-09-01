@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting send-invoice function');
+    console.log('Starting send-invoice function v1.1');
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
