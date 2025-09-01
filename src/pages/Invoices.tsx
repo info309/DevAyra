@@ -196,14 +196,14 @@ const Invoices = () => {
     // Simple email content to avoid security filters
     const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
     
-    // Create simple payment link
-    const paymentLink = `${window.location.origin}/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
+    // Create invoice viewing link
+    const invoiceLink = `${window.location.origin}/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
     
     const simpleBody = `Hi ${invoice.customer_name},
 
 Thanks for your business! Please click the link below to view your invoice.
 
-${paymentLink}
+${invoiceLink}
 
 Best regards,
 ${invoice.company_name || 'Your Company'}`;
