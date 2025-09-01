@@ -95,8 +95,8 @@ serve(async (req) => {
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
 
-    // Prepare email content
-    const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
+    // Prepare email content - simple version to avoid security filters
+    const emailSubject = `Invoice from ${invoice.company_name || 'Your Company'}`;
     const emailContent = `
         <!DOCTYPE html>
         <html>
@@ -105,95 +105,45 @@ serve(async (req) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Invoice</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          
           <div style="text-align: center; margin-bottom: 40px;">
-            <h1 style="color: #2563eb;">Invoice from ${invoice.company_name || 'Your Company'}</h1>
+            <h1 style="color: #2563eb; margin-bottom: 20px;">Thank you for your business!</h1>
           </div>
           
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <h2 style="margin-top: 0;">Invoice Details</h2>
-            <p><strong>Invoice #:</strong> ${invoice.invoice_number || invoice.id.slice(0, 8)}</p>
-            <p><strong>Issue Date:</strong> ${formatDate(invoice.issue_date)}</p>
-            ${invoice.due_date ? `<p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>` : ''}
-            <p><strong>Amount:</strong> <span style="font-size: 24px; font-weight: bold; color: #2563eb;">${formatCurrency(invoice.total_cents, invoice.currency)}</span></p>
+          <div style="font-size: 18px; line-height: 1.8; margin-bottom: 40px;">
+            <p>Hi ${invoice.customer_name},</p>
+            <p>Thanks for your business! Please click below to view your invoice.</p>
           </div>
-
-          <div style="margin-bottom: 30px;">
-            <h3>Bill To:</h3>
-            <p><strong>${invoice.customer_name}</strong><br>
-            ${invoice.customer_email}<br>
-            ${invoice.customer_address ? invoice.customer_address.replace(/\n/g, '<br>') : ''}</p>
-          </div>
-
-          <div style="margin-bottom: 30px;">
-            <h3>Items:</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background-color: #f8f9fa;">
-                  <th style="padding: 12px; text-align: left; border: 1px solid #dee2e6;">Description</th>
-                  <th style="padding: 12px; text-align: center; border: 1px solid #dee2e6;">Qty</th>
-                  <th style="padding: 12px; text-align: right; border: 1px solid #dee2e6;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoice.line_items.map((item: any) => `
-                  <tr>
-                    <td style="padding: 12px; border: 1px solid #dee2e6;">${item.description}</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #dee2e6;">${item.quantity}</td>
-                    <td style="padding: 12px; text-align: right; border: 1px solid #dee2e6;">${formatCurrency(item.amount_cents, invoice.currency)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            
-            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6;">
-              <p><strong>Subtotal:</strong> ${formatCurrency(invoice.subtotal_cents, invoice.currency)}</p>
-              <p><strong>Tax:</strong> ${formatCurrency(invoice.tax_cents, invoice.currency)}</p>
-              <p style="font-size: 18px;"><strong>Total:</strong> ${formatCurrency(invoice.total_cents, invoice.currency)}</p>
-            </div>
-          </div>
-
-          ${invoice.notes ? `
-            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
-              <h4 style="margin-top: 0;">Notes:</h4>
-              <p style="margin-bottom: 0;">${invoice.notes.replace(/\n/g, '<br>')}</p>
-            </div>
-          ` : ''}
 
           <div style="text-align: center; margin: 40px 0;">
-            <!-- Simple HTML Button for Invoice -->
-            <div style="margin-bottom: 20px;">
-              <a href="${paymentLink}" 
-                 style="
-                   display: inline-block;
-                   background-color: #2563eb;
-                   color: #ffffff !important;
-                   padding: 16px 32px;
-                   text-decoration: none;
-                   font-weight: bold;
-                   font-size: 18px;
-                   font-family: Arial, sans-serif;
-                   border-radius: 8px;
-                   border: none;
-                   cursor: pointer;
-                   text-align: center;
-                   line-height: 1.4;
-                 ">
-                📄 View Your Invoice
-              </a>
-            </div>
-            
-            <!-- Fallback text link in case button doesn't work -->
-            <p style="margin-top: 20px; font-size: 14px; color: #666; line-height: 1.5;">
-              Can't see the button? Copy and paste this link into your browser:<br>
-              <a href="${paymentLink}" style="color: #2563eb; word-break: break-all; text-decoration: underline;">${paymentLink}</a>
-            </p>
+            <a href="${paymentLink}" 
+               style="
+                 display: inline-block;
+                 background-color: #2563eb;
+                 color: #ffffff !important;
+                 padding: 16px 32px;
+                 text-decoration: none;
+                 font-weight: bold;
+                 font-size: 18px;
+                 font-family: Arial, sans-serif;
+                 border-radius: 8px;
+                 border: none;
+                 cursor: pointer;
+                 text-align: center;
+                 line-height: 1.4;
+               ">
+              📄 View Invoice
+            </a>
+          </div>
+          
+          <div style="text-align: center; margin-top: 40px; font-size: 14px; color: #666;">
+            <p>If the button doesn't work, copy and paste this link:</p>
+            <p><a href="${paymentLink}" style="color: #2563eb; word-break: break-all;">${paymentLink}</a></p>
           </div>
 
           <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #666; font-size: 14px;">
-            <p>Thank you for your business!</p>
-            ${invoice.company_name ? `<p>${invoice.company_name}</p>` : ''}
-            ${invoice.company_email ? `<p>${invoice.company_email}</p>` : ''}
+            ${invoice.company_name ? `<p>Best regards,<br>${invoice.company_name}</p>` : ''}
           </div>
         </body>
         </html>
