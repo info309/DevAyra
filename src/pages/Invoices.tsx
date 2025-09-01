@@ -190,23 +190,95 @@ const Invoices = () => {
     }
   };
 
-  const handleSendInvoice = async (invoice: Invoice) => {
-    try {
-      const { error } = await supabase.functions.invoke('send-invoice', {
-        body: { invoiceId: invoice.id }
-      });
+  const handleSendInvoice = (invoice: Invoice) => {
+    // Format helper functions
+    const formatCurrency = (cents: number, currency: string) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+      }).format(cents / 100);
+    };
 
-      if (error) throw error;
-
-      toast({ title: "Success", description: "Invoice sent successfully" });
-      fetchInvoices();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send invoice.",
-        variant: "destructive",
+    const formatDate = (date: string) => {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
-    }
+    };
+
+    // Create payment link
+    const paymentLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
+    
+    // Email subject
+    const subject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
+    
+    // Email body (plain text format for Gmail compose)
+    const body = `Hi ${invoice.customer_name},
+
+I hope this email finds you well. Please find your invoice details below:
+
+INVOICE DETAILS
+===============
+Invoice #: ${invoice.invoice_number || invoice.id.slice(0, 8)}
+Issue Date: ${formatDate(invoice.issue_date)}${invoice.due_date ? `
+Due Date: ${formatDate(invoice.due_date)}` : ''}
+Amount: ${formatCurrency(invoice.total_cents, invoice.currency)}
+
+BILL TO:
+========
+${invoice.customer_name}
+${invoice.customer_email}${invoice.customer_address ? `
+${invoice.customer_address.replace(/\n/g, '\n')}` : ''}
+
+ITEMS:
+======`;
+
+    // Add line items
+    const lineItemsText = invoice.line_items && Array.isArray(invoice.line_items) 
+      ? (invoice.line_items as LineItem[]).map((item: LineItem) => 
+          `${item.description} - Qty: ${item.quantity} - ${formatCurrency(item.amount_cents, invoice.currency)}`
+        ).join('\n')
+      : '';
+
+    const totalsText = `
+
+TOTALS:
+=======
+Subtotal: ${formatCurrency(invoice.subtotal_cents, invoice.currency)}
+Tax: ${formatCurrency(invoice.tax_cents, invoice.currency)}
+Total: ${formatCurrency(invoice.total_cents, invoice.currency)}`;
+
+    const notesText = invoice.notes ? `
+
+NOTES:
+======
+${invoice.notes}` : '';
+
+    const paymentText = `
+
+💳 PAY ONLINE:
+${paymentLink}
+
+You can click the link above or copy and paste it into your browser to pay securely online.
+
+Thank you for your business!
+
+${invoice.company_name || 'Your Company'}${invoice.company_email ? `
+${invoice.company_email}` : ''}`;
+
+    const fullBody = body + '\n' + lineItemsText + totalsText + notesText + paymentText;
+
+    // Create Gmail compose URL
+    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(invoice.customer_email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+    
+    // Open Gmail compose in new tab
+    window.open(gmailComposeUrl, '_blank');
+    
+    toast({ 
+      title: "Email Draft Opened", 
+      description: "Gmail compose opened with your invoice email. Review and send when ready!" 
+    });
   };
 
   const handleCreatePaymentLink = async (invoice: Invoice) => {
