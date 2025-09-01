@@ -539,10 +539,12 @@ ${invoice.company_name || 'Your Company'}`;
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)} title="Edit">
-                    <Edit className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">Edit</span>
-                  </Button>
+                  {invoice.status === 'draft' && (
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)} title="Edit">
+                      <Edit className="w-4 h-4" />
+                      <span className="ml-2 hidden sm:inline">Edit</span>
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => handleSendInvoice(invoice)} title="Send">
                     <Send className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Send</span>
