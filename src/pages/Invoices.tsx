@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText } from 'lucide-react';
+import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
@@ -272,27 +272,38 @@ ${invoice.company_name || 'Your Company'}`;
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Invoices</h1>
+        <div className="flex items-center gap-4 mb-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+          </Button>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
         <p className="text-muted-foreground">Create and manage your invoices</p>
       </div>
 
       <InvoicePaymentBanner />
       <GmailConnectionBanner />
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
-          {invoices.length} total invoices
+          {invoices.length} total invoice{invoices.length !== 1 ? 's' : ''}
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingInvoice(null); }}>
+            <Button onClick={() => { resetForm(); setEditingInvoice(null); }} className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Create Invoice
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4">{/* Add mx-4 for mobile margins */}
             <DialogHeader>
               <DialogTitle>{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</DialogTitle>
             </DialogHeader>
@@ -417,8 +428,8 @@ ${invoice.company_name || 'Your Company'}`;
                 
                 <div className="space-y-3">
                   {lineItems.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                      <div className="col-span-4">
+                    <div key={index} className="space-y-3 md:grid md:grid-cols-12 md:gap-2 md:items-end md:space-y-0 border-b pb-3 md:border-0 md:pb-0">
+                      <div className="md:col-span-4">
                         <Label className="text-xs">Description</Label>
                         <Input
                           placeholder="Item description"
@@ -426,51 +437,51 @@ ${invoice.company_name || 'Your Company'}`;
                           onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                         />
                       </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Quantity</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Unit Price ($)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={(item.unit_price_cents / 100).toFixed(2)}
-                          onChange={(e) => updateLineItem(index, 'unit_price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Tax Rate (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={item.tax_rate_percent}
-                          onChange={(e) => updateLineItem(index, 'tax_rate_percent', parseFloat(e.target.value || '0'))}
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <Label className="text-xs">Amount</Label>
-                        <div className="text-sm font-medium p-2">
-                          {formatCurrency(item.amount_cents, formData.currency)}
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                        <div>
+                          <Label className="text-xs">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                          />
                         </div>
                       </div>
-                      <div className="col-span-1">
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                        <div>
+                          <Label className="text-xs">Unit Price ($)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={(item.unit_price_cents / 100).toFixed(2)}
+                            onChange={(e) => updateLineItem(index, 'unit_price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                        <div>
+                          <Label className="text-xs">Tax Rate (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.tax_rate_percent}
+                            onChange={(e) => updateLineItem(index, 'tax_rate_percent', parseFloat(e.target.value || '0'))}
+                          />
+                        </div>
+                      </div>
+                      <div className="md:col-span-1 flex justify-center md:justify-end">
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => removeLineItem(index)}
                           disabled={lineItems.length === 1}
+                          className="text-red-600 hover:text-red-700"
                         >
-                          ×
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -511,10 +522,10 @@ ${invoice.company_name || 'Your Company'}`;
         {invoices.map((invoice) => (
           <Card key={invoice.id}>
             <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
                   <CardTitle className="flex items-center gap-2">
-                    Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}
+                    <span className="truncate">Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}</span>
                     <Badge variant={
                       invoice.status === 'paid' ? 'default' : 
                       invoice.status === 'sent' ? 'secondary' : 
@@ -523,33 +534,45 @@ ${invoice.company_name || 'Your Company'}`;
                       {invoice.status}
                     </Badge>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="truncate">
                     {invoice.customer_name} • {formatCurrency(invoice.total_cents, invoice.currency)}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)}>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)} title="Edit">
                     <Edit className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">Edit</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleSendInvoice(invoice)}>
+                  <Button variant="outline" size="sm" onClick={() => handleSendInvoice(invoice)} title="Send">
                     <Send className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">Send</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleCreatePaymentLink(invoice)}>
+                  <Button variant="outline" size="sm" onClick={() => handleCreatePaymentLink(invoice)} title="Payment">
                     <CreditCard className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">Pay</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)}>
+                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
                     <FileText className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">PDF</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(invoice.id)}>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(invoice.id)} title="Delete" className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">Delete</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-muted-foreground">
-                Issue Date: {new Date(invoice.issue_date).toLocaleDateString()}
-                {invoice.due_date && ` • Due: ${new Date(invoice.due_date).toLocaleDateString()}`}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                  <span>Issue Date: {new Date(invoice.issue_date).toLocaleDateString()}</span>
+                  {invoice.due_date && (
+                    <>
+                      <span className="hidden sm:inline mx-2">•</span>
+                      <span>Due: {new Date(invoice.due_date).toLocaleDateString()}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
