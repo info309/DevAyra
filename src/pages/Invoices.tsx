@@ -569,25 +569,27 @@ ${invoice.company_name || 'Your Company'}`;
                     <Send className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Send</span>
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" title="Payment Options">
-                        <CreditCard className="w-4 h-4" />
-                        <span className="ml-2 hidden sm:inline">Pay</span>
-                        <ChevronDown className="w-4 h-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleCreatePaymentLink(invoice)}>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Pay by Card
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
-                        <Check className="w-4 h-4 mr-2" />
-                        Mark as Already Paid
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {invoice.status !== 'paid' && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" title="Payment Options">
+                          <CreditCard className="w-4 h-4" />
+                          <span className="ml-2 hidden sm:inline">Pay</span>
+                          <ChevronDown className="w-4 h-4 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleCreatePaymentLink(invoice)}>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay by Card
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                          <Check className="w-4 h-4 mr-2" />
+                          Mark as Already Paid
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
                     <FileText className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">PDF</span>
