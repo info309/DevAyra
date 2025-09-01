@@ -14,6 +14,9 @@ import Calendar from "./pages/Calendar";
 import Account from "./pages/Account";
 import Assistant from "./pages/Assistant";
 import Notes from "./pages/Notes";
+import Invoices from "./pages/Invoices";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +66,13 @@ const App = () => (
                 <Notes />
               </ProtectedRoute>
             } />
+            <Route path="/invoices" element={
+              <ProtectedRoute>
+                <Invoices />
+              </ProtectedRoute>
+            } />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-cancel" element={<PaymentCancel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

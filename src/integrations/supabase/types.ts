@@ -299,6 +299,90 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          company_address: string | null
+          company_email: string | null
+          company_logo_path: string | null
+          company_name: string | null
+          created_at: string
+          currency: string
+          customer_address: string | null
+          customer_email: string
+          customer_name: string
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          issue_date: string
+          line_items: Json
+          notes: string | null
+          paid_at: string | null
+          pdf_path: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          subtotal_cents: number
+          tax_cents: number
+          total_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_email?: string | null
+          company_logo_path?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          customer_address?: string | null
+          customer_email: string
+          customer_name: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          pdf_path?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal_cents?: number
+          tax_cents?: number
+          total_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_address?: string | null
+          company_email?: string | null
+          company_logo_path?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          customer_address?: string | null
+          customer_email?: string
+          customer_name?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          pdf_path?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal_cents?: number
+          tax_cents?: number
+          total_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null

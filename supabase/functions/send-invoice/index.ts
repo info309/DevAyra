@@ -1,0 +1,189 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) throw new Error("RESEND_API_KEY is not set");
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const authHeader = req.headers.get("Authorization")!;
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    const user = userData.user;
+    if (!user) throw new Error("User not authenticated");
+
+    const { invoiceId } = await req.json();
+    if (!invoiceId) throw new Error("Invoice ID is required");
+
+    // Fetch invoice details
+    const { data: invoice, error: invoiceError } = await supabaseClient
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (invoiceError) throw invoiceError;
+    if (!invoice) throw new Error("Invoice not found");
+
+    const formatCurrency = (cents: number, currency: string) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+      }).format(cents / 100);
+    };
+
+    const formatDate = (date: string) => {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    // Create payment link
+    const origin = req.headers.get("origin") || "https://your-app.com";
+    const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
+
+    // Send email via Resend
+    const emailData = {
+      from: `${invoice.company_name || 'Your Company'} <invoices@${invoice.company_email?.split('@')[1] || 'yourdomain.com'}>`,
+      to: [invoice.customer_email],
+      subject: `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invoice</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="color: #2563eb;">Invoice from ${invoice.company_name || 'Your Company'}</h1>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h2 style="margin-top: 0;">Invoice Details</h2>
+            <p><strong>Invoice #:</strong> ${invoice.invoice_number || invoice.id.slice(0, 8)}</p>
+            <p><strong>Issue Date:</strong> ${formatDate(invoice.issue_date)}</p>
+            ${invoice.due_date ? `<p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>` : ''}
+            <p><strong>Amount:</strong> <span style="font-size: 24px; font-weight: bold; color: #2563eb;">${formatCurrency(invoice.total_cents, invoice.currency)}</span></p>
+          </div>
+
+          <div style="margin-bottom: 30px;">
+            <h3>Bill To:</h3>
+            <p><strong>${invoice.customer_name}</strong><br>
+            ${invoice.customer_email}<br>
+            ${invoice.customer_address ? invoice.customer_address.replace(/\n/g, '<br>') : ''}</p>
+          </div>
+
+          <div style="margin-bottom: 30px;">
+            <h3>Items:</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #f8f9fa;">
+                  <th style="padding: 12px; text-align: left; border: 1px solid #dee2e6;">Description</th>
+                  <th style="padding: 12px; text-align: center; border: 1px solid #dee2e6;">Qty</th>
+                  <th style="padding: 12px; text-align: right; border: 1px solid #dee2e6;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoice.line_items.map((item: any) => `
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #dee2e6;">${item.description}</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #dee2e6;">${item.quantity}</td>
+                    <td style="padding: 12px; text-align: right; border: 1px solid #dee2e6;">${formatCurrency(item.amount_cents, invoice.currency)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+              <p><strong>Subtotal:</strong> ${formatCurrency(invoice.subtotal_cents, invoice.currency)}</p>
+              <p><strong>Tax:</strong> ${formatCurrency(invoice.tax_cents, invoice.currency)}</p>
+              <p style="font-size: 18px;"><strong>Total:</strong> ${formatCurrency(invoice.total_cents, invoice.currency)}</p>
+            </div>
+          </div>
+
+          ${invoice.notes ? `
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+              <h4 style="margin-top: 0;">Notes:</h4>
+              <p style="margin-bottom: 0;">${invoice.notes.replace(/\n/g, '<br>')}</p>
+            </div>
+          ` : ''}
+
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Pay Invoice Online</a>
+          </div>
+
+          <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #666; font-size: 14px;">
+            <p>Thank you for your business!</p>
+            ${invoice.company_name ? `<p>${invoice.company_name}</p>` : ''}
+            ${invoice.company_email ? `<p>${invoice.company_email}</p>` : ''}
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify(emailData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to send email: ${errorData.message || response.statusText}`);
+    }
+
+    // Update invoice status
+    const { error: updateError } = await supabaseClient
+      .from('invoices')
+      .update({ status: 'sent' })
+      .eq('id', invoiceId);
+
+    if (updateError) throw updateError;
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: "Invoice sent successfully" 
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+
+  } catch (error) {
+    console.error('Error sending invoice:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
+  }
+});

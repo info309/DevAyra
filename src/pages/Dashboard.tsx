@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote } from 'lucide-react';
+import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -67,6 +67,12 @@ const Dashboard = () => {
       description: 'Save and edit your notes',
       route: '/notes',
       image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
+    },
+    {
+      title: 'Invoices',
+      description: 'Generate and manage client invoices',
+      route: '/invoices',
+      image: '/lovable-uploads/b9f654a4-1cd5-476d-aa97-df8cfb64bb25.png'
     },
     {
       title: 'Documents',
