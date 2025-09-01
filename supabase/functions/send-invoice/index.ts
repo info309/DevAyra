@@ -12,7 +12,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting send-invoice function');
+    
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    console.log('RESEND_API_KEY exists:', !!resendApiKey);
     if (!resendApiKey) throw new Error("RESEND_API_KEY is not set");
 
     const supabaseClient = createClient(
@@ -21,17 +24,21 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    console.log('Getting user from auth header');
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
+    console.log('User authenticated:', user.email);
 
     const { invoiceId } = await req.json();
+    console.log('Invoice ID received:', invoiceId);
     if (!invoiceId) throw new Error("Invoice ID is required");
 
     // Fetch invoice details
+    console.log('Fetching invoice from database');
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from('invoices')
       .select('*')
@@ -39,8 +46,12 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (invoiceError) throw invoiceError;
+    if (invoiceError) {
+      console.error('Invoice fetch error:', invoiceError);
+      throw invoiceError;
+    }
     if (!invoice) throw new Error("Invoice not found");
+    console.log('Invoice found:', invoice.id);
 
     const formatCurrency = (cents: number, currency: string) => {
       return new Intl.NumberFormat('en-US', {
