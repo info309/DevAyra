@@ -30,9 +30,12 @@ const Payment = () => {
   useEffect(() => {
     const fetchInvoice = async () => {
       if (!invoiceId) {
+        console.log('No invoice ID provided');
         setLoading(false);
         return;
       }
+
+      console.log('Fetching invoice with ID:', invoiceId);
 
       try {
         const { data, error } = await supabase
@@ -41,12 +44,25 @@ const Payment = () => {
           .eq("id", invoiceId)
           .maybeSingle();
 
-        if (error) throw error;
+        console.log('Supabase response:', { data, error });
+
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.log('No invoice data returned');
+        } else {
+          console.log('Invoice data found:', data);
+        }
+        
         setInvoice(data);
       } catch (error: any) {
+        console.error('Error fetching invoice:', error);
         toast({
           title: "Error",
-          description: "Failed to load invoice details",
+          description: `Failed to load invoice details: ${error.message}`,
           variant: "destructive",
         });
       } finally {
