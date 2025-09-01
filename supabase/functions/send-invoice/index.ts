@@ -79,8 +79,9 @@ serve(async (req) => {
     };
 
     // Create payment link
-    const origin = req.headers.get("origin") || "https://your-app.com";
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
     const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
+    console.log('Payment link created:', paymentLink);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -148,7 +149,16 @@ serve(async (req) => {
           ` : ''}
 
           <div style="text-align: center; margin: 40px 0;">
-            <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Pay Invoice Online</a>
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+              <tr>
+                <td style="background-color: #2563eb; border-radius: 8px;">
+                  <a href="${paymentLink}" style="display: inline-block; color: #ffffff !important; padding: 15px 30px; text-decoration: none; font-weight: bold; font-size: 16px; font-family: Arial, sans-serif;">Pay Invoice Online</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+              Or copy this link: <a href="${paymentLink}" style="color: #2563eb; text-decoration: underline;">${paymentLink}</a>
+            </p>
           </div>
 
           <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #666; font-size: 14px;">
