@@ -11,29 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-interface Invoice {
-  id: string;
-  invoice_number: string | null;
-  company_name: string | null;
-  company_email: string | null;
-  company_address: string | null;
-  customer_name: string;
-  customer_email: string;
-  customer_address: string | null;
-  issue_date: string;
-  due_date: string | null;
-  currency: string;
-  line_items: any; // JSONB type from Supabase
-  subtotal_cents: number;
-  tax_cents: number;
-  total_cents: number;
-  status: string;
-  notes: string | null;
-  pdf_path: string | null;
-  stripe_session_id: string | null;
-  created_at: string;
-}
+type Invoice = Database['public']['Tables']['invoices']['Row'];
+type InvoiceInsert = Database['public']['Tables']['invoices']['Insert'];
+type InvoiceUpdate = Database['public']['Tables']['invoices']['Update'];
 
 interface LineItem {
   description: string;
@@ -41,6 +23,7 @@ interface LineItem {
   unit_price_cents: number;
   tax_rate_percent: number;
   amount_cents: number;
+  [key: string]: any; // Index signature for Json compatibility
 }
 
 const Invoices = () => {
@@ -128,7 +111,7 @@ const Invoices = () => {
 
     try {
       const { subtotal, tax, total } = calculateTotals();
-      const invoiceData = {
+      const invoiceData: InvoiceInsert = {
         user_id: user.id,
         ...formData,
         line_items: lineItems as any, // Cast to any for JSONB compatibility
@@ -141,7 +124,7 @@ const Invoices = () => {
       if (editingInvoice) {
         const { error } = await supabase
           .from('invoices')
-          .update(invoiceData)
+          .update(invoiceData as InvoiceUpdate)
           .eq('id', editingInvoice.id);
         if (error) throw error;
         toast({ title: "Success", description: "Invoice updated successfully" });
@@ -195,7 +178,7 @@ const Invoices = () => {
       currency: invoice.currency,
       notes: invoice.notes || '',
     });
-    const items = Array.isArray(invoice.line_items) ? invoice.line_items : [];
+    const items = Array.isArray(invoice.line_items) ? invoice.line_items as LineItem[] : [];
     setLineItems(items.length ? items : [{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
     setIsCreateOpen(true);
   };
