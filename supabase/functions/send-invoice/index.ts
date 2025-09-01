@@ -80,26 +80,11 @@ serve(async (req) => {
       });
     };
 
-    // Create Stripe checkout session for payment
-    console.log('Creating Stripe checkout session');
-    const checkoutResponse = await supabaseClient.functions.invoke('create-invoice-checkout', {
-      body: { invoiceId: invoiceId },
-      headers: {
-        Authorization: authHeader
-      }
-    });
-
-    if (checkoutResponse.error) {
-      console.error('Checkout session creation error:', checkoutResponse.error);
-      throw new Error(`Failed to create checkout session: ${checkoutResponse.error.message}`);
-    }
-
-    const paymentLink = checkoutResponse.data?.url;
-    if (!paymentLink) {
-      throw new Error('No checkout URL received from Stripe');
-    }
-    
-    console.log('Stripe checkout URL created:', paymentLink);
+    // Create payment link
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
+    const paymentLink = `${origin}/payment?invoice=${encodeURIComponent(invoiceId)}`;
+    console.log('Payment link created:', paymentLink);
+    console.log('Invoice ID:', invoiceId);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
@@ -174,8 +159,9 @@ serve(async (req) => {
                 </td>
               </tr>
             </table>
-            <p style="margin-top: 15px; font-size: 12px; color: #666;">
-              Secure payment powered by Stripe
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+              Or copy this link: <br>
+              <a href="${paymentLink}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">${paymentLink}</a>
             </p>
           </div>
 
