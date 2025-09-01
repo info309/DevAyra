@@ -13,10 +13,6 @@ serve(async (req) => {
 
   try {
     console.log('Starting send-invoice function');
-    
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    console.log('RESEND_API_KEY exists:', !!resendApiKey);
-    if (!resendApiKey) throw new Error("RESEND_API_KEY is not set");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -53,6 +49,20 @@ serve(async (req) => {
     if (!invoice) throw new Error("Invoice not found");
     console.log('Invoice found:', invoice.id);
 
+    // Check if user has Gmail connection
+    console.log('Checking Gmail connection');
+    const { data: gmailConnection, error: gmailError } = await supabaseClient
+      .from('gmail_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (gmailError || !gmailConnection) {
+      throw new Error("Gmail connection required to send invoices. Please connect your Gmail account first.");
+    }
+    console.log('Gmail connection found for:', gmailConnection.email_address);
+
     const formatCurrency = (cents: number, currency: string) => {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -72,12 +82,9 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://your-app.com";
     const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
 
-    // Send email via Resend
-    const emailData = {
-      from: `${invoice.company_name || 'Your Company'} <onboarding@resend.dev>`,
-      to: [invoice.customer_email],
-      subject: `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`,
-      html: `
+    // Prepare email content
+    const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
+    const emailContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -151,33 +158,31 @@ serve(async (req) => {
           </div>
         </body>
         </html>
-      `
-    };
+    `;
 
-    console.log('Email data prepared:', {
-      from: emailData.from,
-      to: emailData.to,
-      subject: emailData.subject,
-      html: emailData.html.length + ' characters'
-    });
-    console.log('Calling Resend API with API key starting with:', resendApiKey.substring(0, 8) + '...');
+    console.log('Sending email via Gmail API');
+    console.log('To:', invoice.customer_email);
+    console.log('Subject:', emailSubject);
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${resendApiKey}`,
+    // Call Gmail API to send email
+    const gmailResponse = await supabaseClient.functions.invoke('gmail-api', {
+      body: {
+        action: 'sendEmail',
+        to: invoice.customer_email,
+        subject: emailSubject,
+        content: emailContent
       },
-      body: JSON.stringify(emailData),
+      headers: {
+        Authorization: authHeader
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Resend API error response:', errorData);
-      console.error('Response status:', response.status);
-      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
-      throw new Error(`Failed to send email: ${errorData.message || response.statusText}`);
+    if (gmailResponse.error) {
+      console.error('Gmail API error:', gmailResponse.error);
+      throw new Error(`Failed to send email via Gmail: ${gmailResponse.error.message}`);
     }
+
+    console.log('Email sent successfully via Gmail');
 
     // Update invoice status
     const { error: updateError } = await supabaseClient

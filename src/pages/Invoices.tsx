@@ -12,6 +12,7 @@ import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText } from 'lucide-reac
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
+import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -289,6 +290,7 @@ const Invoices = () => {
       </div>
 
       <InvoicePaymentBanner />
+      <GmailConnectionBanner />
 
       <div className="flex justify-between items-center mb-6">
         <div className="text-sm text-muted-foreground">
