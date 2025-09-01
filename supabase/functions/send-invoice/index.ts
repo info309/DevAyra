@@ -154,6 +154,14 @@ serve(async (req) => {
       `
     };
 
+    console.log('Email data prepared:', {
+      from: emailData.from,
+      to: emailData.to,
+      subject: emailData.subject,
+      html: emailData.html.length + ' characters'
+    });
+    console.log('Calling Resend API with API key starting with:', resendApiKey.substring(0, 8) + '...');
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
