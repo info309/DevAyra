@@ -24,7 +24,7 @@ interface Invoice {
   issue_date: string;
   due_date: string | null;
   currency: string;
-  line_items: any[];
+  line_items: any; // JSONB type from Supabase
   subtotal_cents: number;
   tax_cents: number;
   total_cents: number;
@@ -131,7 +131,7 @@ const Invoices = () => {
       const invoiceData = {
         user_id: user.id,
         ...formData,
-        line_items: lineItems,
+        line_items: lineItems as any, // Cast to any for JSONB compatibility
         subtotal_cents: subtotal,
         tax_cents: tax,
         total_cents: total,
@@ -148,7 +148,7 @@ const Invoices = () => {
       } else {
         const { error } = await supabase
           .from('invoices')
-          .insert([invoiceData]);
+          .insert(invoiceData);
         if (error) throw error;
         toast({ title: "Success", description: "Invoice created successfully" });
       }
@@ -195,7 +195,8 @@ const Invoices = () => {
       currency: invoice.currency,
       notes: invoice.notes || '',
     });
-    setLineItems(invoice.line_items.length ? invoice.line_items : [{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
+    const items = Array.isArray(invoice.line_items) ? invoice.line_items : [];
+    setLineItems(items.length ? items : [{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
     setIsCreateOpen(true);
   };
 
