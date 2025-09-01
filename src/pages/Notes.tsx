@@ -199,27 +199,29 @@ export default function Notes() {
           </Button>
         </header>
 
-        <div className="flex-1 p-4">
-          {selectedNote ? (
-            <NoteEditor
-              note={selectedNote}
-              onUpdateNote={updateNote}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <h2 className="text-lg font-medium text-muted-foreground mb-2">
-                  {notes.length === 0 ? "No notes yet" : "Select a note"}
-                </h2>
-                {notes.length === 0 && (
-                  <Button onClick={createNote} variant="compose">
-                    <PenTool className="h-4 w-4 mr-2" />
-                    Create your first note
-                  </Button>
-                )}
+        <div className="flex-1">
+          <div className="container mx-auto px-4 py-6 max-w-4xl">
+            {selectedNote ? (
+              <NoteEditor
+                note={selectedNote}
+                onUpdateNote={updateNote}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h2 className="text-lg font-medium text-muted-foreground mb-2">
+                    {notes.length === 0 ? "No notes yet" : "Select a note"}
+                  </h2>
+                  {notes.length === 0 && (
+                    <Button onClick={createNote} variant="compose">
+                      <PenTool className="h-4 w-4 mr-2" />
+                      Create your first note
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Sidebar menu on mobile - slides from left */}
@@ -286,27 +288,29 @@ export default function Notes() {
         </div>
         
         <main className="w-[60%] flex flex-col">
-          <div className="flex-1 p-6">
-            {selectedNote ? (
-              <NoteEditor
-                note={selectedNote}
-                onUpdateNote={updateNote}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <h2 className="text-lg font-medium text-muted-foreground mb-2">
-                    {notes.length === 0 ? "No notes yet" : "Select a note"}
-                  </h2>
-                  {notes.length === 0 && (
-                    <Button onClick={createNote} variant="compose">
-                      <PenTool className="h-4 w-4 mr-2" />
-                      Create your first note
-                    </Button>
-                  )}
+          <div className="flex-1">
+            <div className="container mx-auto px-6 py-8 max-w-4xl">
+              {selectedNote ? (
+                <NoteEditor
+                  note={selectedNote}
+                  onUpdateNote={updateNote}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <h2 className="text-lg font-medium text-muted-foreground mb-2">
+                      {notes.length === 0 ? "No notes yet" : "Select a note"}
+                    </h2>
+                    {notes.length === 0 && (
+                      <Button onClick={createNote} variant="compose">
+                        <PenTool className="h-4 w-4 mr-2" />
+                        Create your first note
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </main>
       </div>
