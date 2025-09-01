@@ -449,15 +449,17 @@ class GmailService {
       // Get user's email from auth context
       const fromEmail = this.userEmail || 'noreply@example.com';
       
-      // Build email headers with required fields for delivery
+      // Build email headers with required fields for delivery and spam prevention
       const headers = [
         `From: ${fromEmail}`,
         `To: ${to}`,
         `Subject: ${subject}`,
         `Date: ${new Date().toUTCString()}`,
         `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@gmail.com>`,
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
         `MIME-Version: 1.0`,
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        `X-Mailer: Ayra App`,
+        `X-Priority: 3`,
         '',
         `This is a multi-part message in MIME format.`,
         ''
@@ -466,11 +468,11 @@ class GmailService {
       // Build email body parts
       const bodyParts = [];
       
-      // Add the main content part
+      // Add the main content part with proper encoding
       bodyParts.push([
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: quoted-printable`,
+        `Content-Transfer-Encoding: 8bit`,
         '',
         content,
         ''
