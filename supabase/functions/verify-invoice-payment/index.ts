@@ -31,23 +31,27 @@ serve(async (req) => {
     // First, get the invoice to find the user's connected account
     const invoiceIdFromMetadata = sessionId; // This might need adjustment based on how you pass the data
     
-    // Get invoice and user's stripe account
+    // Get invoice first
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from('invoices')
-      .select(`
-        *,
-        profiles!inner (
-          stripe_account_id
-        )
-      `)
+      .select('*')
       .eq('stripe_session_id', sessionId)
       .single();
 
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Invoice not found");
 
-    const stripeAccountId = (invoice as any).profiles.stripe_account_id;
-    if (!stripeAccountId) throw new Error("User's Stripe account not found");
+    // Get user's stripe account using the invoice's user_id
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('stripe_account_id')
+      .eq('user_id', invoice.user_id)
+      .single();
+
+    if (profileError) throw profileError;
+    if (!profile?.stripe_account_id) throw new Error("User's Stripe account not found");
+
+    const stripeAccountId = profile.stripe_account_id;
 
     // Retrieve checkout session from the connected account
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
