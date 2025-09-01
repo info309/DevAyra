@@ -208,6 +208,17 @@ async function makeCalendarRequest(connection: any, endpoint: string, options: a
     throw new Error(`Calendar API error: ${response.status} ${errorText}`);
   }
 
+  // For DELETE requests or 204 No Content responses, don't try to parse JSON
+  if (response.status === 204 || options.method === 'DELETE') {
+    return {};
+  }
+
+  // Check if response has content before parsing JSON
+  const contentLength = response.headers.get('content-length');
+  if (contentLength === '0') {
+    return {};
+  }
+
   return response.json();
 }
 
