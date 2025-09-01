@@ -66,6 +66,12 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // Get frontend URL from environment variable
+    const frontendUrl = Deno.env.get("FRONTEND_URL");
+    if (!frontendUrl) {
+      throw new Error("FRONTEND_URL is not configured");
+    }
+
     // Create checkout session on the connected account
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -84,8 +90,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/payment-cancel`,
+      success_url: `${frontendUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/payment-cancel`,
       metadata: {
         invoice_id: invoiceId,
         user_id: invoice.user_id,

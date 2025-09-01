@@ -80,12 +80,17 @@ serve(async (req) => {
       });
     };
 
-    // Create payment link - use simple concatenation to avoid encoding issues
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.split('/').slice(0, 3).join('/') || "https://lmkpmnndrygjatnipfgd.supabase.co";
-    const paymentLink = `${origin}/payment?invoice=${invoiceId}`;
+    // Get frontend URL from environment variable
+    const frontendUrl = Deno.env.get("FRONTEND_URL");
+    if (!frontendUrl) {
+      throw new Error("FRONTEND_URL is not configured");
+    }
+    
+    // Create payment link using the configured frontend URL
+    const paymentLink = `${frontendUrl}/payment?invoice=${invoiceId}`;
     console.log('Payment link created:', paymentLink);
     console.log('Invoice ID:', invoiceId);
-    console.log('Origin:', origin);
+    console.log('Frontend URL:', frontendUrl);
 
     // Prepare email content
     const emailSubject = `Invoice #${invoice.invoice_number || invoice.id.slice(0, 8)} from ${invoice.company_name || 'Your Company'}`;
