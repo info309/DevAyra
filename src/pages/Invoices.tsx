@@ -95,6 +95,8 @@ const Invoices = () => {
       const invoiceData: InvoiceInsert = {
         user_id: user.id,
         ...formData,
+        // Convert empty strings to null for timestamp fields
+        due_date: formData.due_date || null,
         line_items: lineItems as any, // Cast to any for JSONB compatibility
         subtotal_cents: Math.round(subtotal),
         tax_cents: Math.round(tax),
