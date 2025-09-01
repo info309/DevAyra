@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
@@ -235,6 +236,25 @@ ${invoice.company_name || 'Your Company'}`;
       console.log('PDF generated successfully');
     } catch (error) {
       console.error('Failed to generate PDF:', error);
+    }
+  };
+
+  const handleMarkAsPaid = async (invoice: Invoice) => {
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .update({ 
+          status: 'paid',
+          paid_at: new Date().toISOString()
+        })
+        .eq('id', invoice.id);
+
+      if (error) throw error;
+      
+      console.log('Invoice marked as paid successfully');
+      fetchInvoices();
+    } catch (error) {
+      console.error('Failed to mark invoice as paid:', error);
     }
   };
 
@@ -549,10 +569,25 @@ ${invoice.company_name || 'Your Company'}`;
                     <Send className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Send</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleCreatePaymentLink(invoice)} title="Payment">
-                    <CreditCard className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">Pay</span>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" title="Payment Options">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="ml-2 hidden sm:inline">Pay</span>
+                        <ChevronDown className="w-4 h-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleCreatePaymentLink(invoice)}>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay by Card
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                        <Check className="w-4 h-4 mr-2" />
+                        Mark as Already Paid
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
                     <FileText className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">PDF</span>
