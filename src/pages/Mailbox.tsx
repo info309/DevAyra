@@ -273,6 +273,7 @@ const Mailbox: React.FC = () => {
       // Silently check for new emails without disrupting the UI
       if (!viewLoading[currentView] && viewCache[currentView]) {
         try {
+          console.log('Background refresh checking for new emails in:', currentView);
           const query = currentView === 'inbox' ? 'in:inbox' : 'in:sent';
           const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
 
@@ -286,16 +287,21 @@ const Mailbox: React.FC = () => {
             // Only update if we have new conversations (different count or different IDs)
             const existingIds = new Set(existingEmails.map(c => c.id));
             const hasNewEmails = filteredNewConversations.some(c => !existingIds.has(c.id)) || 
-                               filteredNewConversations.length !== existingEmails.length;
+                              filteredNewConversations.length !== existingEmails.length;
+            
+            console.log('Background refresh result:', {
+              existingCount: existingEmails.length,
+              newCount: filteredNewConversations.length,
+              hasNewEmails
+            });
             
             if (hasNewEmails) {
+              console.log('Updating conversations with new emails');
               // Merge new emails with existing ones, preserving order, but exclude locally trashed
               const mergedConversations = [...filteredNewConversations];
               
               setViewCache(prev => ({ ...prev, [currentView]: mergedConversations }));
-              if (currentView === currentView) {
-                setCurrentConversations(mergedConversations);
-              }
+              setCurrentConversations(mergedConversations);
             }
           }
         } catch (error) {
