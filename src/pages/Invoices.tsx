@@ -213,90 +213,21 @@ const Invoices = () => {
       
       const simpleBody = `Hi ${invoice.customer_name},
 
-Thanks for your business! Please find your invoice attached to this email.
+Thanks for your business! Please find your invoice details below.
 
-You can also view and pay your invoice online here:
+You can view and pay your invoice online here:
 ${invoiceLink}
 
 Best regards,
 ${invoice.company_name || 'Your Company'}`;
 
-      let attachment = null;
-
-      // If invoice has a PDF, download it for attachment
-      if (invoice.pdf_path) {
-        try {
-          console.log('Downloading PDF for attachment:', invoice.pdf_path);
-          
-          // Download the PDF from Supabase storage
-          const { data: pdfData, error: downloadError } = await supabase.storage
-            .from('invoices')
-            .download(invoice.pdf_path.replace('invoices/', ''));
-
-          if (downloadError) {
-            console.error('Error downloading PDF:', downloadError);
-            toast({
-              title: "Warning",
-              description: "Could not attach PDF to email, but will proceed to compose email.",
-              variant: "destructive"
-            });
-          } else if (pdfData) {
-            // Convert blob to base64 for attachment
-            const reader = new FileReader();
-            const base64Promise = new Promise<string>((resolve, reject) => {
-              reader.onload = () => {
-                if (reader.result && typeof reader.result === 'string') {
-                  // Extract pure base64 data (remove data:application/pdf;base64, prefix)
-                  const base64Data = reader.result.split(',')[1];
-                  if (!base64Data) {
-                    reject(new Error('Failed to extract base64 data from PDF'));
-                    return;
-                  }
-                  resolve(base64Data);
-                } else {
-                  reject(new Error('Failed to read PDF as base64'));
-                }
-              };
-              reader.onerror = () => reject(new Error('Failed to read PDF file'));
-              
-              // Add timeout to prevent hanging
-              setTimeout(() => reject(new Error('PDF reading timeout')), 10000);
-            });
-            
-            reader.readAsDataURL(pdfData);
-            const base64Content = await base64Promise;
-            
-            attachment = {
-              name: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
-              filename: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
-              data: base64Content,
-              type: 'application/pdf',
-              mimeType: 'application/pdf',
-              size: pdfData.size
-            };
-            
-            console.log('PDF attachment prepared:', attachment.filename);
-          }
-        } catch (error) {
-          console.error('Error preparing PDF attachment:', error);
-          toast({
-            title: "Warning",
-            description: "Could not attach PDF to email, but will proceed to compose email.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        console.log('No PDF available for invoice:', invoice.id);
-      }
-
-      // Navigate to mailbox with compose draft including attachment
+      // Navigate to mailbox with compose draft (no attachments)
       navigate('/mailbox', { 
         state: { 
           composeDraft: { 
             to: invoice.customer_email, 
             subject, 
-            content: simpleBody,
-            attachments: attachment ? [attachment] : []
+            content: simpleBody
           } 
         } 
       });

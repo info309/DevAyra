@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
-import AttachmentManager from '@/components/AttachmentManager';
 import ComposeDialog from '@/components/ComposeDialog';
 import { useAttachments } from '@/hooks/useAttachments';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
@@ -118,12 +117,8 @@ const Mailbox: React.FC = () => {
 
   // Clean attachment management
   const {
-    fileAttachments,
     documentAttachments,
-    isProcessing: attachmentProcessing,
-    setFileAttachments,
     setDocumentAttachments,
-    handleFileSelection,
     clearAllAttachments,
     getTotalAttachmentCount
   } = useAttachments();
@@ -200,10 +195,7 @@ const Mailbox: React.FC = () => {
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
       });
       
-      // Set attachments separately using new system
-      if (draft.attachments && draft.attachments.length > 0) {
-        setFileAttachments(draft.attachments);
-      }
+      // Set document attachments if provided
       if (draft.documentAttachments && draft.documentAttachments.length > 0) {
         setDocumentAttachments(draft.documentAttachments);
       }
@@ -896,34 +888,9 @@ const Mailbox: React.FC = () => {
         contentLength: composeForm.content?.length,
         replyTo: composeForm.replyTo,
         threadId: composeForm.threadId,
-        fileAttachments: fileAttachments.length,
         documentAttachments: documentAttachments.length,
-        documentNames: documentAttachments.map(d => d.name) || [],
-        fileAttachmentDetails: fileAttachments.map(f => ({ 
-          name: f.name, 
-          size: f.size, 
-          hasContent: !!f.content,
-          contentLength: f.content?.length 
-        }))
+        documentNames: documentAttachments.map(d => d.name) || []
       });
-
-      // Check attachment sizes first (25MB Gmail limit, we'll use 20MB to be safe)
-      const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes
-      const oversizedFiles = fileAttachments.filter(attachment => {
-        return attachment.size > maxFileSize;
-      });
-
-      if (oversizedFiles.length > 0) {
-        const oversizedNames = oversizedFiles.map(f => f.name).join(', ');
-        toast({
-          title: "Attachment Too Large",
-          description: `These files exceed 20MB limit: ${oversizedNames}. Please use smaller files.`,
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        setSendingProgress('');
-        return;
-      }
 
       // Call the gmail-api edge function directly
       console.log('Calling gmail-api directly...');
@@ -936,7 +903,6 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           threadId: composeForm.threadId,
-          attachments: fileAttachments, // Direct base64 attachments
           documentAttachments: documentAttachments || []
         }
       });
@@ -1354,9 +1320,7 @@ const Mailbox: React.FC = () => {
                     onOpenChange={setShowComposeDialog}
                     composeForm={composeForm}
                     onComposeFormChange={setComposeForm}
-                    fileAttachments={fileAttachments}
                     documentAttachments={documentAttachments}
-                    onFileAttachmentsChange={setFileAttachments}
                     onDocumentAttachmentsChange={setDocumentAttachments}
                     onSend={async () => {
                       await sendEmail();
@@ -1366,7 +1330,6 @@ const Mailbox: React.FC = () => {
                       setComposeForm({ to: '', subject: '', content: '' });
                       clearAllAttachments();
                     }}
-                    onAddFiles={() => {}}
                     sendingEmail={sendingEmail}
                     sendingProgress={sendingProgress}
                   />
