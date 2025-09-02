@@ -883,41 +883,65 @@ const Mailbox: React.FC = () => {
       });
       
       // Convert file attachments to base64 for sending
-      const fileAttachmentsData = await Promise.all(
-        (composeForm.attachments || []).map(async (attachment) => {
-          // Check if this is already a processed attachment (from invoice)
-          if ('data' in attachment && 'filename' in attachment) {
-            // Direct attachment already in the right format
-            const directAttachment = attachment as DirectAttachment;
-            return {
-              name: directAttachment.name || directAttachment.filename,
-              filename: directAttachment.filename,
-              data: directAttachment.data,
-              type: directAttachment.type || directAttachment.mimeType,
-              mimeType: directAttachment.mimeType || directAttachment.type,
-              size: directAttachment.size
-            };
-          }
-          
-          // Regular file upload - convert to base64
-          const file = attachment as File;
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const base64 = (reader.result as string).split(',')[1];
-              resolve({
-                name: file.name,
-                filename: file.name,
-                data: base64,
-                type: file.type,
-                mimeType: file.type,
-                size: file.size
-              });
-            };
-            reader.readAsDataURL(file);
-          });
-        })
-      );
+      let fileAttachmentsData = [];
+      
+      try {
+        fileAttachmentsData = await Promise.all(
+          (composeForm.attachments || []).map(async (attachment) => {
+            // Check if this is already a processed attachment (from invoice)
+            if ('data' in attachment && 'filename' in attachment) {
+              // Direct attachment already in the right format
+              const directAttachment = attachment as DirectAttachment;
+              return {
+                name: directAttachment.name || directAttachment.filename,
+                filename: directAttachment.filename,
+                data: directAttachment.data,
+                type: directAttachment.type || directAttachment.mimeType,
+                mimeType: directAttachment.mimeType || directAttachment.type,
+                size: directAttachment.size
+              };
+            }
+            
+            // Regular file upload - convert to base64
+            const file = attachment as File;
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve({
+                  name: file.name,
+                  filename: file.name,
+                  data: base64,
+                  type: file.type,
+                  mimeType: file.type,
+                  size: file.size
+                });
+              };
+              reader.onerror = () => {
+                console.error('FileReader error for file:', file.name);
+                reject(new Error(`Failed to read file: ${file.name}`));
+              };
+              
+              // Add timeout to prevent hanging
+              setTimeout(() => {
+                reject(new Error(`File reading timeout for: ${file.name}`));
+              }, 10000); // 10 second timeout
+              
+              reader.readAsDataURL(file);
+            });
+          })
+        );
+        console.log('Successfully processed file attachments:', fileAttachmentsData.length);
+      } catch (error) {
+        console.error('File attachment processing failed:', error);
+        toast({
+          title: "Attachment Error",
+          description: `Failed to process file attachments: ${error.message}`,
+          variant: "destructive"
+        });
+        setSendingEmail(false);
+        return; // Exit early if file processing fails
+      }
 
       // Convert document attachments to base64 for sending
       let documentAttachmentsData = [];
