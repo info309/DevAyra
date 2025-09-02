@@ -495,6 +495,12 @@ class GmailService {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
             }
+            
+            // Add line breaks every 76 characters for MIME compliance
+            const formatBase64ForMime = (b64: string) => {
+              return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
+            };
+            base64 = formatBase64ForMime(base64);
 
             // Extract filename from path
             const filename = path.split('/').pop() || 'attachment';
@@ -532,17 +538,23 @@ class GmailService {
               continue;
             }
 
-            // Convert to base64 in chunks to handle large files
+            // Convert to base64 using streaming approach for large files
             const arrayBuffer = await data.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
             
-            // Process in chunks to avoid memory issues
+            // Stream encode to prevent call stack overflow on large files
             let base64 = '';
-            const chunkSize = 32768; // 32KB chunks
+            const chunkSize = 8192; // 8KB chunks
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
             }
+            
+            // Add line breaks every 76 characters for MIME compliance
+            const formatBase64ForMime = (b64: string) => {
+              return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
+            };
+            base64 = formatBase64ForMime(base64);
 
             processedAttachments.push({
               name: doc.name,
@@ -560,6 +572,15 @@ class GmailService {
       }
 
       console.log(`[${this.requestId}] Total processed attachments: ${processedAttachments.length}`);
+      
+      // Log attachment details for debugging
+      if (processedAttachments.length > 0) {
+        processedAttachments.forEach((att, idx) => {
+          const base64Length = att.data?.length || 0;
+          const hasLineBreaks = att.data?.includes('\r\n') || false;
+          console.log(`[${this.requestId}] Attachment ${idx}: ${att.filename}, size: ${att.size} bytes, base64: ${base64Length} chars, hasLineBreaks: ${hasLineBreaks}`);
+        });
+      }
       
       // Generate boundary for multipart message
       const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -676,6 +697,7 @@ class GmailService {
       console.log(`[${this.requestId}] === EMAIL SENT SUCCESSFULLY ===`);
       console.log(`[${this.requestId}] Message ID: ${result.id}`);
       console.log(`[${this.requestId}] Recipient: ${to}`);
+      console.log(`[${this.requestId}] Gmail API response:`, JSON.stringify(result, null, 2));
       return { success: true, messageId: result.id, sentMessage: result };
     } catch (error) {
       console.error(`[${this.requestId}] sendEmail error:`, error);
