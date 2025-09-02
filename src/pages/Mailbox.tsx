@@ -907,15 +907,15 @@ const Mailbox: React.FC = () => {
       }
       
       
-      // Upload attachments to storage first for async processing
-      let attachmentPaths: string[] = [];
+      // Upload attachments to storage first and get public URLs
+      let attachmentUrls: string[] = [];
       
       if (composeForm.attachments && composeForm.attachments.length > 0) {
-        console.log('Uploading attachments to storage for async processing...');
+        console.log('Uploading attachments to storage and getting public URLs...');
         setSendingProgress(`Uploading ${composeForm.attachments.length} attachment(s)...`);
         
         try {
-          attachmentPaths = await Promise.all(
+          attachmentUrls = await Promise.all(
             composeForm.attachments.map(async (attachment) => {
               // Check if this is already a processed attachment (from invoice)
               if ('data' in attachment && 'filename' in attachment) {
@@ -941,7 +941,13 @@ const Mailbox: React.FC = () => {
                   });
                 
                 if (error) throw error;
-                return data.path;
+                
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                  .from('email-attachments')
+                  .getPublicUrl(data.path);
+                
+                return publicUrl;
               } else {
                 // Regular file upload
                 const file = attachment as File;
@@ -956,12 +962,18 @@ const Mailbox: React.FC = () => {
                   });
                 
                 if (error) throw error;
-                return data.path;
+                
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                  .from('email-attachments')
+                  .getPublicUrl(data.path);
+                
+                return publicUrl;
               }
             })
           );
           
-          console.log('Successfully uploaded all attachments:', attachmentPaths);
+          console.log('Successfully uploaded all attachments and got URLs:', attachmentUrls);
         } catch (error) {
           console.error('Failed to upload attachments:', error);
           toast({
@@ -986,7 +998,7 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           threadId: composeForm.threadId,
-          attachmentPaths,
+          attachmentUrls,
           documentAttachments: composeForm.documentAttachments || []
         }
       });

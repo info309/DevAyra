@@ -32,7 +32,7 @@ const requestSchema = z.discriminatedUnion('action', [
     replyTo: z.string().optional(),
     threadId: z.string().optional(),
     attachments: z.array(z.any()).optional(),
-    attachmentPaths: z.array(z.string()).optional(),
+    attachmentUrls: z.array(z.string()).optional(), // Public URLs to fetch attachments from
     documentAttachments: z.array(z.object({
       name: z.string(),
       file_path: z.string(),
@@ -442,22 +442,16 @@ class GmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], attachmentPaths?: string[], documentAttachments?: any[]) {
+  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], attachmentUrls?: string[], documentAttachments?: any[]) {
     try {
       console.log(`[${this.requestId}] === STARTING SEND EMAIL ===`);
       console.log(`[${this.requestId}] Recipient: ${to}`);
       console.log(`[${this.requestId}] Subject: ${subject}`);
       console.log(`[${this.requestId}] ThreadId: ${threadId || 'none'}`);
       console.log(`[${this.requestId}] Standard attachments: ${attachments?.length || 0}`);
-      console.log(`[${this.requestId}] Attachment paths: ${attachmentPaths?.length || 0}`);
+      console.log(`[${this.requestId}] Attachment URLs: ${attachmentUrls?.length || 0}`);
       console.log(`[${this.requestId}] Document attachments: ${documentAttachments?.length || 0}`);
       
-      // Create Supabase client for storage access
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
       // Process all attachments into a unified format
       const processedAttachments: any[] = [];
 
@@ -466,61 +460,57 @@ class GmailService {
         processedAttachments.push(...attachments);
       }
 
-      // Process attachment paths from storage
-      if (attachmentPaths && attachmentPaths.length > 0) {
-        console.log(`[${this.requestId}] Processing ${attachmentPaths.length} attachment paths`);
+      // Process attachment URLs by fetching them directly
+      if (attachmentUrls && attachmentUrls.length > 0) {
+        console.log(`[${this.requestId}] Fetching ${attachmentUrls.length} attachment URLs`);
         
-        for (const path of attachmentPaths) {
+        for (const url of attachmentUrls) {
           try {
-            console.log(`[${this.requestId}] Downloading attachment from path: ${path}`);
+            console.log(`[${this.requestId}] Fetching attachment from URL: ${url}`);
             
-            // Download file from storage
-            const { data, error } = await supabaseClient.storage
-              .from('email-attachments')
-              .download(path);
-
-            if (error) {
-              console.error(`[${this.requestId}] Storage download error for ${path}:`, error);
+            // Fetch the file directly from the public URL
+            const response = await fetch(url);
+            if (!response.ok) {
+              console.error(`[${this.requestId}] Failed to fetch ${url}: ${response.status} ${response.statusText}`);
               continue;
             }
 
-            // Convert to base64 using streaming approach for large files
-            const arrayBuffer = await data.arrayBuffer();
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Extract filename from URL
+            const urlPath = new URL(url).pathname;
+            const filename = urlPath.split('/').pop() || 'attachment';
+            
+            console.log(`[${this.requestId}] Encoding attachment ${filename} (${blob.size} bytes)...`);
             
             // Stream encode to prevent call stack overflow on large files
             let base64 = '';
             const chunkSize = 8192; // 8KB chunks
-            
-            // Extract filename from path first
-            const filename = path.split('/').pop() || 'attachment';
-            console.log(`[${this.requestId}] Encoding attachment ${filename} in chunks...`);
             
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
             }
             
-            console.log(`[${this.requestId}] Encoded ${uint8Array.length} bytes to ${base64.length} chars`);
-            
             // Add line breaks every 76 characters for MIME compliance
             const formatBase64ForMime = (b64: string) => {
               return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
             };
             base64 = formatBase64ForMime(base64);
-            console.log(`[${this.requestId}] Formatted base64 with line breaks: ${base64.length} chars`);
             
             processedAttachments.push({
               name: filename,
               filename: filename,
               data: base64,
-              mimeType: data.type || 'application/octet-stream',
-              size: data.size
+              mimeType: blob.type || 'application/octet-stream',
+              size: blob.size
             });
 
-            console.log(`[${this.requestId}] Successfully processed attachment: ${filename} (${data.size} bytes)`);
-          } catch (storageError) {
-            console.error(`[${this.requestId}] Error processing attachment path ${path}:`, storageError);
+            console.log(`[${this.requestId}] Successfully processed attachment: ${filename} (${blob.size} bytes)`);
+          } catch (urlError) {
+            console.error(`[${this.requestId}] Error processing attachment URL ${url}:`, urlError);
           }
         }
       }
@@ -528,6 +518,12 @@ class GmailService {
       // Process document attachments
       if (documentAttachments && documentAttachments.length > 0) {
         console.log(`[${this.requestId}] Processing ${documentAttachments.length} document attachments`);
+        
+        // Create Supabase client for document storage access
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
         
         for (const doc of documentAttachments) {
           try {
@@ -920,7 +916,7 @@ const handler = async (req: Request): Promise<Response> => {
             request.content,
             request.threadId,
             request.attachments,
-            request.attachmentPaths,
+            request.attachmentUrls,
             request.documentAttachments
           );
           console.log(`[${requestId}] sendEmail completed successfully`);
