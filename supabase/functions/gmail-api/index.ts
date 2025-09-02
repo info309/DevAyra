@@ -468,47 +468,80 @@ class GmailService {
           try {
             console.log(`[${this.requestId}] Fetching attachment from URL: ${url}`);
             
-            // Fetch the file directly from the public URL
-            const response = await fetch(url);
-            if (!response.ok) {
-              console.error(`[${this.requestId}] Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+            // Add timeout to the fetch request
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            try {
+              // Fetch the file directly from the public URL
+              const response = await fetch(url, { 
+                signal: controller.signal,
+                headers: {
+                  'User-Agent': 'Supabase-Functions/1.0'
+                }
+              });
+              clearTimeout(timeoutId);
+              
+              if (!response.ok) {
+                console.error(`[${this.requestId}] Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+                continue;
+              }
+
+              console.log(`[${this.requestId}] Successfully fetched ${url}, content-type: ${response.headers.get('content-type')}, size: ${response.headers.get('content-length') || 'unknown'}`);
+
+              const blob = await response.blob();
+              console.log(`[${this.requestId}] Converted to blob: ${blob.size} bytes, type: ${blob.type}`);
+              
+              const arrayBuffer = await blob.arrayBuffer();
+              const uint8Array = new Uint8Array(arrayBuffer);
+              
+              // Extract filename from URL
+              const urlPath = new URL(url).pathname;
+              const filename = urlPath.split('/').pop() || 'attachment';
+              
+              console.log(`[${this.requestId}] Processing attachment ${filename} (${blob.size} bytes)...`);
+              
+              // Stream encode to prevent call stack overflow on large files
+              let base64 = '';
+              const chunkSize = 8192; // 8KB chunks
+              
+              console.log(`[${this.requestId}] Starting base64 encoding in chunks...`);
+              for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.slice(i, i + chunkSize);
+                base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+                
+                // Log progress for large files
+                if (i % (chunkSize * 10) === 0) {
+                  console.log(`[${this.requestId}] Encoding progress: ${Math.round((i / uint8Array.length) * 100)}%`);
+                }
+              }
+              
+              console.log(`[${this.requestId}] Base64 encoding complete: ${base64.length} chars`);
+              
+              // Add line breaks every 76 characters for MIME compliance
+              const formatBase64ForMime = (b64: string) => {
+                return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
+              };
+              base64 = formatBase64ForMime(base64);
+              
+              processedAttachments.push({
+                name: filename,
+                filename: filename,
+                data: base64,
+                mimeType: blob.type || 'application/octet-stream',
+                size: blob.size
+              });
+
+              console.log(`[${this.requestId}] Successfully processed attachment: ${filename} (${blob.size} bytes)`);
+            } catch (fetchError) {
+              clearTimeout(timeoutId);
+              if (fetchError.name === 'AbortError') {
+                console.error(`[${this.requestId}] Fetch timeout for ${url}`);
+              } else {
+                console.error(`[${this.requestId}] Fetch error for ${url}:`, fetchError);
+              }
               continue;
             }
-
-            const blob = await response.blob();
-            const arrayBuffer = await blob.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-            
-            // Extract filename from URL
-            const urlPath = new URL(url).pathname;
-            const filename = urlPath.split('/').pop() || 'attachment';
-            
-            console.log(`[${this.requestId}] Encoding attachment ${filename} (${blob.size} bytes)...`);
-            
-            // Stream encode to prevent call stack overflow on large files
-            let base64 = '';
-            const chunkSize = 8192; // 8KB chunks
-            
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              const chunk = uint8Array.slice(i, i + chunkSize);
-              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
-            }
-            
-            // Add line breaks every 76 characters for MIME compliance
-            const formatBase64ForMime = (b64: string) => {
-              return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
-            };
-            base64 = formatBase64ForMime(base64);
-            
-            processedAttachments.push({
-              name: filename,
-              filename: filename,
-              data: base64,
-              mimeType: blob.type || 'application/octet-stream',
-              size: blob.size
-            });
-
-            console.log(`[${this.requestId}] Successfully processed attachment: ${filename} (${blob.size} bytes)`);
           } catch (urlError) {
             console.error(`[${this.requestId}] Error processing attachment URL ${url}:`, urlError);
           }
