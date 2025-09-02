@@ -888,14 +888,11 @@ const Mailbox: React.FC = () => {
       // Check attachment sizes first (25MB Gmail limit, we'll use 20MB to be safe)
       const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes
       const oversizedFiles = (composeForm.attachments || []).filter(attachment => {
-        if ('size' in attachment) {
-          return attachment.size > maxFileSize;
-        }
-        return false;
+        return attachment.size > maxFileSize;
       });
 
       if (oversizedFiles.length > 0) {
-        const oversizedNames = oversizedFiles.map(f => (f as File).name).join(', ');
+        const oversizedNames = oversizedFiles.map(f => f.name).join(', ');
         toast({
           title: "Attachment Too Large",
           description: `These files exceed 20MB limit: ${oversizedNames}. Please use smaller files.`,
@@ -904,87 +901,6 @@ const Mailbox: React.FC = () => {
         setSendingEmail(false);
         setSendingProgress('');
         return;
-      }
-      
-      
-      // Upload attachments to storage first and get public URLs
-      let attachmentUrls: string[] = [];
-      
-      if (composeForm.attachments && composeForm.attachments.length > 0) {
-        console.log('Uploading attachments to storage and getting public URLs...');
-        setSendingProgress(`Uploading ${composeForm.attachments.length} attachment(s)...`);
-        
-        try {
-          attachmentUrls = await Promise.all(
-            composeForm.attachments.map(async (attachment) => {
-              // Check if this is already a processed attachment (from invoice)
-              if ('data' in attachment && 'filename' in attachment) {
-                const directAttachment = attachment as DirectAttachment;
-                console.log('Uploading direct attachment:', directAttachment.filename);
-                
-                // Convert base64 back to blob for storage
-                const base64Data = directAttachment.data;
-                const byteCharacters = atob(base64Data);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                  byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: directAttachment.mimeType });
-                
-                const fileName = `${user.id}/${Date.now()}-${directAttachment.filename}`;
-                const { data, error } = await supabase.storage
-                  .from('email-attachments')
-                  .upload(fileName, blob, {
-                    contentType: directAttachment.mimeType,
-                    upsert: false
-                  });
-                
-                if (error) throw error;
-                
-                // Get public URL
-                const { data: { publicUrl } } = supabase.storage
-                  .from('email-attachments')
-                  .getPublicUrl(data.path);
-                
-                return publicUrl;
-              } else {
-                // Regular file upload
-                const file = attachment as File;
-                console.log('Uploading file:', file.name, 'size:', file.size);
-                
-                const fileName = `${user.id}/${Date.now()}-${file.name}`;
-                const { data, error } = await supabase.storage
-                  .from('email-attachments')
-                  .upload(fileName, file, {
-                    contentType: file.type,
-                    upsert: false
-                  });
-                
-                if (error) throw error;
-                
-                // Get public URL
-                const { data: { publicUrl } } = supabase.storage
-                  .from('email-attachments')
-                  .getPublicUrl(data.path);
-                
-                return publicUrl;
-              }
-            })
-          );
-          
-          console.log('Successfully uploaded all attachments and got URLs:', attachmentUrls);
-        } catch (error) {
-          console.error('Failed to upload attachments:', error);
-          toast({
-            title: "Upload Error",
-            description: "Failed to upload attachments. Please try again.",
-            variant: "destructive"
-          });
-          setSendingEmail(false);
-          setSendingProgress('');
-          return;
-        }
       }
 
       // Call the gmail-api edge function directly
@@ -998,7 +914,7 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           threadId: composeForm.threadId,
-          attachmentUrls,
+          attachments: composeForm.attachments || [], // Direct base64 attachments
           documentAttachments: composeForm.documentAttachments || []
         }
       });
@@ -1513,20 +1429,43 @@ const Mailbox: React.FC = () => {
                        </div>
                      )}
                      
-                     {/* Hidden file input */}
-                     <input
-                       type="file"
-                       multiple
-                       id="attachments"
-                       className="hidden"
-                       onChange={(e) => {
-                         const files = Array.from(e.target.files || []);
-                         setComposeForm(prev => ({
-                           ...prev,
-                           attachments: [...(prev.attachments || []), ...files]
-                         }));
-                       }}
-                     />
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        multiple
+                        id="attachments"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          
+                          // Convert files to base64 directly
+                          const base64Files = await Promise.all(
+                            files.map(async (file) => {
+                              return new Promise<DirectAttachment>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const base64 = (reader.result as string).split(',')[1]; // Remove data:type;base64, prefix
+                                  resolve({
+                                    name: file.name,
+                                    filename: file.name,
+                                    data: base64,
+                                    type: file.type,
+                                    mimeType: file.type,
+                                    size: file.size
+                                  });
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                              });
+                            })
+                          );
+                          
+                          setComposeForm(prev => ({
+                            ...prev,
+                            attachments: [...(prev.attachments || []), ...base64Files]
+                          }));
+                        }}
+                      />
                   </div>
                   <DrawerFooter>
                     {/* Mobile-first bottom action bar */}
