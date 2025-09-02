@@ -452,11 +452,16 @@ class GmailService {
       console.log(`[${this.requestId}] Attachment URLs: ${attachmentUrls?.length || 0}`);
       console.log(`[${this.requestId}] Document attachments: ${documentAttachments?.length || 0}`);
       
+      // Log the actual data we received
+      console.log(`[${this.requestId}] AttachmentUrls:`, attachmentUrls);
+      console.log(`[${this.requestId}] DocumentAttachments:`, documentAttachments);
+      
       // Process all attachments into a unified format
       const processedAttachments: any[] = [];
 
       // Add standard attachments (already processed)
       if (attachments && attachments.length > 0) {
+        console.log(`[${this.requestId}] Adding ${attachments.length} standard attachments`);
         processedAttachments.push(...attachments);
       }
 
@@ -560,40 +565,53 @@ class GmailService {
         
         for (const doc of documentAttachments) {
           try {
-            console.log(`[${this.requestId}] Downloading document: ${doc.name} from ${doc.file_path}`);
+            console.log(`[${this.requestId}] Starting download of document: ${doc.name} from ${doc.file_path}`);
             
-            // Download file from documents storage
-            const { data, error } = await supabaseClient.storage
+            // Add timeout to document download
+            const downloadPromise = supabaseClient.storage
               .from('documents')
               .download(doc.file_path);
+            
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Document download timeout')), 30000);
+            });
+            
+            const { data, error } = await Promise.race([downloadPromise, timeoutPromise]) as any;
 
             if (error) {
               console.error(`[${this.requestId}] Document download error for ${doc.name}:`, error);
               continue;
             }
 
+            console.log(`[${this.requestId}] Successfully downloaded document: ${doc.name}, size: ${data?.size || 'unknown'}`);
+
             // Convert to base64 using streaming approach for large files
             const arrayBuffer = await data.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
             
+            console.log(`[${this.requestId}] Converting document ${doc.name} to base64 (${uint8Array.length} bytes)...`);
+            
             // Stream encode to prevent call stack overflow on large files
             let base64 = '';
             const chunkSize = 8192; // 8KB chunks
-            console.log(`[${this.requestId}] Encoding document ${doc.name} in chunks...`);
             
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+              
+              // Log progress for large files
+              if (i % (chunkSize * 10) === 0) {
+                console.log(`[${this.requestId}] Document encoding progress: ${Math.round((i / uint8Array.length) * 100)}%`);
+              }
             }
             
-            console.log(`[${this.requestId}] Encoded ${uint8Array.length} bytes to ${base64.length} chars`);
+            console.log(`[${this.requestId}] Document base64 encoding complete: ${base64.length} chars`);
             
             // Add line breaks every 76 characters for MIME compliance
             const formatBase64ForMime = (b64: string) => {
               return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
             };
             base64 = formatBase64ForMime(base64);
-            console.log(`[${this.requestId}] Formatted base64 with line breaks: ${base64.length} chars`);
 
             processedAttachments.push({
               name: doc.name,
@@ -606,6 +624,7 @@ class GmailService {
             console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size} bytes)`);
           } catch (docError) {
             console.error(`[${this.requestId}] Error processing document ${doc.name}:`, docError);
+            // Continue with other attachments rather than failing completely
           }
         }
       }
@@ -929,21 +948,19 @@ const handler = async (req: Request): Promise<Response> => {
         result = await gmailService.markAsRead(request.messageId, request.threadId);
         break;
 
-      case 'sendEmail':
-        try {
-          console.log(`[${requestId}] Starting sendEmail action with recipient: ${request.to}`);
+        case 'sendEmail': {
+          console.log(`[${requestId}] === GMAIL SENDEMAIL ACTION START ===`);
           console.log(`[${requestId}] Request data:`, { 
             to: request.to, 
             subject: request.subject, 
             hasContent: !!request.content,
             contentLength: request.content?.length || 0,
-            attachmentCount: request.attachments?.length || 0 
+            attachmentCount: request.attachments?.length || 0,
+            attachmentUrlsCount: request.attachmentUrls?.length || 0,
+            documentAttachmentsCount: request.documentAttachments?.length || 0
           });
           
-          // Add more detailed debugging for the content
-          console.log(`[${requestId}] Email content preview:`, request.content?.substring(0, 200) || 'NO CONTENT');
-          
-          result = await gmailService.sendEmail(
+          const result = await gmailService.sendEmail(
             request.to,
             request.subject,
             request.content,
@@ -952,17 +969,12 @@ const handler = async (req: Request): Promise<Response> => {
             request.attachmentUrls,
             request.documentAttachments
           );
-          console.log(`[${requestId}] sendEmail completed successfully`);
-        } catch (error) {
-          console.error(`[${requestId}] sendEmail failed:`, error);
-          console.error(`[${requestId}] Error details:`, {
-            name: error?.name,
-            message: error?.message,
-            stack: error?.stack?.substring(0, 500)
+          
+          console.log(`[${requestId}] === GMAIL SENDEMAIL ACTION COMPLETE ===`);
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
-          throw error; // Re-throw to be caught by outer try-catch
         }
-        break;
 
       case 'trashMessage':
         result = await gmailService.trashMessage(request.messageId!);
