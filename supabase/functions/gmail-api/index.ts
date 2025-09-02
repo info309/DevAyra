@@ -496,6 +496,7 @@ class GmailService {
 
             if (downloadError) {
               console.error(`[${this.requestId}] Error downloading ${doc.name}:`, downloadError);
+              console.error(`[${this.requestId}] Download error details:`, downloadError);
               continue;
             }
 
@@ -512,17 +513,24 @@ class GmailService {
             
             console.log(`[${this.requestId}] Converting document to base64: ${doc.name}`);
             
-            // Convert to base64 using chunked processing for memory efficiency
+            // Use btoa directly for smaller files, chunked processing for larger ones
             let base64 = '';
-            const chunkSize = 8192;
-            
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              const chunk = uint8Array.slice(i, i + chunkSize);
-              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
-              
-              // Log progress for large files
-              if (i % (chunkSize * 10) === 0) {
-                console.log(`[${this.requestId}] Document encoding progress: ${Math.round((i / uint8Array.length) * 100)}%`);
+            if (uint8Array.length < 1024 * 1024) { // Less than 1MB
+              // Simple conversion for small files
+              const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+              base64 = btoa(binaryString);
+            } else {
+              // Chunked processing for large files
+              const chunkSize = 8192;
+              for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.slice(i, i + chunkSize);
+                const binaryString = Array.from(chunk, byte => String.fromCharCode(byte)).join('');
+                base64 += btoa(binaryString);
+                
+                // Log progress for large files
+                if (i % (chunkSize * 10) === 0) {
+                  console.log(`[${this.requestId}] Document encoding progress: ${Math.round((i / uint8Array.length) * 100)}%`);
+                }
               }
             }
             
@@ -545,6 +553,7 @@ class GmailService {
             console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size} bytes)`);
           } catch (docError) {
             console.error(`[${this.requestId}] Error processing document ${doc.name}:`, docError);
+            console.error(`[${this.requestId}] Document processing stack trace:`, docError.stack);
             // Continue with other attachments rather than failing completely
           }
         }

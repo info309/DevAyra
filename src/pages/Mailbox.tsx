@@ -945,10 +945,25 @@ const Mailbox: React.FC = () => {
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
           reject(new Error('Email sending timeout - operation took too long'));
-        }, 120000); // 2 minute timeout for large attachments
+        }, 180000); // 3 minute timeout for large attachments
       });
 
-      const { data, error } = await Promise.race([emailSendPromise, timeoutPromise]) as any;
+      let result;
+      try {
+        result = await Promise.race([emailSendPromise, timeoutPromise]) as any;
+      } catch (timeoutError) {
+        console.error('Email send timeout or error:', timeoutError);
+        toast({
+          title: "Error",
+          description: "Email sending timed out. Please try again or use smaller attachments.",
+          variant: "destructive"
+        });
+        setSendingEmail(false);
+        setSendingProgress('');
+        return;
+      }
+
+      const { data, error } = result;
 
       console.log('Gmail API response:', { data, error });
 
