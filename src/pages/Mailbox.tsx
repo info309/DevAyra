@@ -118,6 +118,7 @@ const Mailbox: React.FC = () => {
     documentAttachments: []
   });
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingProgress, setSendingProgress] = useState('');
 
   // Pagination state
   const [currentPageToken, setCurrentPageToken] = useState<string | null>(null);
@@ -869,6 +870,7 @@ const Mailbox: React.FC = () => {
     try {
       console.log('=== SEND EMAIL DEBUG START ===');
       setSendingEmail(true);
+      setSendingProgress('Preparing email...');
       
       console.log('Starting email send process...');
       console.log('Compose form state:', {
@@ -900,6 +902,7 @@ const Mailbox: React.FC = () => {
           variant: "destructive"
         });
         setSendingEmail(false);
+        setSendingProgress('');
         return;
       }
       
@@ -909,6 +912,7 @@ const Mailbox: React.FC = () => {
       
       if (composeForm.attachments && composeForm.attachments.length > 0) {
         console.log('Uploading attachments to storage for async processing...');
+        setSendingProgress(`Uploading ${composeForm.attachments.length} attachment(s)...`);
         
         try {
           attachmentPaths = await Promise.all(
@@ -966,12 +970,14 @@ const Mailbox: React.FC = () => {
             variant: "destructive"
           });
           setSendingEmail(false);
+          setSendingProgress('');
           return;
         }
       }
 
       // Call the gmail-api edge function directly
       console.log('Calling gmail-api directly...');
+      setSendingProgress('Sending email...');
       
       const emailSendPromise = supabase.functions.invoke('gmail-api', {
         body: {
@@ -985,11 +991,11 @@ const Mailbox: React.FC = () => {
         }
       });
 
-      // Add timeout for the operation (reduced since no nested calls)
+      // Add timeout for the operation (increased for large attachments)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
           reject(new Error('Email sending timeout - operation took too long'));
-        }, 30000); // 30 second timeout
+        }, 120000); // 2 minute timeout for large attachments
       });
 
       const { data, error } = await Promise.race([emailSendPromise, timeoutPromise]) as any;
@@ -1004,6 +1010,7 @@ const Mailbox: React.FC = () => {
           variant: "destructive"
         });
         setSendingEmail(false);
+        setSendingProgress('');
         return;
       }
 
@@ -1015,6 +1022,7 @@ const Mailbox: React.FC = () => {
           variant: "destructive"
         });
         setSendingEmail(false);
+        setSendingProgress('');
         return;
       }
 
@@ -1046,6 +1054,7 @@ const Mailbox: React.FC = () => {
       });
     } finally {
       setSendingEmail(false);
+      setSendingProgress('');
     }
   };
 
@@ -1592,7 +1601,7 @@ const Mailbox: React.FC = () => {
                         className="gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        {sendingEmail ? 'Sending...' : 
+                        {sendingEmail ? (sendingProgress || 'Sending...') : 
                          `Send${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0) > 0 
                            ? ` (${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)})`
                            : ''}`}

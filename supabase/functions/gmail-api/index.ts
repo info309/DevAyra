@@ -491,19 +491,24 @@ class GmailService {
             // Stream encode to prevent call stack overflow on large files
             let base64 = '';
             const chunkSize = 8192; // 8KB chunks
+            
+            // Extract filename from path first
+            const filename = path.split('/').pop() || 'attachment';
+            console.log(`[${this.requestId}] Encoding attachment ${filename} in chunks...`);
+            
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
             }
+            
+            console.log(`[${this.requestId}] Encoded ${uint8Array.length} bytes to ${base64.length} chars`);
             
             // Add line breaks every 76 characters for MIME compliance
             const formatBase64ForMime = (b64: string) => {
               return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
             };
             base64 = formatBase64ForMime(base64);
-
-            // Extract filename from path
-            const filename = path.split('/').pop() || 'attachment';
+            console.log(`[${this.requestId}] Formatted base64 with line breaks: ${base64.length} chars`);
             
             processedAttachments.push({
               name: filename,
@@ -545,16 +550,21 @@ class GmailService {
             // Stream encode to prevent call stack overflow on large files
             let base64 = '';
             const chunkSize = 8192; // 8KB chunks
+            console.log(`[${this.requestId}] Encoding document ${doc.name} in chunks...`);
+            
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
             }
+            
+            console.log(`[${this.requestId}] Encoded ${uint8Array.length} bytes to ${base64.length} chars`);
             
             // Add line breaks every 76 characters for MIME compliance
             const formatBase64ForMime = (b64: string) => {
               return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
             };
             base64 = formatBase64ForMime(base64);
+            console.log(`[${this.requestId}] Formatted base64 with line breaks: ${base64.length} chars`);
 
             processedAttachments.push({
               name: doc.name,
