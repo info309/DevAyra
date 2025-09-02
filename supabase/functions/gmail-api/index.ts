@@ -31,7 +31,14 @@ const requestSchema = z.discriminatedUnion('action', [
     content: z.string(),
     replyTo: z.string().optional(),
     threadId: z.string().optional(),
-    attachments: z.array(z.any()).optional()
+    attachments: z.array(z.any()).optional(),
+    attachmentPaths: z.array(z.string()).optional(),
+    documentAttachments: z.array(z.object({
+      name: z.string(),
+      file_path: z.string(),
+      mime_type: z.string(),
+      file_size: z.number()
+    })).optional()
   }),
   z.object({
     action: z.literal('downloadAttachment'),
@@ -435,13 +442,117 @@ class GmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[]) {
+  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], attachmentPaths?: string[], documentAttachments?: any[]) {
     try {
       console.log(`[${this.requestId}] === STARTING SEND EMAIL ===`);
       console.log(`[${this.requestId}] Recipient: ${to}`);
       console.log(`[${this.requestId}] Subject: ${subject}`);
       console.log(`[${this.requestId}] ThreadId: ${threadId || 'none'}`);
-      console.log(`[${this.requestId}] Attachments: ${attachments?.length || 0}`);
+      console.log(`[${this.requestId}] Standard attachments: ${attachments?.length || 0}`);
+      console.log(`[${this.requestId}] Attachment paths: ${attachmentPaths?.length || 0}`);
+      console.log(`[${this.requestId}] Document attachments: ${documentAttachments?.length || 0}`);
+      
+      // Create Supabase client for storage access
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // Process all attachments into a unified format
+      const processedAttachments: any[] = [];
+
+      // Add standard attachments (already processed)
+      if (attachments && attachments.length > 0) {
+        processedAttachments.push(...attachments);
+      }
+
+      // Process attachment paths from storage
+      if (attachmentPaths && attachmentPaths.length > 0) {
+        console.log(`[${this.requestId}] Processing ${attachmentPaths.length} attachment paths`);
+        
+        for (const path of attachmentPaths) {
+          try {
+            console.log(`[${this.requestId}] Downloading attachment from path: ${path}`);
+            
+            // Download file from storage
+            const { data, error } = await supabaseClient.storage
+              .from('email-attachments')
+              .download(path);
+
+            if (error) {
+              console.error(`[${this.requestId}] Storage download error for ${path}:`, error);
+              continue;
+            }
+
+            // Convert to base64
+            const arrayBuffer = await data.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const base64 = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+
+            // Extract filename from path
+            const filename = path.split('/').pop() || 'attachment';
+            
+            processedAttachments.push({
+              name: filename,
+              filename: filename,
+              data: base64,
+              mimeType: data.type || 'application/octet-stream',
+              size: data.size
+            });
+
+            console.log(`[${this.requestId}] Successfully processed attachment: ${filename} (${data.size} bytes)`);
+          } catch (storageError) {
+            console.error(`[${this.requestId}] Error processing attachment path ${path}:`, storageError);
+          }
+        }
+      }
+
+      // Process document attachments
+      if (documentAttachments && documentAttachments.length > 0) {
+        console.log(`[${this.requestId}] Processing ${documentAttachments.length} document attachments`);
+        
+        for (const doc of documentAttachments) {
+          try {
+            console.log(`[${this.requestId}] Downloading document: ${doc.name} from ${doc.file_path}`);
+            
+            // Download file from documents storage
+            const { data, error } = await supabaseClient.storage
+              .from('documents')
+              .download(doc.file_path);
+
+            if (error) {
+              console.error(`[${this.requestId}] Document download error for ${doc.name}:`, error);
+              continue;
+            }
+
+            // Convert to base64 in chunks to handle large files
+            const arrayBuffer = await data.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Process in chunks to avoid memory issues
+            let base64 = '';
+            const chunkSize = 32768; // 32KB chunks
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.slice(i, i + chunkSize);
+              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+            }
+
+            processedAttachments.push({
+              name: doc.name,
+              filename: doc.name,
+              data: base64,
+              mimeType: doc.mime_type,
+              size: doc.file_size
+            });
+
+            console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size} bytes)`);
+          } catch (docError) {
+            console.error(`[${this.requestId}] Error processing document ${doc.name}:`, docError);
+          }
+        }
+      }
+
+      console.log(`[${this.requestId}] Total processed attachments: ${processedAttachments.length}`);
       
       // Generate boundary for multipart message
       const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -479,10 +590,10 @@ class GmailService {
       ].join('\r\n'));
 
       // Add attachment parts
-      if (attachments && attachments.length > 0) {
-        console.log(`[${this.requestId}] Processing ${attachments.length} attachments`);
+      if (processedAttachments && processedAttachments.length > 0) {
+        console.log(`[${this.requestId}] Adding ${processedAttachments.length} attachments to email`);
         
-        for (const attachment of attachments) {
+        for (const attachment of processedAttachments) {
           console.log(`[${this.requestId}] Adding attachment: ${attachment.filename || attachment.name}`);
           
           const filename = attachment.filename || attachment.name;
@@ -769,7 +880,9 @@ const handler = async (req: Request): Promise<Response> => {
             request.subject,
             request.content,
             request.threadId,
-            request.attachments
+            request.attachments,
+            request.attachmentPaths,
+            request.documentAttachments
           );
           console.log(`[${requestId}] sendEmail completed successfully`);
         } catch (error) {

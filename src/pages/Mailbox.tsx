@@ -970,11 +970,12 @@ const Mailbox: React.FC = () => {
         }
       }
 
-      // Call the async email sending edge function
-      console.log('Calling async email sender...');
+      // Call the gmail-api edge function directly
+      console.log('Calling gmail-api directly...');
       
-      const emailSendPromise = supabase.functions.invoke('send-email-async', {
+      const emailSendPromise = supabase.functions.invoke('gmail-api', {
         body: {
+          action: 'sendEmail',
           to: composeForm.to,
           subject: composeForm.subject,
           content: composeForm.content,
@@ -984,19 +985,19 @@ const Mailbox: React.FC = () => {
         }
       });
 
-      // Add timeout for the entire async operation
+      // Add timeout for the operation (reduced since no nested calls)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
           reject(new Error('Email sending timeout - operation took too long'));
-        }, 120000); // 2 minute timeout
+        }, 30000); // 30 second timeout
       });
 
       const { data, error } = await Promise.race([emailSendPromise, timeoutPromise]) as any;
 
-      console.log('Async email sender response:', { data, error });
+      console.log('Gmail API response:', { data, error });
 
       if (error) {
-        console.error('Error calling async email sender:', error);
+        console.error('Error calling gmail-api:', error);
         toast({
           title: "Error",
           description: `Failed to send email: ${error.message}`,
@@ -1017,11 +1018,11 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      console.log('Email queued successfully:', data);
+      console.log('Email sent successfully:', data);
       
       toast({
         title: "Email Sent",
-        description: `Email sent successfully${data.attachmentCount ? ` with ${data.attachmentCount} attachment(s)` : ''}!`,
+        description: `Email sent successfully${composeForm.attachments?.length || composeForm.documentAttachments?.length ? ` with attachment(s)` : ''}!`,
         variant: "default"
       });
 
