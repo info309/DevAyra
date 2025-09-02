@@ -38,10 +38,11 @@ const requestSchema = z.discriminatedUnion('action', [
       size: z.number()
     })).optional(),
     documentAttachments: z.array(z.object({
+      id: z.string().optional(),
       name: z.string(),
       file_path: z.string(),
-      mime_type: z.string(),
-      file_size: z.number()
+      mime_type: z.string().optional(),
+      file_size: z.number().optional()
     })).optional()
   }),
   z.object({
@@ -546,11 +547,11 @@ class GmailService {
               name: doc.name,
               filename: doc.name,
               data: base64,
-              mimeType: doc.mime_type,
-              size: doc.file_size
+              mimeType: doc.mime_type || 'application/octet-stream',
+              size: doc.file_size || arrayBuffer.byteLength || 0
             });
 
-            console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size} bytes)`);
+            console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size || arrayBuffer.byteLength || 0} bytes)`);
           } catch (docError) {
             console.error(`[${this.requestId}] Error processing document ${doc.name}:`, docError);
             console.error(`[${this.requestId}] Document processing stack trace:`, docError.stack);

@@ -124,6 +124,7 @@ const Mailbox: React.FC = () => {
   } = useAttachments();
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingProgress, setSendingProgress] = useState('');
+  const [emailAbortController, setEmailAbortController] = useState<AbortController | null>(null);
 
   // Pagination state
   const [currentPageToken, setCurrentPageToken] = useState<string | null>(null);
@@ -878,8 +879,26 @@ const Mailbox: React.FC = () => {
     try {
       console.log('=== SEND EMAIL DEBUG START ===');
       setSendingEmail(true);
-      setSendingProgress('Preparing email...');
+      setSendingProgress('Validating attachments...');
       
+      // Create AbortController for this send operation
+      const abortController = new AbortController();
+      setEmailAbortController(abortController);
+      const validAttachments = documentAttachments.filter(doc => {
+        if (!doc.id || !doc.name || !doc.file_path) {
+          console.warn('Filtering out invalid document:', doc);
+          return false;
+        }
+        return true;
+      });
+
+      // Infer missing metadata for valid attachments
+      const sanitizedAttachments = validAttachments.map(doc => ({
+        ...doc,
+        mime_type: doc.mime_type || 'application/octet-stream',
+        file_size: doc.file_size || 0
+      }));
+
       console.log('Starting email send process...');
       console.log('Compose form state:', {
         to: composeForm.to,
@@ -888,13 +907,18 @@ const Mailbox: React.FC = () => {
         contentLength: composeForm.content?.length,
         replyTo: composeForm.replyTo,
         threadId: composeForm.threadId,
-        documentAttachments: documentAttachments.length,
-        documentNames: documentAttachments.map(d => d.name) || []
+        documentAttachments: sanitizedAttachments.length,
+        documentNames: sanitizedAttachments.map(d => d.name) || []
       });
+
+      // Check if user canceled during validation
+      if (abortController.signal.aborted) {
+        throw new Error('Email sending canceled by user');
+      }
 
       // Call the gmail-api edge function directly
       console.log('Calling gmail-api directly...');
-      setSendingProgress('Sending email...');
+      setSendingProgress(`Sending email${sanitizedAttachments.length > 0 ? ` with ${sanitizedAttachments.length} attachment(s)` : ''}...`);
       
       const emailSendPromise = supabase.functions.invoke('gmail-api', {
         body: {
@@ -903,7 +927,7 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           threadId: composeForm.threadId,
-          documentAttachments: documentAttachments || []
+          documentAttachments: sanitizedAttachments
         }
       });
 
@@ -919,13 +943,25 @@ const Mailbox: React.FC = () => {
         result = await Promise.race([emailSendPromise, timeoutPromise]) as any;
       } catch (timeoutError) {
         console.error('Email send timeout or error:', timeoutError);
-        toast({
-          title: "Error",
-          description: "Email sending timed out. Please try again or use smaller attachments.",
-          variant: "destructive"
-        });
+        
+        // Check if this was a user cancellation
+        if (abortController.signal.aborted) {
+          toast({
+            title: "Cancelled",
+            description: "Email sending was cancelled.",
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "Error", 
+            description: "Email sending timed out. Please try again or use smaller attachments.",
+            variant: "destructive"
+          });
+        }
+        
         setSendingEmail(false);
         setSendingProgress('');
+        setEmailAbortController(null);
         return;
       }
 
@@ -942,18 +978,20 @@ const Mailbox: React.FC = () => {
         });
         setSendingEmail(false);
         setSendingProgress('');
+        setEmailAbortController(null);
         return;
       }
 
       if (!data?.success) {
         console.error('Email sending failed:', data);
         toast({
-          title: "Error",
+          title: "Error", 
           description: data?.error || "Failed to send email. Please try again.",
           variant: "destructive"
         });
         setSendingEmail(false);
         setSendingProgress('');
+        setEmailAbortController(null);
         return;
       }
 
@@ -961,7 +999,7 @@ const Mailbox: React.FC = () => {
       
       toast({
         title: "Email Sent",
-        description: `Email sent successfully${getTotalAttachmentCount() > 0 ? ` with ${getTotalAttachmentCount()} attachment(s)` : ''}!`,
+        description: `Email sent successfully${sanitizedAttachments.length > 0 ? ` with ${sanitizedAttachments.length} attachment(s)` : ''}!`,
         variant: "default"
       });
 
@@ -987,6 +1025,21 @@ const Mailbox: React.FC = () => {
     } finally {
       setSendingEmail(false);
       setSendingProgress('');
+    }
+  };
+
+  const cancelEmailSend = () => {
+    if (emailAbortController) {
+      console.log('User requested to cancel email send');
+      emailAbortController.abort();
+      setEmailAbortController(null);
+      setSendingEmail(false);
+      setSendingProgress('');
+      toast({
+        title: "Cancelled",
+        description: "Email sending was cancelled.",
+        variant: "default"
+      });
     }
   };
 
@@ -1330,6 +1383,7 @@ const Mailbox: React.FC = () => {
                       setComposeForm({ to: '', subject: '', content: '' });
                       clearAllAttachments();
                     }}
+                    onCancelSend={cancelEmailSend}
                     sendingEmail={sendingEmail}
                     sendingProgress={sendingProgress}
                   />

@@ -26,6 +26,7 @@ interface ComposeDialogProps {
   onDocumentAttachmentsChange: (attachments: DocumentAttachment[]) => void;
   onSend: () => void;
   onCancel: () => void;
+  onCancelSend?: () => void;
   sendingEmail: boolean;
   sendingProgress: string;
 }
@@ -39,6 +40,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   onDocumentAttachmentsChange,
   onSend,
   onCancel,
+  onCancelSend,
   sendingEmail,
   sendingProgress
 }) => {
@@ -146,13 +148,26 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 }
               />
               
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onCancel}
-              >
-                Cancel
-              </Button>
+              {sendingEmail && onCancelSend ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={onCancelSend}
+                  className="gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel Send
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={onCancel}
+                  disabled={sendingEmail}
+                >
+                  Cancel
+                </Button>
+              )}
               
               <Button 
                 variant="default"
