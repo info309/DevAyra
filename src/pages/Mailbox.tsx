@@ -908,11 +908,17 @@ const Mailbox: React.FC = () => {
             return new Promise((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => {
-                const base64 = (reader.result as string).split(',')[1];
+                const result = reader.result as string;
+                // Extract pure base64 data (remove data:mime/type;base64, prefix)
+                const base64Data = result.split(',')[1];
+                if (!base64Data) {
+                  reject(new Error(`Failed to extract base64 data for: ${file.name}`));
+                  return;
+                }
                 resolve({
                   name: file.name,
                   filename: file.name,
-                  data: base64,
+                  data: base64Data,
                   type: file.type,
                   mimeType: file.type,
                   size: file.size
@@ -972,12 +978,18 @@ const Mailbox: React.FC = () => {
                 return new Promise((resolve, reject) => {
                   const reader = new FileReader();
                   reader.onload = () => {
-                    const base64 = (reader.result as string).split(',')[1];
+                    const result = reader.result as string;
+                    // Extract pure base64 data (remove data:mime/type;base64, prefix)
+                    const base64Data = result.split(',')[1];
+                    if (!base64Data) {
+                      reject(new Error(`Failed to extract base64 data for: ${doc.name}`));
+                      return;
+                    }
                     console.log('Successfully converted document to base64:', doc.name);
                     resolve({
                       name: doc.name,
                       filename: doc.name,
-                      data: base64,
+                      data: base64Data,
                       type: doc.mime_type || 'application/octet-stream',
                       mimeType: doc.mime_type || 'application/octet-stream',
                       size: doc.file_size || 0

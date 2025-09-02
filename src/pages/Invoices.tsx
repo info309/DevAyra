@@ -246,7 +246,13 @@ ${invoice.company_name || 'Your Company'}`;
             const base64Promise = new Promise<string>((resolve, reject) => {
               reader.onload = () => {
                 if (reader.result && typeof reader.result === 'string') {
-                  resolve(reader.result);
+                  // Extract pure base64 data (remove data:application/pdf;base64, prefix)
+                  const base64Data = reader.result.split(',')[1];
+                  if (!base64Data) {
+                    reject(new Error('Failed to extract base64 data from PDF'));
+                    return;
+                  }
+                  resolve(base64Data);
                 } else {
                   reject(new Error('Failed to read PDF as base64'));
                 }
