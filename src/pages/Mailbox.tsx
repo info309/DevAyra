@@ -898,7 +898,13 @@ const Mailbox: React.FC = () => {
         threadId: composeForm.threadId,
         fileAttachments: fileAttachments.length,
         documentAttachments: documentAttachments.length,
-        documentNames: documentAttachments.map(d => d.name) || []
+        documentNames: documentAttachments.map(d => d.name) || [],
+        fileAttachmentDetails: fileAttachments.map(f => ({ 
+          name: f.name, 
+          size: f.size, 
+          hasContent: !!f.content,
+          contentLength: f.content?.length 
+        }))
       });
 
       // Check attachment sizes first (25MB Gmail limit, we'll use 20MB to be safe)

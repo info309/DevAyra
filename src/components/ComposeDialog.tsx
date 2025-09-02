@@ -55,9 +55,16 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
+      console.log('Processing files for attachment:', files.map(f => f.name));
       const { convertFilesToBase64 } = await import('@/utils/attachmentProcessor');
       try {
         const processedFiles = await convertFilesToBase64(files);
+        console.log('Files processed successfully:', processedFiles.map(f => ({ 
+          name: f.name, 
+          size: f.size, 
+          hasContent: !!f.content,
+          contentLength: f.content?.length 
+        })));
         onFileAttachmentsChange([...fileAttachments, ...processedFiles]);
       } catch (error) {
         console.error('Error processing files:', error);
