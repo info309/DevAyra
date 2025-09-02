@@ -1038,6 +1038,7 @@ const Mailbox: React.FC = () => {
       });
       
       console.log('Gmail API response:', { data, error });
+      console.log('Gmail API call completed, processing response...');
 
       if (error) {
         console.error('Error sending email:', error);
@@ -1048,6 +1049,8 @@ const Mailbox: React.FC = () => {
         });
         return;
       }
+
+      console.log('Email sent successfully, updating UI...');
 
 
       // If this was a reply to an existing conversation, add the sent email to the local state
@@ -1124,11 +1127,14 @@ const Mailbox: React.FC = () => {
       }
 
       // Reset form and close dialog
+      console.log('Resetting form and closing dialog...');
       setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
       setShowComposeDialog(false);
 
       // Only refresh if it wasn't a reply (for new emails or if we couldn't update locally)
+      console.log('Checking if refresh needed, threadId:', composeForm.threadId);
       if (!composeForm.threadId) {
+        console.log('Refreshing current view...');
         refreshCurrentView();
       }
       
