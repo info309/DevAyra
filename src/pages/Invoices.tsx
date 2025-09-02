@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,7 +53,7 @@ const Invoices = () => {
     invoice_number: '',
     issue_date: new Date().toISOString().split('T')[0],
     due_date: '',
-    currency: 'usd',
+    currency: 'gbp',
     notes: '',
   });
 
@@ -138,7 +139,7 @@ const Invoices = () => {
       invoice_number: '',
       issue_date: new Date().toISOString().split('T')[0],
       due_date: '',
-      currency: 'usd',
+      currency: 'gbp',
       notes: '',
     });
     setLineItems([{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
@@ -316,226 +317,232 @@ ${invoice.company_name || 'Your Company'}`;
         <div className="text-sm text-muted-foreground">
           {invoices.length} total invoice{invoices.length !== 1 ? 's' : ''}
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingInvoice(null); }} className="w-full sm:w-auto">
+        <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DrawerTrigger asChild>
+            <Button 
+              onClick={() => { resetForm(); setEditingInvoice(null); }} 
+              className="w-full sm:w-auto" 
+              style={{ backgroundColor: '#ff6d4d' }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Invoice
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4">{/* Add mx-4 for mobile margins */}
-            <DialogHeader>
-              <DialogTitle>{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</DialogTitle>
-            </DialogHeader>
+          </DrawerTrigger>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</DrawerTitle>
+            </DrawerHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Company Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="company_name">Company Name</Label>
-                  <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                  />
+            <div className="overflow-y-auto px-4 pb-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Company Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="company_name">Company Name</Label>
+                    <Input
+                      id="company_name"
+                      value={formData.company_name}
+                      onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="company_email">Company Email</Label>
+                    <Input
+                      id="company_email"
+                      type="email"
+                      value={formData.company_email}
+                      onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="company_email">Company Email</Label>
-                  <Input
-                    id="company_email"
-                    type="email"
-                    value={formData.company_email}
-                    onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div>
-                <Label htmlFor="company_address">Company Address</Label>
-                <Textarea
-                  id="company_address"
-                  value={formData.company_address}
-                  onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
-                />
-              </div>
-
-              {/* Customer Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customer_name">Customer Name *</Label>
-                  <Input
-                    id="customer_name"
-                    required
-                    value={formData.customer_name}
-                    onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  <Label htmlFor="company_address">Company Address</Label>
+                  <Textarea
+                    id="company_address"
+                    value={formData.company_address}
+                    onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
                   />
                 </div>
+
+                {/* Customer Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customer_name">Customer Name *</Label>
+                    <Input
+                      id="customer_name"
+                      required
+                      value={formData.customer_name}
+                      onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer_email">Customer Email *</Label>
+                    <Input
+                      id="customer_email"
+                      type="email"
+                      required
+                      value={formData.customer_email}
+                      onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="customer_email">Customer Email *</Label>
-                  <Input
-                    id="customer_email"
-                    type="email"
-                    required
-                    value={formData.customer_email}
-                    onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
+                  <Label htmlFor="customer_address">Customer Address</Label>
+                  <Textarea
+                    id="customer_address"
+                    value={formData.customer_address}
+                    onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="customer_address">Customer Address</Label>
-                <Textarea
-                  id="customer_address"
-                  value={formData.customer_address}
-                  onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
-                />
-              </div>
+                {/* Invoice Details */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="invoice_number">Invoice Number</Label>
+                    <Input
+                      id="invoice_number"
+                      value={formData.invoice_number}
+                      onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="issue_date">Issue Date *</Label>
+                    <Input
+                      id="issue_date"
+                      type="date"
+                      required
+                      value={formData.issue_date}
+                      onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="due_date">Due Date</Label>
+                    <Input
+                      id="due_date"
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-              {/* Invoice Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="invoice_number">Invoice Number</Label>
-                  <Input
-                    id="invoice_number"
-                    value={formData.invoice_number}
-                    onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gbp">GBP - British Pound</SelectItem>
+                      <SelectItem value="usd">USD - US Dollar</SelectItem>
+                      <SelectItem value="eur">EUR - Euro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Line Items */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <Label>Line Items</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {lineItems.map((item, index) => (
+                      <div key={index} className="space-y-3 md:grid md:grid-cols-12 md:gap-2 md:items-end md:space-y-0 border-b pb-3 md:border-0 md:pb-0">
+                        <div className="md:col-span-4">
+                          <Label className="text-xs">Description</Label>
+                          <Input
+                            placeholder="Item description"
+                            value={item.description}
+                            onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                          <div>
+                            <Label className="text-xs">Quantity</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                          <div>
+                            <Label className="text-xs">Unit Price (£)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={(item.unit_price_cents / 100).toFixed(2)}
+                              onChange={(e) => updateLineItem(index, 'unit_price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
+                          <div>
+                            <Label className="text-xs">Tax Rate (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.tax_rate_percent}
+                              onChange={(e) => updateLineItem(index, 'tax_rate_percent', parseFloat(e.target.value || '0'))}
+                            />
+                          </div>
+                        </div>
+                        <div className="md:col-span-1 flex justify-center md:justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeLineItem(index)}
+                            disabled={lineItems.length === 1}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 text-right space-y-1">
+                    <div>Subtotal: {formatCurrency(calculateTotals().subtotal, formData.currency)}</div>
+                    <div>Tax: {formatCurrency(calculateTotals().tax, formData.currency)}</div>
+                    <div className="text-lg font-bold">Total: {formatCurrency(calculateTotals().total, formData.currency)}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Additional notes or terms..."
                   />
                 </div>
-                <div>
-                  <Label htmlFor="issue_date">Issue Date *</Label>
-                  <Input
-                    id="issue_date"
-                    type="date"
-                    required
-                    value={formData.issue_date}
-                    onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="usd">USD - US Dollar</SelectItem>
-                    <SelectItem value="eur">EUR - Euro</SelectItem>
-                    <SelectItem value="gbp">GBP - British Pound</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Line Items */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <Label>Line Items</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Item
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
                   </Button>
                 </div>
-                
-                <div className="space-y-3">
-                  {lineItems.map((item, index) => (
-                    <div key={index} className="space-y-3 md:grid md:grid-cols-12 md:gap-2 md:items-end md:space-y-0 border-b pb-3 md:border-0 md:pb-0">
-                      <div className="md:col-span-4">
-                        <Label className="text-xs">Description</Label>
-                        <Input
-                          placeholder="Item description"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
-                        <div>
-                          <Label className="text-xs">Quantity</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
-                        <div>
-                          <Label className="text-xs">Unit Price ($)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={(item.unit_price_cents / 100).toFixed(2)}
-                            onChange={(e) => updateLineItem(index, 'unit_price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:col-span-2">
-                        <div>
-                          <Label className="text-xs">Tax Rate (%)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.tax_rate_percent}
-                            onChange={(e) => updateLineItem(index, 'tax_rate_percent', parseFloat(e.target.value || '0'))}
-                          />
-                        </div>
-                      </div>
-                      <div className="md:col-span-1 flex justify-center md:justify-end">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeLineItem(index)}
-                          disabled={lineItems.length === 1}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 text-right space-y-1">
-                  <div>Subtotal: {formatCurrency(calculateTotals().subtotal, formData.currency)}</div>
-                  <div>Tax: {formatCurrency(calculateTotals().tax, formData.currency)}</div>
-                  <div className="text-lg font-bold">Total: {formatCurrency(calculateTotals().total, formData.currency)}</div>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Additional notes or terms..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
 
       <div className="grid gap-4">
