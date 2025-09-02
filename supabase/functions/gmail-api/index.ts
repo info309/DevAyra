@@ -328,6 +328,26 @@ class GmailService {
             );
             
             const messages = threadData.messages || [];
+            console.log(`[${this.requestId}] Thread ${thread.id}: Found ${messages.length} messages`);
+            
+            // Debug log for threads with Herminda emails
+            const hermindaMessages = messages.filter(msg => {
+              const headers = msg.payload?.headers || [];
+              const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
+              return fromHeader.toLowerCase().includes('herminda');
+            });
+            
+            if (hermindaMessages.length > 0) {
+              console.log(`[${this.requestId}] DEBUG: Found ${hermindaMessages.length} Herminda messages in thread ${thread.id}`);
+              hermindaMessages.forEach((msg, idx) => {
+                const headers = msg.payload?.headers || [];
+                const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
+                const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
+                const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
+                console.log(`[${this.requestId}] Herminda message ${idx + 1}: From: ${fromHeader}, Date: ${dateHeader}, Subject: ${subjectHeader}`);
+              });
+            }
+            
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
             // Sort messages chronologically within the thread (like Gmail)
