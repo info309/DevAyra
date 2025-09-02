@@ -854,27 +854,16 @@ const Mailbox: React.FC = () => {
 
       setSendingProgress('Sending email...');
       
-      const emailData = await gmailApi.sendEmail(
-        composeForm.to,
-        composeForm.subject,
-        composeForm.content,
-        composeForm.threadId
-      );
-
-        const timeoutId = setTimeout(() => {
-          abortController.abort();
-        }, 60000); // 1 minute timeout
-
-        let result;
-        try {
-          result = await Promise.race([
-            emailData,
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Email sending timeout')), 60000)
-            )
-          ]) as any;
-      } catch (timeoutError) {
-        console.error('Email send timeout or error:', timeoutError);
+      let result;
+      try {
+        result = await gmailApi.sendEmail(
+          composeForm.to,
+          composeForm.subject,
+          composeForm.content,
+          composeForm.threadId
+        );
+      } catch (error) {
+        console.error('Email send error:', error);
         
         // Check if this was a user cancellation
         if (abortController.signal.aborted) {
@@ -886,7 +875,7 @@ const Mailbox: React.FC = () => {
         } else {
           toast({
             title: "Error", 
-            description: "Email sending timed out. Please try again.",
+            description: `Failed to send email: ${error.message}`,
             variant: "destructive"
           });
         }
@@ -897,15 +886,13 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      const { data, error } = result;
+      console.log('Gmail API response:', result);
 
-      console.log('Gmail API response:', { data, error });
-
-      if (error) {
-        console.error('Error calling gmail-api:', error);
+      if (result.error) {
+        console.error('Error calling gmail-api:', result.error);
         toast({
           title: "Error",
-          description: `Failed to send email: ${error.message}`,
+          description: `Failed to send email: ${result.error.message}`,
           variant: "destructive"
         });
         setSendingEmail(false);
@@ -914,11 +901,11 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      if (!data?.success) {
-        console.error('Email sending failed:', data);
+      if (!result.success) {
+        console.error('Email sending failed:', result);
         toast({
           title: "Error", 
-          description: data?.error || "Failed to send email. Please try again.",
+          description: result.error || "Failed to send email. Please try again.",
           variant: "destructive"
         });
         setSendingEmail(false);
@@ -927,7 +914,7 @@ const Mailbox: React.FC = () => {
         return;
       }
 
-      console.log('Email sent successfully:', data);
+      console.log('Email sent successfully:', result);
       
       toast({
         title: "Email Sent",
