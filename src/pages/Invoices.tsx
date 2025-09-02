@@ -201,7 +201,7 @@ const Invoices = () => {
     }
   };
 
-  const handleSendInvoice = (invoice: Invoice) => {
+  const handleSendInvoice = async (invoice: Invoice) => {
     // Simple email content to avoid security filters
     const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
     
@@ -210,20 +210,66 @@ const Invoices = () => {
     
     const simpleBody = `Hi ${invoice.customer_name},
 
-Thanks for your business! Please click the link below to view your invoice.
+Thanks for your business! Please find your invoice attached to this email.
 
+You can also view and pay your invoice online here:
 ${invoiceLink}
 
 Best regards,
 ${invoice.company_name || 'Your Company'}`;
 
-    // Navigate to mailbox with compose draft
+    let attachment = null;
+
+    // If invoice has a PDF, download it for attachment
+    if (invoice.pdf_path) {
+      try {
+        console.log('Downloading PDF for attachment:', invoice.pdf_path);
+        
+        // Download the PDF from Supabase storage
+        const { data: pdfData, error: downloadError } = await supabase.storage
+          .from('invoices')
+          .download(invoice.pdf_path.replace('invoices/', ''));
+
+        if (downloadError) {
+          console.error('Error downloading PDF:', downloadError);
+        } else if (pdfData) {
+          // Convert blob to base64 for attachment
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onload = () => {
+              const base64 = reader.result as string;
+              // Remove the data:application/pdf;base64, prefix
+              resolve(base64.split(',')[1] || base64);
+            };
+            reader.onerror = reject;
+          });
+          
+          reader.readAsDataURL(pdfData);
+          const base64Content = await base64Promise;
+          
+          attachment = {
+            filename: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
+            content: base64Content,
+            contentType: 'application/pdf'
+          };
+          
+          console.log('PDF attachment prepared:', attachment.filename);
+        }
+      } catch (error) {
+        console.error('Error preparing PDF attachment:', error);
+      }
+    } else {
+      console.log('No PDF available for invoice:', invoice.id);
+    }
+
+    // Navigate to mailbox with compose draft including attachment
     navigate('/mailbox', { 
       state: { 
         composeDraft: { 
           to: invoice.customer_email, 
           subject, 
-          content: simpleBody 
+          content: simpleBody,
+          attachment: attachment
         } 
       } 
     });
