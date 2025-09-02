@@ -31,8 +31,12 @@ const requestSchema = z.discriminatedUnion('action', [
     content: z.string(),
     replyTo: z.string().optional(),
     threadId: z.string().optional(),
-    attachments: z.array(z.any()).optional(),
-    attachmentUrls: z.array(z.string()).optional(), // Public URLs to fetch attachments from
+    attachments: z.array(z.object({
+      name: z.string(),
+      data: z.string(), // base64 content
+      mimeType: z.string(),
+      size: z.number()
+    })).optional(),
     documentAttachments: z.array(z.object({
       name: z.string(),
       file_path: z.string(),
@@ -442,7 +446,7 @@ class GmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], attachmentUrls?: string[], documentAttachments?: any[]) {
+  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], documentAttachments?: any[]) {
     try {
       console.log(`[${this.requestId}] === STARTING SEND EMAIL ===`);
       console.log(`[${this.requestId}] Recipient: ${to}`);
@@ -874,7 +878,6 @@ const handler = async (req: Request): Promise<Response> => {
             hasContent: !!request.content,
             contentLength: request.content?.length || 0,
             attachmentCount: request.attachments?.length || 0,
-            attachmentUrlsCount: request.attachmentUrls?.length || 0,
             documentAttachmentsCount: request.documentAttachments?.length || 0
           });
           
@@ -884,7 +887,6 @@ const handler = async (req: Request): Promise<Response> => {
             request.content,
             request.threadId,
             request.attachments,
-            request.attachmentUrls,
             request.documentAttachments
           );
           
