@@ -535,7 +535,7 @@ ${invoice.company_name || 'Your Company'}`;
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" style={{ backgroundColor: '#ff6d4d' }}>
                     {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
                   </Button>
                 </div>
