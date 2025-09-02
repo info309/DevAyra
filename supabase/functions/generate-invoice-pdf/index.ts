@@ -12,6 +12,10 @@ serve(async (req) => {
   }
 
   try {
+    // Get PDF.co API key
+    const pdfCoApiKey = Deno.env.get("PDF_CO_API_KEY");
+    if (!pdfCoApiKey) throw new Error("PDF_CO_API_KEY is not set");
+
     // Use service role key to bypass RLS for invoice access
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -29,6 +33,8 @@ serve(async (req) => {
     const { invoiceId } = await req.json();
     if (!invoiceId) throw new Error("Invoice ID is required");
 
+    console.log("Generating PDF for invoice:", invoiceId);
+
     // Fetch invoice details
     const { data: invoice, error: invoiceError } = await supabaseClient
       .from('invoices')
@@ -40,7 +46,7 @@ serve(async (req) => {
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Invoice not found");
 
-    // Generate PDF content (simple HTML to PDF conversion)
+    // Generate PDF content using HTML template
     const formatCurrency = (cents: number, currency: string) => {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -62,7 +68,7 @@ serve(async (req) => {
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
         .company-info { flex: 1; }
         .invoice-info { text-align: right; }
@@ -78,9 +84,10 @@ serve(async (req) => {
         .table th { background-color: #f8f9fa; font-weight: bold; }
         .table .amount { text-align: right; }
         .totals { margin-top: 20px; text-align: right; }
-        .totals .line { margin-bottom: 8px; }
-        .totals .total { font-size: 18px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; }
+        .totals .line { margin-bottom: 8px; font-size: 16px; }
+        .totals .total { font-size: 20px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
         .notes { margin-top: 40px; padding: 20px; background-color: #f8f9fa; border-radius: 5px; }
+        .footer { margin-top: 60px; text-align: center; color: #666; font-size: 12px; }
       </style>
     </head>
     <body>
@@ -88,13 +95,13 @@ serve(async (req) => {
         <div class="company-info">
           <h1>${invoice.company_name || 'Your Company'}</h1>
           ${invoice.company_email ? `<p>Email: ${invoice.company_email}</p>` : ''}
-          ${invoice.company_address ? `<div><pre>${invoice.company_address}</pre></div>` : ''}
+          ${invoice.company_address ? `<div style="white-space: pre-line;">${invoice.company_address}</div>` : ''}
         </div>
         <div class="invoice-info">
           <div class="invoice-title">INVOICE</div>
-          <div class="invoice-number">#${invoice.invoice_number || invoice.id.slice(0, 8)}</div>
-          <p>Date: ${formatDate(invoice.issue_date)}</p>
-          ${invoice.due_date ? `<p>Due Date: ${formatDate(invoice.due_date)}</p>` : ''}
+          <div class="invoice-number">#${invoice.invoice_number || invoice.id.slice(0, 8).toUpperCase()}</div>
+          <p><strong>Date:</strong> ${formatDate(invoice.issue_date)}</p>
+          ${invoice.due_date ? `<p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>` : ''}
         </div>
       </div>
 
@@ -104,7 +111,7 @@ serve(async (req) => {
           <div class="billing-box">
             <strong>${invoice.customer_name}</strong><br>
             ${invoice.customer_email}<br>
-            ${invoice.customer_address ? `<pre>${invoice.customer_address}</pre>` : ''}
+            ${invoice.customer_address ? `<div style="white-space: pre-line; margin-top: 10px;">${invoice.customer_address}</div>` : ''}
           </div>
         </div>
       </div>
@@ -144,44 +151,85 @@ serve(async (req) => {
       ${invoice.notes ? `
         <div class="notes">
           <div class="section-title">Notes</div>
-          <pre>${invoice.notes}</pre>
+          <div style="white-space: pre-line;">${invoice.notes}</div>
         </div>
       ` : ''}
 
-      <div style="margin-top: 60px; text-align: center; color: #666; font-size: 12px;">
+      <div class="footer">
         <p>Thank you for your business!</p>
       </div>
     </body>
     </html>
     `;
 
-    // For now, we'll store the HTML content and simulate PDF generation
-    // In a production environment, you would use a service like Puppeteer or similar
-    const fileName = `invoice-${invoice.id.slice(0, 8)}-${Date.now()}.html`;
-    const filePath = `invoices/${user.id}/${fileName}`;
+    console.log("Sending HTML to PDF.co for conversion");
 
-    // Store the HTML file in storage
+    // Use PDF.co HTML to PDF API
+    const pdfCoResponse = await fetch("https://api.pdf.co/v1/pdf/convert/from/html", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": pdfCoApiKey,
+      },
+      body: JSON.stringify({
+        html: htmlContent,
+        name: `invoice-${invoice.id.slice(0, 8)}-${Date.now()}.pdf`,
+        margins: "10mm",
+        paperSize: "A4",
+        orientation: "portrait",
+        printBackground: true,
+      }),
+    });
+
+    const pdfCoResult = await pdfCoResponse.json();
+    console.log("PDF.co response:", pdfCoResult);
+
+    if (!pdfCoResult.url) {
+      throw new Error(`PDF generation failed: ${pdfCoResult.message || 'Unknown error'}`);
+    }
+
+    // Download the PDF from PDF.co
+    const pdfResponse = await fetch(pdfCoResult.url);
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to download PDF: ${pdfResponse.statusText}`);
+    }
+
+    const pdfBlob = await pdfResponse.blob();
+    console.log("PDF downloaded from PDF.co, size:", pdfBlob.size);
+
+    // Upload to Supabase storage
+    const fileName = `invoice-${invoice.id.slice(0, 8)}-${Date.now()}.pdf`;
+    const filePath = `${user.id}/${fileName}`;
+
     const { error: uploadError } = await supabaseClient.storage
       .from('invoices')
-      .upload(filePath, new Blob([htmlContent], { type: 'text/html' }), {
-        contentType: 'text/html',
+      .upload(filePath, pdfBlob, {
+        contentType: 'application/pdf',
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw uploadError;
+    }
+
+    console.log("PDF uploaded to storage:", filePath);
 
     // Update invoice with PDF path
     const { error: updateError } = await supabaseClient
       .from('invoices')
-      .update({ pdf_path: filePath })
+      .update({ pdf_path: `invoices/${filePath}` })
       .eq('id', invoiceId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Update error:", updateError);
+      throw updateError;
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        pdf_path: filePath,
+        pdf_path: `invoices/${filePath}`,
         message: "PDF generated successfully" 
       }),
       {
