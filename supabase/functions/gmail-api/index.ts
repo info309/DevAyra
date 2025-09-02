@@ -475,72 +475,40 @@ class GmailService {
         }
       }
 
-      console.log(`[${this.requestId}] Total processed attachments: ${processedAttachments.length}`);
-      
-      // Build email parts
-      const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const fromEmail = this.userEmail || 'noreply@example.com';
-      
-      // Build email headers
-      const emailParts = [
-        `From: ${fromEmail}`,
-        `To: ${to}`,
-        `Subject: ${subject}`,
-        `Date: ${new Date().toUTCString()}`,
-        `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@gmail.com>`,
-        `MIME-Version: 1.0`,
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        `X-Mailer: Ayra App`,
-        `X-Priority: 3`,
-        '',
-        `This is a multi-part message in MIME format.`,
-        '',
-        `--${boundary}`,
-        `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: 8bit`,
-        '',
-        content,
-        ''
-      ];
+      // Add document attachments by downloading them
+      if (documentAttachments && documentAttachments.length > 0) {
         console.log(`[${this.requestId}] Processing ${documentAttachments.length} document attachments`);
-        
-        // Create Supabase client for document storage access
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
         
         for (const doc of documentAttachments) {
           try {
-            console.log(`[${this.requestId}] Starting download of document: ${doc.name} from ${doc.file_path}`);
+            console.log(`[${this.requestId}] Downloading document: ${doc.name}`);
             
-            // Add timeout to document download
-            const downloadPromise = supabaseClient.storage
+            // Download the document from storage
+            const { data: fileData, error: downloadError } = await supabase.storage
               .from('documents')
               .download(doc.file_path);
-            
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Document download timeout')), 30000);
-            });
-            
-            const { data, error } = await Promise.race([downloadPromise, timeoutPromise]) as any;
 
-            if (error) {
-              console.error(`[${this.requestId}] Document download error for ${doc.name}:`, error);
+            if (downloadError) {
+              console.error(`[${this.requestId}] Error downloading ${doc.name}:`, downloadError);
               continue;
             }
 
-            console.log(`[${this.requestId}] Successfully downloaded document: ${doc.name}, size: ${data?.size || 'unknown'}`);
+            if (!fileData) {
+              console.error(`[${this.requestId}] No data received for ${doc.name}`);
+              continue;
+            }
 
-            // Convert to base64 using streaming approach for large files
-            const arrayBuffer = await data.arrayBuffer();
+            console.log(`[${this.requestId}] Document downloaded successfully: ${doc.name} (${fileData.size} bytes)`);
+            
+            // Convert to base64 efficiently for large files
+            const arrayBuffer = await fileData.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
             
-            console.log(`[${this.requestId}] Converting document ${doc.name} to base64 (${uint8Array.length} bytes)...`);
+            console.log(`[${this.requestId}] Converting document to base64: ${doc.name}`);
             
-            // Stream encode to prevent call stack overflow on large files
+            // Convert to base64 using chunked processing for memory efficiency
             let base64 = '';
-            const chunkSize = 8192; // 8KB chunks
+            const chunkSize = 8192;
             
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);

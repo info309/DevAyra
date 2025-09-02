@@ -17,8 +17,8 @@ import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
 import AttachmentManager from '@/components/AttachmentManager';
-import { useAttachments } from '@/hooks/useAttachments';
 import ComposeDialog from '@/components/ComposeDialog';
+import { useAttachments } from '@/hooks/useAttachments';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 
 interface Email {
@@ -1321,264 +1321,34 @@ const Mailbox: React.FC = () => {
                 <DrawerTrigger asChild>
                   <Button variant="compose" className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+                    setComposeForm({ to: '', subject: '', content: '' });
+                    clearAllAttachments();
                   }} size="sm">
                     <Send className="w-4 h-4" />
                     <span className="hidden sm:inline">Compose</span>
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="max-w-none h-[95vh]">
-                  <DrawerHeader>
-                    <DrawerTitle>Compose Email</DrawerTitle>
-                  </DrawerHeader>
-                  <div className="px-4 pb-4 space-y-4 flex-1 overflow-y-auto">
-                    <div>
-                      <Label htmlFor="to">To</Label>
-                      <Input
-                        id="to"
-                        value={composeForm.to}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
-                        placeholder="recipient@example.com"
-                        autoComplete="email"
-                        name="compose-to"
-                        className="text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        value={composeForm.subject}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
-                        placeholder="Email subject"
-                        className="text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="content">Message</Label>
-                      <Textarea
-                        id="content"
-                        value={composeForm.content}
-                        onChange={(e) => setComposeForm(prev => ({ ...prev, content: e.target.value }))}
-                        onFocus={(e) => {
-                          e.preventDefault();
-                          e.target.focus({ preventScroll: true });
-                        }}
-                        placeholder="Write your message here..."
-                        rows={15}
-                        className="min-h-[300px] resize-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </div>
-                    
-                     {/* Attachments Display Section - Only show attached files, no action buttons */}
-                     {((composeForm.attachments && composeForm.attachments.length > 0) || 
-                       (composeForm.documentAttachments && composeForm.documentAttachments.length > 0)) && (
-                       <div>
-                         <Label>Attachments</Label>
-                         <div className="space-y-3">
-                           {/* File Attachments */}
-                           {composeForm.attachments && composeForm.attachments.length > 0 && (
-                             <div className="space-y-2">
-                               <h4 className="text-sm font-medium">New Files</h4>
-                               {composeForm.attachments.map((file, index) => (
-                                 <div key={index} className="flex items-center gap-3 p-2 bg-secondary rounded-lg">
-                                   <Paperclip className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium truncate">{file.name}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
-                                      </p>
-                                    </div>
-                                   <Button
-                                     type="button"
-                                     variant="ghost"
-                                     size="sm"
-                                     onClick={() => {
-                                       setComposeForm(prev => ({
-                                         ...prev,
-                                         attachments: prev.attachments?.filter((_, i) => i !== index) || []
-                                       }));
-                                     }}
-                                     className="flex-shrink-0 p-1 h-6 w-6"
-                                   >
-                                     <X className="w-4 h-4" />
-                                   </Button>
-                                 </div>
-                               ))}
-                             </div>
-                           )}
-
-                           {/* Document Attachments */}
-                           {composeForm.documentAttachments && composeForm.documentAttachments.length > 0 && (
-                             <div className="space-y-2">
-                               <h4 className="text-sm font-medium">From Documents</h4>
-                               {composeForm.documentAttachments.map((doc, index) => (
-                                 <div key={doc.id} className="flex items-center gap-3 p-2 bg-accent rounded-lg">
-                                   <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                   <div className="flex-1 min-w-0">
-                                     <p className="text-sm font-medium truncate">{doc.name}</p>
-                                     <div className="flex items-center gap-2">
-                                       <p className="text-xs text-muted-foreground">
-                                         {doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown size'}
-                                       </p>
-                                       {doc.source_type === 'email_attachment' && (
-                                         <span className="text-xs text-muted-foreground">• From email</span>
-                                       )}
-                                     </div>
-                                   </div>
-                                   <Button
-                                     type="button"
-                                     variant="ghost"
-                                     size="sm"
-                                     onClick={() => {
-                                       setComposeForm(prev => ({
-                                         ...prev,
-                                         documentAttachments: prev.documentAttachments?.filter(d => d.id !== doc.id) || []
-                                       }));
-                                     }}
-                                     className="flex-shrink-0 p-1 h-6 w-6"
-                                   >
-                                     <X className="w-4 h-4" />
-                                   </Button>
-                                 </div>
-                               ))}
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     )}
-                     
-                      {/* Hidden file input */}
-                      <input
-                        type="file"
-                        multiple
-                        id="attachments"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const files = Array.from(e.target.files || []);
-                          
-                          // Convert files to base64 directly
-                          const base64Files = await Promise.all(
-                            files.map(async (file) => {
-                              return new Promise<DirectAttachment>((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  const base64 = (reader.result as string).split(',')[1]; // Remove data:type;base64, prefix
-                                  resolve({
-                                    name: file.name,
-                                    filename: file.name,
-                                    data: base64,
-                                    type: file.type,
-                                    mimeType: file.type,
-                                    size: file.size
-                                  });
-                                };
-                                reader.onerror = reject;
-                                reader.readAsDataURL(file);
-                              });
-                            })
-                          );
-                          
-                          setComposeForm(prev => ({
-                            ...prev,
-                            attachments: [...(prev.attachments || []), ...base64Files]
-                          }));
-                        }}
-                      />
-                  </div>
-                  <DrawerFooter>
-                    {/* Mobile-first bottom action bar */}
-                    <div className="flex gap-2 justify-end">
-                      {/* Add Files Button with Dropdown */}
-                      <div className="relative" ref={addFilesMenuRef}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowAddFilesMenu(!showAddFilesMenu)}
-                          className="gap-2"
-                        >
-                          <Paperclip className="w-4 h-4" />
-                          Add Files
-                        </Button>
-                        
-                        {/* Dropdown Menu */}
-                        {showAddFilesMenu && (
-                          <div className="absolute bottom-full left-0 mb-2 w-48 bg-background border border-border rounded-lg shadow-lg z-50">
-                            <div className="p-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => {
-                                  document.getElementById('attachments')?.click();
-                                  setShowAddFilesMenu(false);
-                                }}
-                                className="w-full justify-start gap-2"
-                              >
-                                <Upload className="w-4 h-4" />
-                                From Device
-                              </Button>
-                              <DocumentPicker
-                                onDocumentsSelected={(documents) => {
-                                  console.log('Documents selected in Mailbox:', documents.map(d => d.name));
-                                  setComposeForm(prev => ({
-                                    ...prev,
-                                    documentAttachments: documents
-                                  }));
-                                  // Only close the dropdown after documents are confirmed
-                                  setShowAddFilesMenu(false);
-                                }}
-                                selectedDocuments={composeForm.documentAttachments || []}
-                                trigger={
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="w-full justify-start gap-2"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Don't close the dropdown when opening DocumentPicker
-                                    }}
-                                  >
-                                    <FolderOpen className="w-4 h-4" />
-                                    From Documents
-                                  </Button>
-                                }
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Cancel Button */}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setShowComposeDialog(false);
-                          setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
-                          setShowAddFilesMenu(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      
-                      {/* Send Button */}
-                      <Button 
-                        variant="send"
-                        size="sm"
-                        onClick={sendEmail}
-                        disabled={sendingEmail || !composeForm.to || !composeForm.subject}
-                        className="gap-2"
-                      >
-                        <Send className="w-4 h-4" />
-                        {sendingEmail ? (sendingProgress || 'Sending...') : 
-                         `Send${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0) > 0 
-                           ? ` (${(composeForm.attachments?.length || 0) + (composeForm.documentAttachments?.length || 0)})`
-                           : ''}`}
-                      </Button>
-                    </div>
-                  </DrawerFooter>
-                </DrawerContent>
+                  <ComposeDialog
+                    open={showComposeDialog}
+                    onOpenChange={setShowComposeDialog}
+                    composeForm={composeForm}
+                    onComposeFormChange={setComposeForm}
+                    fileAttachments={fileAttachments}
+                    documentAttachments={documentAttachments}
+                    onFileAttachmentsChange={setFileAttachments}
+                    onDocumentAttachmentsChange={setDocumentAttachments}
+                    onSend={async () => {
+                      await sendEmail();
+                    }}
+                    onCancel={() => {
+                      setShowComposeDialog(false);
+                      setComposeForm({ to: '', subject: '', content: '' });
+                      clearAllAttachments();
+                    }}
+                    onAddFiles={() => {}}
+                    sendingEmail={sendingEmail}
+                    sendingProgress={sendingProgress}
+                  />
               </Drawer>
             </div>
           </div>
