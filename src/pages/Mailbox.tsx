@@ -16,7 +16,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import DocumentPicker from '@/components/DocumentPicker';
-import AttachmentPreview from '@/components/AttachmentPreview';
+import AttachmentManager from '@/components/AttachmentManager';
+import { useAttachments } from '@/hooks/useAttachments';
+import ComposeDialog from '@/components/ComposeDialog';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 
 interface Email {
@@ -65,8 +67,6 @@ interface ComposeFormData {
   content: string;
   replyTo?: string;
   threadId?: string;
-  attachments?: (File | DirectAttachment)[];
-  documentAttachments?: UserDocument[];
 }
 
 interface UserDocument {
@@ -113,10 +113,20 @@ const Mailbox: React.FC = () => {
   const [composeForm, setComposeForm] = useState<ComposeFormData>({
     to: '',
     subject: '',
-    content: '',
-    attachments: [],
-    documentAttachments: []
+    content: ''
   });
+
+  // Clean attachment management
+  const {
+    fileAttachments,
+    documentAttachments,
+    isProcessing: attachmentProcessing,
+    setFileAttachments,
+    setDocumentAttachments,
+    handleFileSelection,
+    clearAllAttachments,
+    getTotalAttachmentCount
+  } = useAttachments();
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingProgress, setSendingProgress] = useState('');
 
@@ -188,9 +198,15 @@ const Mailbox: React.FC = () => {
         content: draft.content || '',
         // Only set threadId if it exists and is a valid string
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
-        attachments: draft.attachments || [], // Direct attachments from invoice
-        documentAttachments: draft.documentAttachments || [] // Document attachments
       });
+      
+      // Set attachments separately using new system
+      if (draft.attachments && draft.attachments.length > 0) {
+        setFileAttachments(draft.attachments);
+      }
+      if (draft.documentAttachments && draft.documentAttachments.length > 0) {
+        setDocumentAttachments(draft.documentAttachments);
+      }
       
       console.log('AI Draft loaded:', {
         to: draft.to,
@@ -880,14 +896,14 @@ const Mailbox: React.FC = () => {
         contentLength: composeForm.content?.length,
         replyTo: composeForm.replyTo,
         threadId: composeForm.threadId,
-        fileAttachments: composeForm.attachments?.length || 0,
-        documentAttachments: composeForm.documentAttachments?.length || 0,
-        documentNames: composeForm.documentAttachments?.map(d => d.name) || []
+        fileAttachments: fileAttachments.length,
+        documentAttachments: documentAttachments.length,
+        documentNames: documentAttachments.map(d => d.name) || []
       });
 
       // Check attachment sizes first (25MB Gmail limit, we'll use 20MB to be safe)
       const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes
-      const oversizedFiles = (composeForm.attachments || []).filter(attachment => {
+      const oversizedFiles = fileAttachments.filter(attachment => {
         return attachment.size > maxFileSize;
       });
 
@@ -914,8 +930,8 @@ const Mailbox: React.FC = () => {
           subject: composeForm.subject,
           content: composeForm.content,
           threadId: composeForm.threadId,
-          attachments: composeForm.attachments || [], // Direct base64 attachments
-          documentAttachments: composeForm.documentAttachments || []
+          attachments: fileAttachments, // Direct base64 attachments
+          documentAttachments: documentAttachments || []
         }
       });
 
@@ -958,13 +974,14 @@ const Mailbox: React.FC = () => {
       
       toast({
         title: "Email Sent",
-        description: `Email sent successfully${composeForm.attachments?.length || composeForm.documentAttachments?.length ? ` with attachment(s)` : ''}!`,
+        description: `Email sent successfully${getTotalAttachmentCount() > 0 ? ` with ${getTotalAttachmentCount()} attachment(s)` : ''}!`,
         variant: "default"
       });
 
       // Reset form and close dialog
       console.log('Resetting form and closing dialog...');
-      setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+      setComposeForm({ to: '', subject: '', content: '' });
+      clearAllAttachments();
       setShowComposeDialog(false);
 
       // Refresh if it wasn't a reply
@@ -994,10 +1011,11 @@ const Mailbox: React.FC = () => {
       setComposeForm({
         to: email.to,
         subject: email.subject,
-        content: cleanEmailContentForResend(email.content || ''),
-        attachments: [],
-        documentAttachments: []
+        content: cleanEmailContentForResend(email.content || '')
       });
+      
+      // Clear attachments for resend  
+      clearAllAttachments();
     } else {
       // Handle normal reply for inbox emails
       const replyToEmail = email.from.includes('<') ? 
@@ -1019,10 +1037,11 @@ const Mailbox: React.FC = () => {
         subject: replySubject,
         content: quotedContent,
         replyTo: email.id,
-        threadId: conversation.id,
-        attachments: [],
-        documentAttachments: []
+        threadId: conversation.id
       });
+      
+      // Clear attachments for replies
+      clearAllAttachments();
     }
     
     setShowComposeDialog(true);
