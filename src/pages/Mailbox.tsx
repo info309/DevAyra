@@ -886,68 +886,93 @@ const Mailbox: React.FC = () => {
       // Convert file attachments to base64 for sending
       let fileAttachmentsData = [];
       
-      try {
-        fileAttachmentsData = await Promise.all(
-          (composeForm.attachments || []).map(async (attachment) => {
-            // Check if this is already a processed attachment (from invoice)
-            if ('data' in attachment && 'filename' in attachment) {
-              // Direct attachment already in the right format
-              const directAttachment = attachment as DirectAttachment;
-              return {
-                name: directAttachment.name || directAttachment.filename,
-                filename: directAttachment.filename,
-                data: directAttachment.data,
-                type: directAttachment.type || directAttachment.mimeType,
-                mimeType: directAttachment.mimeType || directAttachment.type,
-                size: directAttachment.size
-              };
-            }
-            
-            // Regular file upload - convert to base64
-            const file = attachment as File;
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const result = reader.result as string;
-                // Extract pure base64 data (remove data:mime/type;base64, prefix)
-                const base64Data = result.split(',')[1];
-                if (!base64Data) {
-                  reject(new Error(`Failed to extract base64 data for: ${file.name}`));
-                  return;
-                }
-                resolve({
-                  name: file.name,
-                  filename: file.name,
-                  data: base64Data,
-                  type: file.type,
-                  mimeType: file.type,
-                  size: file.size
-                });
-              };
-              reader.onerror = () => {
-                console.error('FileReader error for file:', file.name);
-                reject(new Error(`Failed to read file: ${file.name}`));
-              };
+      if (composeForm.attachments && composeForm.attachments.length > 0) {
+        console.log('Processing file attachments:', composeForm.attachments.length);
+        try {
+          // Add overall timeout for all file processing
+          const fileProcessingPromise = Promise.all(
+            (composeForm.attachments || []).map(async (attachment) => {
+              // Check if this is already a processed attachment (from invoice)
+              if ('data' in attachment && 'filename' in attachment) {
+                // Direct attachment already in the right format
+                const directAttachment = attachment as DirectAttachment;
+                console.log('Using pre-processed attachment:', directAttachment.filename);
+                return {
+                  name: directAttachment.name || directAttachment.filename,
+                  filename: directAttachment.filename,
+                  data: directAttachment.data,
+                  type: directAttachment.type || directAttachment.mimeType,
+                  mimeType: directAttachment.mimeType || directAttachment.type,
+                  size: directAttachment.size
+                };
+              }
               
-              // Add timeout to prevent hanging
-              setTimeout(() => {
-                reject(new Error(`File reading timeout for: ${file.name}`));
-              }, 10000); // 10 second timeout
+              // Regular file upload - convert to base64
+              const file = attachment as File;
+              console.log('Processing file:', file.name, 'size:', file.size);
               
-              reader.readAsDataURL(file);
-            });
-          })
-        );
-        console.log('Successfully processed file attachments:', fileAttachmentsData.length);
-      } catch (error) {
-        console.error('File attachment processing failed:', error);
-        toast({
-          title: "Attachment Error",
-          description: `Failed to process file attachments: ${error.message}`,
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        return; // Exit early if file processing fails
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                let timeoutId: NodeJS.Timeout;
+                
+                reader.onload = () => {
+                  clearTimeout(timeoutId);
+                  const result = reader.result as string;
+                  // Extract pure base64 data (remove data:mime/type;base64, prefix)
+                  const base64Data = result.split(',')[1];
+                  if (!base64Data) {
+                    reject(new Error(`Failed to extract base64 data for: ${file.name}`));
+                    return;
+                  }
+                  console.log('Successfully processed file:', file.name);
+                  resolve({
+                    name: file.name,
+                    filename: file.name,
+                    data: base64Data,
+                    type: file.type,
+                    mimeType: file.type,
+                    size: file.size
+                  });
+                };
+                
+                reader.onerror = () => {
+                  clearTimeout(timeoutId);
+                  console.error('FileReader error for file:', file.name);
+                  reject(new Error(`Failed to read file: ${file.name}`));
+                };
+                
+                // Set timeout to prevent hanging
+                timeoutId = setTimeout(() => {
+                  console.error('File reading timeout for:', file.name);
+                  reject(new Error(`File reading timeout for: ${file.name}`));
+                }, 15000); // 15 second timeout
+                
+                reader.readAsDataURL(file);
+              });
+            })
+          );
+          
+          // Overall timeout for all file processing
+          const timeoutPromise = new Promise<any[]>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('File processing timeout - all files took too long to process'));
+            }, 30000); // 30 second total timeout
+          });
+          
+          fileAttachmentsData = await Promise.race([fileProcessingPromise, timeoutPromise]) as any[];
+          console.log('Successfully processed all file attachments:', fileAttachmentsData.length);
+        } catch (error) {
+          console.error('File attachment processing failed:', error);
+          toast({
+            title: "Attachment Error",
+            description: `Failed to process file attachments: ${error.message}`,
+            variant: "destructive"
+          });
+          setSendingEmail(false);
+          return; // Exit early if file processing fails
+        }
+      } else {
+        console.log('No file attachments to process');
       }
 
       // Convert document attachments to base64 for sending
@@ -1046,11 +1071,21 @@ const Mailbox: React.FC = () => {
         requestBody.attachments = allAttachments;
       }
 
-      console.log('About to call Gmail API with request body:', JSON.stringify(requestBody, null, 2));
+      console.log('About to call Gmail API with request body keys:', Object.keys(requestBody));
+      console.log('Attachment count:', requestBody.attachments?.length || 0);
       
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
+      // Add timeout to Gmail API call
+      const apiCallPromise = supabase.functions.invoke('gmail-api', {
         body: requestBody
       });
+      
+      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Gmail API call timeout'));
+        }, 60000); // 60 second timeout for API call
+      });
+      
+      const { data, error } = await Promise.race([apiCallPromise, timeoutPromise]);
       
       console.log('Gmail API response received:', { data, error });
       console.log('Gmail API call completed, processing response...');
