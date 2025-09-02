@@ -50,13 +50,22 @@ interface Conversation {
   participants: string[];
 }
 
+interface DirectAttachment {
+  name: string;
+  filename: string;
+  data: string; // base64 data
+  type: string;
+  mimeType: string;
+  size: number;
+}
+
 interface ComposeFormData {
   to: string;
   subject: string;
   content: string;
   replyTo?: string;
   threadId?: string;
-  attachments?: File[];
+  attachments?: (File | DirectAttachment)[];
   documentAttachments?: UserDocument[];
 }
 
@@ -178,8 +187,8 @@ const Mailbox: React.FC = () => {
         content: draft.content || '',
         // Only set threadId if it exists and is a valid string
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
-        attachments: [],
-        documentAttachments: draft.attachments || [] // Use attachments from AI draft
+        attachments: draft.attachments || [], // Direct attachments from invoice
+        documentAttachments: draft.documentAttachments || [] // Document attachments
       });
       
       console.log('AI Draft loaded:', {
@@ -875,7 +884,23 @@ const Mailbox: React.FC = () => {
       
       // Convert file attachments to base64 for sending
       const fileAttachmentsData = await Promise.all(
-        (composeForm.attachments || []).map(async (file) => {
+        (composeForm.attachments || []).map(async (attachment) => {
+          // Check if this is already a processed attachment (from invoice)
+          if ('data' in attachment && 'filename' in attachment) {
+            // Direct attachment already in the right format
+            const directAttachment = attachment as DirectAttachment;
+            return {
+              name: directAttachment.name || directAttachment.filename,
+              filename: directAttachment.filename,
+              data: directAttachment.data,
+              type: directAttachment.type || directAttachment.mimeType,
+              mimeType: directAttachment.mimeType || directAttachment.type,
+              size: directAttachment.size
+            };
+          }
+          
+          // Regular file upload - convert to base64
+          const file = attachment as File;
           return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = () => {
@@ -1015,12 +1040,25 @@ const Mailbox: React.FC = () => {
           unread: false,
           attachments: [
             // Convert file attachments to the expected format
-            ...(composeForm.attachments || []).map(file => ({
-              filename: file.name,
-              mimeType: file.type,
-              size: file.size,
-              attachmentId: undefined // Not available for sent emails
-            })),
+            ...(composeForm.attachments || []).map(attachment => {
+              if ('data' in attachment && 'filename' in attachment) {
+                const directAttachment = attachment as DirectAttachment;
+                return {
+                  filename: directAttachment.filename,
+                  mimeType: directAttachment.mimeType,
+                  size: directAttachment.size,
+                  attachmentId: undefined
+                };
+              } else {
+                const file = attachment as File;
+                return {
+                  filename: file.name,
+                  mimeType: file.type,
+                  size: file.size,
+                  attachmentId: undefined
+                };
+              }
+            }),
             // Convert document attachments to the expected format
             ...(composeForm.documentAttachments || []).map(doc => ({
               filename: doc.name,

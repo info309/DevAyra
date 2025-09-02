@@ -248,9 +248,12 @@ ${invoice.company_name || 'Your Company'}`;
           const base64Content = await base64Promise;
           
           attachment = {
+            name: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
             filename: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
-            content: base64Content,
-            contentType: 'application/pdf'
+            data: base64Content,
+            type: 'application/pdf',
+            mimeType: 'application/pdf',
+            size: pdfData.size
           };
           
           console.log('PDF attachment prepared:', attachment.filename);
@@ -269,7 +272,7 @@ ${invoice.company_name || 'Your Company'}`;
           to: invoice.customer_email, 
           subject, 
           content: simpleBody,
-          attachment: attachment
+          attachments: attachment ? [attachment] : []
         } 
       } 
     });
