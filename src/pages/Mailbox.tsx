@@ -867,6 +867,7 @@ const Mailbox: React.FC = () => {
     if (!user) return;
 
     try {
+      console.log('=== SEND EMAIL DEBUG START ===');
       setSendingEmail(true);
       
       console.log('Starting email send process...');
@@ -1033,11 +1034,13 @@ const Mailbox: React.FC = () => {
         requestBody.attachments = allAttachments;
       }
 
+      console.log('About to call Gmail API with request body:', JSON.stringify(requestBody, null, 2));
+      
       const { data, error } = await supabase.functions.invoke('gmail-api', {
         body: requestBody
       });
       
-      console.log('Gmail API response:', { data, error });
+      console.log('Gmail API response received:', { data, error });
       console.log('Gmail API call completed, processing response...');
 
       if (error) {
@@ -1146,6 +1149,7 @@ const Mailbox: React.FC = () => {
         variant: "destructive"
       });
     } finally {
+      console.log('=== SEND EMAIL DEBUG END ===');
       setSendingEmail(false);
     }
   };
