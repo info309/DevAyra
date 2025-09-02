@@ -338,29 +338,42 @@ class GmailService {
             const hermindaMessages = messages.filter(msg => {
               const headers = msg.payload?.headers || [];
               const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
-              return fromHeader.toLowerCase().includes('herminda');
+              return fromHeader.toLowerCase().includes('herminda') || fromHeader.toLowerCase().includes('lopez');
             });
             
             if (hermindaMessages.length > 0) {
-              console.log(`[${this.requestId}] DEBUG: Found ${hermindaMessages.length} Herminda messages in thread ${thread.id}`);
-              console.log(`[${this.requestId}] DEBUG: Total messages in thread: ${messages.length}`);
-              hermindaMessages.forEach((msg, idx) => {
-                const headers = msg.payload?.headers || [];
-                const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
-                const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
-                const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
-                console.log(`[${this.requestId}] Herminda message ${idx + 1}: From: ${fromHeader}, Date: ${dateHeader}, Subject: ${subjectHeader}`);
+              console.log(`[${this.requestId}] DEBUG HERMINDA: Found ${hermindaMessages.length} Herminda messages in thread ${thread.id}`);
+              console.log(`[${this.requestId}] DEBUG HERMINDA: Total messages in thread: ${messages.length}`);
+              
+              // Process ALL messages to see the chronological order
+              const processedMessages = messages.map(msg => this.processMessage(msg));
+              const chronologicalMessages = processedMessages.sort(
+                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+              );
+              
+              console.log(`[${this.requestId}] DEBUG HERMINDA: All messages in chronological order:`, 
+                chronologicalMessages.map((msg, idx) => ({
+                  index: idx + 1,
+                  date: msg.date,
+                  from: msg.from?.split('<')[0].trim(),
+                  subject: msg.subject,
+                  isHerminda: (msg.from?.toLowerCase().includes('herminda') || msg.from?.toLowerCase().includes('lopez')) ? 'YES' : 'NO'
+                }))
+              );
+              
+              // Find the most recent message
+              const mostRecentMessage = chronologicalMessages.sort(
+                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              )[0];
+              
+              console.log(`[${this.requestId}] DEBUG HERMINDA: Most recent message in thread:`, {
+                date: mostRecentMessage?.date,
+                from: mostRecentMessage?.from?.split('<')[0].trim(),
+                subject: mostRecentMessage?.subject,
+                isHerminda: (mostRecentMessage?.from?.toLowerCase().includes('herminda') || mostRecentMessage?.from?.toLowerCase().includes('lopez')) ? 'YES' : 'NO'
               });
               
-              // Log ALL message dates in this thread to see if we're missing recent ones
-              console.log(`[${this.requestId}] DEBUG: All message dates in Herminda thread:`, 
-                messages.map(msg => {
-                  const headers = msg.payload?.headers || [];
-                  const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
-                  const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
-                  return { date: dateHeader, from: fromHeader.split('<')[0].trim() };
-                })
-              );
+              console.log(`[${this.requestId}] DEBUG HERMINDA: This thread will have lastDate: ${mostRecentMessage?.date}`);
             }
             
             if (messages.length === 0) {
