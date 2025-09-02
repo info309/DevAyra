@@ -248,13 +248,20 @@ ${invoice.company_name || 'Your Company'}`;
 
   const handleGeneratePDF = async (invoice: Invoice) => {
     try {
-      const { error } = await supabase.functions.invoke('generate-invoice-pdf', {
+      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
         body: { invoiceId: invoice.id }
       });
 
       if (error) throw error;
 
-      console.log('PDF generated successfully');
+      if (data?.pdf_path) {
+        // Open the generated PDF in a new tab
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+        console.log('PDF generated and opened successfully');
+      } else {
+        console.error('No PDF path returned');
+      }
     } catch (error) {
       console.error('Failed to generate PDF:', error);
     }
