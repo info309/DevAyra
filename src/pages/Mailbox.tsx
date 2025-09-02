@@ -468,10 +468,35 @@ const Mailbox: React.FC = () => {
       const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
       
       console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
+      console.log('DEBUG - Current time:', new Date().toISOString());
       
       const data = await gmailApi.getEmails(query, pageToken || undefined, abortController.signal);
 
-      console.log('Gmail API response for', view, ':', { data });
+      console.log('Gmail API response for', view, ':', { 
+        conversationCount: data.conversations?.length || 0,
+        nextPageToken: data.nextPageToken,
+        allEmailsLoaded: data.allEmailsLoaded
+      });
+      
+      // Debug log for Herminda & Dina emails specifically
+      if (data.conversations) {
+        const hermindaDinaEmails = data.conversations.filter(conv => 
+          conv.emails?.some(email => 
+            email.from?.toLowerCase().includes('herminda') || 
+            email.from?.toLowerCase().includes('dina')
+          )
+        );
+        
+        if (hermindaDinaEmails.length > 0) {
+          console.log('DEBUG - Found Herminda/Dina emails in response:', hermindaDinaEmails.map(conv => ({
+            threadId: conv.id,
+            subject: conv.subject,
+            messageCount: conv.messageCount,
+            lastDate: conv.lastDate,
+            emailDates: conv.emails?.map(e => e.date) || []
+          })));
+        }
+      }
 
       // Show partial success warnings if any
       if (data.partialSuccess && data.errors?.length && view === currentView) {
@@ -1044,13 +1069,34 @@ const Mailbox: React.FC = () => {
     if (!searchQuery) return true;
     
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       conversation.subject.toLowerCase().includes(searchLower) ||
       conversation.emails.some(email => 
         email.from.toLowerCase().includes(searchLower) ||
         email.snippet.toLowerCase().includes(searchLower)
       )
     );
+    
+    // Debug logging for Herminda & Dina emails
+    if (conversation.emails.some(email => 
+      email.from.toLowerCase().includes('herminda') || 
+      email.from.toLowerCase().includes('dina')
+    )) {
+      console.log('DEBUG: Found Herminda/Dina conversation:', {
+        threadId: conversation.id,
+        subject: conversation.subject,
+        messageCount: conversation.messageCount,
+        lastDate: conversation.lastDate,
+        emails: conversation.emails.map(e => ({
+          id: e.id,
+          from: e.from,
+          date: e.date,
+          snippet: e.snippet.substring(0, 100)
+        }))
+      });
+    }
+    
+    return matchesSearch;
   });
 
 
