@@ -30,6 +30,16 @@ class GmailApiError extends Error {
 export const gmailApi = {
   async invoke(options: InvokeOptions): Promise<GmailApiResponse> {
     const { body, signal, retries = 2 } = options;
+    
+    // Create a timeout signal for long operations like sending emails with attachments
+    const timeoutMs = body.action === 'sendEmail' ? 180000 : 30000; // 3 minutes for email sending
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+    
+    // Combine user signal with timeout signal
+    const combinedSignal = signal ? 
+      AbortSignal.any([signal, timeoutController.signal]) : 
+      timeoutController.signal;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -69,12 +79,23 @@ export const gmailApi = {
         throw new GmailApiError('No authentication token available', 401);
       }
 
-      const { data, error } = await supabase.functions.invoke('gmail-api', {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new GmailApiError('Request timeout', 408)), timeoutMs);
+      });
+
+      // Race between the actual request and timeout
+      const invokePromise = supabase.functions.invoke('gmail-api', {
         body,
         headers: {
           Authorization: `Bearer ${authToken}`
         }
       });
+
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+
+      // Clear timeout on successful completion
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('Supabase function error:', error);
