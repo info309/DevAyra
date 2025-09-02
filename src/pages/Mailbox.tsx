@@ -1411,16 +1411,10 @@ const Mailbox: React.FC = () => {
                                         <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                                           <div className="min-w-0 overflow-hidden">
                                             <div className="flex items-center gap-2 mb-1 min-w-0">
-                                              <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                                {email.from.split('<')[0].trim() || email.from}
-                                              </p>
-                                               {email.attachments && email.attachments.length > 0 && (
-                                                 <>
-                                                   <Paperclip className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                                   <span className="text-xs text-muted-foreground">({email.attachments.length})</span>
-                                                 </>
-                                               )}
-                                              {email.unread && (
+                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
+                                                 {email.from.split('<')[0].trim() || email.from}
+                                               </p>
+                                               {email.unread && (
                                                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                                               )}
                                             </div>
