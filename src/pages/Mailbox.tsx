@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -1030,7 +1030,16 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  const filteredConversations = currentConversations.filter(conversation => {
+  // Sort conversations by most recent email date (like Gmail)
+  const sortedConversations = useMemo(() => {
+    return [...currentConversations].sort((a, b) => {
+      const dateA = new Date(a.lastDate).getTime();
+      const dateB = new Date(b.lastDate).getTime();
+      return dateB - dateA; // Most recent first
+    });
+  }, [currentConversations]);
+
+  const filteredConversations = sortedConversations.filter(conversation => {
     if (showOnlyUnread && conversation.unreadCount === 0) return false;
     if (!searchQuery) return true;
     
@@ -1305,7 +1314,11 @@ const Mailbox: React.FC = () => {
                   <>
                     <div className="divide-y divide-border min-w-0">
                       {filteredConversations.map((conversation, index) => {
-                          const firstEmail = conversation.emails[0];
+                          // Get most recent email for display (like Gmail)
+                          const sortedEmails = [...conversation.emails].sort((a, b) => 
+                            new Date(b.date).getTime() - new Date(a.date).getTime()
+                          );
+                          const mostRecentEmail = sortedEmails[0];
                           const isSelected = selectedConversation?.id === conversation.id;
                           
                           return (
@@ -1318,22 +1331,22 @@ const Mailbox: React.FC = () => {
                               >
                                 <div className="flex items-start justify-between gap-3 w-full min-w-0 overflow-hidden">
                                   <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
-                                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
-                                        {currentView === 'sent' 
-                                          ? (firstEmail.to.split('<')[0].trim() || firstEmail.to)
-                                          : (firstEmail.from.split('<')[0].trim() || firstEmail.from)
-                                        }
-                                      </p>
-                                    </div>
-                                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                      <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[220px] overflow-hidden">
-                                        {conversation.subject}
-                                      </p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate max-w-[260px] overflow-hidden">
-                                      {firstEmail.snippet}
-                                    </p>
+                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                                       <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
+                                         {currentView === 'sent' 
+                                           ? (mostRecentEmail.to.split('<')[0].trim() || mostRecentEmail.to)
+                                           : (mostRecentEmail.from.split('<')[0].trim() || mostRecentEmail.from)
+                                         }
+                                       </p>
+                                     </div>
+                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                                       <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[220px] overflow-hidden">
+                                         {conversation.subject}
+                                       </p>
+                                     </div>
+                                     <p className="text-xs text-muted-foreground truncate max-w-[260px] overflow-hidden">
+                                       {mostRecentEmail.snippet}
+                                     </p>
                                     <p className="text-xs text-muted-foreground truncate max-w-[180px] overflow-hidden">
                                       {formatDate(conversation.lastDate)}
                                     </p>
@@ -1387,9 +1400,9 @@ const Mailbox: React.FC = () => {
                               {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
                                 <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
                                   <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
-                                    {conversation.emails
-                                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                      .map((email, emailIndex) => (
+                                     {conversation.emails
+                                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Chronological order like Gmail
+                                       .map((email, emailIndex) => (
                                       <div
                                         key={email.id}
                                         className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"

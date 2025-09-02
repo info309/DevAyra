@@ -330,20 +330,24 @@ class GmailService {
             const messages = threadData.messages || [];
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
-            // Sort messages by date to find the most recent
-            const sortedMessages = processedMessages.sort((a, b) => 
-              new Date(b.date).getTime() - new Date(a.date).getTime()
+            // Sort messages chronologically within the thread (like Gmail)
+            const chronologicalMessages = processedMessages.sort((a, b) => 
+              new Date(a.date).getTime() - new Date(b.date).getTime()
             );
             
-            // Transform to match UI expectations
-            const firstEmail = processedMessages[0];
-            const mostRecentEmail = sortedMessages[0]; // Most recent email for lastDate
+            // Find the most recent message for thread sorting
+            const mostRecentMessage = [...processedMessages].sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            )[0];
+            
+            // Use first message for subject (like Gmail)
+            const firstMessage = chronologicalMessages[0];
             
             return {
               id: thread.id,
               threadId: thread.id,
-              subject: firstEmail?.subject || 'No Subject',
-              emails: processedMessages.map(msg => ({
+              subject: firstMessage?.subject || 'No Subject',
+              emails: chronologicalMessages.map(msg => ({
                 id: msg.id,
                 threadId: msg.threadId,
                 snippet: msg.snippet,
@@ -356,7 +360,7 @@ class GmailService {
                 attachments: msg.attachments
               })),
               messageCount: processedMessages.length,
-              lastDate: mostRecentEmail?.date || new Date().toISOString(), // Use most recent email's date
+              lastDate: mostRecentMessage?.date || new Date().toISOString(),
               unreadCount: processedMessages.filter(msg => !msg.isRead).length,
               participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
             };
