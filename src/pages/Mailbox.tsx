@@ -1025,89 +1025,12 @@ const Mailbox: React.FC = () => {
         variant: "default"
       });
 
-      console.log('Email sent successfully, updating UI...');
-
-
-      // If this was a reply to an existing conversation, add the sent email to the local state
-      if (composeForm.threadId && selectedConversation && data?.sentMessage) {
-        const sentEmail: Email = {
-          id: data.sentMessage.id || `temp-${Date.now()}`,
-          threadId: composeForm.threadId,
-          snippet: composeForm.content.substring(0, 100) + (composeForm.content.length > 100 ? '...' : ''),
-          subject: composeForm.subject,
-          from: user.email || 'me',
-          to: composeForm.to,
-          date: new Date().toISOString(),
-          content: composeForm.content,
-          unread: false,
-          attachments: [
-            // Convert file attachments to the expected format
-            ...(composeForm.attachments || []).map(attachment => {
-              if ('data' in attachment && 'filename' in attachment) {
-                const directAttachment = attachment as DirectAttachment;
-                return {
-                  filename: directAttachment.filename,
-                  mimeType: directAttachment.mimeType,
-                  size: directAttachment.size,
-                  attachmentId: undefined
-                };
-              } else {
-                const file = attachment as File;
-                return {
-                  filename: file.name,
-                  mimeType: file.type,
-                  size: file.size,
-                  attachmentId: undefined
-                };
-              }
-            }),
-            // Convert document attachments to the expected format
-            ...(composeForm.documentAttachments || []).map(doc => ({
-              filename: doc.name,
-              mimeType: doc.mime_type || 'application/octet-stream',
-              size: doc.file_size || 0,
-              attachmentId: undefined // Not available for sent emails
-            }))
-          ]
-        };
-
-        // Update the selected conversation with the new email
-        const updatedConversation = {
-          ...selectedConversation,
-          emails: [...selectedConversation.emails, sentEmail],
-          messageCount: selectedConversation.messageCount + 1,
-          lastDate: sentEmail.date
-        };
-
-        setSelectedConversation(updatedConversation);
-
-        // Update the conversations list
-        setCurrentConversations(prev => 
-          prev.map(conv => 
-            conv.id === composeForm.threadId 
-              ? updatedConversation
-              : conv
-          )
-        );
-
-        // Update the view cache
-        setViewCache(prev => ({
-          ...prev,
-          [currentView]: prev[currentView]?.map(conv => 
-            conv.id === composeForm.threadId 
-              ? updatedConversation
-              : conv
-          )
-        }));
-      }
-
       // Reset form and close dialog
       console.log('Resetting form and closing dialog...');
       setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
       setShowComposeDialog(false);
 
-      // Only refresh if it wasn't a reply (for new emails or if we couldn't update locally)
-      console.log('Checking if refresh needed, threadId:', composeForm.threadId);
+      // Refresh if it wasn't a reply
       if (!composeForm.threadId) {
         console.log('Refreshing current view...');
         refreshCurrentView();
@@ -1121,9 +1044,9 @@ const Mailbox: React.FC = () => {
         variant: "destructive"
       });
     } finally {
-      console.log('=== SEND EMAIL DEBUG END ===');
       setSendingEmail(false);
     }
+  };
   };
 
   // REMOVED: All draft-related functions and state have been removed
