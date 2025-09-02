@@ -972,7 +972,8 @@ const Mailbox: React.FC = () => {
 
       // Call the async email sending edge function
       console.log('Calling async email sender...');
-      const { data, error } = await supabase.functions.invoke('send-email-async', {
+      
+      const emailSendPromise = supabase.functions.invoke('send-email-async', {
         body: {
           to: composeForm.to,
           subject: composeForm.subject,
@@ -983,22 +984,44 @@ const Mailbox: React.FC = () => {
         }
       });
 
+      // Add timeout for the entire async operation
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Email sending timeout - operation took too long'));
+        }, 120000); // 2 minute timeout
+      });
+
+      const { data, error } = await Promise.race([emailSendPromise, timeoutPromise]) as any;
+
+      console.log('Async email sender response:', { data, error });
+
       if (error) {
         console.error('Error calling async email sender:', error);
         toast({
           title: "Error",
-          description: "Failed to send email. Please try again.",
+          description: `Failed to send email: ${error.message}`,
           variant: "destructive"
         });
         setSendingEmail(false);
         return;
       }
 
-      console.log('Email queued for sending:', data);
+      if (!data?.success) {
+        console.error('Email sending failed:', data);
+        toast({
+          title: "Error",
+          description: data?.error || "Failed to send email. Please try again.",
+          variant: "destructive"
+        });
+        setSendingEmail(false);
+        return;
+      }
+
+      console.log('Email queued successfully:', data);
       
       toast({
-        title: "Email Queued",
-        description: "Your email is being sent in the background. This may take a few moments for large attachments.",
+        title: "Email Sent",
+        description: `Email sent successfully${data.attachmentCount ? ` with ${data.attachmentCount} attachment(s)` : ''}!`,
         variant: "default"
       });
 

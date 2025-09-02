@@ -179,24 +179,42 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     console.log('Calling Gmail API with payload keys:', Object.keys(emailPayload));
+    console.log('Attachment count for Gmail API:', processedAttachments.length);
 
-    const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke('gmail-api', {
+    // Add timeout to prevent hanging
+    const gmailApiPromise = supabaseClient.functions.invoke('gmail-api', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
       body: emailPayload
     });
 
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Gmail API call timeout after 60 seconds'));
+      }, 60000);
+    });
+
+    console.log('Starting Gmail API call...');
+    const { data: emailResult, error: emailError } = await Promise.race([
+      gmailApiPromise,
+      timeoutPromise
+    ]) as { data: any; error: any };
+
+    console.log('Gmail API call completed');
+    console.log('Gmail API result:', { hasData: !!emailResult, hasError: !!emailError });
+
     if (emailError) {
-      console.error('Gmail API error:', emailError);
+      console.error('Gmail API error details:', emailError);
       throw new Error(`Failed to send email: ${emailError.message}`);
     }
 
-    console.log('Email sent successfully:', emailResult);
+    console.log('Email sent successfully via async function');
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Email sent successfully',
+      attachmentCount: processedAttachments.length,
       result: emailResult 
     }), {
       status: 200,
@@ -207,11 +225,16 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error: any) {
-    console.error('Error in async email sender:', error);
+    console.error('=== ASYNC EMAIL SENDER ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        success: false 
+        error: error.message || 'Unknown error occurred',
+        success: false,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
@@ -221,6 +244,8 @@ const handler = async (req: Request): Promise<Response> => {
         },
       }
     );
+  } finally {
+    console.log('=== ASYNC EMAIL SENDER END ===');
   }
 };
 
