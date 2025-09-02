@@ -484,10 +484,17 @@ class GmailService {
               continue;
             }
 
-            // Convert to base64
+            // Convert to base64 using streaming approach for large files
             const arrayBuffer = await data.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const base64 = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+            
+            // Stream encode to prevent call stack overflow on large files
+            let base64 = '';
+            const chunkSize = 8192; // 8KB chunks
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.slice(i, i + chunkSize);
+              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+            }
 
             // Extract filename from path
             const filename = path.split('/').pop() || 'attachment';
