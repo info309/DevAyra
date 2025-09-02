@@ -882,223 +882,125 @@ const Mailbox: React.FC = () => {
         documentAttachments: composeForm.documentAttachments?.length || 0,
         documentNames: composeForm.documentAttachments?.map(d => d.name) || []
       });
+
+      // Check attachment sizes first (25MB Gmail limit, we'll use 20MB to be safe)
+      const maxFileSize = 20 * 1024 * 1024; // 20MB in bytes
+      const oversizedFiles = (composeForm.attachments || []).filter(attachment => {
+        if ('size' in attachment) {
+          return attachment.size > maxFileSize;
+        }
+        return false;
+      });
+
+      if (oversizedFiles.length > 0) {
+        const oversizedNames = oversizedFiles.map(f => (f as File).name).join(', ');
+        toast({
+          title: "Attachment Too Large",
+          description: `These files exceed 20MB limit: ${oversizedNames}. Please use smaller files.`,
+          variant: "destructive"
+        });
+        setSendingEmail(false);
+        return;
+      }
       
-      // Convert file attachments to base64 for sending
-      let fileAttachmentsData = [];
+      
+      // Upload attachments to storage first for async processing
+      let attachmentPaths: string[] = [];
       
       if (composeForm.attachments && composeForm.attachments.length > 0) {
-        console.log('Processing file attachments:', composeForm.attachments.length);
+        console.log('Uploading attachments to storage for async processing...');
+        
         try {
-          // Add overall timeout for all file processing
-          const fileProcessingPromise = Promise.all(
-            (composeForm.attachments || []).map(async (attachment) => {
+          attachmentPaths = await Promise.all(
+            composeForm.attachments.map(async (attachment) => {
               // Check if this is already a processed attachment (from invoice)
               if ('data' in attachment && 'filename' in attachment) {
-                // Direct attachment already in the right format
                 const directAttachment = attachment as DirectAttachment;
-                console.log('Using pre-processed attachment:', directAttachment.filename);
-                return {
-                  name: directAttachment.name || directAttachment.filename,
-                  filename: directAttachment.filename,
-                  data: directAttachment.data,
-                  type: directAttachment.type || directAttachment.mimeType,
-                  mimeType: directAttachment.mimeType || directAttachment.type,
-                  size: directAttachment.size
-                };
-              }
-              
-              // Regular file upload - convert to base64
-              const file = attachment as File;
-              console.log('Processing file:', file.name, 'size:', file.size);
-              
-              return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                let timeoutId: NodeJS.Timeout;
+                console.log('Uploading direct attachment:', directAttachment.filename);
                 
-                reader.onload = () => {
-                  clearTimeout(timeoutId);
-                  const result = reader.result as string;
-                  // Extract pure base64 data (remove data:mime/type;base64, prefix)
-                  const base64Data = result.split(',')[1];
-                  if (!base64Data) {
-                    reject(new Error(`Failed to extract base64 data for: ${file.name}`));
-                    return;
-                  }
-                  console.log('Successfully processed file:', file.name);
-                  resolve({
-                    name: file.name,
-                    filename: file.name,
-                    data: base64Data,
-                    type: file.type,
-                    mimeType: file.type,
-                    size: file.size
+                // Convert base64 back to blob for storage
+                const base64Data = directAttachment.data;
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: directAttachment.mimeType });
+                
+                const fileName = `${user.id}/${Date.now()}-${directAttachment.filename}`;
+                const { data, error } = await supabase.storage
+                  .from('email-attachments')
+                  .upload(fileName, blob, {
+                    contentType: directAttachment.mimeType,
+                    upsert: false
                   });
-                };
                 
-                reader.onerror = () => {
-                  clearTimeout(timeoutId);
-                  console.error('FileReader error for file:', file.name);
-                  reject(new Error(`Failed to read file: ${file.name}`));
-                };
+                if (error) throw error;
+                return data.path;
+              } else {
+                // Regular file upload
+                const file = attachment as File;
+                console.log('Uploading file:', file.name, 'size:', file.size);
                 
-                // Set timeout to prevent hanging
-                timeoutId = setTimeout(() => {
-                  console.error('File reading timeout for:', file.name);
-                  reject(new Error(`File reading timeout for: ${file.name}`));
-                }, 15000); // 15 second timeout
+                const fileName = `${user.id}/${Date.now()}-${file.name}`;
+                const { data, error } = await supabase.storage
+                  .from('email-attachments')
+                  .upload(fileName, file, {
+                    contentType: file.type,
+                    upsert: false
+                  });
                 
-                reader.readAsDataURL(file);
-              });
+                if (error) throw error;
+                return data.path;
+              }
             })
           );
           
-          // Overall timeout for all file processing
-          const timeoutPromise = new Promise<any[]>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error('File processing timeout - all files took too long to process'));
-            }, 30000); // 30 second total timeout
-          });
-          
-          fileAttachmentsData = await Promise.race([fileProcessingPromise, timeoutPromise]) as any[];
-          console.log('Successfully processed all file attachments:', fileAttachmentsData.length);
+          console.log('Successfully uploaded all attachments:', attachmentPaths);
         } catch (error) {
-          console.error('File attachment processing failed:', error);
+          console.error('Failed to upload attachments:', error);
           toast({
-            title: "Attachment Error",
-            description: `Failed to process file attachments: ${error.message}`,
+            title: "Upload Error",
+            description: "Failed to upload attachments. Please try again.",
             variant: "destructive"
           });
           setSendingEmail(false);
-          return; // Exit early if file processing fails
+          return;
         }
-      } else {
-        console.log('No file attachments to process');
       }
 
-      // Convert document attachments to base64 for sending
-      let documentAttachmentsData = [];
-      
-      if (composeForm.documentAttachments && composeForm.documentAttachments.length > 0) {
-        console.log('Processing document attachments:', composeForm.documentAttachments.length);
-        
-        try {
-          documentAttachmentsData = await Promise.all(
-            composeForm.documentAttachments.map(async (doc) => {
-              try {
-                console.log('Downloading document:', doc.name, 'from path:', doc.file_path);
-                
-                const { data, error } = await supabase.storage
-                  .from('documents')
-                  .download(doc.file_path);
-
-                if (error) {
-                  console.error('Storage download error:', error);
-                  throw error;
-                }
-
-                if (!data) {
-                  throw new Error('No data received from storage');
-                }
-
-                return new Promise((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const result = reader.result as string;
-                    // Extract pure base64 data (remove data:mime/type;base64, prefix)
-                    const base64Data = result.split(',')[1];
-                    if (!base64Data) {
-                      reject(new Error(`Failed to extract base64 data for: ${doc.name}`));
-                      return;
-                    }
-                    console.log('Successfully converted document to base64:', doc.name);
-                    resolve({
-                      name: doc.name,
-                      filename: doc.name,
-                      data: base64Data,
-                      type: doc.mime_type || 'application/octet-stream',
-                      mimeType: doc.mime_type || 'application/octet-stream',
-                      size: doc.file_size || 0
-                    });
-                  };
-                  reader.onerror = () => {
-                    console.error('FileReader error for document:', doc.name);
-                    reject(new Error(`Failed to read file: ${doc.name}`));
-                  };
-                  reader.readAsDataURL(data);
-                });
-              } catch (error) {
-                console.error(`Failed to download document ${doc.name}:`, error);
-                throw new Error(`Failed to attach document: ${doc.name}. Error: ${error.message}`);
-              }
-            })
-          );
-          console.log('Successfully processed all document attachments:', documentAttachmentsData.length);
-        } catch (error) {
-          console.error('Document attachment processing failed:', error);
-          toast({
-            title: "Document Attachment Error",
-            description: `Failed to attach documents: ${error.message}`,
-            variant: "destructive"
-          });
-          return; // Exit early if document processing fails
+      // Call the async email sending edge function
+      console.log('Calling async email sender...');
+      const { data, error } = await supabase.functions.invoke('send-email-async', {
+        body: {
+          to: composeForm.to,
+          subject: composeForm.subject,
+          content: composeForm.content,
+          threadId: composeForm.threadId,
+          attachmentPaths,
+          documentAttachments: composeForm.documentAttachments || []
         }
-      } else {
-        console.log('No document attachments to process');
-      }
-
-      const allAttachments = [...fileAttachmentsData, ...documentAttachmentsData];
-      
-      console.log('Total attachments processed:', allAttachments.length);
-      console.log('Attachment data:', allAttachments.map(att => ({ 
-        filename: (att as any).filename, 
-        size: (att as any).size,
-        hasContent: !!(att as any).content 
-      })));
-      
-      // Build request body with only defined fields
-      const requestBody: any = {
-        action: 'sendEmail',
-        to: composeForm.to,
-        subject: composeForm.subject,
-        content: composeForm.content
-      };
-
-      // Only add optional fields if they have valid values
-      if (composeForm.threadId) {
-        requestBody.threadId = composeForm.threadId;
-      }
-      if (allAttachments.length > 0) {
-        requestBody.attachments = allAttachments;
-      }
-
-      console.log('About to call Gmail API with request body keys:', Object.keys(requestBody));
-      console.log('Attachment count:', requestBody.attachments?.length || 0);
-      
-      // Add timeout to Gmail API call
-      const apiCallPromise = supabase.functions.invoke('gmail-api', {
-        body: requestBody
       });
-      
-      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Gmail API call timeout'));
-        }, 60000); // 60 second timeout for API call
-      });
-      
-      const { data, error } = await Promise.race([apiCallPromise, timeoutPromise]);
-      
-      console.log('Gmail API response received:', { data, error });
-      console.log('Gmail API call completed, processing response...');
 
       if (error) {
-        console.error('Error sending email:', error);
+        console.error('Error calling async email sender:', error);
         toast({
           title: "Error",
           description: "Failed to send email. Please try again.",
           variant: "destructive"
         });
+        setSendingEmail(false);
         return;
       }
+
+      console.log('Email queued for sending:', data);
+      
+      toast({
+        title: "Email Queued",
+        description: "Your email is being sent in the background. This may take a few moments for large attachments.",
+        variant: "default"
+      });
 
       console.log('Email sent successfully, updating UI...');
 
