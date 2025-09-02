@@ -301,9 +301,12 @@ class GmailService {
 
   async getEmails(query: string = 'in:inbox', maxResults: number = 100, pageToken?: string) {
     try {
-      // Get threads
+      // Use newer-than parameter to ensure we get threads with recent activity
+      // Gmail threads should be returned if ANY message in the thread matches the query
       let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
       if (pageToken) threadsUrl += `&pageToken=${pageToken}`;
+      
+      console.log(`[${this.requestId}] Fetching threads with URL: ${threadsUrl}`);
       
       const threadsData = await this.makeGmailRequest(threadsUrl);
       const threads = threadsData.threads || [];
@@ -315,7 +318,7 @@ class GmailService {
       console.log(`[${this.requestId}] Processing ${threads.length} threads`);
 
       // Process threads in smaller batches to avoid timeouts
-      const batchSize = 3;
+      const batchSize = 5; // Increased batch size slightly
       const conversations = [];
       
       for (let i = 0; i < threads.length; i += batchSize) {
@@ -323,6 +326,7 @@ class GmailService {
         
         const batchPromises = batch.map(async (thread) => {
           try {
+            // Fetch thread with ALL messages - Gmail API should return complete thread
             const threadData = await this.makeGmailRequest(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
             );
@@ -339,6 +343,7 @@ class GmailService {
             
             if (hermindaMessages.length > 0) {
               console.log(`[${this.requestId}] DEBUG: Found ${hermindaMessages.length} Herminda messages in thread ${thread.id}`);
+              console.log(`[${this.requestId}] DEBUG: Total messages in thread: ${messages.length}`);
               hermindaMessages.forEach((msg, idx) => {
                 const headers = msg.payload?.headers || [];
                 const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
@@ -346,6 +351,21 @@ class GmailService {
                 const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
                 console.log(`[${this.requestId}] Herminda message ${idx + 1}: From: ${fromHeader}, Date: ${dateHeader}, Subject: ${subjectHeader}`);
               });
+              
+              // Log ALL message dates in this thread to see if we're missing recent ones
+              console.log(`[${this.requestId}] DEBUG: All message dates in Herminda thread:`, 
+                messages.map(msg => {
+                  const headers = msg.payload?.headers || [];
+                  const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
+                  const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
+                  return { date: dateHeader, from: fromHeader.split('<')[0].trim() };
+                })
+              );
+            }
+            
+            if (messages.length === 0) {
+              console.warn(`[${this.requestId}] Thread ${thread.id} has no messages!`);
+              return null;
             }
             
             const processedMessages = messages.map(msg => this.processMessage(msg));
@@ -391,7 +411,8 @@ class GmailService {
         });
 
         const batchResults = await Promise.all(batchPromises);
-        conversations.push(...batchResults.filter(Boolean));
+        const validResults = batchResults.filter(Boolean);
+        conversations.push(...validResults);
         
         // Small delay between batches to avoid rate limiting
         if (i + batchSize < threads.length) {
