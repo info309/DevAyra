@@ -1035,13 +1035,29 @@ const Mailbox: React.FC = () => {
     if (!searchQuery) return true;
     
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       conversation.subject.toLowerCase().includes(searchLower) ||
       conversation.emails.some(email => 
         email.from.toLowerCase().includes(searchLower) ||
         email.snippet.toLowerCase().includes(searchLower)
       )
     );
+    
+    // Debug logging for missing emails
+    if (conversation.emails.some(email => email.from.toLowerCase().includes('karen') || email.from.toLowerCase().includes('herminda') || email.from.toLowerCase().includes('dina'))) {
+      console.log('DEBUG: Found email from Karen/Herminda/Dina:', {
+        subject: conversation.subject,
+        from: conversation.emails[0].from,
+        searchQuery,
+        showOnlyUnread,
+        unreadCount: conversation.unreadCount,
+        currentView,
+        matchesSearch,
+        willShow: matchesSearch
+      });
+    }
+    
+    return matchesSearch;
   });
 
 
