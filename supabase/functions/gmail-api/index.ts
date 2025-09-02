@@ -330,8 +330,15 @@ class GmailService {
             const messages = threadData.messages || [];
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
+            // Sort messages by date to find the most recent
+            const sortedMessages = processedMessages.sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            
             // Transform to match UI expectations
             const firstEmail = processedMessages[0];
+            const mostRecentEmail = sortedMessages[0]; // Most recent email for lastDate
+            
             return {
               id: thread.id,
               threadId: thread.id,
@@ -349,7 +356,7 @@ class GmailService {
                 attachments: msg.attachments
               })),
               messageCount: processedMessages.length,
-              lastDate: firstEmail?.date || new Date().toISOString(),
+              lastDate: mostRecentEmail?.date || new Date().toISOString(), // Use most recent email's date
               unreadCount: processedMessages.filter(msg => !msg.isRead).length,
               participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
             };
