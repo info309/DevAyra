@@ -4,10 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { Send, FolderOpen, Paperclip, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import DocumentPicker from '@/components/DocumentPicker';
-import { DocumentAttachment } from '@/utils/attachmentProcessor';
+import { Send } from 'lucide-react';
 
 interface ComposeFormData {
   to: string;
@@ -22,8 +19,6 @@ interface ComposeDialogProps {
   onOpenChange: (open: boolean) => void;
   composeForm: ComposeFormData;
   onComposeFormChange: (form: ComposeFormData) => void;
-  documentAttachments: DocumentAttachment[];
-  onDocumentAttachmentsChange: (attachments: DocumentAttachment[]) => void;
   onSend: () => void;
   onCancel: () => void;
   onCancelSend?: () => void;
@@ -36,19 +31,12 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   onOpenChange,
   composeForm,
   onComposeFormChange,
-  documentAttachments,
-  onDocumentAttachmentsChange,
   onSend,
   onCancel,
   onCancelSend,
   sendingEmail,
   sendingProgress
 }) => {
-  const removeDocumentAttachment = (id: string) => {
-    const newAttachments = documentAttachments.filter(doc => doc.id !== id);
-    onDocumentAttachmentsChange(newAttachments);
-  };
-
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
@@ -92,93 +80,38 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 className="min-h-[300px] resize-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
-            
-            {/* Document Attachments */}
-            {documentAttachments.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Paperclip className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Attachments</span>
-                  <Badge variant="secondary">{documentAttachments.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {documentAttachments.map((doc) => (
-                    <div key={doc.id} className="flex items-center gap-3 p-2 bg-accent rounded-lg">
-                      <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{doc.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown size'}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeDocumentAttachment(doc.id)}
-                        className="flex-shrink-0 p-1 h-6 w-6"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           
           <DrawerFooter>
             <div className="flex gap-2 justify-end">
-              {/* Add Documents Button */}
-              <DocumentPicker
-                onDocumentsSelected={(documents) => {
-                  onDocumentAttachmentsChange(documents);
-                }}
-                selectedDocuments={documentAttachments as any}
-                trigger={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    Add Documents {documentAttachments.length > 0 && `(${documentAttachments.length})`}
-                  </Button>
-                }
-              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={sendingEmail}
+              >
+                Cancel
+              </Button>
               
-              {sendingEmail && onCancelSend ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
+              {sendingEmail && onCancelSend && (
+                <Button
+                  type="button"
+                  variant="destructive"
                   onClick={onCancelSend}
-                  className="gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel Send
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
                   size="sm"
-                  onClick={onCancel}
-                  disabled={sendingEmail}
                 >
-                  Cancel
+                  Cancel Send
                 </Button>
               )}
               
-              <Button 
-                variant="default"
-                size="sm"
+              <Button
+                type="button"
                 onClick={onSend}
-                disabled={sendingEmail || !composeForm.to || !composeForm.subject}
+                disabled={sendingEmail || !composeForm.to.trim() || !composeForm.subject.trim()}
                 className="gap-2"
               >
                 <Send className="w-4 h-4" />
-                {sendingEmail ? (sendingProgress || 'Sending...') : 
-                 `Send${documentAttachments.length > 0 ? ` (${documentAttachments.length})` : ''}`}
+                {sendingEmail ? (sendingProgress || 'Sending...') : 'Send'}
               </Button>
             </div>
           </DrawerFooter>

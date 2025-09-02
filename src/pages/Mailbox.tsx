@@ -10,14 +10,12 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Paperclip, Trash2, X, Upload, FolderOpen, Menu, LogOut } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Trash2, Menu, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
-import DocumentPicker from '@/components/DocumentPicker';
 import ComposeDialog from '@/components/ComposeDialog';
-import { useAttachments } from '@/hooks/useAttachments';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 
 interface Email {
@@ -30,15 +28,6 @@ interface Email {
   date: string;
   content: string;
   unread: boolean;
-  attachments?: Attachment[];
-}
-
-interface Attachment {
-  filename: string;
-  mimeType: string;
-  size: number;
-  downloadUrl?: string;
-  attachmentId?: string;
 }
 
 interface Conversation {
@@ -51,38 +40,12 @@ interface Conversation {
   participants: string[];
 }
 
-interface DirectAttachment {
-  name: string;
-  filename: string;
-  data: string; // base64 data
-  type: string;
-  mimeType: string;
-  size: number;
-}
-
 interface ComposeFormData {
   to: string;
   subject: string;
   content: string;
   replyTo?: string;
   threadId?: string;
-}
-
-interface UserDocument {
-  id: string;
-  name: string;
-  file_path: string;
-  file_size: number | null;
-  mime_type: string | null;
-  source_type: 'upload' | 'email_attachment';
-  source_email_id: string | null;
-  source_email_subject: string | null;
-  category: string | null;
-  tags: string[] | null;
-  description: string | null;
-  is_favorite: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 const Mailbox: React.FC = () => {
@@ -115,13 +78,6 @@ const Mailbox: React.FC = () => {
     content: ''
   });
 
-  // Clean attachment management
-  const {
-    documentAttachments,
-    setDocumentAttachments,
-    clearAllAttachments,
-    getTotalAttachmentCount
-  } = useAttachments();
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingProgress, setSendingProgress] = useState('');
   const [emailAbortController, setEmailAbortController] = useState<AbortController | null>(null);
@@ -196,11 +152,6 @@ const Mailbox: React.FC = () => {
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
       });
       
-      // Set document attachments if provided
-      if (draft.documentAttachments && draft.documentAttachments.length > 0) {
-        setDocumentAttachments(draft.documentAttachments);
-      }
-      
       console.log('AI Draft loaded:', {
         to: draft.to,
         subject: draft.subject,
@@ -259,10 +210,6 @@ const Mailbox: React.FC = () => {
   // Debug: Log conversation data when it changes
   useEffect(() => {
     console.log('Current conversations updated:', currentConversations.length);
-    currentConversations.forEach((conv, index) => {
-      const totalAttachments = conv.emails.reduce((total, email) => total + (email.attachments?.length || 0), 0);
-      console.log(`Conversation ${index + 1}: "${conv.subject}" - ${totalAttachments} attachments`);
-    });
   }, [currentConversations]);
 
   // Add periodic refresh for the current view to catch new emails
@@ -885,68 +832,47 @@ const Mailbox: React.FC = () => {
     try {
       console.log('=== SEND EMAIL DEBUG START ===');
       setSendingEmail(true);
-      setSendingProgress('Validating attachments...');
+      console.log('Sending email with compose form:', {
+        to: composeForm.to,
+        subject: composeForm.subject,
+        threadId: composeForm.threadId,
+        content: composeForm.content?.substring(0, 100)
+      });
+
+      setSendingProgress('Sending email...');
       
       // Create AbortController for this send operation
       const abortController = new AbortController();
       setEmailAbortController(abortController);
-      const validAttachments = documentAttachments.filter(doc => {
-        if (!doc.id || !doc.name || !doc.file_path) {
-          console.warn('Filtering out invalid document:', doc);
-          return false;
-        }
-        return true;
-      });
 
-      // Infer missing metadata for valid attachments
-      const sanitizedAttachments = validAttachments.map(doc => ({
-        ...doc,
-        mime_type: doc.mime_type || 'application/octet-stream',
-        file_size: doc.file_size || 0
-      }));
-
-      console.log('Starting email send process...');
-      console.log('Compose form state:', {
+      console.log('Sending email with compose form:', {
         to: composeForm.to,
         subject: composeForm.subject,
-        hasContent: !!composeForm.content,
-        contentLength: composeForm.content?.length,
-        replyTo: composeForm.replyTo,
         threadId: composeForm.threadId,
-        documentAttachments: sanitizedAttachments.length,
-        documentNames: sanitizedAttachments.map(d => d.name) || []
+        content: composeForm.content?.substring(0, 100)
       });
 
-      // Check if user canceled during validation
-      if (abortController.signal.aborted) {
-        throw new Error('Email sending canceled by user');
-      }
-
-      // Call the gmail-api edge function directly
-      console.log('Calling gmail-api directly...');
-      setSendingProgress(`Sending email${sanitizedAttachments.length > 0 ? ` with ${sanitizedAttachments.length} attachment(s)` : ''}...`);
+      setSendingProgress('Sending email...');
       
-      const emailSendPromise = supabase.functions.invoke('gmail-api', {
-        body: {
-          action: 'sendEmail',
-          to: composeForm.to,
-          subject: composeForm.subject,
-          content: composeForm.content,
-          threadId: composeForm.threadId,
-          documentAttachments: sanitizedAttachments
-        }
-      });
+      const emailData = await gmailApi.sendEmail(
+        composeForm.to,
+        composeForm.subject,
+        composeForm.content,
+        composeForm.threadId
+      );
 
-      // Add timeout for the operation (increased for large attachments)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Email sending timeout - operation took too long'));
-        }, 180000); // 3 minute timeout for large attachments
-      });
+        const timeoutId = setTimeout(() => {
+          abortController.abort();
+        }, 60000); // 1 minute timeout
 
-      let result;
-      try {
-        result = await Promise.race([emailSendPromise, timeoutPromise]) as any;
+        let result;
+        try {
+          result = await Promise.race([
+            emailData,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Email sending timeout')), 60000)
+            )
+          ]) as any;
       } catch (timeoutError) {
         console.error('Email send timeout or error:', timeoutError);
         
@@ -960,7 +886,7 @@ const Mailbox: React.FC = () => {
         } else {
           toast({
             title: "Error", 
-            description: "Email sending timed out. Please try again or use smaller attachments.",
+            description: "Email sending timed out. Please try again.",
             variant: "destructive"
           });
         }
@@ -1005,14 +931,13 @@ const Mailbox: React.FC = () => {
       
       toast({
         title: "Email Sent",
-        description: `Email sent successfully${sanitizedAttachments.length > 0 ? ` with ${sanitizedAttachments.length} attachment(s)` : ''}!`,
+        description: "Email sent successfully!",
         variant: "default"
       });
 
       // Reset form and close dialog
       console.log('Resetting form and closing dialog...');
       setComposeForm({ to: '', subject: '', content: '' });
-      clearAllAttachments();
       setShowComposeDialog(false);
 
       // Refresh if it wasn't a reply
@@ -1059,9 +984,6 @@ const Mailbox: React.FC = () => {
         subject: email.subject,
         content: cleanEmailContentForResend(email.content || '')
       });
-      
-      // Clear attachments for resend  
-      clearAllAttachments();
     } else {
       // Handle normal reply for inbox emails
       const replyToEmail = email.from.includes('<') ? 
@@ -1085,9 +1007,6 @@ const Mailbox: React.FC = () => {
         replyTo: email.id,
         threadId: conversation.id
       });
-      
-      // Clear attachments for replies
-      clearAllAttachments();
     }
     
     setShowComposeDialog(true);
@@ -1095,114 +1014,7 @@ const Mailbox: React.FC = () => {
 
   // REMOVED: editDraft function - no longer supporting drafts
 
-  const handleSaveAttachmentToDocuments = async (attachment: Attachment, email: Email) => {
-    if (!attachment.attachmentId) {
-      toast({
-        variant: "destructive",
-        title: "Save Failed",
-        description: "Attachment data is not available for saving."
-      });
-      return;
-    }
-
-    try {
-      console.log('Saving attachment to documents:', attachment.filename);
-      
-      // Show loading toast
-      toast({
-        title: "Saving attachment...",
-        description: `Downloading ${attachment.filename}`
-      });
-
-      // Download the attachment data using Gmail API
-      const { data, error } = await supabase.functions.invoke("gmail-api", {
-        body: {
-          action: "downloadAttachment",
-          messageId: email.id,
-          attachmentId: attachment.attachmentId,
-        },
-      });
-
-      if (error) {
-        console.error('Gmail API error:', error);
-        throw new Error(error.message || 'Failed to download attachment from Gmail');
-      }
-
-      if (!data?.results?.[0]?.downloadUrl) {
-        throw new Error('No download URL received from Gmail API');
-      }
-
-      const downloadUrl = data.results[0].downloadUrl;
-      console.log('Got download URL, fetching attachment data...');
-
-      // Download the file from the signed URL
-      const fileResponse = await fetch(downloadUrl);
-      if (!fileResponse.ok) {
-        throw new Error(`Failed to download file: ${fileResponse.status}`);
-      }
-
-      const blob = await fileResponse.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      console.log('Uploading to Supabase storage...');
-
-      // Generate a unique file path for storage
-      const timestamp = Date.now();
-      const sanitizedFilename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `${user?.id}/documents/${timestamp}_${sanitizedFilename}`;
-
-      // Upload to Supabase Storage
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, uint8Array, {
-          contentType: attachment.mimeType,
-          upsert: false
-        });
-
-      if (storageError) {
-        console.error('Storage error:', storageError);
-        throw new Error(`Storage error: ${storageError.message}`);
-      }
-
-      console.log('Saving to database...');
-
-      // Save document record to database
-      const { error: dbError } = await supabase
-        .from('user_documents')
-        .insert({
-          user_id: user?.id,
-          name: attachment.filename,
-          file_path: filePath,
-          file_size: attachment.size,
-          mime_type: attachment.mimeType,
-          source_type: 'email_attachment',
-          source_email_id: email.id,
-          source_email_subject: email.subject,
-          description: `Saved from email: ${email.subject}`
-        });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        throw new Error(`Database error: ${dbError.message}`);
-      }
-
-      console.log('Successfully saved attachment');
-      
-      toast({
-        title: "Attachment Saved",
-        description: `${attachment.filename} has been saved to your documents.`
-      });
-
-    } catch (error) {
-      console.error('Error saving attachment:', error);
-      toast({
-        variant: "destructive",
-        title: "Save Failed",
-        description: error.message || 'Failed to save attachment to documents.'
-      });
-    }
-  };
+  // REMOVED: Attachment saving functionality
 
   const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1368,7 +1180,6 @@ const Mailbox: React.FC = () => {
                   <Button variant="compose" className="gap-2" onClick={() => {
                     // Reset form to empty state for new email
                     setComposeForm({ to: '', subject: '', content: '' });
-                    clearAllAttachments();
                   }} size="sm">
                     <Send className="w-4 h-4" />
                     <span className="hidden sm:inline">Compose</span>
@@ -1379,15 +1190,12 @@ const Mailbox: React.FC = () => {
                     onOpenChange={setShowComposeDialog}
                     composeForm={composeForm}
                     onComposeFormChange={setComposeForm}
-                    documentAttachments={documentAttachments}
-                    onDocumentAttachmentsChange={setDocumentAttachments}
                     onSend={async () => {
                       await sendEmail();
                     }}
                     onCancel={() => {
                       setShowComposeDialog(false);
                       setComposeForm({ to: '', subject: '', content: '' });
-                      clearAllAttachments();
                     }}
                     onCancelSend={cancelEmailSend}
                     sendingEmail={sendingEmail}
@@ -1568,19 +1376,8 @@ const Mailbox: React.FC = () => {
                                       )}
                                     </div>
                                     
-                                    {/* Bottom right - Action buttons */}
-                                    <div className="flex gap-1 items-center">
-                                       {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
-                                         <>
-                                           <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                           {/* Debug attachment count */}
-                                           <span className="text-xs text-muted-foreground">
-                                             ({conversation.emails.reduce((total, email) => total + (email.attachments?.length || 0), 0)})
-                                           </span>
-                                         </>
-                                       )}
-                                      
-                                      {conversation.messageCount > 1 && (
+                                     {/* Bottom right - Action buttons */}
+                                     <div className="flex gap-1 items-center">{conversation.messageCount > 1 && (
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -1755,14 +1552,12 @@ const Mailbox: React.FC = () => {
                                 ...selectedConversation,
                                 emails: [selectedEmail]  // Only show the selected email
                               }}
-                              onSaveAttachment={handleSaveAttachmentToDocuments}
                             />
                           ) : (
                             // Show all emails in the conversation thread
                             <EmailContent 
                               key={selectedConversation.id}
                               conversation={selectedConversation}
-                              onSaveAttachment={handleSaveAttachmentToDocuments}
                             />
                           )}
                         </div>
@@ -1850,7 +1645,6 @@ const Mailbox: React.FC = () => {
                               ...selectedConversation,
                               emails: [selectedEmail]  // Only show the selected email
                             }}
-                            onSaveAttachment={handleSaveAttachmentToDocuments}
                           />
                         </div>
                       ) : (
@@ -1859,7 +1653,6 @@ const Mailbox: React.FC = () => {
                           <EmailContent 
                             key={selectedConversation.id}
                             conversation={selectedConversation}
-                            onSaveAttachment={handleSaveAttachmentToDocuments}
                           />
                         </div>
                       )
