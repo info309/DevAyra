@@ -1047,7 +1047,6 @@ const Mailbox: React.FC = () => {
       setSendingEmail(false);
     }
   };
-  };
 
   // REMOVED: All draft-related functions and state have been removed
 
