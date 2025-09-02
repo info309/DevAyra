@@ -483,8 +483,14 @@ class GmailService {
           try {
             console.log(`[${this.requestId}] Downloading document: ${doc.name}`);
             
+            // Create service role client for document download
+            const serviceRoleClient = createClient(
+              Deno.env.get('SUPABASE_URL') ?? '',
+              Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+            );
+            
             // Download the document from storage
-            const { data: fileData, error: downloadError } = await supabase.storage
+            const { data: fileData, error: downloadError } = await serviceRoleClient.storage
               .from('documents')
               .download(doc.file_path);
 
