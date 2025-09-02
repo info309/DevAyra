@@ -104,6 +104,8 @@ const Invoices = () => {
         total_cents: Math.round(total),
       };
 
+      let invoiceId: string;
+
       if (editingInvoice) {
         const { error } = await supabase
           .from('invoices')
@@ -111,12 +113,30 @@ const Invoices = () => {
           .eq('id', editingInvoice.id);
         if (error) throw error;
         console.log('Invoice updated successfully');
+        invoiceId = editingInvoice.id;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('invoices')
-          .insert(invoiceData);
+          .insert(invoiceData)
+          .select()
+          .single();
         if (error) throw error;
         console.log('Invoice created successfully');
+        invoiceId = data.id;
+      }
+
+      // Auto-generate PDF for new invoices and updates
+      try {
+        const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+          body: { invoiceId }
+        });
+        if (pdfError) {
+          console.error('PDF generation failed:', pdfError);
+        } else {
+          console.log('PDF generated successfully');
+        }
+      } catch (pdfError) {
+        console.error('PDF generation error:', pdfError);
       }
 
       setIsCreateOpen(false);
