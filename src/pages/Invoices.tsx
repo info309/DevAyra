@@ -211,7 +211,7 @@ const Invoices = () => {
       // Create invoice viewing link with production domain
       const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
       
-      let emailContent = `Hi ${invoice.customer_name},
+      const simpleBody = `Hi ${invoice.customer_name},
 
 Thanks for your business! Please find your invoice attached to this email.
 
@@ -221,10 +221,12 @@ ${invoiceLink}
 Best regards,
 ${invoice.company_name || 'Your Company'}`;
 
-      // If invoice has a PDF, embed it directly in the email content
+      let attachment = null;
+
+      // If invoice has a PDF, download it for attachment
       if (invoice.pdf_path) {
         try {
-          console.log('Downloading PDF for email content:', invoice.pdf_path);
+          console.log('Downloading PDF for attachment:', invoice.pdf_path);
           
           // Download the PDF from Supabase storage
           const { data: pdfData, error: downloadError } = await supabase.storage
@@ -239,61 +241,41 @@ ${invoice.company_name || 'Your Company'}`;
               variant: "destructive"
             });
           } else if (pdfData) {
-            // Convert blob to base64 for embedding
+            // Convert blob to base64 for attachment
             const reader = new FileReader();
             const base64Promise = new Promise<string>((resolve, reject) => {
               reader.onload = () => {
-                const base64 = reader.result as string;
-                // Remove the data:application/pdf;base64, prefix
-                resolve(base64.split(',')[1] || base64);
+                if (reader.result && typeof reader.result === 'string') {
+                  resolve(reader.result);
+                } else {
+                  reject(new Error('Failed to read PDF as base64'));
+                }
               };
-              reader.onerror = reject;
+              reader.onerror = () => reject(new Error('Failed to read PDF file'));
               
               // Add timeout to prevent hanging
-              setTimeout(() => {
-                reject(new Error('File reading timeout'));
-              }, 10000); // 10 second timeout
+              setTimeout(() => reject(new Error('PDF reading timeout')), 10000);
             });
             
             reader.readAsDataURL(pdfData);
             const base64Content = await base64Promise;
             
-            // Create HTML email with embedded PDF
-            const fileName = `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`;
-            emailContent = `
-              <html>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                  <p>Hi ${invoice.customer_name},</p>
-                  
-                  <p>Thanks for your business! Please find your invoice attached to this email.</p>
-                  
-                  <p>You can also view and pay your invoice online here:<br>
-                  <a href="${invoiceLink}" style="color: #2563eb;">${invoiceLink}</a></p>
-                  
-                  <p>Best regards,<br>
-                  ${invoice.company_name || 'Your Company'}</p>
-                  
-                  <!-- Embedded PDF -->
-                  <div style="margin-top: 20px; padding: 10px; border: 1px solid #ddd;">
-                    <p><strong>Invoice PDF:</strong></p>
-                    <embed src="data:application/pdf;base64,${base64Content}" 
-                           type="application/pdf" 
-                           width="100%" 
-                           height="600px" 
-                           title="${fileName}" />
-                    <p><em>If the PDF doesn't display properly, please use the online link above.</em></p>
-                  </div>
-                </body>
-              </html>
-            `;
+            attachment = {
+              name: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
+              filename: `invoice-${invoice.invoice_number || invoice.id.slice(0, 8)}.pdf`,
+              data: base64Content,
+              type: 'application/pdf',
+              mimeType: 'application/pdf',
+              size: pdfData.size
+            };
             
-            console.log('PDF content embedded in email');
+            console.log('PDF attachment prepared:', attachment.filename);
           }
         } catch (error) {
-          console.error('Error preparing PDF for email:', error);
+          console.error('Error preparing PDF attachment:', error);
           toast({
             title: "Warning",
-            description: "Could not embed PDF in email, but will proceed to compose email.",
+            description: "Could not attach PDF to email, but will proceed to compose email.",
             variant: "destructive"
           });
         }
@@ -301,13 +283,14 @@ ${invoice.company_name || 'Your Company'}`;
         console.log('No PDF available for invoice:', invoice.id);
       }
 
-      // Navigate to mailbox with compose draft (no separate attachments)
+      // Navigate to mailbox with compose draft including attachment
       navigate('/mailbox', { 
         state: { 
           composeDraft: { 
             to: invoice.customer_email, 
             subject, 
-            content: emailContent
+            content: simpleBody,
+            attachments: attachment ? [attachment] : []
           } 
         } 
       });
