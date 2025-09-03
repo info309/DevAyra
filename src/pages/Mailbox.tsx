@@ -447,6 +447,13 @@ const Mailbox: React.FC = () => {
             .order('date_sent', { ascending: false })
             .limit(200);
 
+          console.log('Query results:', { 
+            emailCount: cachedEmails?.length, 
+            userID: user.id, 
+            view, 
+            hermindaEmails: cachedEmails?.filter(e => e.sender_email?.toLowerCase().includes('herminda')).length 
+          });
+
           if (!cacheError && cachedEmails?.length) {
             console.log(`Loaded ${cachedEmails.length} cached emails from database`);
             
@@ -491,6 +498,17 @@ const Mailbox: React.FC = () => {
                 conv.lastDate = email.date_sent;
                 // Update conversation subject to match the most recent email for better visibility
                 conv.subject = email.subject;
+              }
+              
+              // Debug: Log if this is Herminda's email
+              if (email.sender_email?.toLowerCase().includes('herminda')) {
+                console.log('Processing Herminda email:', {
+                  threadId,
+                  subject: email.subject,
+                  date: email.date_sent,
+                  sender: email.sender_name,
+                  lastDate: conv.lastDate
+                });
               }
               
               // Add all unique participants (both sender and recipient for multi-person threads)
@@ -1467,33 +1485,6 @@ const Mailbox: React.FC = () => {
                 autoComplete="off"
                 name="email-search-tablet"
               />
-              {/* Quick search buttons */}
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery('Herminda');
-                    setTimeout(handleSearch, 100);
-                  }}
-                  className="text-xs px-1 py-0 h-6"
-                  title="Find Herminda's emails"
-                >
-                  H
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm" 
-                  onClick={() => {
-                    setSearchQuery('');
-                    loadEmailsForView(currentView, null, true);
-                  }}
-                  className="text-xs px-1 py-0 h-6"
-                  title="Clear search"
-                >
-                  ×
-                </Button>
-              </div>
             </div>
 
           </div>
@@ -1536,37 +1527,10 @@ const Mailbox: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-20"
+              className="w-full pl-10"
               autoComplete="off"
               name="email-search-mobile"
             />
-            {/* Quick search buttons for mobile */}
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery('Herminda');
-                  setTimeout(handleSearch, 100);
-                }}
-                className="text-xs px-1 py-0 h-6"
-                title="Find Herminda's emails"
-              >
-                H
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery('');
-                  loadEmailsForView(currentView, null, true);
-                }}
-                className="text-xs px-1 py-0 h-6"
-                title="Clear search"
-              >
-                ×
-              </Button>
-            </div>
           </div>
         </div>
 
