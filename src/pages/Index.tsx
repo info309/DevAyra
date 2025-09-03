@@ -267,12 +267,12 @@ const Index = () => {
       {/* Hero Section - Responsive Layout */}
       <section className="min-h-screen pt-20 pb-12 flex items-start">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4">
-          <div className="flex flex-col md:flex-row md:items-center md:gap-16 h-full">
-            {/* Left Half - Title, Icon, Subheading */}
-            <div className="text-center md:text-left md:flex-1 mb-8 md:mb-0">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
-                <span className="text-4xl md:text-5xl lg:text-6xl">One login. One AI.</span><br />
-                <span className="text-compose">Unlimited productivity.</span>
+          <div className="flex flex-col h-full">
+            {/* Title, Icon, Subheading */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
+                <span className="text-compose">One login. One AI.</span><br />
+                <span>Unlimited productivity.</span>
               </h1>
               <p className="text-base text-foreground mb-4 font-body font-medium">
                 Your personal AI assistant
@@ -281,13 +281,13 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
-                  className="w-40 mx-auto md:mx-0 rounded-lg"
+                  className="w-40 mx-auto rounded-lg"
                 />
               </div>
             </div>
 
-            {/* Right Half - Login Section */}
-            <div className="w-full max-w-sm mx-auto md:mx-0 md:flex-1 md:max-w-md mt-6 md:mt-0">
+            {/* Login Section */}
+            <div className="w-full max-w-sm mx-auto mt-6">
               <div className="space-y-4">
                 {/* Continue with Google */}
                 <Button 
