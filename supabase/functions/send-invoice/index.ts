@@ -95,59 +95,28 @@ serve(async (req) => {
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
 
-    // Prepare email content - simple version to avoid security filters
+    // Prepare email content - simple text version to avoid encoding issues
     const emailSubject = `Invoice from ${invoice.company_name || 'Your Company'}`;
-    const emailContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Invoice</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-          
-          <div style="text-align: center; margin-bottom: 40px;">
-            <h1 style="color: #2563eb; margin-bottom: 20px;">Thank you for your business!</h1>
-          </div>
-          
-          <div style="font-size: 18px; line-height: 1.8; margin-bottom: 40px;">
-            <p>Hi ${invoice.customer_name},</p>
-            <p>Thanks for your business! Please click below to view your invoice.</p>
-          </div>
+    const emailContent = `Hi ${invoice.customer_name},
 
-          <div style="text-align: center; margin: 40px 0;">
-            <a href="${paymentLink}" 
-               style="
-                 display: inline-block;
-                 background-color: #2563eb;
-                 color: #ffffff !important;
-                 padding: 16px 32px;
-                 text-decoration: none;
-                 font-weight: bold;
-                 font-size: 18px;
-                 font-family: Arial, sans-serif;
-                 border-radius: 8px;
-                 border: none;
-                 cursor: pointer;
-                 text-align: center;
-                 line-height: 1.4;
-               ">
-              📄 View Invoice
-            </a>
-          </div>
-          
-          <div style="text-align: center; margin-top: 40px; font-size: 14px; color: #666;">
-            <p>If the button doesn't work, copy and paste this link:</p>
-            <p><a href="${paymentLink}" style="color: #2563eb; word-break: break-all;">${paymentLink}</a></p>
-          </div>
+Thank you for your business with ${invoice.company_name || 'our company'}!
 
-          <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #666; font-size: 14px;">
-            ${invoice.company_name ? `<p>Best regards,<br>${invoice.company_name}</p>` : ''}
-          </div>
-        </body>
-        </html>
-    `;
+Your invoice is ready for viewing and payment. Please click the link below:
+
+${paymentLink}
+
+Invoice Details:
+• Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}
+• Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}
+• Customer: ${invoice.customer_name}
+
+If you have any questions about this invoice, please don't hesitate to contact us.
+
+Best regards,
+${invoice.company_name || 'Your Company'}
+
+---
+This is an automated invoice notification.`;
 
     console.log('Sending email via Gmail API');
     console.log('To:', invoice.customer_email);
