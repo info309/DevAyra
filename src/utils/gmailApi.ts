@@ -274,6 +274,7 @@ export const gmailApi = {
     threadId?: string,
     attachments?: any[],
     documentAttachments?: any[],
+    sendAsLinks?: boolean,
     signal?: AbortSignal
   ) {
     return this.invoke({
@@ -284,7 +285,8 @@ export const gmailApi = {
         content,
         threadId,
         attachments,
-        documentAttachments
+        documentAttachments,
+        sendAsLinks: sendAsLinks || false
       },
       signal
     });

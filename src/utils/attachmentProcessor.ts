@@ -51,3 +51,22 @@ export const validateAttachmentSize = (attachments: ProcessedAttachment[], maxSi
     .filter(att => att.size > maxSize)
     .map(att => att.name);
 };
+
+export const calculateTotalSize = (fileAttachments: ProcessedAttachment[], documentAttachments: DocumentAttachment[]): number => {
+  const fileSize = fileAttachments.reduce((total, att) => total + att.size, 0);
+  const docSize = documentAttachments.reduce((total, doc) => total + (doc.file_size || 0), 0);
+  return fileSize + docSize;
+};
+
+export const estimateEncodedSize = (totalSize: number): number => {
+  // Base64 encoding increases size by ~33%, plus MIME headers overhead
+  return Math.round(totalSize * 1.4);
+};
+
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};

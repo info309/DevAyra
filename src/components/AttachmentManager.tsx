@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Paperclip, X, Upload, FolderOpen } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Paperclip, X, Upload, FolderOpen, AlertTriangle } from 'lucide-react';
 import DocumentPicker from '@/components/DocumentPicker';
-import { ProcessedAttachment, DocumentAttachment } from '@/utils/attachmentProcessor';
+import { ProcessedAttachment, DocumentAttachment, calculateTotalSize, estimateEncodedSize, formatFileSize } from '@/utils/attachmentProcessor';
 
 interface AttachmentManagerProps {
   fileAttachments: ProcessedAttachment[];
@@ -23,6 +24,9 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   showAddButton = true
 }) => {
   const totalAttachments = fileAttachments.length + documentAttachments.length;
+  const totalSize = calculateTotalSize(fileAttachments, documentAttachments);
+  const estimatedEncodedSize = estimateEncodedSize(totalSize);
+  const isOverGmailLimit = estimatedEncodedSize > 25 * 1024 * 1024; // 25MB Gmail limit
 
   const removeFileAttachment = (index: number) => {
     const newAttachments = fileAttachments.filter((_, i) => i !== index);
@@ -42,12 +46,26 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
     <div className="space-y-3">
       {/* Attachments Display */}
       {totalAttachments > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Paperclip className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Attachments</span>
-            <Badge variant="secondary">{totalAttachments}</Badge>
-          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Paperclip className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Attachments</span>
+              <Badge variant="secondary">{totalAttachments}</Badge>
+              <Badge variant={isOverGmailLimit ? "destructive" : "outline"}>
+                {formatFileSize(totalSize)}
+              </Badge>
+            </div>
+
+            {/* Size warning */}
+            {isOverGmailLimit && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Total size ({formatFileSize(estimatedEncodedSize)} estimated) exceeds Gmail's 25MB limit. 
+                  Consider using "Send as links" option.
+                </AlertDescription>
+              </Alert>
+            )}
 
           {/* File Attachments */}
           {fileAttachments.length > 0 && (
@@ -59,7 +77,10 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{file.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      {formatFileSize(file.size)}
+                      {file.size > 20 * 1024 * 1024 && (
+                        <span className="text-destructive"> • Too large</span>
+                      )}
                     </p>
                   </div>
                   <Button
@@ -86,7 +107,10 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{doc.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown size'}
+                      {doc.file_size ? formatFileSize(doc.file_size) : 'Unknown size'}
+                      {doc.file_size && doc.file_size > 20 * 1024 * 1024 && (
+                        <span className="text-destructive"> • Too large</span>
+                      )}
                     </p>
                   </div>
                   <Button

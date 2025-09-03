@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { Send, Paperclip, Upload } from 'lucide-react';
+import { Send, Paperclip, Upload, Link } from 'lucide-react';
 import AttachmentManager from '@/components/AttachmentManager';
 import DocumentPicker from '@/components/DocumentPicker';
 import { useAttachments } from '@/hooks/useAttachments';
-import { convertFilesToBase64, ProcessedAttachment } from '@/utils/attachmentProcessor';
+import { convertFilesToBase64, ProcessedAttachment, validateAttachmentSize, calculateTotalSize, estimateEncodedSize } from '@/utils/attachmentProcessor';
 import { useToast } from '@/hooks/use-toast';
 
 interface ComposeFormData {
@@ -19,6 +20,7 @@ interface ComposeFormData {
   threadId?: string;
   attachments?: ProcessedAttachment[];
   documentAttachments?: any[];
+  sendAsLinks?: boolean;
 }
 
 interface ComposeDialogProps {
@@ -48,6 +50,12 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileAttachments, setFileAttachments] = useState<ProcessedAttachment[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
+  
+  // Calculate size and validate
+  const totalSize = calculateTotalSize(fileAttachments, selectedDocuments);
+  const estimatedEncodedSize = estimateEncodedSize(totalSize);
+  const isOverGmailLimit = estimatedEncodedSize > 25 * 1024 * 1024;
+  const hasOversizedFiles = validateAttachmentSize(fileAttachments, 20).length > 0;
 
   const handleDocumentsSelected = (docs: any[]) => {
     setSelectedDocuments(docs);
@@ -58,6 +66,19 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
 
   const handleFileSelect = async (files: File[]) => {
     try {
+      // Validate file sizes first
+      const oversizedFiles = files.filter(file => file.size > 20 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Files Too Large",
+          description: `${oversizedFiles.map(f => f.name).join(', ')} exceed 20MB limit`
+        });
+        // Filter out oversized files
+        files = files.filter(file => file.size <= 20 * 1024 * 1024);
+        if (files.length === 0) return;
+      }
+
       const processedFiles = await convertFilesToBase64(files);
       setFileAttachments(prev => [...prev, ...processedFiles]);
       
@@ -201,6 +222,23 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   }
                 />
               </div>
+
+              {/* Send as links option when files are large */}
+              {isOverGmailLimit && (
+                <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                  <Checkbox
+                    id="sendAsLinks"
+                    checked={composeForm.sendAsLinks || false}
+                    onCheckedChange={(checked) => 
+                      onComposeFormChange({ ...composeForm, sendAsLinks: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="sendAsLinks" className="text-sm cursor-pointer">
+                    <Link className="w-4 h-4 inline mr-1" />
+                    Send large files as download links instead
+                  </Label>
+                </div>
+              )}
             </div>
             
             <div>
@@ -241,7 +279,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
               <Button
                 type="button"
                 onClick={onSend}
-                disabled={sendingEmail || !composeForm.to.trim() || !composeForm.subject.trim()}
+                disabled={sendingEmail || !composeForm.to.trim() || !composeForm.subject.trim() || (hasOversizedFiles && !composeForm.sendAsLinks)}
                 className="gap-2"
               >
                 <Send className="w-4 h-4" />

@@ -54,6 +54,7 @@ interface ComposeFormData {
   threadId?: string;
   attachments?: any[];
   documentAttachments?: any[];
+  sendAsLinks?: boolean;
 }
 
 const Mailbox: React.FC = () => {
@@ -1046,7 +1047,8 @@ const Mailbox: React.FC = () => {
           composeForm.content,
           composeForm.threadId,
           composeForm.attachments, // Regular file attachments
-          composeForm.documentAttachments // Document storage attachments
+          composeForm.documentAttachments, // Document storage attachments
+          composeForm.sendAsLinks // Send as links flag
         );
       } catch (error) {
         console.error('Email send error:', error);
