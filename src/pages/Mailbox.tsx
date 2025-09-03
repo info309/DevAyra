@@ -10,7 +10,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, D
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Trash2, Menu, LogOut, Link, Unlink } from 'lucide-react';
+import { ArrowLeft, Mail, Plus, Send, RefreshCw, ExternalLink, Search, MessageSquare, Users, ChevronDown, ChevronRight, Reply, Trash2, Menu, LogOut, Link, Unlink, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
@@ -28,6 +28,12 @@ interface Email {
   date: string;
   content: string;
   unread: boolean;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+    attachmentId?: string;
+  }>;
 }
 
 interface Conversation {
@@ -1463,30 +1469,36 @@ const Mailbox: React.FC = () => {
                                       {formatDate(conversation.lastDate)}
                                     </p>
                                   </div>
-                                  
-                                  <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
-                                    {/* Top right - Bin icon */}
-                                    <div className="flex justify-end">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteConversation(conversation);
-                                        }}
-                                        title={`Delete conversation`}
-                                      >
-                                        <Trash2 className="w-3 h-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                    
-                                    {/* Middle right - Unread dot */}
-                                    <div className="flex justify-center">
-                                      {conversation.unreadCount > 0 && (
-                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                      )}
-                                    </div>
+                                   
+                                   <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
+                                     {/* Top right - Bin icon */}
+                                     <div className="flex justify-end">
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           deleteConversation(conversation);
+                                         }}
+                                         title={`Delete conversation`}
+                                       >
+                                         <Trash2 className="w-3 h-3 text-destructive" />
+                                       </Button>
+                                     </div>
+                                     
+                                     {/* Middle right - Attachments and Unread */}
+                                     <div className="flex justify-center items-center gap-2">
+                                       {/* Show paperclip if any email in conversation has attachments */}
+                                       {conversation.emails.some(email => email.attachments && email.attachments.length > 0) && (
+                                         <div title="Has attachments">
+                                           <Paperclip className="w-3 h-3 text-muted-foreground" />
+                                         </div>
+                                       )}
+                                       {conversation.unreadCount > 0 && (
+                                         <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                       )}
+                                     </div>
                                     
                                      {/* Bottom right - Action buttons */}
                                      <div className="flex gap-1 items-center">{conversation.messageCount > 1 && (
@@ -1522,14 +1534,20 @@ const Mailbox: React.FC = () => {
                                        >
                                         <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
                                           <div className="min-w-0 overflow-hidden">
-                                            <div className="flex items-center gap-2 mb-1 min-w-0">
-                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                                 {email.from.split('<')[0].trim() || email.from}
-                                               </p>
-                                               {email.unread && (
-                                                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                              )}
-                                            </div>
+                                             <div className="flex items-center gap-2 mb-1 min-w-0">
+                                                <p className="text-xs font-medium truncate flex-1 min-w-0">
+                                                  {email.from.split('<')[0].trim() || email.from}
+                                                </p>
+                                                {/* Show paperclip if email has attachments */}
+                                                {email.attachments && email.attachments.length > 0 && (
+                                                  <div title="Has attachments">
+                                                    <Paperclip className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                                  </div>
+                                                )}
+                                                {email.unread && (
+                                                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                               )}
+                                             </div>
                                             <p className="text-xs text-muted-foreground truncate">
                                               {email.snippet}
                                             </p>
