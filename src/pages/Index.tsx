@@ -264,7 +264,7 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
             {/* Title Section */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
-              <p className="text-base text-foreground mb-4 font-body">
+              <p className="text-base text-foreground mb-4 font-body font-medium">
                 Your personal AI assistant
               </p>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
@@ -272,7 +272,7 @@ const Index = () => {
                 <span className="text-compose">Unlimited productivity.</span>
               </h1>
               <div className="mt-4 inline-block px-4 py-2 border border-compose bg-compose rounded-full">
-                <p className="text-sm md:text-base text-compose-foreground font-body font-medium">
+                <p className="text-base text-compose-foreground font-body font-medium">
                   First 10,000 users free for life
                 </p>
               </div>
@@ -285,7 +285,7 @@ const Index = () => {
                 <Button 
                   onClick={() => navigate('/auth')}
                   variant="outline"
-                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-sm bg-background hover:bg-muted font-body"
+                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -299,7 +299,7 @@ const Index = () => {
                 {/* OR Divider */}
                 <div className="flex items-center my-4">
                   <div className="flex-1 border-t border-border"></div>
-                  <span className="px-3 text-xs text-muted-foreground font-body">OR</span>
+                  <span className="px-3 text-base text-muted-foreground font-body font-medium">OR</span>
                   <div className="flex-1 border-t border-border"></div>
                 </div>
 
@@ -307,19 +307,19 @@ const Index = () => {
                 <Input
                   type="email"
                   placeholder="Enter your personal or work email"
-                  className="w-full py-2.5 h-auto text-sm font-body"
+                  className="w-full py-2.5 h-auto text-base font-body font-medium"
                 />
 
                 {/* Continue with Email Button */}
                 <Button 
                   onClick={() => navigate('/auth')}
-                  className="w-full bg-foreground hover:bg-foreground/90 text-background text-sm py-2.5 h-auto font-body"
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background text-base py-2.5 h-auto font-body font-medium"
                 >
                   Continue with email
                 </Button>
 
                 {/* Privacy Policy Text */}
-                <p className="text-xs text-muted-foreground text-center mt-4 font-body">
+                <p className="text-base text-muted-foreground text-center mt-4 font-body font-medium">
                   By continuing, you acknowledge Ayra's Privacy Policy.
                 </p>
               </div>
@@ -335,7 +335,7 @@ const Index = () => {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Meet Ayra, your personal AI assistant
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+            <p className="text-base text-muted-foreground max-w-3xl mx-auto mb-8 font-body font-medium">
               Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
             </p>
             
@@ -347,7 +347,7 @@ const Index = () => {
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
                   <div className="text-center space-y-4 mt-8">
                     <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
-                    <p className="text-white text-base">Ayra Demo Video</p>
+                    <p className="text-base font-body font-medium">Ayra Demo Video</p>
                   </div>
                 </div>
               </div>
@@ -363,7 +363,7 @@ const Index = () => {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Your productivity tools
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-base text-muted-foreground max-w-3xl mx-auto font-body font-medium">
               Everything you need to stay organized, productive, and in control
             </p>
           </div>
@@ -383,12 +383,12 @@ const Index = () => {
                       </div>
                       <h3 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground">{tool.title}</h3>
                     </div>
-                    <p className="text-lg text-muted-foreground leading-relaxed">
+                    <p className="text-base text-muted-foreground leading-relaxed font-body font-medium">
                       {tool.description}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {tool.features.map((feature) => (
-                        <span key={feature} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                        <span key={feature} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-base font-body font-medium">
                           {feature}
                         </span>
                       ))}
@@ -403,7 +403,7 @@ const Index = () => {
                         <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
                         <div className="text-center space-y-3 mt-6">
                           <Icon className="w-10 h-10 text-primary mx-auto" />
-                          <p className="text-white text-sm font-medium">{tool.title}</p>
+                          <p className="text-base font-body font-medium">{tool.title}</p>
                         </div>
                       </div>
                     </div>
@@ -422,7 +422,7 @@ const Index = () => {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Choose your plan
             </h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-base text-muted-foreground font-body font-medium">
               Simple pricing for individuals and teams
             </p>
           </div>
@@ -432,15 +432,15 @@ const Index = () => {
             <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Personal</CardTitle>
-                <CardDescription className="text-lg">Perfect for individuals</CardDescription>
+                <CardDescription className="text-base font-body font-medium">Perfect for individuals</CardDescription>
                 <div className="mt-4">
                   <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-muted-foreground">/month</div>
+                  <div className="text-base text-muted-foreground font-body font-medium">/month</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-center">
-                  <p className="text-muted-foreground">Coming soon - features and pricing to be announced</p>
+                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
                 </div>
               </CardContent>
             </Card>
@@ -448,21 +448,21 @@ const Index = () => {
             {/* Business Plan */}
             <Card className="relative border-2 border-primary shadow-xl">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
+                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-base font-body font-medium">
                   Most Popular
                 </span>
               </div>
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Business</CardTitle>
-                <CardDescription className="text-lg">For teams and organizations</CardDescription>
+                <CardDescription className="text-base font-body font-medium">For teams and organizations</CardDescription>
                 <div className="mt-4">
                   <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-muted-foreground">/month per user</div>
+                  <div className="text-base text-muted-foreground font-body font-medium">/month per user</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-center">
-                  <p className="text-muted-foreground">Coming soon - features and pricing to be announced</p>
+                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
                 </div>
               </CardContent>
             </Card>
@@ -477,13 +477,13 @@ const Index = () => {
             <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">
               Ayra
             </div>
-            <div className="flex space-x-8 text-sm text-muted-foreground">
+            <div className="flex space-x-8 text-base text-muted-foreground font-body font-medium">
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-primary transition-colors">Anti-Slavery Policy</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
+          <div className="mt-8 pt-8 border-t border-border text-center text-base text-muted-foreground font-body font-medium">
             <p>&copy; 2025 Ayra. All rights reserved.</p>
           </div>
         </div>
