@@ -486,15 +486,84 @@ const Mailbox: React.FC = () => {
               conv.messageCount++;
               if (emailData.unread) conv.unreadCount++;
               
-              // Update last date if this email is newer
+              // Always update to the most recent date - this ensures threads show at the top
               if (new Date(email.date_sent) > new Date(conv.lastDate)) {
                 conv.lastDate = email.date_sent;
+                // Update conversation subject to match the most recent email for better visibility
+                conv.subject = email.subject;
               }
               
-              // Add to participants
-              const participant = emailData.from;
-              if (!conv.participants.includes(participant)) {
-                conv.participants.push(participant);
+              // Add all unique participants (both sender and recipient for multi-person threads)
+              const senderParticipant = emailData.from;
+              const recipientParticipant = emailData.to;
+              
+              if (senderParticipant && !conv.participants.includes(senderParticipant)) {
+                conv.participants.push(senderParticipant);
+              }
+              if (recipientParticipant && !conv.participants.includes(recipientParticipant)) {
+                conv.participants.push(recipientParticipant);
+              }
+            });
+            
+            // Sort conversations by most recent email date (ensures yesterday's emails appear at top)
+            const sortedConversations = Array.from(conversationMap.values())
+              .sort((a, b) => {
+                const dateA = new Date(a.lastDate).getTime();
+                const dateB = new Date(b.lastDate).getTime();  
+                return dateB - dateA; // Most recent conversations first
+              });
+
+            console.log(`Processed ${sortedConversations.length} conversations from cached emails`);
+            
+            cachedEmails.forEach(email => {
+              const threadId = email.gmail_thread_id;
+              
+              if (!conversationMap.has(threadId)) {
+                conversationMap.set(threadId, {
+                  id: threadId,
+                  subject: email.subject,
+                  emails: [],
+                  messageCount: 0,
+                  lastDate: email.date_sent,
+                  unreadCount: 0,
+                  participants: []
+                });
+              }
+              
+              const conv = conversationMap.get(threadId)!;
+              const emailData = {
+                id: email.gmail_message_id,
+                threadId: threadId,
+                snippet: email.snippet || '',
+                subject: email.subject,
+                from: email.sender_name ? `${email.sender_name} <${email.sender_email}>` : email.sender_email,
+                to: email.recipient_name ? `${email.recipient_name} <${email.recipient_email}>` : (email.recipient_email || ''),
+                date: email.date_sent,
+                content: email.content || '',
+                unread: email.is_unread || false,
+                attachments: email.attachment_info ? JSON.parse(email.attachment_info as string) : []
+              };
+              
+              conv.emails.push(emailData);
+              conv.messageCount++;
+              if (emailData.unread) conv.unreadCount++;
+              
+              // Always update to the most recent date - this ensures threads show at the top
+              if (new Date(email.date_sent) > new Date(conv.lastDate)) {
+                conv.lastDate = email.date_sent;
+                // Update conversation subject to match the most recent email
+                conv.subject = email.subject;
+              }
+              
+              // Add all unique participants (both sender and recipient)
+              const senderParticipant = emailData.from;
+              const recipientParticipant = emailData.to;
+              
+              if (senderParticipant && !conv.participants.includes(senderParticipant)) {
+                conv.participants.push(senderParticipant);
+              }
+              if (recipientParticipant && !conv.participants.includes(recipientParticipant)) {
+                conv.participants.push(recipientParticipant);
               }
             });
             
@@ -1398,6 +1467,33 @@ const Mailbox: React.FC = () => {
                 autoComplete="off"
                 name="email-search-tablet"
               />
+              {/* Quick search buttons */}
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('Herminda');
+                    setTimeout(handleSearch, 100);
+                  }}
+                  className="text-xs px-1 py-0 h-6"
+                  title="Find Herminda's emails"
+                >
+                  H
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm" 
+                  onClick={() => {
+                    setSearchQuery('');
+                    loadEmailsForView(currentView, null, true);
+                  }}
+                  className="text-xs px-1 py-0 h-6"
+                  title="Clear search"
+                >
+                  ×
+                </Button>
+              </div>
             </div>
 
           </div>
@@ -1440,10 +1536,37 @@ const Mailbox: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10"
+              className="w-full pl-10 pr-20"
               autoComplete="off"
               name="email-search-mobile"
             />
+            {/* Quick search buttons for mobile */}
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('Herminda');
+                  setTimeout(handleSearch, 100);
+                }}
+                className="text-xs px-1 py-0 h-6"
+                title="Find Herminda's emails"
+              >
+                H
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  loadEmailsForView(currentView, null, true);
+                }}
+                className="text-xs px-1 py-0 h-6"
+                title="Clear search"
+              >
+                ×
+              </Button>
+            </div>
           </div>
         </div>
 
