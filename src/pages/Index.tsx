@@ -292,7 +292,7 @@ const Index = () => {
         </div>
 
         {/* Mobile iPhone Container - Positioned below text */}
-        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '75%' }}>
+        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '65%' }}>
           <div className="w-[calc(100vw-2rem)] max-w-sm bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
             <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
               {/* iPhone notch */}
