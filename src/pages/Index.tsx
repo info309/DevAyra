@@ -314,7 +314,7 @@ const Index = () => {
                 </Button>
 
                 {/* Privacy Policy Text */}
-                <p className="text-base text-muted-foreground text-center mt-4 font-body font-medium">
+                <p className="text-xs text-muted-foreground text-center mt-4 font-body font-medium">
                   By continuing, you acknowledge Ayra's Privacy Policy.
                 </p>
               </div>
