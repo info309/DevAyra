@@ -28,16 +28,50 @@ interface Email {
   attachments?: Attachment[];
 }
 
-// EmailContent component props interface
+interface Conversation {
+  id: string;
+  subject: string;
+  participants: string[];
+  lastDate: string;
+  unreadCount: number;
+  messageCount: number;
+  emails: Email[];
+}
+
 interface EmailContentProps {
-  email: Email;
-  onReply?: () => void;
+  conversation: Conversation;
   onSaveAttachment?: (attachment: Attachment, email: Email) => void;
 }
 
-const EmailContent: React.FC<EmailContentProps> = ({ email, onReply, onSaveAttachment }) => {
+const EmailContent: React.FC<EmailContentProps> = ({ conversation, onSaveAttachment }) => {
   const { toast } = useToast();
   const [selectedAttachment, setSelectedAttachment] = useState<{ attachment: Attachment; email: Email } | null>(null);
+
+  // Function to decode HTML entities in email content for display
+  const decodeHtmlEntities = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    // Decode common HTML entities
+    let decoded = htmlContent
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&hellip;/g, '...')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      // Handle numeric entities like &#39;
+      .replace(/&#(\d+);/g, (match, num) => String.fromCharCode(parseInt(num, 10)));
+    
+    return decoded;
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -49,6 +83,33 @@ const EmailContent: React.FC<EmailContentProps> = ({ email, onReply, onSaveAttac
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+
+  const isCalendarInvite = (attachment: Attachment) => {
+    return attachment.mimeType === 'text/calendar' || 
+           attachment.mimeType === 'application/ics' ||
+           attachment.filename.toLowerCase().endsWith('.ics');
+  };
+
+  const handleCalendarInvite = async (attachment: Attachment, email: Email) => {
+    console.log('📅 Processing calendar invite:', attachment.filename);
+    
+    // For now, we'll save it as a document but could enhance to parse calendar data
+    toast({
+      title: "Calendar Invite Detected",
+      description: "Calendar invite will be saved to documents. Future updates will offer calendar integration."
+    });
+    
+    // Then proceed with normal save
+    return handleAttachmentSave(attachment, email);
+  };
+
+  const handleAttachmentAction = async (attachment: Attachment, email: Email, action: 'save') => {
+    if (isCalendarInvite(attachment)) {
+      return handleCalendarInvite(attachment, email);
+    }
+    return handleAttachmentSave(attachment, email);
   };
 
   const handleAttachmentSave = async (attachment: Attachment, email: Email) => {
@@ -70,7 +131,18 @@ const EmailContent: React.FC<EmailContentProps> = ({ email, onReply, onSaveAttac
       return;
     }
 
+    if (!attachment.filename || attachment.filename.trim() === '') {
+      console.error('❌ Invalid filename');
+      toast({
+        variant: "destructive",
+        title: "Invalid File", 
+        description: "Attachment has no valid filename",
+      });
+      return;
+    }
+
     try {
+      console.log('📤 Calling save-attachment function...');
       const { supabase } = await import('@/integrations/supabase/client');
       
       const requestPayload = {
@@ -78,28 +150,51 @@ const EmailContent: React.FC<EmailContentProps> = ({ email, onReply, onSaveAttac
         attachmentId: attachment.attachmentId,
         filename: attachment.filename,
         mimeType: attachment.mimeType,
-        size: attachment.size
+        size: attachment.size,
+        emailSubject: email.subject,
+        description: `Email attachment from ${email.from}`,
+        category: 'email_attachment',
+        tags: ['email', 'attachment']
       };
-
-      const { data, error } = await supabase.functions.invoke('save-attachment', { 
-        body: requestPayload 
+      
+      console.log('📋 Request payload:', requestPayload);
+      
+      const { data, error } = await supabase.functions.invoke('save-attachment', {
+        body: requestPayload
       });
 
-      if (error) throw error;
+      console.log('📥 Save function response:', { data, error });
 
-      toast({
-        title: "Attachment Saved", 
-        description: `${attachment.filename} has been saved to your documents.`,
-      });
-
-      if (onSaveAttachment) {
-        onSaveAttachment(attachment, email);
+      if (error) {
+        console.error('❌ Save function error:', error);
+        throw new Error(error.message || 'Unknown error from save function');
       }
 
-    } catch (error: any) {
-      console.error('❌ Save attachment error:', error);
+      if (!data || !data.success) {
+        console.error('❌ Save function returned no data or success=false:', data);
+        throw new Error(data?.error || 'Save function failed');
+      }
+
+      console.log('✅ Save successful:', data);
+      toast({
+        description: "Document is now saved in your document storage"
+      });
+    } catch (error) {
+      console.error('❌ Save failed with error:', error);
       
-      const errorMessage = error?.message || 'Unknown error occurred';
+      // Provide more specific error messages
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('base64')) {
+          errorMessage = 'File encoding error - please try again';
+        } else if (error.message.includes('authentication')) {
+          errorMessage = 'Authentication failed - please refresh and try again';
+        } else if (error.message.includes('storage')) {
+          errorMessage = 'Storage error - please check your quota and try again';
+        } else {
+          errorMessage = error.message;
+        }
+      }
       
       toast({
         title: "Save Failed", 
@@ -109,78 +204,176 @@ const EmailContent: React.FC<EmailContentProps> = ({ email, onReply, onSaveAttac
     }
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Email Content */}
-      <div className="prose prose-sm max-w-none">
-        <IsolatedEmailRenderer 
-          content={email.content || email.snippet || ''} 
-        />
-      </div>
+  const sortedEmails = [...conversation.emails].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
-      {/* Attachments */}
-      {email.attachments && email.attachments.length > 0 && (
-        <div className="space-y-2">
-          <Separator />
-          <div className="flex items-center gap-2">
-            <Paperclip className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {email.attachments.length} attachment{email.attachments.length > 1 ? 's' : ''}
-            </span>
-          </div>
-          
-          <div className="grid gap-2">
-            {email.attachments.map((attachment, index) => (
-              <div key={index} className="flex items-center justify-between p-2 border rounded">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {attachment.mimeType.startsWith('image/') ? (
-                    <ImageIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                  ) : (
-                    <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{attachment.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(attachment.size)} • {attachment.mimeType}
-                    </p>
-                  </div>
+  console.log('EmailContent received conversation with emails:', conversation.emails.length);
+  conversation.emails.forEach((email, index) => {
+    console.log(`Email ${index + 1} attachments:`, email.attachments?.length || 0, email.attachments);
+  });
+
+  return (
+    <div className="space-y-6 w-full min-w-0 overflow-hidden">
+      {sortedEmails.map((email, emailIndex) => {
+        const regularAttachments = email.attachments?.filter(att => !att.mimeType.startsWith('image/') || att.filename.includes('.')) || [];
+        const inlineImages = email.attachments?.filter(att => att.mimeType.startsWith('image/') && !att.filename.includes('.')) || [];
+
+        console.log(`Email ${email.id} - Regular attachments: ${regularAttachments.length}, Inline images: ${inlineImages.length}`);
+
+        return (
+          <div key={email.id} className="space-y-4 w-full min-w-0 overflow-hidden">
+            {/* Email Header */}
+            <div className="flex items-start justify-between p-4 bg-accent/30 rounded-lg w-full min-w-0 overflow-hidden">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-2 mb-1 w-full min-w-0 overflow-hidden">
+                  <p className="font-medium text-sm truncate">
+                    {email.from.split('<')[0].trim() || email.from}
+                  </p>
                 </div>
-                
-                <div className="flex gap-1 flex-shrink-0">
-                  {attachment.mimeType.startsWith('image/') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedAttachment({ attachment, email })}
-                    >
-                      <Eye className="w-3 h-3" />
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAttachmentSave(attachment, email)}
-                  >
-                    Save
-                  </Button>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-muted-foreground w-full min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <Clock className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{formatDate(email.date)}</span>
+                  </div>
+                  <span className="truncate">To: {email.to.split('<')[0].trim() || email.to}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Attachment Viewer Modal */}
-      {selectedAttachment && (
-        <AttachmentViewer
-          attachment={selectedAttachment.attachment}
-          email={selectedAttachment.email}
-          isOpen={!!selectedAttachment}
-          onClose={() => setSelectedAttachment(null)}
-          onSave={(attachment, email) => handleAttachmentSave(attachment, email)}
-        />
-      )}
+            {/* Regular Attachments */}
+            {regularAttachments.length > 0 && (
+              <div className="border-b border-border pb-4 w-full min-w-0 overflow-hidden">
+                <div className="flex items-center gap-2 mb-3">
+                  <Paperclip className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {regularAttachments.length} Attachment{regularAttachments.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="grid gap-2 w-full min-w-0">
+                  {regularAttachments.map((attachment, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors w-full min-w-0 overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                        <div className="flex-shrink-0">
+                          <Badge variant="secondary" className="text-xs font-mono">
+                            {attachment.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                          </Badge>
+                        </div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <p className="text-sm font-medium truncate text-foreground">{attachment.filename}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(attachment.size)}
+                          </p>
+                        </div>
+                      </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAttachment({ attachment, email })}
+                            className="flex-shrink-0"
+                            title="Preview attachment"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentAction(attachment, email, 'save')}
+                            disabled={!attachment.attachmentId}
+                            className="flex-shrink-0"
+                            title={isCalendarInvite(attachment) ? "Save calendar invite to Documents" : "Save to Documents"}
+                          >
+                            {isCalendarInvite(attachment) ? "Save Invite" : "Save"}
+                          </Button>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Inline Images */}
+            {inlineImages.length > 0 && (
+              <div className="border-b border-border pb-4 w-full min-w-0 overflow-hidden">
+                <div className="flex items-center gap-2 mb-3">
+                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {inlineImages.length} Image{inlineImages.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="grid gap-2 w-full min-w-0">
+                  {inlineImages.map((image, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors w-full min-w-0 overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                        <div className="flex-shrink-0">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {image.mimeType.split('/')[1]?.toUpperCase() || 'IMG'}
+                          </Badge>
+                        </div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <p className="text-sm font-medium truncate text-foreground">{image.filename}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(image.size)}
+                          </p>
+                        </div>
+                      </div>
+                       <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAttachment({ attachment: image, email })}
+                            className="flex-shrink-0"
+                            title="Preview image"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAttachmentAction(image, email, 'save')}
+                            className="flex-shrink-0"
+                            title="Save to Documents"
+                          >
+                            Save
+                          </Button>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Email Content */}
+            <div className="space-y-4 w-full min-w-0 overflow-hidden">
+              <IsolatedEmailRenderer 
+                content={decodeHtmlEntities(email.content || '')}
+                className="w-full min-w-0"
+              />
+            </div>
+
+            {/* Separator between emails in thread */}
+            {emailIndex < sortedEmails.length - 1 && (
+              <Separator className="my-6" />
+            )}
+          </div>
+        );
+      })}
+      
+      {/* Attachment Viewer */}
+      <AttachmentViewer
+        attachment={selectedAttachment?.attachment || null}
+        email={selectedAttachment?.email || null}
+        isOpen={!!selectedAttachment}
+        onClose={() => setSelectedAttachment(null)}
+        onSave={handleAttachmentSave}
+      />
     </div>
   );
 };
