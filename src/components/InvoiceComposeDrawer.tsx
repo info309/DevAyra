@@ -55,11 +55,6 @@ ${invoice.company_name || 'Your Company'}`);
         throw new Error(error.message);
       }
 
-      toast({
-        title: "Invoice Sent",
-        description: "Invoice email has been sent successfully.",
-      });
-
       onClose();
     } catch (error) {
       console.error('Error sending invoice email:', error);
