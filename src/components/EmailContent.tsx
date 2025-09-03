@@ -28,6 +28,7 @@ interface Email {
   attachments?: Attachment[];
 }
 
+// EmailContent component props interface
 interface EmailContentProps {
   email: Email;
   onReply?: () => void;
