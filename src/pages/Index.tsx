@@ -268,7 +268,7 @@ const Index = () => {
                 Your personal AI assistant
               </p>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
-                One login. One AI.<br />
+                <span className="text-4xl md:text-5xl lg:text-6xl">One login. One AI.</span><br />
                 <span className="text-compose">Unlimited productivity.</span>
               </h1>
             </div>
