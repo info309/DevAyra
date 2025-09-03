@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock } from 'lucide-react';
+import aiAssistantHero from '@/assets/ai-assistant-hero.jpg';
 
 const TypewriterText = ({ text }: { text: string }) => {
   const [displayText, setDisplayText] = useState('');
@@ -271,6 +272,13 @@ const Index = () => {
               <p className="text-base text-foreground mb-4 font-body font-medium">
                 Your personal AI assistant
               </p>
+              <div className="mt-6 mb-6">
+                <img 
+                  src={aiAssistantHero} 
+                  alt="AI Assistant Illustration" 
+                  className="w-full max-w-lg mx-auto rounded-lg shadow-lg"
+                />
+              </div>
             </div>
 
             {/* Login Section */}
