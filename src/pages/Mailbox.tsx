@@ -682,6 +682,75 @@ const Mailbox: React.FC = () => {
     try {
       setSearchLoading(true);
       
+      // First search in cached emails for instant results
+      const { data: cachedResults, error: cacheError } = await supabase
+        .from('cached_emails')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('email_type', currentView)
+        .or(`sender_name.ilike.%${searchQuery}%,sender_email.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`)
+        .order('date_sent', { ascending: false })
+        .limit(100);
+
+      if (!cacheError && cachedResults?.length) {
+        console.log(`Found ${cachedResults.length} cached emails matching search for "${searchQuery}"`);
+        
+        // Convert to conversation format
+        const conversationMap = new Map<string, Conversation>();
+        
+        cachedResults.forEach(email => {
+          const threadId = email.gmail_thread_id;
+          
+          if (!conversationMap.has(threadId)) {
+            conversationMap.set(threadId, {
+              id: threadId,
+              subject: email.subject,
+              emails: [],
+              messageCount: 0,
+              lastDate: email.date_sent,
+              unreadCount: 0,
+              participants: []
+            });
+          }
+          
+          const conv = conversationMap.get(threadId)!;
+          const emailData = {
+            id: email.gmail_message_id,
+            threadId: threadId,
+            snippet: email.snippet || '',
+            subject: email.subject,
+            from: email.sender_name ? `${email.sender_name} <${email.sender_email}>` : email.sender_email,
+            to: email.recipient_name ? `${email.recipient_name} <${email.recipient_email}>` : (email.recipient_email || ''),
+            date: email.date_sent,
+            content: email.content || '',
+            unread: email.is_unread || false,
+            attachments: email.attachment_info ? JSON.parse(email.attachment_info as string) : []
+          };
+          
+          conv.emails.push(emailData);
+          conv.messageCount++;
+          if (emailData.unread) conv.unreadCount++;
+          
+          if (new Date(email.date_sent) > new Date(conv.lastDate)) {
+            conv.lastDate = email.date_sent;
+          }
+          
+          const participant = emailData.from;
+          if (!conv.participants.includes(participant)) {
+            conv.participants.push(participant);
+          }
+        });
+        
+        const conversations = Array.from(conversationMap.values()).sort((a, b) => 
+          new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+        );
+        
+        setCurrentConversations(conversations);
+        setSearchLoading(false);
+        return;
+      }
+      
+      // Fall back to Gmail API search if no cached results
       const data = await gmailApi.searchEmails(searchQuery);
 
       // Show partial success warnings if any
