@@ -205,37 +205,83 @@ const Invoices = () => {
 
   const handleSendInvoice = async (invoice: Invoice) => {
     try {
-      // Simple email content to avoid security filters
+      // First ensure PDF exists
+      if (!invoice.pdf_path) {
+        toast({
+          title: "Generating PDF...",
+          description: "Please wait while we generate the invoice PDF.",
+        });
+        
+        const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+          body: { invoiceId: invoice.id }
+        });
+        
+        if (pdfError) {
+          throw new Error(`Failed to generate PDF: ${pdfError.message}`);
+        }
+        
+        // Refresh invoice data to get PDF path
+        const { data: updatedInvoice, error: fetchError } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('id', invoice.id)
+          .single();
+          
+        if (fetchError || !updatedInvoice?.pdf_path) {
+          throw new Error("PDF generation failed");
+        }
+        
+        invoice = updatedInvoice;
+      }
+
       const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
-      
-      // Create invoice viewing link with production domain
       const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
       
-      const simpleBody = `Hi ${invoice.customer_name},
+      // Create HTML email body with clickable link
+      const htmlBody = `Hi ${invoice.customer_name},
 
-Thanks for your business! Please find your invoice details below.
+Thanks for your business! Please find your invoice attached.
 
-You can view and pay your invoice online here:
+<a href="${invoiceLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View & Pay Invoice Online</a>
+
+If the button doesn't work, you can copy and paste this link:
 ${invoiceLink}
 
 Best regards,
 ${invoice.company_name || 'Your Company'}`;
 
-      // Navigate to mailbox with compose draft (no attachments)
+      // Create document attachment for the PDF
+      const pdfAttachment = {
+        id: invoice.id,
+        name: `Invoice-${invoice.invoice_number || invoice.id}.pdf`,
+        size: 0, // Size not available, but not critical for display
+        file_path: invoice.pdf_path,
+        content_type: 'application/pdf',
+        created_at: invoice.updated_at
+      };
+
+      // Navigate to mailbox with compose draft including PDF attachment
       navigate('/mailbox', { 
         state: { 
           composeDraft: { 
             to: invoice.customer_email, 
             subject, 
-            content: simpleBody
+            content: htmlBody,
+            documentAttachments: [pdfAttachment]
           } 
         } 
       });
+      
+      toast({
+        title: "Email Ready",
+        description: "Invoice email prepared with PDF attachment.",
+      });
+      
     } catch (error) {
       console.error('Error in handleSendInvoice:', error);
       toast({
         title: "Error",
-        description: "Failed to prepare invoice email. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to prepare invoice email. Please try again.",
         variant: "destructive"
       });
     }
