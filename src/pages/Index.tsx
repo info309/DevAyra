@@ -258,7 +258,7 @@ const Index = () => {
             {/* Left Side - Content matching Canva design */}
             <div className="flex flex-col justify-start space-y-8 md:space-y-12 pt-2 md:pt-8">
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
                   One login,<br />
                   One AI,<br />
                   <span className="text-red-400">Unlimited<br />productivity.</span>
@@ -267,7 +267,12 @@ const Index = () => {
               
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <span className="text-red-400 text-lg md:text-xl font-medium">Join today</span>
+                  <button 
+                    onClick={() => navigate('/auth')}
+                    className="text-red-400 text-lg md:text-xl font-medium hover:text-red-300 transition-colors cursor-pointer"
+                  >
+                    Join today
+                  </button>
                   <span className="text-red-400 text-lg md:text-xl">→</span>
                 </div>
                 <p className="text-foreground text-base md:text-lg">
