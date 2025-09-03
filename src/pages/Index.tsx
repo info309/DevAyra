@@ -340,7 +340,7 @@ const Index = () => {
       <section className="pt-20 pb-5 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-1.5">
               Meet Ayra, your personal AI assistant
             </h2>
             <p className="text-base text-muted-foreground max-w-3xl mx-auto mb-8 font-body font-medium">
@@ -368,7 +368,7 @@ const Index = () => {
       <section className="pt-20 pb-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-1.5">
               Your productivity tools
             </h2>
             <p className="text-base text-muted-foreground max-w-3xl mx-auto font-body font-medium">
@@ -423,7 +423,7 @@ const Index = () => {
       <section className="pt-20 pb-5 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-1.5">
               Choose your plan
             </h2>
             <p className="text-base text-muted-foreground font-body font-medium">
