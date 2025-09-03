@@ -665,9 +665,23 @@ const Mailbox: React.FC = () => {
       } else {
         // Replace conversations for initial load or refresh, but only if we have new data
         if (newConversations?.length) {
+          // Check if Herminda's conversation is in the new conversations  
+          const hermindaConv = newConversations.find(c => c.id === '1973ae6bbfe11c2a');
+          console.log('🔍 Processing', newConversations.length, 'conversations for', view);
+          console.log('🔍 Herminda conversation in newConversations?', hermindaConv ? 'YES' : 'NO');
+          if (hermindaConv) {
+            console.log('✅ Herminda conversation details:', {
+              id: hermindaConv.id,
+              subject: hermindaConv.subject,
+              lastDate: hermindaConv.lastDate,
+              messageCount: hermindaConv.messageCount
+            });
+          }
+          
           setViewCache(prev => ({ ...prev, [view]: newConversations }));
           if (view === currentView) {
             setCurrentConversations(newConversations);
+            console.log('📧 Set currentConversations for', view, 'with', newConversations.length, 'items');
           }
           setConversations(newConversations);
           
