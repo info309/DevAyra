@@ -452,9 +452,9 @@ class GmailService {
             
             const processedMessages = messages.map(msg => this.processMessage(msg));
             
-            // Sort messages chronologically within the thread
-            const chronologicalMessages = processedMessages.sort((a, b) => 
-              new Date(a.date).getTime() - new Date(b.date).getTime()
+            // Sort messages in reverse chronological order within the thread (newest first)
+            const reverseChronologicalMessages = processedMessages.sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
             );
             
             // Find the most recent message for thread sorting
@@ -462,14 +462,14 @@ class GmailService {
               new Date(b.date).getTime() - new Date(a.date).getTime()
             )[0];
             
-            // Use first message for subject
-            const firstMessage = chronologicalMessages[0];
+            // Use first message (now newest) for subject
+            const firstMessage = reverseChronologicalMessages[0];
             
             return {
               id: thread.id,
               threadId: thread.id,
               subject: firstMessage?.subject || 'No Subject',
-              emails: chronologicalMessages.map(msg => ({
+              emails: reverseChronologicalMessages.map(msg => ({
                 id: msg.id,
                 threadId: msg.threadId,
                 snippet: msg.snippet,
