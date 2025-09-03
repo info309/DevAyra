@@ -251,12 +251,12 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section - Full Screen Split */}
-      <section className="min-h-screen pt-20 relative overflow-hidden">
+      {/* Hero Section - Full Screen */}
+      <section className="h-screen pt-20 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full">
-          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 min-h-[70vh] md:min-h-[80vh]">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 h-full">
             {/* Left Side - Content matching Canva design */}
-            <div className="flex flex-col justify-start space-y-6 md:space-y-8 pt-2 md:pt-8">
+            <div className="flex flex-col justify-center space-y-6 md:space-y-8 md:pt-8">
               <div className="space-y-4">
                 <h1 className="text-5xl md:text-6xl lg:text-6xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
                   One login.<br />
@@ -293,7 +293,6 @@ const Index = () => {
             </div>
           </div>
         </div>
-
       </section>
 
       {/* Meet Ayra Section */}
