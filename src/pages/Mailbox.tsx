@@ -90,6 +90,9 @@ const Mailbox: React.FC = () => {
   const [currentView, setCurrentView] = useState<'inbox' | 'sent'>('inbox');
   const [currentConversations, setCurrentConversations] = useState<Conversation[]>([]);
   
+  // Threading mode state
+  const [useSmartThreading, setUseSmartThreading] = useState(false);
+  
   // Cache for each view to improve performance
   const [viewCache, setViewCache] = useState<{
     inbox?: Conversation[];
