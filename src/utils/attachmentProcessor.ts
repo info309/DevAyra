@@ -1,7 +1,7 @@
 // Clean attachment processing utility
 export interface ProcessedAttachment {
   name: string;
-  content: string; // base64
+  data: string; // base64
   mimeType: string;
   size: number;
 }
@@ -43,7 +43,7 @@ export const convertFilesToBase64 = async (
       
       processedFiles.push({
         name: file.name,
-        content: base64,
+        data: base64,
         mimeType: file.type,
         size: file.size
       });
