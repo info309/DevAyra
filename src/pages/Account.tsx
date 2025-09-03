@@ -234,10 +234,8 @@ const Account: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBackToDashboard}
-                  className="gap-2"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                  Dashboard
                 </Button>
                 <h1 className="text-2xl font-bold">Account</h1>
               </div>

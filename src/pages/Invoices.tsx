@@ -339,15 +339,14 @@ const Invoices = () => {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-          </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
         <p className="text-muted-foreground">Create and manage your invoices</p>

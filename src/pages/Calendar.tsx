@@ -487,9 +487,8 @@ const Calendar = () => {
         {/* Desktop Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="w-4 h-4" />
-              Dashboard
             </Button>
             <h1 className="text-2xl font-bold">
               {format(new Date(), "EEEE do MMMM yyyy")}

@@ -613,10 +613,9 @@ const Assistant = () => {
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/dashboard')}
-              className="shrink-0 gap-2"
+              className="shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden lg:inline">Dashboard</span>
             </Button>
             <h1 className="text-2xl font-heading font-bold truncate">Ayra</h1>
           </div>
