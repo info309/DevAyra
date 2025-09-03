@@ -33,18 +33,17 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get auth token
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      console.error(`[${requestId}] No authorization header`);
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+    // Get Gmail access token from request body instead of auth header
+    if (!body.accessToken) {
+      console.error(`[${requestId}] No Gmail access token in request body`);
+      return new Response(JSON.stringify({ error: 'No Gmail access token provided' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
     
-    const accessToken = authHeader.replace('Bearer ', '');
-    console.log(`[${requestId}] Got access token (length: ${accessToken.length})`);
+    const accessToken = body.accessToken;
+    console.log(`[${requestId}] Got Gmail access token (length: ${accessToken.length})`);
 
     if (body.action === 'sendEmail') {
       return await handleSendEmail(requestId, accessToken, body);
