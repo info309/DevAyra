@@ -101,17 +101,35 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
     })
   }
 
+  // If note is locked, show locked state instead of content
+  if (note.is_locked) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Note is Locked</h2>
+          <p className="text-muted-foreground mb-4">
+            This note is password protected. You'll need to unlock it from the sidebar to view and edit its contents.
+          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p><strong>Title:</strong> {note.title}</p>
+            <p><strong>Created:</strong> {formatDate(note.created_at)}</p>
+            {note.updated_at !== note.created_at && (
+              <p><strong>Modified:</strong> {formatDate(note.updated_at)}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-shrink-0 space-y-4 p-6 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0 mr-4">
-            {note.is_locked && (
-              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                <Lock className="h-4 w-4" />
-                <span>This note is password protected</span>
-              </div>
-            )}
             {isEditingTitle ? (
               <div className="flex items-center gap-2">
                 <Input

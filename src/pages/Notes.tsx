@@ -159,6 +159,8 @@ export default function Notes() {
 
   const handlePasswordVerified = () => {
     if (lockedNote) {
+      // Actually unlock the note after password verification
+      updateNote(lockedNote.id, { is_locked: false })
       setSelectedNote(lockedNote)
       setLockedNote(null)
     }
