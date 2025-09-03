@@ -66,8 +66,6 @@ const Mailbox: React.FC = () => {
   const [emailLoading, setEmailLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-  const [expandedConversations, setExpandedConversations] = useState<Set<string>>(new Set());
   const [hasGmailConnection, setHasGmailConnection] = useState<boolean | null>(null);
 
   // Compose dialog state
@@ -79,21 +77,7 @@ const Mailbox: React.FC = () => {
   });
 
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [sendingProgress, setSendingProgress] = useState('');
-  const [emailAbortController, setEmailAbortController] = useState<AbortController | null>(null);
-
-  // Pagination state
-  const [currentPageToken, setCurrentPageToken] = useState<string | null>(null);
-  const [currentAllEmailsLoaded, setCurrentAllEmailsLoaded] = useState(false);
-
-  // View state
   const [currentView, setCurrentView] = useState<'inbox' | 'sent'>('inbox');
-  const [currentConversations, setCurrentConversations] = useState<Conversation[]>([]);
-  
-  // Threading mode state
-  const [useSmartThreading, setUseSmartThreading] = useState(false);
-  
-  // Cache for each view to improve performance
   const [viewCache, setViewCache] = useState<{
     inbox?: Conversation[];
     sent?: Conversation[];
@@ -105,43 +89,6 @@ const Mailbox: React.FC = () => {
 
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  
-  // Track locally trashed items to prevent them from reappearing during background refresh
-  const [locallyTrashedIds, setLocallyTrashedIds] = useState<Set<string>>(new Set());
-  
-  
-  // Add files menu state for mobile compose
-  const [showAddFilesMenu, setShowAddFilesMenu] = useState(false);
-  const addFilesMenuRef = useRef<HTMLDivElement>(null);
-  
-  // Click outside handler for add files menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      
-      // Don't close if clicking inside the menu
-      if (addFilesMenuRef.current && addFilesMenuRef.current.contains(target)) {
-        return;
-      }
-      
-      // Don't close if clicking on DocumentPicker dialog elements
-      const dialogElement = document.querySelector('[role="dialog"]');
-      if (dialogElement && dialogElement.contains(target)) {
-        return;
-      }
-      
-      // Close the menu for other clicks
-      setShowAddFilesMenu(false);
-    };
-
-    if (showAddFilesMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showAddFilesMenu]);
 
   // Handle draft from assistant
   useEffect(() => {
@@ -151,20 +98,10 @@ const Mailbox: React.FC = () => {
         to: draft.to || '',
         subject: draft.subject || '',
         content: draft.content || '',
-        // Only set threadId if it exists and is a valid string
         threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
       });
       
-      console.log('AI Draft loaded:', {
-        to: draft.to,
-        subject: draft.subject,
-        content: draft.content,
-        threadId: draft.threadId,
-        isValidThreadId: !!(draft.threadId && typeof draft.threadId === 'string')
-      });
       setShowComposeDialog(true);
-      
-      // Clear the state to prevent reopening
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, navigate, location.pathname]);
@@ -199,97 +136,72 @@ const Mailbox: React.FC = () => {
 
   useEffect(() => {
     if (user && hasGmailConnection === true) {
-      // Preload both inbox and sent views for instant switching with larger cache (100 emails)
-      loadEmailsForView('inbox', null, true); // Force refresh on initial load  
-      loadEmailsForView('sent', null, true);
-      
-      // Auto-refresh emails from last 24h when opening app
-      const now = new Date();
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      refreshRecentEmails(yesterday);
+      loadEmailsForView('inbox');
+      loadEmailsForView('sent');
     }
   }, [user, hasGmailConnection]);
-
-  // Debug: Log conversation data when it changes
-  useEffect(() => {
-    console.log('Current conversations updated:', currentConversations.length);
-  }, [currentConversations]);
-
-  // Simple background refresh - just check for new emails without complex merging
-  useEffect(() => {
-    if (!user) return;
-
-    const refreshInterval = setInterval(async () => {
-      // Only refresh if not currently loading and we have cached data
-      if (!viewLoading[currentView] && viewCache[currentView]) {
-        try {
-          console.log('Background refresh for:', currentView);
-          const query = currentView === 'inbox' ? 'in:inbox' : 'in:sent';
-          const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
-
-          if (data?.conversations) {
-            const newCount = data.conversations.length;
-            const existingCount = viewCache[currentView]?.length || 0;
-            
-            // Only update if we have more conversations than before
-            if (newCount > existingCount) {
-              console.log(`Background refresh: ${newCount} conversations (was ${existingCount})`);
-              setViewCache(prev => ({ ...prev, [currentView]: data.conversations }));
-              setCurrentConversations(data.conversations);
-            }
-          }
-        } catch (error) {
-          // Silently ignore background refresh errors
-          console.debug('Background refresh failed:', error);
-        }
-      }
-    }, 30000); // Check every 30 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [user, currentView, viewLoading, viewCache]);
 
   // Handle view switching with instant cache access
   useEffect(() => {
     if (user && viewCache[currentView]) {
-      // Immediately show cached data
-      setCurrentConversations(viewCache[currentView]!);
+      setConversations(viewCache[currentView]!);
       setEmailLoading(false);
     }
   }, [currentView, viewCache]);
 
-  const refreshRecentEmails = async (since: Date) => {
+  const loadEmailsForView = async (view = currentView, forceRefresh = false) => {
     if (!user) return;
-    
-    try {
-      const sinceFormatted = since.toISOString().split('T')[0]; // YYYY-MM-DD format
-      const query = `in:inbox after:${sinceFormatted}`;
-      
-      console.log('Refreshing recent emails since:', sinceFormatted);
-      
-      const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
-      
-      if (data?.conversations) {
-        // Cache the recent emails
-        try {
-          await supabase.functions.invoke('cache-emails', {
-            body: { conversations: data.conversations }
-          });
-          console.log(`Cached ${data.conversations.length} recent emails`);
-        } catch (cacheError) {
-          console.warn('Failed to cache recent emails:', cacheError);
-        }
-      }
-    } catch (error) {
-      console.debug('Recent email refresh failed:', error);
-    }
-  };
 
-  const loadMoreEmails = async () => {
-    if (!currentPageToken || currentAllEmailsLoaded || viewLoading[currentView]) {
+    // If we already have cached data and this is not a force refresh, return early
+    if (!forceRefresh && viewCache[view] && viewCache[view]!.length > 0) {
+      if (view === currentView) {
+        setConversations(viewCache[view]!);
+        setEmailLoading(false);
+      }
       return;
     }
-    
-    await loadEmailsForView(currentView, currentPageToken);
+
+    if (viewLoading[view]) return;
+
+    try {
+      setViewLoading(prev => ({ ...prev, [view]: true }));
+      
+      if (view === currentView) {
+        setEmailLoading(true);
+      }
+      
+      const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
+      
+      console.log('Loading emails for view:', view, 'query:', query);
+      
+      const data = await gmailApi.getEmails(query, undefined, new AbortController().signal);
+
+      console.log('Gmail API response for', view, ':', { 
+        conversationCount: data.conversations?.length || 0
+      });
+
+      const newConversations = data.conversations || [];
+      
+      // Cache the conversations
+      setViewCache(prev => ({ ...prev, [view]: newConversations }));
+      
+      if (view === currentView) {
+        setConversations(newConversations);
+      }
+
+    } catch (error) {
+      console.error(`Error loading ${view} emails:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to load ${view} emails. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setViewLoading(prev => ({ ...prev, [view]: false }));
+      if (view === currentView) {
+        setEmailLoading(false);
+      }
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -313,1371 +225,354 @@ const Mailbox: React.FC = () => {
     }
   };
 
-  // Function to aggressively clean email content by removing ALL HTML, CSS, and styling
-  const cleanEmailContentForReply = (htmlContent: string): string => {
-    if (!htmlContent) return '';
-    
-    let cleaned = htmlContent;
-    
-    // First, remove all style blocks and their contents
-    cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    
-    // Remove all script blocks and their contents
-    cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    
-    // Remove HTML comments
-    cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
-    
-    // Remove DOCTYPE declarations
-    cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
-    
-    // Remove XML declarations
-    cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
-    
-    // Remove all HTML tags completely
-    cleaned = cleaned.replace(/<[^>]*>/g, ' ');
-    
-    // Clean up HTML entities
-    cleaned = cleaned
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'")
-      .replace(/&hellip;/g, '...')
-      .replace(/&mdash;/g, '—')
-      .replace(/&ndash;/g, '–')
-      .replace(/&rsquo;/g, "'")
-      .replace(/&lsquo;/g, "'")
-      .replace(/&rdquo;/g, '"')
-      .replace(/&ldquo;/g, '"')
-      .replace(/&#\d+;/g, ' '); // Remove any remaining numeric entities
-    
-    // Remove CSS properties and selectors that might have leaked through
-    cleaned = cleaned.replace(/[a-zA-Z-]+\s*:\s*[^;]+;/g, ' ');
-    cleaned = cleaned.replace(/@[a-zA-Z-]+[^{]*\{[^}]*\}/g, ' ');
-    cleaned = cleaned.replace(/\.[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
-    cleaned = cleaned.replace(/#[a-zA-Z-_][a-zA-Z0-9-_]*\s*\{[^}]*\}/g, ' ');
-    
-    // Remove URLs that are not part of meaningful text
-    cleaned = cleaned.replace(/https?:\/\/[^\s<>"']{20,}/g, ' ');
-    
-    // Clean up whitespace and line breaks
-    cleaned = cleaned
-      .replace(/\r\n/g, '\n')           // Normalize line endings
-      .replace(/\r/g, '\n')            // Convert remaining \r to \n
-      .replace(/\n{4,}/g, '\n\n\n')    // Limit to maximum 3 consecutive line breaks
-      .replace(/[ \t]{2,}/g, ' ')      // Collapse multiple spaces/tabs to single space
-      .replace(/[ \t]*\n[ \t]*/g, '\n') // Clean up spaces around line breaks
-      .replace(/^\s+|\s+$/g, '')       // Trim start and end
-      .split('\n')                     // Split into lines
-      .map(line => line.trim())        // Trim each line
-      .filter(line => line.length > 0 && !line.match(/^[^a-zA-Z0-9]*$/)) // Remove empty or symbol-only lines
-      .join('\n')                      // Rejoin
-      .replace(/\n{3,}/g, '\n\n');     // Final cleanup of excessive line breaks
-    
-    // If the result is still very long or seems to contain CSS/HTML artifacts, try a more aggressive approach
-    if (cleaned.length > 2000 || cleaned.match(/[{}@#\.]/)) {
-      // Try to extract only sentences and readable text
-      const sentences = cleaned.match(/[A-Z][^.!?]*[.!?]/g) || [];
-      if (sentences.length > 0) {
-        cleaned = sentences.join(' ').trim();
-      }
-    }
-    
-    // Final safety check - if it still looks like code/CSS, return a simple message
-    if (cleaned.match(/[{}@#]{3,}/) || cleaned.length < 10) {
-      return '[Original message content cannot be cleanly displayed as text]';
-    }
-    
-    return cleaned.trim();
-  };
-
-  // Function to gently clean email content for resending (less aggressive than reply cleaning)
-  const cleanEmailContentForResend = (htmlContent: string): string => {
-    if (!htmlContent) return '';
-    
-    let cleaned = htmlContent;
-    
-    // Only remove HTML tags and decode basic entities, preserve the actual content
-    cleaned = cleaned.replace(/<[^>]*>/g, ''); // Remove HTML tags
-    
-    // Decode common HTML entities
-    cleaned = cleaned
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'");
-    
-    // Basic whitespace cleanup
-    cleaned = cleaned
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .replace(/[ \t]{2,}/g, ' ')
-      .trim();
-    
-    return cleaned || htmlContent; // Return original if cleaning results in empty string
-  };
-
-  const loadEmailsForView = async (view = currentView, pageToken?: string | null, forceRefresh = false) => {
-    if (!user) return;
-
-    // If we already have cached data and this is not a pagination request or force refresh, return early
-    if (!pageToken && !forceRefresh && viewCache[view] && viewCache[view]!.length > 0) {
-      if (view === currentView) {
-        setCurrentConversations(viewCache[view]!);
-        setEmailLoading(false);
-      }
+  const searchEmails = async () => {
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Search Error",
+        description: "Please enter a search query.",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (viewLoading[view]) return;
-
-    // Create AbortController for this request
-    const abortController = new AbortController();
-
+    setSearchLoading(true);
     try {
-      setViewLoading(prev => ({ ...prev, [view]: true }));
-      
-      // Only show loading state for the current view
-      if (view === currentView) {
-        setEmailLoading(true);
-      }
-      
-      const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
-      
-      console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
-      
-      const data = await gmailApi.getEmails(query, pageToken || undefined, abortController.signal);
-
-      console.log('Gmail API response for', view, ':', { 
-        conversationCount: data.conversations?.length || 0,
-        nextPageToken: data.nextPageToken,
-        allEmailsLoaded: data.allEmailsLoaded
-      });
-
-      // Show partial success warnings if any
-      if (data.partialSuccess && data.errors?.length && view === currentView) {
-        console.warn('Some emails had processing errors:', data.errors);
-        toast({
-          title: "Partial Load",
-          description: `Loaded emails with ${data.errors.length} item(s) skipped due to processing errors.`,
-          variant: "default"
-        });
-      }
-
-      const { conversations: newConversations, nextPageToken, allEmailsLoaded } = data;
-      
-      if (pageToken) {
-        // Append to existing conversations for pagination
-        const updatedConversations = [...(viewCache[view] || []), ...newConversations];
-        setViewCache(prev => ({ ...prev, [view]: updatedConversations }));
-        if (view === currentView) {
-          setCurrentConversations(updatedConversations);
-        }
-      } else {
-        // Replace conversations for initial load or refresh
-        setViewCache(prev => ({ ...prev, [view]: newConversations }));
-        if (view === currentView) {
-          setCurrentConversations(newConversations);
-        }
-        setConversations(newConversations);
-        
-        // Cache emails for assistant search
-        try {
-          await supabase.functions.invoke('cache-emails', {
-            body: { conversations: newConversations }
-          });
-        } catch (cacheError) {
-          console.warn('Failed to cache emails for assistant:', cacheError);
-        }
-      }
-      
-      if (view === currentView) {
-        setCurrentPageToken(nextPageToken);
-        setCurrentAllEmailsLoaded(allEmailsLoaded);
-      }
-      
-    } catch (error) {
-      // Ignore aborted requests
-      if (error.name === 'AbortError') {
-        console.debug('Request aborted for view:', view);
-        return;
-      }
-
-      console.error('Error loading emails:', error);
-      if (view === currentView) {
-        if (error instanceof GmailApiError) {
-          // Handle authentication errors
-          if (error.status === 401 || error.message.includes('Authentication failed') || error.message.includes('Invalid authentication token')) {
-            toast({
-              variant: "destructive",
-              title: "Authentication Error",
-              description: "Your session has expired. Please refresh the page or log in again.",
-            });
-            return;
-          }
-          
-          // Check if this is a token expiration error that requires reconnection
-          if (error.message && error.message.includes('expired and needs to be reconnected')) {
-            toast({
-              title: "Gmail Connection Expired",
-              description: error.message,
-              variant: "destructive",
-              action: (
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="px-3 py-1 bg-white text-black rounded text-sm"
-                  >
-                    Refresh Page
-                  </button>
-                </div>
-              )
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: `Failed to load emails: ${error.message || 'Please try again. If this is your first connection, it may take a moment to sync your emails.'}`,
-              variant: "destructive"
-            });
-          }
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load emails. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }
-    } finally {
-      setViewLoading(prev => ({ ...prev, [view]: false }));
-      if (view === currentView) {
-        setEmailLoading(false);
-      }
-    }
-  };
-
-  const refreshCurrentView = () => {
-    console.log('Refresh button clicked for view:', currentView);
-    // Clear cache for current view
-    setViewCache(prev => ({ ...prev, [currentView]: undefined }));
-    // Clear current conversations immediately to show loading state
-    setCurrentConversations([]);
-    // Reset page token
-    setCurrentPageToken(null);
-    setCurrentAllEmailsLoaded(false);
-    // Load fresh data with force refresh
-    loadEmailsForView(currentView, null, true);
-  };
-
-
-  const handleSearch = async () => {
-    if (!user || !searchQuery.trim()) return;
-
-    try {
-      setSearchLoading(true);
-      
       const data = await gmailApi.searchEmails(searchQuery);
-
-      // Show partial success warnings if any
-      if (data.partialSuccess && data.errors?.length) {
-        console.warn('Some search results had processing errors:', data.errors);
-        toast({
-          title: "Partial Search Results",
-          description: `Search completed with ${data.errors.length} item(s) skipped due to processing errors.`,
-          variant: "default"
-        });
-      }
-
-      setCurrentConversations(data.conversations || []);
-      
+      setConversations(data.conversations || []);
     } catch (error) {
-      console.error('Error searching emails:', error);
-      if (error instanceof GmailApiError) {
-        toast({
-          title: "Error",
-          description: `Failed to search emails: ${error.message || 'Please try again.'}`,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error", 
-          description: "Failed to search emails. Please try again.",
-          variant: "destructive"
-        });
-      }
+      console.error('Search error:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search emails. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSearchLoading(false);
     }
   };
 
-  const handleConversationClick = (conversation: Conversation) => {
-    setSelectedConversation(conversation);
-    setSelectedEmail(null);
-  
-    // Mark conversation as read if it has unread messages
-    if (conversation.unreadCount > 0) {
-      markConversationAsRead(conversation);
-    }
-
-    // Open drawer on smaller screens
-    if (isDrawerView) {
-      setMobileDrawerOpen(true);
-    }
+  const clearSearch = () => {
+    setSearchQuery('');
+    setConversations(viewCache[currentView] || []);
   };
 
-  const handleEmailClick = (email: Email, conversation: Conversation) => {
-    setSelectedConversation(conversation);
-    setSelectedEmail(email);
-    
-    // Mark email as read if unread
-    if (email.unread) {
-      markEmailAsRead(email.id, conversation.id);
-    }
-
-    // Open drawer on smaller screens
-    if (isDrawerView) {
-      setMobileDrawerOpen(true);
-    }
-  };
-
-  const markConversationAsRead = async (conversation: Conversation) => {
-    if (!user) return;
-
+  const handleComposeSubmit = async (formData: any) => {
+    setSendingEmail(true);
     try {
-      const { error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'markAsRead',
-          threadId: conversation.id
-        }
-      });
+      await gmailApi.sendEmail(
+        formData.to,
+        formData.subject,
+        formData.content,
+        formData.threadId,
+        formData.attachments,
+        formData.documentAttachments
+      );
 
-      if (error) {
-        console.error('Error marking conversation as read:', error);
-        return;
-      }
-
-      // Update local state in both current conversations and cache
-      const updateConversation = (conv: Conversation) => 
-        conv.id === conversation.id 
-          ? { ...conv, unreadCount: 0, emails: conv.emails.map(email => ({ ...email, unread: false })) }
-          : conv;
-
-      setCurrentConversations(prev => prev.map(updateConversation));
-      
-      // Also update the cache to prevent the change from being lost on refresh
-      setViewCache(prev => ({
-        ...prev,
-        [currentView]: prev[currentView]?.map(updateConversation) || []
-      }));
-      
-    } catch (error) {
-      console.error('Error marking conversation as read:', error);
-    }
-  };
-
-  const markEmailAsRead = async (emailId: string, conversationId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase.functions.invoke('gmail-api', {
-        body: { 
-          action: 'markAsRead',
-          messageId: emailId
-        }
-      });
-
-      if (error) {
-        console.error('Error marking email as read:', error);
-        return;
-      }
-
-      // Update local state in both current conversations and cache
-      const updateEmail = (conv: Conversation) => 
-        conv.id === conversationId 
-          ? { 
-              ...conv, 
-              unreadCount: Math.max(0, conv.unreadCount - 1),
-              emails: conv.emails.map(email => 
-                email.id === emailId ? { ...email, unread: false } : email
-              )
-            }
-          : conv;
-
-      setCurrentConversations(prev => prev.map(updateEmail));
-      
-      // Also update the cache to prevent the change from being lost on refresh
-      setViewCache(prev => ({
-        ...prev,
-        [currentView]: prev[currentView]?.map(updateEmail) || []
-      }));
-      
-    } catch (error) {
-      console.error('Error marking email as read:', error);
-    }
-  };
-
-  const deleteConversation = async (conversation: Conversation) => {
-    if (!user) return;
-
-    // Add to locally trashed set to prevent reappearing during background refresh
-    setLocallyTrashedIds(prev => new Set([...prev, conversation.id]));
-
-    // Optimistic update - remove from UI immediately
-    setCurrentConversations(prev => prev.filter(conv => conv.id !== conversation.id));
-    setViewCache(prev => ({ 
-      ...prev, 
-      [currentView]: prev[currentView]?.filter(conv => conv.id !== conversation.id) || []
-    }));
-    
-    // Clear selection if deleted conversation was selected
-    if (selectedConversation?.id === conversation.id) {
-      setSelectedConversation(null);
-      setSelectedEmail(null);
-    }
-
-    // Success - no toast message needed
-
-    // Make Gmail API call in the background - move to trash instead of delete
-    gmailApi.trashThread(conversation.id).then((response) => {
-      console.log('Trash thread response:', response);
-      // Don't restore on error - email stays removed from UI for better UX
-      if (response.error || !response.results?.[0]?.success) {
-        console.warn('Background trash operation failed (email remains hidden):', response.error || 'Trash operation failed');
-      }
-    }).catch(error => {
-      console.warn('Background trash error (email remains hidden):', error);
-    });
-  };
-
-  const deleteEmail = async (emailId: string, conversationId: string) => {
-    if (!user) return;
-
-    // Store the original email and conversation for potential restoration
-    const originalConversation = currentConversations.find(conv => conv.id === conversationId);
-    const originalEmail = originalConversation?.emails.find(email => email.id === emailId);
-    
-    if (!originalConversation || !originalEmail) return;
-
-    // Add to locally trashed set if this results in removing the entire conversation
-    if (originalConversation.emails.length === 1) {
-      setLocallyTrashedIds(prev => new Set([...prev, conversationId]));
-    }
-
-    // Optimistic update - remove email from UI immediately
-    setCurrentConversations(prev => 
-      prev.map(conv => 
-        conv.id === conversationId 
-          ? { 
-              ...conv,
-              emails: conv.emails.filter(email => email.id !== emailId),
-              messageCount: conv.messageCount - 1
-            }
-          : conv
-      ).filter(conv => conv.emails.length > 0) // Remove conversations with no emails
-    );
-    setViewCache(prev => ({ 
-      ...prev, 
-      [currentView]: prev[currentView]?.map(conv => 
-        conv.id === conversationId 
-          ? { 
-              ...conv,
-              emails: conv.emails.filter(email => email.id !== emailId),
-              messageCount: conv.messageCount - 1
-            }
-          : conv
-      ).filter(conv => conv.emails.length > 0) || []
-    }));
-
-    // Clear selection if deleted email was selected
-    if (selectedEmail?.id === emailId) {
-      setSelectedEmail(null);
-    }
-
-    // Success - no toast message needed
-
-    // Make Gmail API call in the background - move to trash instead of delete
-    gmailApi.trashMessage(emailId).then((response) => {
-      console.log('Trash message response:', response);
-      // Don't restore on error - email stays removed from UI for better UX
-      if (response.error || !response.results?.[0]?.success) {
-        console.warn('Background trash operation failed (email remains hidden):', response.error || 'Trash operation failed');
-      }
-    }).catch(error => {
-      console.warn('Background trash error (email remains hidden):', error);
-    });
-  };
-
-  const sendEmail = async () => {
-    if (!user) return;
-
-    try {
-      console.log('=== SEND EMAIL DEBUG START ===');
-      setSendingEmail(true);
-      console.log('Sending email with compose form:', {
-        to: composeForm.to,
-        subject: composeForm.subject,
-        threadId: composeForm.threadId,
-        content: composeForm.content?.substring(0, 100)
-      });
-
-      setSendingProgress('Sending email...');
-      
-      // Create AbortController for this send operation
-      const abortController = new AbortController();
-      setEmailAbortController(abortController);
-
-      console.log('Sending email with compose form:', {
-        to: composeForm.to,
-        subject: composeForm.subject,
-        threadId: composeForm.threadId,
-        content: composeForm.content?.substring(0, 100)
-      });
-
-      setSendingProgress('Sending email...');
-      
-      let result;
-      try {
-        result = await gmailApi.sendEmail(
-          composeForm.to,
-          composeForm.subject,
-          composeForm.content,
-          composeForm.threadId
-        );
-      } catch (error) {
-        console.error('Email send error:', error);
-        
-        // Check if this was a user cancellation
-        if (abortController.signal.aborted) {
-          toast({
-            title: "Cancelled",
-            description: "Email sending was cancelled.",
-            variant: "default"
-          });
-        } else {
-          toast({
-            title: "Error", 
-            description: `Failed to send email: ${error.message}`,
-            variant: "destructive"
-          });
-        }
-        
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
-      }
-
-      console.log('Gmail API response:', result);
-
-      if (result.error) {
-        console.error('Error calling gmail-api:', result.error);
-        toast({
-          title: "Error",
-          description: `Failed to send email: ${result.error.message}`,
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
-      }
-
-      if (!result.success) {
-        console.error('Email sending failed:', result);
-        toast({
-          title: "Error", 
-          description: result.error || "Failed to send email. Please try again.",
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
-      }
-
-      console.log('Email sent successfully:', result);
-      
       toast({
         title: "Email Sent",
-        description: "Email sent successfully!",
-        variant: "default"
+        description: "Your email has been sent successfully.",
       });
 
-      // Reset form and close dialog
-      console.log('Resetting form and closing dialog...');
-      setComposeForm({ to: '', subject: '', content: '' });
       setShowComposeDialog(false);
-
-      // Refresh if it wasn't a reply
-      if (!composeForm.threadId) {
-        console.log('Refreshing current view...');
-        refreshCurrentView();
-      }
+      setComposeForm({ to: '', subject: '', content: '' });
       
+      // Refresh the current view to show the sent email
+      loadEmailsForView(currentView, true);
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Send email error:', error);
       toast({
-        title: "Error",
+        title: "Send Error",
         description: "Failed to send email. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSendingEmail(false);
-      setSendingProgress('');
     }
   };
 
-  const cancelEmailSend = () => {
-    if (emailAbortController) {
-      console.log('User requested to cancel email send');
-      emailAbortController.abort();
-      setEmailAbortController(null);
-      setSendingEmail(false);
-      setSendingProgress('');
-      toast({
-        title: "Cancelled",
-        description: "Email sending was cancelled.",
-        variant: "default"
-      });
-    }
-  };
-
-  // REMOVED: All draft-related functions and state have been removed
-
-  const handleReplyClick = (email: Email, conversation: Conversation) => {
-    if (currentView === 'sent') {
-      // Handle "Send Again" for sent emails - use gentler cleaning
-      setComposeForm({
-        to: email.to,
-        subject: email.subject,
-        content: cleanEmailContentForResend(email.content || '')
-      });
-    } else {
-      // Handle normal reply for inbox emails
-      const replyToEmail = email.from.includes('<') ? 
-        email.from.split('<')[1].replace('>', '') : 
-        email.from;
-      
-      const replySubject = email.subject.startsWith('Re: ') ? 
-        email.subject : 
-        `Re: ${email.subject}`;
-
-      // Clean the original email content by removing HTML wrapper and converting to plain text
-      const cleanContent = cleanEmailContentForReply(email.content || '');
-
-      // Format the original email content for quoting with plain text line breaks for textarea
-      const quotedContent = `\n\n\n\n\n\n--- Original Message ---\nFrom: ${email.from}\nDate: ${email.date}\nSubject: ${email.subject}\n\n${cleanContent}`;
-
-      setComposeForm({
-        to: replyToEmail,
-        subject: replySubject,
-        content: quotedContent,
-        replyTo: email.id,
-        threadId: conversation.id
-      });
+  const handleEmailClick = (conversation: Conversation) => {
+    // Since each "conversation" now has only one email, just select it directly
+    const email = conversation.emails[0];
+    setSelectedEmail(email);
+    setSelectedConversation(conversation);
+    
+    // Mark as read if unread
+    if (email.unread) {
+      gmailApi.markAsRead(email.id, email.threadId).catch(console.error);
     }
     
+    if (isDrawerView) {
+      setMobileDrawerOpen(true);
+    }
+  };
+
+  const handleReply = (email: Email) => {
+    const replySubject = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`;
+    setComposeForm({
+      to: email.from,
+      subject: replySubject,
+      content: `\n\n--- Original Message ---\nFrom: ${email.from}\nSubject: ${email.subject}\nDate: ${email.date}\n\n${email.content}`,
+      threadId: email.threadId
+    });
     setShowComposeDialog(true);
   };
 
-  // REMOVED: editDraft function - no longer supporting drafts
-
-  // REMOVED: Attachment saving functionality
-
-  const toggleConversationExpansion = (conversationId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedConversations(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(conversationId)) {
-        newSet.delete(conversationId);
-      } else {
-        newSet.add(conversationId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/auth');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive"
-      });
+  // Filter conversations based on search
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return conversations;
     }
-  };
-
-  // Sort conversations by most recent email date (like Gmail)
-  const sortedConversations = useMemo(() => {
-    return [...currentConversations].sort((a, b) => {
-      const dateA = new Date(a.lastDate).getTime();
-      const dateB = new Date(b.lastDate).getTime();
-      return dateB - dateA; // Most recent first
-    });
-  }, [currentConversations]);
-
-  const filteredConversations = sortedConversations.filter(conversation => {
-    if (showOnlyUnread && conversation.unreadCount === 0) return false;
-    if (!searchQuery) return true;
-    
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = (
-      conversation.subject.toLowerCase().includes(searchLower) ||
-      conversation.emails.some(email => 
-        email.from.toLowerCase().includes(searchLower) ||
-        email.snippet.toLowerCase().includes(searchLower)
-      )
+    return conversations.filter(conv => 
+      conv.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      conv.emails.some(e => e.content.toLowerCase().includes(searchQuery.toLowerCase()))
     );
-    
-    // Debug logging for Herminda & Dina emails
-    if (conversation.emails.some(email => 
-      email.from.toLowerCase().includes('herminda') || 
-      email.from.toLowerCase().includes('dina')
-    )) {
-      console.log('DEBUG: Found Herminda/Dina conversation:', {
-        threadId: conversation.id,
-        subject: conversation.subject,
-        messageCount: conversation.messageCount,
-        lastDate: conversation.lastDate,
-        emails: conversation.emails.map(e => ({
-          id: e.id,
-          from: e.from,
-          date: e.date,
-          snippet: e.snippet.substring(0, 100)
-        }))
-      });
-    }
-    
-    return matchesSearch;
-  });
+  }, [conversations, searchQuery]);
 
+  if (hasGmailConnection === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Checking Gmail connection...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasGmailConnection === false) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Gmail Connection Required
+            </CardTitle>
+            <CardDescription>
+              Connect your Gmail account to manage your emails
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              To use the email features, you need to connect your Gmail account first.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/account')}>
+                <Link className="w-4 h-4 mr-2" />
+                Connect Gmail
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
-      <div className="container mx-auto px-4 p-2 lg:px-8 h-full flex flex-col">
-        {/* Show welcome message if no Gmail connection */}
-        {hasGmailConnection === false ? (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-md mx-auto text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <Mail className="w-8 h-8 text-primary" />
+    <div className="flex h-screen bg-background">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <h1 className="text-xl font-semibold">Mailbox</h1>
             </div>
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold text-foreground">Welcome to Mail</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                To get your mailbox connected, visit the account page and connect your Gmail account.
-              </p>
-            </div>
-            <Button 
-              onClick={() => navigate('/account')}
-              className="w-full max-w-xs"
-            >
-              Go to Account Page
-            </Button>
-          </div>
-        ) : hasGmailConnection === null ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <div className="w-8 h-8 mx-auto animate-spin">
-                <RefreshCw className="w-8 h-8 text-primary" />
-              </div>
-              <p className="text-muted-foreground">Checking connection...</p>
-            </div>
-          </div>
-        ) : (
-          <>
-        {/* Desktop Header - Logo and Back Arrow */}
-        <div className="hidden lg:flex items-center justify-start py-4 mb-6">
-          <div className="flex items-center gap-4">
-            {/* Back Arrow */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Dashboard
-            </Button>
             
-            {/* Logo */}
-            <h1 className="text-3xl font-bold">Mail</h1>
-          </div>
-        </div>
-
-        {/* Header with controls */}
-        <div className="flex flex-col gap-4 mb-2">
-          {/* Top row - Mobile/tablet logo + menu on left, compose/refresh on right; Desktop view toggle on left, actions on right */}
-          <div className="flex justify-between items-center lg:justify-between">
-            {/* Mobile/Tablet Back Arrow and Logo - Left side */}
-            <div className="flex lg:hidden items-center gap-4">
+            <div className="flex items-center gap-2">
+              {/* View Toggle */}
+              <div className="flex rounded-md border">
+                <Button
+                  variant={currentView === 'inbox' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('inbox')}
+                  className="rounded-r-none"
+                >
+                  Inbox
+                </Button>
+                <Button
+                  variant={currentView === 'sent' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('sent')}
+                  className="rounded-l-none"
+                >
+                  Sent
+                </Button>
+              </div>
+              
               <Button
                 variant="outline"
-                size="icon"
-                onClick={() => navigate('/dashboard')}
-                className="ml-1"
+                size="sm"
+                onClick={() => loadEmailsForView(currentView, true)}
+                disabled={viewLoading[currentView]}
               >
-                <ArrowLeft className="w-4 h-4" />
+                <RefreshCw className={`w-4 h-4 mr-2 ${viewLoading[currentView] ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-              <h1 className="text-2xl font-bold">Mail</h1>
-            </div>
-
-            {/* View Toggle - Desktop */}
-            <div className="hidden lg:flex items-center gap-4">
-              <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
-                <button
-                  onClick={() => setCurrentView('inbox')}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                    currentView === 'inbox' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'hover:bg-background/50'
-                  }`}
-                >
-                  <Mail className="w-4 h-4" />
-                  Inbox
-                </button>
-                <button
-                  onClick={() => setCurrentView('sent')}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                    currentView === 'sent' 
-                      ? 'bg-background text-foreground shadow-sm' 
-                      : 'hover:bg-background/50'
-                  }`}
-                >
-                  <Send className="w-4 h-4" />
-                  Sent
-                </button>
-              </div>
-            </div>
-
-            {/* Action Controls - Right side on all screens */}
-            <div className="flex gap-2 justify-end ml-auto">
               
-              {/* Desktop Search next to refresh button */}
-              <div className="hidden lg:flex relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search emails..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-64 pl-10"
-                  autoComplete="off"
-                  name="email-search"
-                />
-              </div>
-              
-              <Button onClick={() => refreshCurrentView()} variant="outline" size="sm" disabled={emailLoading}>
-                <RefreshCw className={`w-4 h-4 ${emailLoading ? 'animate-spin' : ''}`} />
+              <Button onClick={() => setShowComposeDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Compose
               </Button>
-              <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
-                <DrawerTrigger asChild>
-                  <Button variant="compose" className="gap-2" onClick={() => {
-                    // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '' });
-                  }} size="sm">
-                    <Send className="w-4 h-4" />
-                    <span className="hidden sm:inline">Compose</span>
-                  </Button>
-                </DrawerTrigger>
-                  <ComposeDialog
-                    open={showComposeDialog}
-                    onOpenChange={setShowComposeDialog}
-                    composeForm={composeForm}
-                    onComposeFormChange={setComposeForm}
-                    onSend={async () => {
-                      await sendEmail();
-                    }}
-                    onCancel={() => {
-                      setShowComposeDialog(false);
-                      setComposeForm({ to: '', subject: '', content: '' });
-                    }}
-                    onCancelSend={cancelEmailSend}
-                    sendingEmail={sendingEmail}
-                    sendingProgress={sendingProgress}
-                  />
-              </Drawer>
             </div>
           </div>
 
-          {/* View Toggle and Search - Tablet */}
-          <div className="hidden md:flex lg:hidden items-center gap-4">
-            <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
-              <button
-                onClick={() => setCurrentView('inbox')}
-                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                  currentView === 'inbox' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'hover:bg-background/50'
-                }`}
-              >
-                <Mail className="w-4 h-4" />
-                Inbox
-              </button>
-              <button
-                onClick={() => setCurrentView('sent')}
-                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                  currentView === 'sent' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'hover:bg-background/50'
-                }`}
-              >
-                <Send className="w-4 h-4" />
-                Sent
-              </button>
-            </div>
-
-            {/* Tablet Search */}
-            <div className="relative flex-1 max-w-md">
+          {/* Search */}
+          <div className="flex gap-2 mt-4">
+            <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search emails..." 
+              <Input
+                placeholder="Search emails..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10"
-                autoComplete="off"
-                name="email-search-tablet"
+                className="pl-10"
+                onKeyDown={(e) => e.key === 'Enter' && searchEmails()}
               />
             </div>
-
-          </div>
-
-          {/* View Toggle and AI Button - Mobile only */}
-          <div className="md:hidden flex items-center justify-between gap-4">
-            <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
-              <button
-                onClick={() => setCurrentView('inbox')}
-                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                  currentView === 'inbox' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'hover:bg-background/50'
-                }`}
-              >
-                <Mail className="w-4 h-4" />
-                Inbox
-              </button>
-              <button
-                onClick={() => setCurrentView('sent')}
-                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[80px] gap-2 ${
-                  currentView === 'sent' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'hover:bg-background/50'
-                }`}
-              >
-                <Send className="w-4 h-4" />
-                Sent
-              </button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={searchEmails}
+              disabled={searchLoading}
+            >
+              {searchLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            </Button>
+            {searchQuery && (
+              <Button variant="outline" onClick={clearSearch}>
+                Clear
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Search Section - Mobile only */}
-        <div className="mb-4 md:hidden">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search emails..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10"
-              autoComplete="off"
-              name="email-search-mobile"
-            />
-          </div>
-        </div>
-
-        <div className={`grid gap-6 ${isDrawerView ? 'grid-cols-1' : 'grid-cols-5'} flex-1 overflow-hidden`}>
-          {/* Email List - 40% width (2 of 5 columns) */}
-          <Card className="col-span-2 min-w-0 h-full overflow-hidden">
-            <CardContent className="p-0 overflow-hidden rounded-lg h-full">
-              <ScrollArea className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] lg:h-[calc(100vh-10rem)] w-full rounded-lg overflow-hidden">
-                {emailLoading && filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <img 
-                      src="/lovable-uploads/41e96c75-18f1-45a5-93fe-bda1bd4b1fca.png"
-                      alt="Loading"
-                      className="w-8 h-8 mx-auto animate-spin text-muted-foreground mb-2"
-                    />
-                    <p className="text-muted-foreground">Loading emails...</p>
-                  </div>
-                ) : filteredConversations.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <Mail className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      {searchQuery ? 'No emails found for your search.' : `No ${currentView} emails found.`}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="divide-y divide-border min-w-0">
-                      {filteredConversations.map((conversation, index) => {
-                          // Since we removed threading, each conversation has only one email
-                          const mostRecentEmail = conversation.emails[0];
-                          const isSelected = selectedConversation?.id === conversation.id;
-                          
-                          return (
-                            <div key={conversation.id}>
-                              <div
-                                className={`p-4 cursor-pointer transition-colors group max-w-full overflow-hidden ${
-                                  isSelected ? 'bg-accent/50' : 'hover:bg-accent/50'
-                                }`}
-                                onClick={() => handleConversationClick(conversation)}
-                              >
-                                <div className="flex items-start justify-between gap-3 w-full min-w-0 overflow-hidden">
-                                  <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
-                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                       <p className="font-medium truncate flex-1 min-w-0 max-w-[200px] overflow-hidden">
-                                         {currentView === 'sent' 
-                                           ? (mostRecentEmail.to.split('<')[0].trim() || mostRecentEmail.to)
-                                           : (mostRecentEmail.from.split('<')[0].trim() || mostRecentEmail.from)
-                                         }
-                                       </p>
-                                     </div>
-                                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                       <p className="font-medium text-sm truncate flex-1 min-w-0 max-w-[220px] overflow-hidden">
-                                         {conversation.subject}
-                                       </p>
-                                     </div>
-                                     <p className="text-xs text-muted-foreground truncate max-w-[260px] overflow-hidden">
-                                       {mostRecentEmail.snippet}
-                                     </p>
-                                    <p className="text-xs text-muted-foreground truncate max-w-[180px] overflow-hidden">
-                                      {formatDate(conversation.lastDate)}
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="flex flex-col justify-between h-full min-h-[80px] flex-shrink-0 items-end w-8">
-                                    {/* Top right - Bin icon */}
-                                    <div className="flex justify-end">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="p-1 h-5 w-5 opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteConversation(conversation);
-                                        }}
-                                        title={`Delete conversation`}
-                                      >
-                                        <Trash2 className="w-3 h-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                    
-                                    {/* Middle right - Unread dot */}
-                                    <div className="flex justify-center">
-                                      {conversation.unreadCount > 0 && (
-                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                      )}
-                                    </div>
-                                    
-                                     {/* Bottom right - Action buttons */}
-                                     <div className="flex gap-1 items-center">{conversation.messageCount > 1 && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="p-1 h-5 w-5 opacity-100 transition-opacity"
-                                          onClick={(e) => toggleConversationExpansion(conversation.id, e)}
-                                          title={expandedConversations.has(conversation.id) ? "Collapse" : "Expand"}
-                                        >
-                                          {expandedConversations.has(conversation.id) ? 
-                                            <ChevronDown className="w-3 h-3" /> : 
-                                            <ChevronRight className="w-3 h-3" />
-                                          }
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Expanded conversation view */}
-                              {expandedConversations.has(conversation.id) && conversation.messageCount > 1 && (
-                                <div className="bg-accent/30 border-l-2 border-primary/20 ml-4 w-full max-w-full overflow-hidden">
-                                  <div className="p-2 space-y-1 w-full max-w-full overflow-hidden">
-                                     {conversation.emails
-                                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Chronological order like Gmail
-                                       .map((email, emailIndex) => (
-                                      <div
-                                        key={email.id}
-                                        className="p-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors group border border-border/30 w-full max-w-full overflow-hidden"
-                                         onClick={(e) => handleEmailClick(email, conversation)}
-                                       >
-                                        <div className="grid grid-cols-[1fr,auto] gap-3 w-full max-w-full overflow-hidden items-start">
-                                          <div className="min-w-0 overflow-hidden">
-                                            <div className="flex items-center gap-2 mb-1 min-w-0">
-                                               <p className="text-xs font-medium truncate flex-1 min-w-0">
-                                                 {email.from.split('<')[0].trim() || email.from}
-                                               </p>
-                                               {email.unread && (
-                                                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                              )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground truncate">
-                                              {email.snippet}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                              {formatDate(email.date)}
-                                            </p>
-                                          </div>
-                                          <div className="flex items-center gap-1">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-destructive/10"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteEmail(email.id, conversation.id);
-                                              }}
-                                              title="Delete email"
-                                            >
-                                              <Trash2 className="w-3 h-3 text-destructive" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                                               onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 handleReplyClick(email, conversation);
-                                               }}
-                                               title="Reply to email"
-                                             >
-                                              <Reply className="w-3 h-3" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
+        {/* Email List and Content */}
+        <div className="flex-1 flex">
+          {/* Email List */}
+          <div className="w-1/3 border-r bg-card">
+            <ScrollArea className="h-full">
+              {emailLoading ? (
+                <div className="p-4 text-center">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Loading emails...</p>
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                <div className="p-4 text-center">
+                  <Mail className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery ? 'No emails match your search' : 'No emails found'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {filteredConversations.map((conversation) => {
+                    const email = conversation.emails[0]; // Get the single email
+                    return (
+                      <div
+                        key={conversation.id}
+                        className={`p-4 cursor-pointer hover:bg-muted/50 ${
+                          selectedEmail?.id === email.id ? 'bg-muted' : ''
+                        }`}
+                        onClick={() => handleEmailClick(conversation)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className={`text-sm truncate ${email.unread ? 'font-semibold' : 'font-medium'}`}>
+                                {email.from}
+                              </p>
+                              {email.unread && (
+                                <div className="w-2 h-2 bg-primary rounded-full" />
                               )}
-
-                              {index < filteredConversations.length - 1 && <Separator />}
                             </div>
-                          );
-                        })}
-                      
-                        {/* Load More Button - Inside the scrollable area */}
-                        {currentPageToken && !currentAllEmailsLoaded && (
-                          <div className="p-4 border-t">
-                            <Button 
-                              variant="outline" 
-                              onClick={loadMoreEmails}
-                              disabled={emailLoading}
-                              className="w-full"
-                            >
-                              {emailLoading ? 'Loading...' : 'Load More Emails'}
-                            </Button>
-                          </div>
-                        )}
-                        
-                        {currentAllEmailsLoaded && currentConversations.length > 5 && (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-muted-foreground">
-                              All {currentView === 'sent' ? 'sent emails' : 'emails'} loaded
+                            <p className={`text-sm truncate mb-1 ${email.unread ? 'font-semibold' : ''}`}>
+                              {email.subject}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {email.snippet}
                             </p>
                           </div>
-                        )}
-                        
-                        {/* Bottom padding to ensure content is fully scrollable */}
-                        <div className="h-4"></div>
-                      </div>
-                    </>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Email/Thread Content - Desktop Only - 60% width (3 of 5 columns) */}
-            {!isDrawerView && (
-              <Card className="col-span-3 min-w-0 overflow-hidden">
-                <CardContent className="p-0 h-full">
-                  {selectedConversation ? (
-                    <div className="h-full flex flex-col">
-                      <div className="p-6 border-b">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h2 className="text-lg font-semibold">{selectedConversation.subject}</h2>
-                            {selectedConversation.messageCount > 1 && !selectedEmail && (
-                              <Badge variant="secondary" className="text-xs mt-1">
-                                {selectedConversation.messageCount} messages
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleReplyClick(
-                                selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                                selectedConversation
-                              )}
-                              className="gap-2"
-                            >
-                              <Reply className="w-4 h-4" />
-                              {currentView === 'sent' ? 'Send Again' : 'Reply'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteConversation(selectedConversation)}
-                              className="gap-2 hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                              Delete
-                            </Button>
+                          <div className="ml-2 text-xs text-muted-foreground">
+                            {formatDate(email.date)}
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="h-[calc(100vh-10rem)] overflow-hidden">
-                        <div className="px-6 py-4 h-full overflow-y-auto">
-                          {selectedEmail ? (
-                            // Show only the selected email
-                            <EmailContent 
-                              key={selectedEmail.id}
-                              conversation={{
-                                ...selectedConversation,
-                                emails: [selectedEmail]  // Only show the selected email
-                              }}
-                            />
-                          ) : (
-                            // Show all emails in the conversation thread
-                            <EmailContent 
-                              key={selectedConversation.id}
-                              conversation={selectedConversation}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
-                      <div className="text-center">
-                        <img 
-                          src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
-                          alt="Welcome to mail" 
-                          className="w-48 h-48 mx-auto mb-3 object-contain"
-                        />
-                        <h3 className="text-xl font-medium mb-2">Welcome to mail</h3>
-                        <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Mobile Drawer for Email Content */}
-            <Drawer open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-              <DrawerContent className="h-[95vh] max-w-full">
-                <DrawerHeader className="border-b px-4 pb-3">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between w-full min-w-0">
-                      <div className="flex-1 min-w-0 max-w-[calc(100%-1rem)]">
-                        <DrawerTitle className="text-left text-base leading-tight line-clamp-2 break-words">
-                          {selectedConversation?.subject || 'Email'}
-                        </DrawerTitle>
-                        {selectedConversation && selectedConversation.messageCount > 1 && !selectedEmail && (
-                          <DrawerDescription className="text-left text-sm mt-1">
-                            {selectedConversation.messageCount} messages
-                          </DrawerDescription>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Action buttons - Full width on mobile */}
-                    {selectedConversation && (
-                      <div className="flex gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            handleReplyClick(
-                              selectedEmail || selectedConversation.emails[selectedConversation.emails.length - 1],
-                              selectedConversation
-                            );
-                            setMobileDrawerOpen(false);
-                          }}
-                          className="flex-1 gap-2"
-                        >
-                          <Reply className="w-4 h-4" />
-                          {currentView === 'sent' ? 'Send Again' : 'Reply'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            deleteConversation(selectedConversation);
-                            setMobileDrawerOpen(false);
-                          }}
-                          className="gap-2 hover:bg-destructive/10 px-3"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                          Delete
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </DrawerHeader>
-                
-                <ScrollArea className="flex-1">
-                  <div className="p-4 w-full min-w-0 overflow-hidden">
-                    {selectedConversation ? (
-                      selectedEmail ? (
-                        // Show only the selected email
-                        <div className="w-full min-w-0 overflow-hidden">
-                          <EmailContent 
-                            key={selectedEmail.id}
-                            conversation={{
-                              ...selectedConversation,
-                              emails: [selectedEmail]  // Only show the selected email
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        // Show all emails in the conversation thread
-                        <div className="w-full min-w-0 overflow-hidden">
-                          <EmailContent 
-                            key={selectedConversation.id}
-                            conversation={selectedConversation}
-                          />
-                        </div>
-                      )
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <img 
-                            src="/lovable-uploads/2e215e4f-39df-4c8b-a34f-3259ad6b901e.png" 
-                            alt="Welcome to mail" 
-                            className="w-48 h-48 mx-auto mb-3 object-contain"
-                          />
-                          <h3 className="text-xl font-medium mb-2">Welcome to mail</h3>
-                          <p className="text-muted-foreground">Choose an email from the list to show it here!</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </DrawerContent>
-            </Drawer>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-          </>
-        )}
+
+          {/* Email Content */}
+          <div className="flex-1 bg-background">
+            {selectedEmail ? (
+              <div className="h-full flex flex-col">
+                <div className="border-b p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h2 className="text-lg font-semibold">{selectedEmail.subject}</h2>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReply(selectedEmail)}
+                      >
+                        <Reply className="w-4 h-4 mr-2" />
+                        Reply
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p><strong>From:</strong> {selectedEmail.from}</p>
+                    <p><strong>To:</strong> {selectedEmail.to}</p>
+                    <p><strong>Date:</strong> {new Date(selectedEmail.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    })}</p>
+                  </div>
+                </div>
+                <ScrollArea className="flex-1 p-4">
+                  <EmailContent 
+                    email={selectedEmail}
+                    onReply={() => handleReply(selectedEmail)}
+                  />
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Mail className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Select an email to read</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Compose Dialog */}
+      <ComposeDialog
+        open={showComposeDialog}
+        onOpenChange={setShowComposeDialog}
+        initialData={composeForm}
+        onSubmit={handleComposeSubmit}
+        sending={sendingEmail}
+      />
     </div>
   );
 };
