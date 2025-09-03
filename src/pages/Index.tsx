@@ -265,7 +265,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Responsive Layout */}
-      <section className="min-h-screen py-12 flex items-start">
+      <section className="min-h-screen pt-20 pb-12 flex items-start">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
             {/* Title Section */}
@@ -337,7 +337,7 @@ const Index = () => {
       </section>
 
       {/* Meet Ayra Section */}
-      <section className="py-5 bg-muted/50">
+      <section className="pt-20 pb-5 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
@@ -365,7 +365,7 @@ const Index = () => {
       </section>
 
       {/* Productivity Tools Section */}
-      <section className="py-5">
+      <section className="pt-20 pb-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
@@ -420,7 +420,7 @@ const Index = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-5 bg-card/30">
+      <section className="pt-20 pb-5 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
@@ -475,7 +475,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-2 border-t border-border bg-background">
+      <footer className="pt-20 pb-2 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">
