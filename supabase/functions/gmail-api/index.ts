@@ -203,7 +203,11 @@ class GmailService {
         }
       }
       
-    return decoded;
+      return decoded;
+    } catch (error) {
+      // Fallback to direct decoding if UTF-8 decode fails
+      return atob(base64);
+    }
   }
 
   // Proper Quoted-Printable encoding for email content
