@@ -317,9 +317,9 @@ const Index = () => {
       </section>
 
       {/* Meet Ayra Section */}
-      <section className="py-24 bg-card/30">
+      <section className="py-12 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-6">
               Meet Ayra, your personal AI assistant
             </h2>
@@ -328,12 +328,12 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 h-full">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12">
             {/* Left Side - Empty for balance */}
             <div className="hidden md:block"></div>
 
             {/* iPhone Container - All screen sizes */}
-            <div className="relative flex justify-center items-end">
+            <div className="relative flex justify-center items-start">
               <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[15%]">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
