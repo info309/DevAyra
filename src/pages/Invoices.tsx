@@ -334,9 +334,6 @@ const Invoices = () => {
     }).format(cents / 100);
   };
 
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -592,7 +589,12 @@ const Invoices = () => {
       </div>
 
       <div className="grid gap-4">
-        {invoices.map((invoice) => (
+        {loading && invoices.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="text-muted-foreground">Loading invoices...</div>
+          </div>
+        ) : (
+          invoices.map((invoice) => (
           <Card key={invoice.id}>
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -668,7 +670,8 @@ const Invoices = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Invoice Compose Drawer */}
