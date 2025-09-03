@@ -716,7 +716,7 @@ class GmailService {
       // Get user's email from auth context
       const fromEmail = this.userEmail || 'noreply@example.com';
       
-      // Build email headers with comprehensive anti-spam headers
+      // Build email headers optimized for deliverability
       const headers = [
         `From: ${fromEmail}`,
         `To: ${to}`,
@@ -726,17 +726,11 @@ class GmailService {
         `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@${fromEmail.split('@')[1] || 'gmail.com'}>`,
         `MIME-Version: 1.0`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        `X-Mailer: Professional Invoice System`,
-        `X-Priority: 3`,
-        `X-MSMail-Priority: Normal`,
+        `X-Mailer: Invoice System v1.0`,
+        `X-Priority: 3 (Normal)`,
         `Importance: Normal`,
-        `List-Unsubscribe: <>`,
         `Auto-Submitted: no`,
-        `Precedence: bulk`,
-        `X-Auto-Response-Suppress: All`,
-        `Authentication-Results: spf=pass smtp.mailfrom=${fromEmail.split('@')[1]}`,
-        `X-Spam-Status: No`,
-        `X-Invoice-System: Professional Invoice Delivery`,
+        ...(threadId ? [`References: <${threadId}@gmail.com>`, `In-Reply-To: <${threadId}@gmail.com>`] : []),
         '',
         `This is a multi-part message in MIME format.`,
         ''
@@ -749,10 +743,10 @@ class GmailService {
       bodyParts.push([
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: 8bit`,
+        `Content-Transfer-Encoding: quoted-printable`,
         `Content-Disposition: inline`,
         '',
-        content,
+        this.encodeQuotedPrintable(content),
         ''
       ].join('\r\n'));
 
