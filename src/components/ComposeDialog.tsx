@@ -50,6 +50,8 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileAttachments, setFileAttachments] = useState<ProcessedAttachment[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
+  const [processingFiles, setProcessingFiles] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState('');
   
   // Calculate size and validate
   const totalSize = calculateTotalSize(fileAttachments, selectedDocuments);
@@ -79,7 +81,13 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
         if (files.length === 0) return;
       }
 
-      const processedFiles = await convertFilesToBase64(files);
+      setProcessingFiles(true);
+      setProcessingProgress('Processing files...');
+
+      const processedFiles = await convertFilesToBase64(files, (processed, total, currentFile) => {
+        setProcessingProgress(`Processing ${currentFile} (${processed + 1}/${total})`);
+      });
+      
       setFileAttachments(prev => [...prev, ...processedFiles]);
       
       // Update parent form with all attachments
@@ -99,6 +107,9 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
         title: "Upload Error",
         description: "Failed to process selected files"
       });
+    } finally {
+      setProcessingFiles(false);
+      setProcessingProgress('');
     }
   };
 
@@ -199,10 +210,11 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleAddFiles}
+                  disabled={processingFiles}
                   className="gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  Upload Files
+                  {processingFiles ? processingProgress : 'Upload Files'}
                 </Button>
                 
                 <DocumentPicker

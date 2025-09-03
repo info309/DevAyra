@@ -17,6 +17,7 @@ import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import ComposeDialog from '@/components/ComposeDialog';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
+import { calculateTotalSize, estimateEncodedSize } from '@/utils/attachmentProcessor';
 
 interface Email {
   id: string;
@@ -1037,10 +1038,24 @@ const Mailbox: React.FC = () => {
         content: composeForm.content?.substring(0, 100)
       });
 
-      setSendingProgress('Sending email...');
+      setSendingProgress('Validating attachments...');
+      
+      // Frontend validation for attachment sizes
+      const totalSize = calculateTotalSize(
+        composeForm.attachments || [], 
+        composeForm.documentAttachments || []
+      );
+      const estimatedEncodedSize = estimateEncodedSize(totalSize);
+      
+      if (estimatedEncodedSize > 25 * 1024 * 1024 && !composeForm.sendAsLinks) {
+        throw new Error(`Message size (${Math.round(estimatedEncodedSize / (1024 * 1024))}MB) exceeds Gmail's 25MB limit. Enable "Send as links" option for large files.`);
+      }
+
+      setSendingProgress('Preparing email...');
       
       let result;
       try {
+        setSendingProgress('Connecting to Gmail...');
         result = await gmailApi.sendEmail(
           composeForm.to,
           composeForm.subject,

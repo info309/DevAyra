@@ -14,11 +14,18 @@ export interface DocumentAttachment {
   mime_type: string | null;
 }
 
-export const convertFilesToBase64 = async (files: File[]): Promise<ProcessedAttachment[]> => {
+export const convertFilesToBase64 = async (
+  files: File[], 
+  onProgress?: (processed: number, total: number, currentFile: string) => void
+): Promise<ProcessedAttachment[]> => {
   const processedFiles: ProcessedAttachment[] = [];
   
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     try {
+      onProgress?.(i, files.length, file.name);
+      
+      // Process file in chunks to avoid blocking UI
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -31,6 +38,9 @@ export const convertFilesToBase64 = async (files: File[]): Promise<ProcessedAtta
         reader.readAsDataURL(file);
       });
       
+      // Allow UI to update between files
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       processedFiles.push({
         name: file.name,
         content: base64,
@@ -42,6 +52,7 @@ export const convertFilesToBase64 = async (files: File[]): Promise<ProcessedAtta
     }
   }
   
+  onProgress?.(files.length, files.length, 'Complete');
   return processedFiles;
 };
 
