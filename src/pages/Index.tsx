@@ -266,7 +266,7 @@ const Index = () => {
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
                 One login. One AI.<br />
-                <span className="text-red-400">Unlimited<br />productivity.</span>
+                <span className="text-red-400">Unlimited productivity.</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mt-4 font-body">
                 Your personal AI assistant
