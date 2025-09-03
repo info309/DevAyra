@@ -500,10 +500,10 @@ const Mailbox: React.FC = () => {
           })));
         }
 
-        // Check for missing recent cached emails that should be in inbox
+        // Check for missing or incomplete recent cached emails that should be in inbox
         if (view === 'inbox' && !pageToken) {
           try {
-            console.log('Checking for missing recent cached emails...');
+            console.log('Checking for missing/incomplete recent cached emails...');
             const { data: recentCachedEmails } = await supabase
               .from('cached_emails')
               .select('gmail_thread_id, date_sent, sender_email, subject')
@@ -514,59 +514,128 @@ const Mailbox: React.FC = () => {
             if (recentCachedEmails?.length) {
               console.log(`Found ${recentCachedEmails.length} recent cached emails to check`);
               const apiThreadIds = new Set(data.conversations?.map(c => c.id) || []);
-              const missingThreads = recentCachedEmails
-                .filter(email => !apiThreadIds.has(email.gmail_thread_id))
-                .reduce((acc, email) => {
-                  if (!acc[email.gmail_thread_id]) {
-                    acc[email.gmail_thread_id] = {
-                      threadId: email.gmail_thread_id,
-                      latestDate: email.date_sent,
-                      sender: email.sender_email,
-                      subject: email.subject
-                    };
-                  } else if (new Date(email.date_sent) > new Date(acc[email.gmail_thread_id].latestDate)) {
-                    acc[email.gmail_thread_id].latestDate = email.date_sent;
-                    acc[email.gmail_thread_id].sender = email.sender_email;
-                  }
-                  return acc;
-                }, {} as Record<string, any>);
+              
+              // Get thread message counts from cache
+              const cachedThreadCounts = recentCachedEmails.reduce((acc, email) => {
+                if (!acc[email.gmail_thread_id]) {
+                  acc[email.gmail_thread_id] = {
+                    count: 0,
+                    latestDate: email.date_sent,
+                    sender: email.sender_email,
+                    subject: email.subject
+                  };
+                }
+                acc[email.gmail_thread_id].count++;
+                if (new Date(email.date_sent) > new Date(acc[email.gmail_thread_id].latestDate)) {
+                  acc[email.gmail_thread_id].latestDate = email.date_sent;
+                  acc[email.gmail_thread_id].sender = email.sender_email;
+                }
+                return acc;
+              }, {} as Record<string, any>);
 
-              const missingCount = Object.keys(missingThreads).length;
-              if (missingCount > 0) {
-                console.log(`FOUND ${missingCount} missing recent threads in Gmail API response:`, Object.values(missingThreads));
+              // Find missing threads and incomplete threads
+              const threadsToFetch = [];
+              
+              // 1. Completely missing threads
+              for (const [threadId, info] of Object.entries(cachedThreadCounts)) {
+                if (!apiThreadIds.has(threadId)) {
+                  threadsToFetch.push({
+                    threadId,
+                    reason: 'missing',
+                    ...info
+                  });
+                }
+              }
+              
+              // 2. Incomplete threads (fewer messages than cached)
+              for (const conversation of (data.conversations || [])) {
+                const cachedInfo = cachedThreadCounts[conversation.id];
+                if (cachedInfo && conversation.messageCount < cachedInfo.count) {
+                  console.log(`Thread ${conversation.id} is incomplete: API has ${conversation.messageCount} msgs, cache has ${cachedInfo.count}`);
+                  threadsToFetch.push({
+                    threadId: conversation.id,
+                    reason: 'incomplete',
+                    ...cachedInfo
+                  });
+                }
+              }
+
+              // 3. Threads with outdated lastDate (Gmail showing older emails than cache)
+              for (const conversation of (data.conversations || [])) {
+                const cachedInfo = cachedThreadCounts[conversation.id];
+                if (cachedInfo) {
+                  const apiLastDate = new Date(conversation.lastDate).getTime();
+                  const cachedLastDate = new Date(cachedInfo.latestDate).getTime();
+                  if (cachedLastDate > apiLastDate + 60000) { // 1 minute tolerance
+                    console.log(`Thread ${conversation.id} has outdated lastDate: API ${conversation.lastDate}, cache ${cachedInfo.latestDate}`);
+                    threadsToFetch.push({
+                      threadId: conversation.id,
+                      reason: 'outdated',
+                      ...cachedInfo
+                    });
+                  }
+                }
+              }
+
+              if (threadsToFetch.length > 0) {
+                console.log(`FOUND ${threadsToFetch.length} threads needing fetch/refresh:`, threadsToFetch);
                 
                 // Special check for Herminda thread
-                const hermindaThread = missingThreads['1973ae6bbfe11c2a'];
+                const hermindaThread = threadsToFetch.find(t => t.threadId === '1973ae6bbfe11c2a');
                 if (hermindaThread) {
-                  console.log('🔍 HERMINDA THREAD DETECTED AS MISSING:', hermindaThread);
+                  console.log('🔍 HERMINDA THREAD DETECTED FOR FETCH:', hermindaThread);
                 } else {
-                  console.log('⚠️ Herminda thread NOT detected as missing. Checking why...');
-                  const hermindaInApi = apiThreadIds.has('1973ae6bbfe11c2a');
-                  const hermindaInCache = recentCachedEmails.some(e => e.gmail_thread_id === '1973ae6bbfe11c2a');
-                  console.log('Herminda thread check:', { hermindaInApi, hermindaInCache, apiThreadIds: Array.from(apiThreadIds) });
+                  console.log('⚠️ Herminda thread not in fetch list. Checking status...');
+                  const hermindaInApi = data.conversations?.find(c => c.id === '1973ae6bbfe11c2a');
+                  const hermindaInCache = cachedThreadCounts['1973ae6bbfe11c2a'];
+                  console.log('Herminda status:', { 
+                    inApi: !!hermindaInApi, 
+                    inCache: !!hermindaInCache,
+                    apiCount: hermindaInApi?.messageCount,
+                    cacheCount: hermindaInCache?.count,
+                    apiLastDate: hermindaInApi?.lastDate,
+                    cacheLastDate: hermindaInCache?.latestDate
+                  });
                 }
                 
-                // Fetch missing threads directly by ID (limit to first 10 to avoid timeout)
-                const threadsToFetch = Object.values(missingThreads).slice(0, 10);
+                // Fetch threads directly by ID (limit to first 10 to avoid timeout)
+                const threadsToFetchLimited = threadsToFetch.slice(0, 10);
                 const additionalConversations = [];
-                for (const threadInfo of threadsToFetch) {
+                const refreshedConversations = [];
+                
+                for (const threadInfo of threadsToFetchLimited) {
                   try {
-                    console.log(`Fetching missing thread: ${threadInfo.threadId} from ${threadInfo.sender}`);
+                    console.log(`Fetching ${threadInfo.reason} thread: ${threadInfo.threadId} from ${threadInfo.sender}`);
                     const threadData = await gmailApi.getEmails(`thread:${threadInfo.threadId}`, undefined, abortController.signal);
                     if (threadData.conversations?.length) {
-                      additionalConversations.push(...threadData.conversations);
-                      console.log(`✅ Successfully fetched missing thread: ${threadInfo.threadId}`);
+                      const fetchedConv = threadData.conversations[0];
+                      console.log(`✅ Successfully fetched ${threadInfo.reason} thread: ${threadInfo.threadId} (${fetchedConv.messageCount} messages, last: ${fetchedConv.lastDate})`);
+                      
+                      if (threadInfo.reason === 'missing') {
+                        additionalConversations.push(fetchedConv);
+                      } else {
+                        // Replace incomplete/outdated conversation
+                        refreshedConversations.push(fetchedConv);
+                      }
                     } else {
                       console.log(`❌ No data returned for thread: ${threadInfo.threadId}`);
                     }
                   } catch (error) {
-                    console.warn(`Failed to fetch missing thread ${threadInfo.threadId}:`, error);
+                    console.warn(`Failed to fetch thread ${threadInfo.threadId}:`, error);
                   }
                 }
 
-                if (additionalConversations.length > 0) {
-                  console.log(`Adding ${additionalConversations.length} missing conversations to results`);
-                  data.conversations = [...(data.conversations || []), ...additionalConversations];
+                if (additionalConversations.length > 0 || refreshedConversations.length > 0) {
+                  console.log(`Processing ${additionalConversations.length} new + ${refreshedConversations.length} refreshed conversations`);
+                  
+                  // Replace refreshed conversations and add new ones
+                  const refreshedIds = new Set(refreshedConversations.map(c => c.id));
+                  const updatedConversations = (data.conversations || [])
+                    .filter(c => !refreshedIds.has(c.id))  // Remove outdated versions
+                    .concat(refreshedConversations)        // Add refreshed versions
+                    .concat(additionalConversations);      // Add new ones
+                  
+                  data.conversations = updatedConversations;
                   
                   // Re-sort by lastDate
                   data.conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
@@ -574,11 +643,15 @@ const Mailbox: React.FC = () => {
                   // Check if we got Herminda thread
                   const hermindaFound = data.conversations.find(c => c.id === '1973ae6bbfe11c2a');
                   if (hermindaFound) {
-                    console.log('🎉 HERMINDA THREAD SUCCESSFULLY ADDED TO RESULTS:', hermindaFound);
+                    console.log('🎉 HERMINDA THREAD IN RESULTS:', {
+                      messageCount: hermindaFound.messageCount,
+                      lastDate: hermindaFound.lastDate,
+                      participants: hermindaFound.participants
+                    });
                   }
                 }
               } else {
-                console.log('No missing recent threads detected');
+                console.log('No missing or incomplete recent threads detected');
               }
             }
           } catch (error) {
