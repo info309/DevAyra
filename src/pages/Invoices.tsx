@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check } from 'lucide-react';
+import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +43,7 @@ const Invoices = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }
   ]);
@@ -93,8 +94,9 @@ const Invoices = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
       const { subtotal, tax, total } = calculateTotals();
       const invoiceData: InvoiceInsert = {
@@ -149,6 +151,8 @@ const Invoices = () => {
       fetchInvoices();
     } catch (error) {
       console.error('Invoice save error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -575,8 +579,15 @@ const Invoices = () => {
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" style={{ backgroundColor: '#ff6d4d' }}>
-                    {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
+                  <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#ff6d4d' }}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {editingInvoice ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      editingInvoice ? 'Update Invoice' : 'Create Invoice'
+                    )}
                   </Button>
                 </div>
               </form>
