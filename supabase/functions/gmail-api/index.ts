@@ -301,8 +301,7 @@ class GmailService {
 
   async getEmails(query: string = 'in:inbox', maxResults: number = 100, pageToken?: string) {
     try {
-      // Use newer-than parameter to ensure we get threads with recent activity
-      // Gmail threads should be returned if ANY message in the thread matches the query
+      // Use larger initial batch size and Gmail threads API for better performance
       let threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=${maxResults}&q=${encodeURIComponent(query)}`;
       if (pageToken) threadsUrl += `&pageToken=${pageToken}`;
       
@@ -318,7 +317,7 @@ class GmailService {
       console.log(`[${this.requestId}] Processing ${threads.length} threads`);
 
       // Process threads in smaller batches to avoid timeouts
-      const batchSize = 5; // Increased batch size slightly
+      const batchSize = 5;
       const conversations = [];
       
       for (let i = 0; i < threads.length; i += batchSize) {
@@ -334,48 +333,6 @@ class GmailService {
             const messages = threadData.messages || [];
             console.log(`[${this.requestId}] Thread ${thread.id}: Found ${messages.length} messages`);
             
-            // Debug log for threads with Herminda emails
-            const hermindaMessages = messages.filter(msg => {
-              const headers = msg.payload?.headers || [];
-              const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
-              return fromHeader.toLowerCase().includes('herminda') || fromHeader.toLowerCase().includes('lopez');
-            });
-            
-            if (hermindaMessages.length > 0) {
-              console.log(`[${this.requestId}] DEBUG HERMINDA: Found ${hermindaMessages.length} Herminda messages in thread ${thread.id}`);
-              console.log(`[${this.requestId}] DEBUG HERMINDA: Total messages in thread: ${messages.length}`);
-              
-              // Process ALL messages to see the chronological order
-              const processedMessages = messages.map(msg => this.processMessage(msg));
-              const chronologicalMessages = processedMessages.sort(
-                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-              );
-              
-              console.log(`[${this.requestId}] DEBUG HERMINDA: All messages in chronological order:`, 
-                chronologicalMessages.map((msg, idx) => ({
-                  index: idx + 1,
-                  date: msg.date,
-                  from: msg.from?.split('<')[0].trim(),
-                  subject: msg.subject,
-                  isHerminda: (msg.from?.toLowerCase().includes('herminda') || msg.from?.toLowerCase().includes('lopez')) ? 'YES' : 'NO'
-                }))
-              );
-              
-              // Find the most recent message
-              const mostRecentMessage = chronologicalMessages.sort(
-                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-              )[0];
-              
-              console.log(`[${this.requestId}] DEBUG HERMINDA: Most recent message in thread:`, {
-                date: mostRecentMessage?.date,
-                from: mostRecentMessage?.from?.split('<')[0].trim(),
-                subject: mostRecentMessage?.subject,
-                isHerminda: (mostRecentMessage?.from?.toLowerCase().includes('herminda') || mostRecentMessage?.from?.toLowerCase().includes('lopez')) ? 'YES' : 'NO'
-              });
-              
-              console.log(`[${this.requestId}] DEBUG HERMINDA: This thread will have lastDate: ${mostRecentMessage?.date}`);
-            }
-            
             if (messages.length === 0) {
               console.warn(`[${this.requestId}] Thread ${thread.id} has no messages!`);
               return null;
@@ -388,10 +345,21 @@ class GmailService {
               new Date(a.date).getTime() - new Date(b.date).getTime()
             );
             
-            // Find the most recent message for thread sorting
-            const mostRecentMessage = [...processedMessages].sort((a, b) => 
-              new Date(b.date).getTime() - new Date(a.date).getTime()
-            )[0];
+            // Use Gmail's internalDate for sorting threads by last activity
+            const mostRecentMessage = [...processedMessages].sort((a, b) => {
+              // Parse internalDate from message headers if available, fallback to Date header
+              const getInternalDate = (msg: any) => {
+                // Try to get internalDate from the raw message object
+                const messageData = messages.find(m => m.id === msg.id);
+                if (messageData?.internalDate) {
+                  return new Date(parseInt(messageData.internalDate));
+                }
+                // Fallback to Date header
+                return new Date(msg.date);
+              };
+              
+              return getInternalDate(b).getTime() - getInternalDate(a).getTime();
+            })[0];
             
             // Use first message for subject (like Gmail)
             const firstMessage = chronologicalMessages[0];
@@ -432,6 +400,9 @@ class GmailService {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
+
+      // Sort conversations by last activity using internalDate when possible
+      conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
 
       return {
         conversations,
