@@ -96,13 +96,13 @@ serve(async (req) => {
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
 
-    // Prepare email content - HTML with custom message and embedded button
-    const emailSubject = `Invoice from ${invoice.company_name || 'Your Company'}`;
+    // Use a more business-appropriate subject line
+    const emailSubject = `Invoice ${invoice.invoice_number || invoice.id.slice(0,8)} - ${invoice.company_name || 'Your Company'}`;
     
     // Use custom message if provided, otherwise use default
-    const messageContent = customMessage || `Hi ${invoice.customer_name},
+    const messageContent = customMessage || `Hello ${invoice.customer_name},
 
-Thank you for your business with ${invoice.company_name || 'our company'}!
+Thank you for your business with ${invoice.company_name || 'our company'}.
 
 Your invoice is ready for viewing and payment.`;
 
@@ -115,20 +115,30 @@ Your invoice is ready for viewing and payment.`;
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   
-  <div style="text-align: center; margin-bottom: 30px;">
-    <h1 style="color: #2563eb; margin-bottom: 10px;">Invoice Ready</h1>
+  <div style="margin-bottom: 30px;">
+    <h2 style="color: #2563eb; margin-bottom: 10px;">Invoice from ${invoice.company_name || 'Your Company'}</h2>
   </div>
   
   <div style="white-space: pre-line; margin: 20px 0;">${messageContent}</div>
   
-  <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">
-    <strong>Invoice Details:</strong><br>
-    Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}<br>
-    Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}
-  </div>
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f8f9fa;">
+    <tr>
+      <td style="padding: 15px; border: 1px solid #dee2e6;"><strong>Invoice Number:</strong></td>
+      <td style="padding: 15px; border: 1px solid #dee2e6;">${invoice.invoice_number || invoice.id.slice(0,8)}</td>
+    </tr>
+    <tr>
+      <td style="padding: 15px; border: 1px solid #dee2e6;"><strong>Amount Due:</strong></td>
+      <td style="padding: 15px; border: 1px solid #dee2e6;">${formatCurrency(invoice.total_cents, invoice.currency)}</td>
+    </tr>
+  </table>
 
   <div style="text-align: center; margin: 30px 0;">
-    <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">Pay Invoice</a>
+    <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">View and Pay Invoice</a>
+  </div>
+  
+  <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #666;">
+    <p>If you have any questions about this invoice, please contact us.</p>
+    ${invoice.company_name ? `<p>Best regards,<br>${invoice.company_name}</p>` : ''}
   </div>
   
 </body>

@@ -726,8 +726,6 @@ class GmailService {
         `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@${fromEmail.split('@')[1] || 'gmail.com'}>`,
         `MIME-Version: 1.0`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        `X-Mailer: Gmail`,
-        `Auto-Submitted: no`,
         ...(threadId ? [`References: <${threadId}@gmail.com>`, `In-Reply-To: <${threadId}@gmail.com>`] : []),
         '',
         `This is a multi-part message in MIME format.`,
