@@ -617,6 +617,20 @@ const Mailbox: React.FC = () => {
         allEmailsLoaded: data.allEmailsLoaded
       });
       
+      // COMPREHENSIVE DEBUG for Herminda issue
+      if (view === 'inbox') {
+        console.log(`🔍 [INBOX DEBUG] Raw API response conversations:`, data.conversations?.length || 0);
+        if (data.conversations?.length) {
+          console.log(`🔍 [INBOX DEBUG] First 5 conversation IDs:`, data.conversations.slice(0, 5).map(c => c.id));
+          console.log(`🔍 [INBOX DEBUG] Looking for thread 1973ae6bbfe11c2a...`);
+          const hermindaConv = data.conversations.find(c => c.id === '1973ae6bbfe11c2a' || c.threadId === '1973ae6bbfe11c2a');
+          console.log(`🔍 [INBOX DEBUG] Found Herminda conversation?`, hermindaConv ? 'YES' : 'NO');
+          if (hermindaConv) {
+            console.log(`✅ [INBOX DEBUG] Herminda conversation:`, hermindaConv);
+          }
+        }
+      }
+      
       // Debug log for Herminda & Dina emails specifically
       if (data.conversations) {
         const hermindaDinaEmails = data.conversations.filter(conv => 
@@ -664,6 +678,8 @@ const Mailbox: React.FC = () => {
         }
       } else {
         // Replace conversations for initial load or refresh, but only if we have new data
+        console.log(`🔍 [${view.toUpperCase()}] Replacing conversations - newConversations?.length:`, newConversations?.length);
+        
         if (newConversations?.length) {
           // Check if Herminda's conversation is in the new conversations  
           const hermindaConv = newConversations.find(c => c.id === '1973ae6bbfe11c2a');
@@ -695,6 +711,8 @@ const Mailbox: React.FC = () => {
           } catch (cacheError) {
             console.warn('Failed to cache emails for assistant:', cacheError);
           }
+        } else {
+          console.log(`🚫 [${view.toUpperCase()}] No new conversations to process (length: ${newConversations?.length})`);
         }
       }
       
