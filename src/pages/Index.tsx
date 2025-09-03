@@ -265,8 +265,7 @@ const Index = () => {
             {/* Title Section */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
-                One login.<br />
-                One AI.<br />
+                One login. One AI.<br />
                 <span className="text-red-400">Unlimited<br />productivity.</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mt-4 font-body">
