@@ -334,6 +334,11 @@ class GmailService {
         
         const batchPromises = batch.map(async (thread) => {
           try {
+            // Special logging for the Herminda thread
+            if (thread.id === '1973ae6bbfe11c2a') {
+              console.log(`[${this.requestId}] 🔍 PROCESSING HERMINDA THREAD: ${thread.id}`);
+            }
+            
             // Fetch thread with ALL messages - Gmail API should return complete thread
             const threadData = await this.makeGmailRequest(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
@@ -342,12 +347,22 @@ class GmailService {
             const messages = threadData.messages || [];
             console.log(`[${this.requestId}] Thread ${thread.id}: Found ${messages.length} messages`);
             
+            // Special logging for large threads
+            if (messages.length > 10) {
+              console.log(`[${this.requestId}] ⚠️ LARGE THREAD DETECTED: ${thread.id} has ${messages.length} messages`);
+            }
+            
             if (messages.length === 0) {
               console.warn(`[${this.requestId}] Thread ${thread.id} has no messages!`);
               return null;
             }
             
             const processedMessages = messages.map(msg => this.processMessage(msg));
+            
+            // Special logging for Herminda thread processing
+            if (thread.id === '1973ae6bbfe11c2a') {
+              console.log(`[${this.requestId}] ✅ HERMINDA THREAD PROCESSED: ${processedMessages.length} messages processed successfully`);
+            }
             
             // Sort messages chronologically within the thread (like Gmail)
             const chronologicalMessages = processedMessages.sort((a, b) => 
@@ -396,6 +411,12 @@ class GmailService {
             };
           } catch (error) {
             console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
+            
+            // Special error logging for large threads and Herminda thread
+            if (thread.id === '1973ae6bbfe11c2a') {
+              console.error(`[${this.requestId}] 🚨 HERMINDA THREAD FAILED! Error:`, error.message);
+            }
+            
             return null;
           }
         });
