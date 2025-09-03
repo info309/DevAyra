@@ -265,7 +265,7 @@ const Index = () => {
                 </h1>
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+              <div className="space-y-6">
                 <Button 
                   onClick={() => navigate('/auth')}
                   className="bg-compose hover:bg-compose/90 text-compose-foreground text-lg md:text-xl font-medium px-6 py-3 h-auto"
@@ -294,7 +294,7 @@ const Index = () => {
         </div>
 
         {/* Mobile iPhone Container - Positioned below text */}
-        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '50%' }}>
+        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '60%' }}>
           <div className="w-80 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
             <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
               {/* iPhone notch */}
