@@ -21,6 +21,8 @@ interface InvoiceComposeProps {
     company_name?: string;
     payment_token: string;
     pdf_path?: string;
+    currency?: string;
+    total_cents?: number;
   };
 }
 
@@ -30,22 +32,34 @@ export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: Invoi
   
   // Pre-populate email fields
   const [to, setTo] = useState(invoice.customer_email);
-  const [subject, setSubject] = useState(`Invoice from ${invoice.company_name || 'Your Company'}`);
+  const [subject, setSubject] = useState(`Invoice #${invoice.invoice_number || invoice.id.slice(0,8)} from ${invoice.company_name || 'Your Company'}`);
   
   // Create payment link
   const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
   
-  // Pre-populate HTML content with clickable payment link
-  const [content, setContent] = useState(`Hi ${invoice.customer_name},
+  // Pre-populate professional email content
+  const [content, setContent] = useState(`Dear ${invoice.customer_name},
 
-Thanks for your business! Please find your invoice below.
+Thank you for your business with ${invoice.company_name || 'our company'}.
 
-You can view your invoice PDF and pay online by clicking the link below:
+Please find your invoice details below:
+• Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}
+• Amount Due: ${new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: (invoice.currency || 'USD').toUpperCase(),
+  }).format((invoice.total_cents || 0) / 100)}
+
+To view your complete invoice and make a secure payment, please click the link below:
 
 ${invoiceLink}
 
+If you have any questions about this invoice, please don't hesitate to contact us.
+
 Best regards,
-${invoice.company_name || 'Your Company'}`);
+${invoice.company_name || 'Your Company'}
+
+---
+This is an automated invoice notification. Please do not reply to this email.`);
 
   const handleSend = async () => {
     if (!to || !subject || !content) {
