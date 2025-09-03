@@ -271,9 +271,6 @@ const Index = () => {
                 One login. One AI.<br />
                 <span className="text-compose">Unlimited productivity.</span>
               </h1>
-              <p className="text-base text-compose font-body font-medium mt-4">
-                First 10,000 users free for life
-              </p>
             </div>
 
             {/* Login Section */}
