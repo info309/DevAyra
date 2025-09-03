@@ -272,7 +272,7 @@ const Index = () => {
               <p className="text-base text-foreground mb-4 font-body font-medium">
                 Your personal AI assistant
               </p>
-              <div className="mt-6 mb-1">
+              <div className="mt-6 mb-0">
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
