@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import EmailContent from '@/components/EmailContent';
 import ComposeDialog from '@/components/ComposeDialog';
+import SimpleComposeDialog from '@/components/SimpleComposeDialog';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
 import { calculateTotalSize, estimateEncodedSize } from '@/utils/attachmentProcessor';
 
@@ -1012,132 +1013,73 @@ const Mailbox: React.FC = () => {
     });
   };
 
-  const sendEmail = async () => {
+  const sendEmail = async (emailData: {
+    to: string;
+    subject: string;
+    content: string;
+    attachments: any[];
+  }) => {
     if (!user) return;
 
     try {
-      console.log('=== SEND EMAIL DEBUG START ===');
+      console.log('=== SIMPLE SEND EMAIL START ===');
       setSendingEmail(true);
-      console.log('Sending email with compose form:', {
-        to: composeForm.to,
-        subject: composeForm.subject,
-        threadId: composeForm.threadId,
-        content: composeForm.content?.substring(0, 100)
+      setSendingProgress('Preparing email...');
+      
+      console.log('Email data:', {
+        to: emailData.to,
+        subject: emailData.subject,
+        hasContent: !!emailData.content,
+        attachmentCount: emailData.attachments?.length || 0,
+        totalSize: emailData.attachments?.reduce((sum, att) => sum + att.size, 0) || 0
       });
-
-      setSendingProgress('Sending email...');
       
       // Create AbortController for this send operation
       const abortController = new AbortController();
       setEmailAbortController(abortController);
 
-      console.log('Sending email with compose form:', {
-        to: composeForm.to,
-        subject: composeForm.subject,
-        threadId: composeForm.threadId,
-        content: composeForm.content?.substring(0, 100)
-      });
-
-      setSendingProgress('Preparing email...');
+      setSendingProgress('Connecting to Gmail...');
       
-      // Log email details for debugging
-      console.log('[Mailbox] Preparing to send email:', {
-        to: composeForm.to,
-        subject: composeForm.subject,
-        hasContent: !!composeForm.content,
-        attachmentCount: composeForm.attachments?.length || 0,
-        documentAttachmentCount: composeForm.documentAttachments?.length || 0,
-        totalAttachmentSize: composeForm.attachments?.reduce((total, att) => total + att.size, 0) || 0
-      });
-      
-      // Debug: Log actual attachment data
-      if (composeForm.attachments?.length) {
-        console.log('[Mailbox] File attachments:', composeForm.attachments.map(att => ({ 
-          name: att.name, 
-          size: att.size, 
-          type: att.type,
-          hasData: !!att.data 
-        })));
+      // Get auth token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Authentication failed');
       }
+      const authToken = session.access_token;
+      console.log('Calling simplified Gmail API...');
       
-      if (composeForm.documentAttachments?.length) {
-        console.log('[Mailbox] Document attachments:', composeForm.documentAttachments.length);
-      }
-      
-      let result;
-      try {
-        setSendingProgress('Connecting to Gmail...');
-        console.log('[Mailbox] Starting Gmail API call...');
-        console.log('[Mailbox] Sending with attachments:', {
-          fileAttachments: composeForm.attachments?.length || 0,
-          documentAttachments: composeForm.documentAttachments?.length || 0
-        });
-        
-        result = await gmailApi.sendEmail(
-          composeForm.to,
-          composeForm.subject,
-          composeForm.content,
-          composeForm.threadId,
-          composeForm.attachments,
-          composeForm.documentAttachments,
-          false, // Simplified - no "send as links"
-          abortController.signal
-        );
-        
-        console.log('[Mailbox] Gmail API call completed:', { success: !!result?.success });
-      } catch (error) {
-        console.error('Email send error:', error);
-        
-        // Check if this was a user cancellation
-        if (abortController.signal.aborted) {
-          toast({
-            title: "Cancelled",
-            description: "Email sending was cancelled.",
-            variant: "default"
-          });
-        } else {
-          toast({
-            title: "Error", 
-            description: `Failed to send email: ${error.message}`,
-            variant: "destructive"
-          });
+      // Use simplified gmail-api-simple function for sending emails
+      const { data, error } = await supabase.functions.invoke('gmail-api-simple', {
+        body: {
+          action: 'sendEmail',
+          to: emailData.to,
+          subject: emailData.subject,
+          content: emailData.content,
+          attachments: emailData.attachments
+        },
+        headers: {
+          Authorization: `Bearer ${authToken}`
         }
-        
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
+      });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to call email function');
       }
-
+      
+      const result = data;
+      
       console.log('Gmail API response:', result);
 
-      if (result.error) {
-        console.error('Error calling gmail-api:', result.error);
-        toast({
-          title: "Error",
-          description: `Failed to send email: ${result.error.message}`,
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
-      if (!result.success) {
-        console.error('Email sending failed:', result);
-        toast({
-          title: "Error", 
-          description: result.error || "Failed to send email. Please try again.",
-          variant: "destructive"
-        });
-        setSendingEmail(false);
-        setSendingProgress('');
-        setEmailAbortController(null);
-        return;
+      if (!result?.success) {
+        throw new Error('Email sending failed');
       }
 
-      console.log('Email sent successfully:', result);
+      console.log('Email sent successfully!');
       
       toast({
         title: "Email Sent",
@@ -1145,27 +1087,30 @@ const Mailbox: React.FC = () => {
         variant: "default"
       });
 
-      // Reset form and close dialog
-      console.log('Resetting form and closing dialog...');
-      setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+      // Close dialog and refresh
       setShowComposeDialog(false);
-
-      // Refresh if it wasn't a reply
-      if (!composeForm.threadId) {
-        console.log('Refreshing current view...');
-        refreshCurrentView();
-      }
+      refreshCurrentView();
       
     } catch (error) {
-      console.error('Error sending email:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send email. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Send email error:', error);
+      
+      if (error.name === 'AbortError') {
+        toast({
+          title: "Cancelled",
+          description: "Email sending was cancelled.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to send email: ${error.message}`,
+          variant: "destructive"
+        });
+      }
     } finally {
       setSendingEmail(false);
       setSendingProgress('');
+      setEmailAbortController(null);
     }
   };
 
@@ -1427,19 +1372,10 @@ const Mailbox: React.FC = () => {
                     <span className="hidden sm:inline">Compose</span>
                   </Button>
                 </DrawerTrigger>
-                  <ComposeDialog
+                  <SimpleComposeDialog
                     open={showComposeDialog}
                     onOpenChange={setShowComposeDialog}
-                    composeForm={composeForm}
-                    onComposeFormChange={setComposeForm}
-                    onSend={async () => {
-                      await sendEmail();
-                    }}
-                     onCancel={() => {
-                       setShowComposeDialog(false);
-                       setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
-                     }}
-                    onCancelSend={cancelEmailSend}
+                    onSend={sendEmail}
                     sendingEmail={sendingEmail}
                     sendingProgress={sendingProgress}
                   />
