@@ -1173,7 +1173,7 @@ const Mailbox: React.FC = () => {
             </div>
 
             {/* View Toggle - Desktop */}
-            <div className="hidden lg:flex items-center">
+            <div className="hidden lg:flex items-center gap-4">
               <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
                 <button
                   onClick={() => setCurrentView('inbox')}
@@ -1196,6 +1196,32 @@ const Mailbox: React.FC = () => {
                 >
                   <Send className="w-4 h-4" />
                   Sent
+                </button>
+              </div>
+              
+              {/* Threading Toggle */}
+              <div className="inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-fit">
+                <button
+                  onClick={() => setUseSmartThreading(false)}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[90px] gap-2 ${
+                    !useSmartThreading 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'hover:bg-background/50'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Standard
+                </button>
+                <button
+                  onClick={() => setUseSmartThreading(true)}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-w-[90px] gap-2 ${
+                    useSmartThreading 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'hover:bg-background/50'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Smart
                 </button>
               </div>
             </div>
