@@ -10,22 +10,24 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock } from 'lucide-react';
 
-const TypewriterText = ({ children }: { children: React.ReactNode }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const TypewriterText = ({ text }: { text: string }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setIsVisible(true);
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, []);
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text]);
 
   return (
     <div className="relative">
-      <div className={`transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-        {children}
-      </div>
-      {isVisible && (
+      <span>{displayText}</span>
+      {currentIndex >= text.length && (
         <span className="animate-cursor border-r-2 border-primary ml-1 animate-pulse"></span>
       )}
     </div>
@@ -250,26 +252,43 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Full Screen Split */}
-      <section className="min-h-screen flex items-center pt-20">
+      <section className="min-h-screen flex items-center pt-20 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
             {/* Left Side - Typewriter Text */}
             <div className="space-y-8">
-              <TypewriterText>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-foreground leading-tight">
-                  <div className="mb-4">
-                    One login, One AI
-                  </div>
-                  <div className="text-primary">
-                    Unlimited productivity
-                  </div>
-                </h1>
-              </TypewriterText>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground leading-tight">
+                <TypewriterText text="One login, One AI" />
+                <div className="text-primary mt-2">
+                  <TypewriterText text="Unlimited productivity" />
+                </div>
+              </h1>
             </div>
 
-            {/* Right Side - Auth Module */}
-            <div className="flex justify-center lg:justify-end">
-              <AuthModule onSuccess={() => navigate('/dashboard')} />
+            {/* Right Side - Video Container (Desktop/Tablet) */}
+            <div className="hidden md:block relative">
+              <div className="relative translate-x-[20%] bg-card border border-border rounded-2xl p-8 shadow-2xl w-[120%]">
+                <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
+                    <p className="text-muted-foreground">Hero Demo Video</p>
+                    <p className="text-sm text-muted-foreground">Upload your screen recording here</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Video Container - Bottom overflow */}
+        <div className="md:hidden absolute bottom-0 left-0 right-0 translate-y-[20%]">
+          <div className="mx-4 bg-card border border-border rounded-t-2xl p-6 shadow-2xl">
+            <div className="aspect-[9/16] bg-muted rounded-lg flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
+                <p className="text-muted-foreground text-sm">Mobile Demo Video</p>
+                <p className="text-xs text-muted-foreground">Upload your mobile recording here</p>
+              </div>
             </div>
           </div>
         </div>
