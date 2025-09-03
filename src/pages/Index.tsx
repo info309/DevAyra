@@ -264,13 +264,13 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
             {/* Title Section */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
-              <p className="text-base text-foreground mb-4 font-body font-medium">
-                Your personal AI assistant
-              </p>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
                 <span className="text-4xl md:text-5xl lg:text-6xl">One login. One AI.</span><br />
                 <span className="text-compose">Unlimited productivity.</span>
               </h1>
+              <p className="text-base text-foreground mb-4 font-body font-medium">
+                Your personal AI assistant
+              </p>
             </div>
 
             {/* Login Section */}
