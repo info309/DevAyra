@@ -258,28 +258,21 @@ const Index = () => {
             {/* Left Side - Content matching Canva design */}
             <div className="flex flex-col justify-start space-y-8 md:space-y-12 pt-8 md:pt-16">
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground leading-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
                   One login,<br />
                   One AI,<br />
                   <span className="text-red-400">Unlimited<br />productivity.</span>
                 </h1>
               </div>
               
-              {/* Paper airplane icon */}
-              <div className="flex items-start">
-                <svg className="w-12 h-12 md:w-16 md:h-16 text-foreground mr-4 mt-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="m3 3 3 9-3 9 19-9Z"/>
-                  <path d="m6 12 13 0"/>
-                </svg>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-red-400 text-lg md:text-xl font-medium">Join today</span>
-                    <span className="text-red-400 text-lg md:text-xl">→</span>
-                  </div>
-                  <p className="text-foreground text-base md:text-lg">
-                    First 10,000 users free for life.
-                  </p>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-red-400 text-lg md:text-xl font-medium">Join today</span>
+                  <span className="text-red-400 text-lg md:text-xl">→</span>
                 </div>
+                <p className="text-foreground text-base md:text-lg">
+                  First 10,000 users free for life.
+                </p>
               </div>
             </div>
 
