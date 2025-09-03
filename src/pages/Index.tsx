@@ -295,13 +295,13 @@ const Index = () => {
 
         {/* Mobile iPhone Container - Positioned below text */}
         <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '50%' }}>
-          <div className="w-80 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+          <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl">
             <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
               {/* iPhone notch */}
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
-              <div className="text-center space-y-4 mt-8">
-                <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
-                <p className="text-white text-lg">Demo Video</p>
+              <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+              <div className="text-center space-y-3 mt-6">
+                <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
+                <p className="text-white text-sm">Demo Video</p>
               </div>
             </div>
           </div>
@@ -393,11 +393,11 @@ const Index = () => {
                   {/* Screenshot Placeholder */}
                   <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
                     <div className="relative bg-card border border-border rounded-2xl p-6 shadow-xl">
-                      <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
+                      <div className="aspect-[4/3] md:aspect-[4/3] sm:aspect-[3/4] bg-muted rounded-lg flex items-center justify-center">
                         <div className="text-center space-y-4">
-                          <Icon className="w-16 h-16 text-primary/50 mx-auto" />
-                          <p className="text-muted-foreground font-medium">{tool.title} Screenshot</p>
-                          <p className="text-sm text-muted-foreground">Upload screenshot here</p>
+                          <Icon className="w-12 md:w-16 h-12 md:h-16 text-primary/50 mx-auto" />
+                          <p className="text-muted-foreground font-medium text-sm md:text-base">{tool.title} Screenshot</p>
+                          <p className="text-xs md:text-sm text-muted-foreground">Upload screenshot here</p>
                         </div>
                       </div>
                     </div>
