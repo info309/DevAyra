@@ -291,15 +291,15 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Mobile iPhone Container - Bottom overlap */}
-        <div className="md:hidden absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-[10%]">
-          <div className="w-40 bg-gray-900 rounded-[2rem] p-2 shadow-2xl">
-            <div className="aspect-[9/19.5] bg-black rounded-[1.5rem] flex items-center justify-center overflow-hidden relative">
+        {/* Mobile iPhone Container - Positioned below text */}
+        <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '75%' }}>
+          <div className="w-56 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+            <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
               {/* iPhone notch */}
-              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-16 h-4 bg-gray-900 rounded-full"></div>
-              <div className="text-center space-y-2 mt-4">
-                <Zap className="w-6 h-6 text-primary mx-auto animate-pulse" />
-                <p className="text-white text-xs">Demo Video</p>
+              <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+              <div className="text-center space-y-3 mt-6">
+                <Zap className="w-8 h-8 text-primary mx-auto animate-pulse" />
+                <p className="text-white text-sm">Demo Video</p>
               </div>
             </div>
           </div>
