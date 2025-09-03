@@ -269,8 +269,8 @@ const Index = () => {
                 One AI.<br />
                 <span className="text-red-400">Unlimited<br />productivity.</span>
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mt-4">
-                The AI for problem solvers
+              <p className="text-lg md:text-xl text-muted-foreground mt-4 font-body">
+                Your personal AI assistant
               </p>
             </div>
 
@@ -281,7 +281,7 @@ const Index = () => {
                 <Button 
                   onClick={() => navigate('/auth')}
                   variant="outline"
-                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-sm bg-background hover:bg-muted"
+                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-sm bg-background hover:bg-muted font-body"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -295,7 +295,7 @@ const Index = () => {
                 {/* OR Divider */}
                 <div className="flex items-center my-4">
                   <div className="flex-1 border-t border-border"></div>
-                  <span className="px-3 text-xs text-muted-foreground">OR</span>
+                  <span className="px-3 text-xs text-muted-foreground font-body">OR</span>
                   <div className="flex-1 border-t border-border"></div>
                 </div>
 
@@ -303,19 +303,19 @@ const Index = () => {
                 <Input
                   type="email"
                   placeholder="Enter your personal or work email"
-                  className="w-full py-2.5 h-auto text-sm"
+                  className="w-full py-2.5 h-auto text-sm font-body"
                 />
 
                 {/* Continue with Email Button */}
                 <Button 
                   onClick={() => navigate('/auth')}
-                  className="w-full bg-foreground hover:bg-foreground/90 text-background text-sm py-2.5 h-auto"
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background text-sm py-2.5 h-auto font-body"
                 >
                   Continue with email
                 </Button>
 
                 {/* Privacy Policy Text */}
-                <p className="text-xs text-muted-foreground text-center mt-4">
+                <p className="text-xs text-muted-foreground text-center mt-4 font-body">
                   By continuing, you acknowledge Ayra's Privacy Policy.
                 </p>
               </div>
