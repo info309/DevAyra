@@ -203,11 +203,52 @@ class GmailService {
         }
       }
       
-      return decoded;
-    } catch (e) {
-      console.error(`[${this.requestId}] gmailB64Decode failed:`, e);
-      return "";
-    }
+    return decoded;
+  }
+
+  // Proper Quoted-Printable encoding for email content
+  private encodeQuotedPrintable(text: string): string {
+    return text
+      .replace(/=/g, '=3D')
+      .replace(/\r?\n/g, '\r\n')
+      .split('\r\n')
+      .map(line => {
+        // Encode non-ASCII characters and special characters
+        let encodedLine = '';
+        for (let i = 0; i < line.length; i++) {
+          const char = line.charAt(i);
+          const code = char.charCodeAt(0);
+          
+          if (code > 126 || code < 32 || char === '=') {
+            encodedLine += '=' + code.toString(16).toUpperCase().padStart(2, '0');
+          } else {
+            encodedLine += char;
+          }
+        }
+        
+        // Ensure lines don't exceed 76 characters (RFC requirement)
+        if (encodedLine.length > 76) {
+          const chunks = [];
+          let currentChunk = '';
+          
+          for (let i = 0; i < encodedLine.length; i++) {
+            if (currentChunk.length >= 75) {
+              chunks.push(currentChunk + '=');
+              currentChunk = '';
+            }
+            currentChunk += encodedLine.charAt(i);
+          }
+          
+          if (currentChunk) {
+            chunks.push(currentChunk);
+          }
+          
+          return chunks.join('\r\n');
+        }
+        
+        return encodedLine;
+      })
+      .join('\r\n');
   }
 
   private extractEmailContent(payload: any): { content: string; attachments: ProcessedAttachment[] } {
@@ -744,7 +785,7 @@ class GmailService {
         `Content-Transfer-Encoding: quoted-printable`,
         `Content-Disposition: inline`,
         '',
-        content.replace(/=/g, '=3D').replace(/\r?\n/g, '\r\n'),
+        this.encodeQuotedPrintable(content),
         ''
       ].join('\r\n'));
 
@@ -798,50 +839,67 @@ class GmailService {
       
       console.log(`[${this.requestId}] Email content preview:`, emailContent.substring(0, 500));
       
-      // Properly encode the entire message in base64url
-      // First convert to UTF-8 bytes, then to base64, then to base64url
+      // Properly encode the entire message in base64url for Gmail API
+      // Use browser's built-in btoa for reliable encoding
+      let base64String: string;
       
-      // Convert bytes to base64 string
-      let base64String = '';
-      const chunk = 1024;
-      for (let i = 0; i < utf8Bytes.length; i += chunk) {
-        const slice = utf8Bytes.slice(i, i + chunk);
-        const binaryString = Array.from(slice, byte => String.fromCharCode(byte)).join('');
-        base64String += btoa(binaryString);
-      }
-      
-      // Convert base64 to base64url (Gmail's format)
-      const encodedMessage = base64String
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      console.log(`[${this.requestId}] Email message size: ${emailContent.length} chars, encoded: ${encodedMessage.length} chars`);
-
-      const requestBody: any = {
-        raw: encodedMessage
-      };
-
-      if (threadId) {
-        requestBody.threadId = threadId;
-      }
-
-      const result = await this.makeGmailRequest(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
+      try {
+        // For smaller messages, use direct encoding
+        if (emailContent.length < 50000) {
+          base64String = btoa(unescape(encodeURIComponent(emailContent)));
+        } else {
+          // For larger messages, encode in chunks but ensure proper handling
+          const encoder = new TextEncoder();
+          const data = encoder.encode(emailContent);
+          
+          // Convert Uint8Array to binary string more reliably
+          let binaryString = '';
+          const chunkSize = 8192;
+          
+          for (let i = 0; i < data.length; i += chunkSize) {
+            const chunk = data.slice(i, i + chunkSize);
+            binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          
+          base64String = btoa(binaryString);
         }
-      );
+        
+        // Convert base64 to base64url (Gmail's format)
+        const encodedMessage = base64String
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
 
-      console.log(`[${this.requestId}] === EMAIL SENT SUCCESSFULLY ===`);
-      console.log(`[${this.requestId}] Message ID: ${result.id}`);
-      console.log(`[${this.requestId}] Recipient: ${to}`);
-      console.log(`[${this.requestId}] Gmail API response:`, JSON.stringify(result, null, 2));
-      return { success: true, messageId: result.id, sentMessage: result };
+        console.log(`[${this.requestId}] Email message size: ${emailContent.length} chars, encoded: ${encodedMessage.length} chars`);
+
+        const requestBody: any = {
+          raw: encodedMessage
+        };
+
+        if (threadId) {
+          requestBody.threadId = threadId;
+        }
+
+        const result = await this.makeGmailRequest(
+          'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          }
+        );
+
+        console.log(`[${this.requestId}] === EMAIL SENT SUCCESSFULLY ===`);
+        console.log(`[${this.requestId}] Message ID: ${result.id}`);
+        console.log(`[${this.requestId}] Recipient: ${to}`);
+        console.log(`[${this.requestId}] Gmail API response:`, JSON.stringify(result, null, 2));
+        return { success: true, messageId: result.id, sentMessage: result };
+      } catch (encodingError) {
+        console.error(`[${this.requestId}] Email encoding error:`, encodingError);
+        throw new GmailApiError(`Failed to encode email content: ${encodingError.message}`, 400);
+      }
     } catch (error) {
       console.error(`[${this.requestId}] sendEmail error:`, error);
       throw error;
