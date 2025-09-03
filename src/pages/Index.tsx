@@ -252,11 +252,11 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Full Screen Split */}
-      <section className="min-h-screen flex items-center pt-20 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center min-h-[70vh] md:min-h-[80vh]">
+      <section className="min-h-screen pt-20 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 min-h-[70vh] md:min-h-[80vh]">
             {/* Left Side - Typewriter Text */}
-            <div className="space-y-6 md:space-y-8 mb-8 md:mb-0">
+            <div className="flex flex-col justify-start pt-8 md:pt-16">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground leading-tight">
                 <TypewriterText text="One login, One AI" />
                 <div className="text-primary mt-2">
