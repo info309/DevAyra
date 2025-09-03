@@ -512,6 +512,7 @@ const Mailbox: React.FC = () => {
               .order('date_sent', { ascending: false });
 
             if (recentCachedEmails?.length) {
+              console.log(`Found ${recentCachedEmails.length} recent cached emails to check`);
               const apiThreadIds = new Set(data.conversations?.map(c => c.id) || []);
               const missingThreads = recentCachedEmails
                 .filter(email => !apiThreadIds.has(email.gmail_thread_id))
@@ -534,15 +535,29 @@ const Mailbox: React.FC = () => {
               if (missingCount > 0) {
                 console.log(`FOUND ${missingCount} missing recent threads in Gmail API response:`, Object.values(missingThreads));
                 
-                // Fetch missing threads directly by ID
+                // Special check for Herminda thread
+                const hermindaThread = missingThreads['1973ae6bbfe11c2a'];
+                if (hermindaThread) {
+                  console.log('🔍 HERMINDA THREAD DETECTED AS MISSING:', hermindaThread);
+                } else {
+                  console.log('⚠️ Herminda thread NOT detected as missing. Checking why...');
+                  const hermindaInApi = apiThreadIds.has('1973ae6bbfe11c2a');
+                  const hermindaInCache = recentCachedEmails.some(e => e.gmail_thread_id === '1973ae6bbfe11c2a');
+                  console.log('Herminda thread check:', { hermindaInApi, hermindaInCache, apiThreadIds: Array.from(apiThreadIds) });
+                }
+                
+                // Fetch missing threads directly by ID (limit to first 10 to avoid timeout)
+                const threadsToFetch = Object.values(missingThreads).slice(0, 10);
                 const additionalConversations = [];
-                for (const threadInfo of Object.values(missingThreads)) {
+                for (const threadInfo of threadsToFetch) {
                   try {
                     console.log(`Fetching missing thread: ${threadInfo.threadId} from ${threadInfo.sender}`);
-                    const threadData = await gmailApi.getEmails(`in:inbox thread:${threadInfo.threadId}`, undefined, abortController.signal);
+                    const threadData = await gmailApi.getEmails(`thread:${threadInfo.threadId}`, undefined, abortController.signal);
                     if (threadData.conversations?.length) {
                       additionalConversations.push(...threadData.conversations);
-                      console.log(`Successfully fetched missing thread: ${threadInfo.threadId}`);
+                      console.log(`✅ Successfully fetched missing thread: ${threadInfo.threadId}`);
+                    } else {
+                      console.log(`❌ No data returned for thread: ${threadInfo.threadId}`);
                     }
                   } catch (error) {
                     console.warn(`Failed to fetch missing thread ${threadInfo.threadId}:`, error);
@@ -555,7 +570,15 @@ const Mailbox: React.FC = () => {
                   
                   // Re-sort by lastDate
                   data.conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+                  
+                  // Check if we got Herminda thread
+                  const hermindaFound = data.conversations.find(c => c.id === '1973ae6bbfe11c2a');
+                  if (hermindaFound) {
+                    console.log('🎉 HERMINDA THREAD SUCCESSFULLY ADDED TO RESULTS:', hermindaFound);
+                  }
                 }
+              } else {
+                console.log('No missing recent threads detected');
               }
             }
           } catch (error) {
