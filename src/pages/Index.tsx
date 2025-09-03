@@ -276,11 +276,25 @@ const Index = () => {
                   First 10,000 users free for life.
                 </p>
               </div>
+              
+              {/* iPhone Container - Mobile below button */}
+              <div className="md:hidden flex justify-center mt-8">
+                <div className="w-80 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+                  <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
+                    {/* iPhone notch */}
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
+                    <div className="text-center space-y-4 mt-8">
+                      <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
+                      <p className="text-white text-base">Hero Demo Video</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* iPhone Container - All screen sizes */}
-            <div className="relative flex justify-center items-center">
-              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[-10%]">
+            {/* iPhone Container - Desktop/Tablet */}
+            <div className="hidden md:flex relative justify-center items-center">
+              <div className="w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[-10%]">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
