@@ -471,12 +471,94 @@ const Mailbox: React.FC = () => {
       if (view === currentView) {
         setEmailLoading(true);
       }
+
+      // OPTIMIZATION: Load from cached_emails first for instant display
+      if (!pageToken && !forceRefresh) {
+        try {
+          console.log('Loading cached emails from database for instant display...');
+          const { data: cachedEmails, error: cacheError } = await supabase
+            .from('cached_emails')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('email_type', view)
+            .order('date_sent', { ascending: false })
+            .limit(50);
+
+          if (!cacheError && cachedEmails?.length) {
+            console.log(`Loaded ${cachedEmails.length} cached emails from database`);
+            
+            // Convert cached emails to conversation format
+            const conversationMap = new Map<string, Conversation>();
+            
+            cachedEmails.forEach(email => {
+              const threadId = email.gmail_thread_id;
+              
+              if (!conversationMap.has(threadId)) {
+                conversationMap.set(threadId, {
+                  id: threadId,
+                  subject: email.subject,
+                  emails: [],
+                  messageCount: 0,
+                  lastDate: email.date_sent,
+                  unreadCount: 0,
+                  participants: []
+                });
+              }
+              
+              const conv = conversationMap.get(threadId)!;
+              const emailData = {
+                id: email.gmail_message_id,
+                threadId: threadId,
+                snippet: email.snippet || '',
+                subject: email.subject,
+                from: email.sender_name ? `${email.sender_name} <${email.sender_email}>` : email.sender_email,
+                to: email.recipient_name ? `${email.recipient_name} <${email.recipient_email}>` : (email.recipient_email || ''),
+                date: email.date_sent,
+                content: email.content || '',
+                unread: email.is_unread || false,
+                attachments: email.attachment_info ? JSON.parse(email.attachment_info as string) : []
+              };
+              
+              conv.emails.push(emailData);
+              conv.messageCount++;
+              if (emailData.unread) conv.unreadCount++;
+              
+              // Update last date if this email is newer
+              if (new Date(email.date_sent) > new Date(conv.lastDate)) {
+                conv.lastDate = email.date_sent;
+              }
+              
+              // Add to participants
+              const participant = emailData.from;
+              if (!conv.participants.includes(participant)) {
+                conv.participants.push(participant);
+              }
+            });
+            
+            const cachedConversations = Array.from(conversationMap.values())
+              .sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+            
+            // Set cached data immediately for instant display
+            setViewCache(prev => ({ ...prev, [view]: cachedConversations }));
+            if (view === currentView) {
+              setCurrentConversations(cachedConversations);
+              setEmailLoading(false); // Remove loading state since we have cached data
+            }
+            setConversations(cachedConversations);
+            
+            console.log(`Instantly loaded ${cachedConversations.length} conversations from cache`);
+          }
+        } catch (error) {
+          console.warn('Failed to load cached emails, falling back to API:', error);
+        }
+      }
       
       const query = view === 'inbox' ? 'in:inbox' : 'in:sent';
       
       console.log('Loading emails for view:', view, 'query:', query, 'user:', user?.id);
       console.log('DEBUG - Current time:', new Date().toISOString());
       
+      // Fetch from Gmail API in background (this may update the UI if there are new emails)
       const data = await gmailApi.getEmails(query, pageToken || undefined, abortController.signal);
 
       console.log('Gmail API response for', view, ':', { 
@@ -578,6 +660,7 @@ const Mailbox: React.FC = () => {
         });
       }
 
+      // Update cache and UI with fresh Gmail API data
       const { conversations: newConversations, nextPageToken, allEmailsLoaded } = data;
       
       if (pageToken) {
@@ -588,20 +671,24 @@ const Mailbox: React.FC = () => {
           setCurrentConversations(updatedConversations);
         }
       } else {
-        // Replace conversations for initial load or refresh
-        setViewCache(prev => ({ ...prev, [view]: newConversations }));
-        if (view === currentView) {
-          setCurrentConversations(newConversations);
-        }
-        setConversations(newConversations);
-        
-        // Cache emails for assistant search
-        try {
-          await supabase.functions.invoke('cache-emails', {
-            body: { conversations: newConversations }
-          });
-        } catch (cacheError) {
-          console.warn('Failed to cache emails for assistant:', cacheError);
+        // Replace conversations for initial load or refresh, but only if we have new data
+        if (newConversations?.length) {
+          setViewCache(prev => ({ ...prev, [view]: newConversations }));
+          if (view === currentView) {
+            setCurrentConversations(newConversations);
+          }
+          setConversations(newConversations);
+          
+          console.log(`Updated UI with ${newConversations.length} fresh conversations from Gmail API`);
+          
+          // Cache emails for assistant search
+          try {
+            await supabase.functions.invoke('cache-emails', {
+              body: { conversations: newConversations }
+            });
+          } catch (cacheError) {
+            console.warn('Failed to cache emails for assistant:', cacheError);
+          }
         }
       }
       
