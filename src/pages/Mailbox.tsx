@@ -499,6 +499,69 @@ const Mailbox: React.FC = () => {
             emailDates: conv.emails?.map(e => e.date) || []
           })));
         }
+
+        // Check for missing recent cached emails that should be in inbox
+        if (view === 'inbox' && !pageToken) {
+          try {
+            console.log('Checking for missing recent cached emails...');
+            const { data: recentCachedEmails } = await supabase
+              .from('cached_emails')
+              .select('gmail_thread_id, date_sent, sender_email, subject')
+              .eq('email_type', 'inbox')
+              .gte('date_sent', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+              .order('date_sent', { ascending: false });
+
+            if (recentCachedEmails?.length) {
+              const apiThreadIds = new Set(data.conversations?.map(c => c.id) || []);
+              const missingThreads = recentCachedEmails
+                .filter(email => !apiThreadIds.has(email.gmail_thread_id))
+                .reduce((acc, email) => {
+                  if (!acc[email.gmail_thread_id]) {
+                    acc[email.gmail_thread_id] = {
+                      threadId: email.gmail_thread_id,
+                      latestDate: email.date_sent,
+                      sender: email.sender_email,
+                      subject: email.subject
+                    };
+                  } else if (new Date(email.date_sent) > new Date(acc[email.gmail_thread_id].latestDate)) {
+                    acc[email.gmail_thread_id].latestDate = email.date_sent;
+                    acc[email.gmail_thread_id].sender = email.sender_email;
+                  }
+                  return acc;
+                }, {} as Record<string, any>);
+
+              const missingCount = Object.keys(missingThreads).length;
+              if (missingCount > 0) {
+                console.log(`FOUND ${missingCount} missing recent threads in Gmail API response:`, Object.values(missingThreads));
+                
+                // Fetch missing threads directly by ID
+                const additionalConversations = [];
+                for (const threadInfo of Object.values(missingThreads)) {
+                  try {
+                    console.log(`Fetching missing thread: ${threadInfo.threadId} from ${threadInfo.sender}`);
+                    const threadData = await gmailApi.getEmails(`in:inbox thread:${threadInfo.threadId}`, undefined, abortController.signal);
+                    if (threadData.conversations?.length) {
+                      additionalConversations.push(...threadData.conversations);
+                      console.log(`Successfully fetched missing thread: ${threadInfo.threadId}`);
+                    }
+                  } catch (error) {
+                    console.warn(`Failed to fetch missing thread ${threadInfo.threadId}:`, error);
+                  }
+                }
+
+                if (additionalConversations.length > 0) {
+                  console.log(`Adding ${additionalConversations.length} missing conversations to results`);
+                  data.conversations = [...(data.conversations || []), ...additionalConversations];
+                  
+                  // Re-sort by lastDate
+                  data.conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('Error checking for missing cached emails:', error);
+          }
+        }
       }
 
       // Show partial success warnings if any
