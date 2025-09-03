@@ -271,6 +271,9 @@ const Index = () => {
               <p className="text-lg md:text-xl text-muted-foreground mt-4 font-body">
                 Your personal AI assistant
               </p>
+              <p className="text-sm md:text-base text-muted-foreground mt-2 font-body">
+                First 10,000 users free for life
+              </p>
             </div>
 
             {/* Login Section */}
