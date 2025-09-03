@@ -246,7 +246,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-heading font-normal text-gray-800 dark:text-gray-200">/Ayra</h1>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-gray-800 dark:text-gray-200">/Ayra</h1>
           <Button 
             onClick={() => navigate('/auth')}
             variant="outline"
@@ -332,7 +332,7 @@ const Index = () => {
       <section className="py-24 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Meet Ayra, your personal AI assistant
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
@@ -360,7 +360,7 @@ const Index = () => {
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Your productivity tools
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -381,7 +381,7 @@ const Index = () => {
                       <div className="p-3 rounded-xl bg-primary/10">
                         <Icon className="w-8 h-8 text-primary" />
                       </div>
-                      <h3 className="text-3xl font-heading font-normal text-foreground">{tool.title}</h3>
+                      <h3 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground">{tool.title}</h3>
                     </div>
                     <p className="text-lg text-muted-foreground leading-relaxed">
                       {tool.description}
@@ -419,7 +419,7 @@ const Index = () => {
       <section className="py-24 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-heading font-normal text-foreground mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-6">
               Choose your plan
             </h2>
             <p className="text-xl text-muted-foreground">
@@ -431,10 +431,10 @@ const Index = () => {
             {/* Personal Plan */}
             <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
+                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <CardDescription className="text-lg">Perfect for individuals</CardDescription>
                 <div className="mt-4">
-                  <div className="text-4xl font-heading font-normal text-primary">$--</div>
+                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
                   <div className="text-muted-foreground">/month</div>
                 </div>
               </CardHeader>
@@ -453,10 +453,10 @@ const Index = () => {
                 </span>
               </div>
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Business</CardTitle>
+                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Business</CardTitle>
                 <CardDescription className="text-lg">For teams and organizations</CardDescription>
                 <div className="mt-4">
-                  <div className="text-4xl font-heading font-normal text-primary">$--</div>
+                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
                   <div className="text-muted-foreground">/month per user</div>
                 </div>
               </CardHeader>
@@ -474,7 +474,7 @@ const Index = () => {
       <footer className="py-12 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-2xl font-heading font-normal text-primary">
+            <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">
               Ayra
             </div>
             <div className="flex space-x-8 text-sm text-muted-foreground">
