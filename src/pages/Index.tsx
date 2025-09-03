@@ -274,7 +274,7 @@ const Index = () => {
             </div>
 
             {/* Login Section */}
-            <div className="w-full max-w-sm mx-auto lg:mx-0 lg:flex-1 lg:max-w-md">
+            <div className="w-full max-w-sm mx-auto lg:mx-0 lg:flex-1 lg:max-w-md mt-12 lg:mt-0">
               <div className="space-y-4">
                 {/* Continue with Google */}
                 <Button 
