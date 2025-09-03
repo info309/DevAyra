@@ -844,29 +844,22 @@ class GmailService {
       console.log(`[${this.requestId}] Email content preview:`, emailContent.substring(0, 500));
       
       // Properly encode the entire message in base64url for Gmail API
-      // Use browser's built-in btoa for reliable encoding
       let base64String: string;
       
       try {
-        // For smaller messages, use direct encoding
-        if (emailContent.length < 50000) {
-          base64String = btoa(unescape(encodeURIComponent(emailContent)));
-        } else {
-          // For larger messages, encode in chunks but ensure proper handling
-          const encoder = new TextEncoder();
-          const data = encoder.encode(emailContent);
-          
-          // Convert Uint8Array to binary string more reliably
-          let binaryString = '';
-          const chunkSize = 8192;
-          
-          for (let i = 0; i < data.length; i += chunkSize) {
-            const chunk = data.slice(i, i + chunkSize);
-            binaryString += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          
-          base64String = btoa(binaryString);
+        // Use a more reliable encoding approach for all message sizes
+        const encoder = new TextEncoder();
+        const data = encoder.encode(emailContent);
+        
+        // Convert Uint8Array to binary string reliably
+        let binaryString = '';
+        
+        // Use smaller chunks and safer character conversion
+        for (let i = 0; i < data.length; i++) {
+          binaryString += String.fromCharCode(data[i]);
         }
+        
+        base64String = btoa(binaryString);
         
         // Convert base64 to base64url (Gmail's format)
         const encodedMessage = base64String
