@@ -105,6 +105,16 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
     });
   };
 
+  // Reset internal attachment state when parent form is reset
+  React.useEffect(() => {
+    if (composeForm.attachments?.length === 0 && fileAttachments.length > 0) {
+      setFileAttachments([]);
+    }
+    if (composeForm.documentAttachments?.length === 0 && selectedDocuments.length > 0) {
+      setSelectedDocuments([]);
+    }
+  }, [composeForm.attachments, composeForm.documentAttachments]);
+
   // Update parent form whenever attachments change
   React.useEffect(() => {
     updateAttachments();
