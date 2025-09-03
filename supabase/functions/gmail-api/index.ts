@@ -741,10 +741,10 @@ class GmailService {
       bodyParts.push([
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: quoted-printable`,
+        `Content-Transfer-Encoding: 8bit`,
         `Content-Disposition: inline`,
         '',
-        this.encodeQuotedPrintable(content),
+        content,
         ''
       ].join('\r\n'));
 

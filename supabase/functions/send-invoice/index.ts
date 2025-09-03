@@ -95,28 +95,42 @@ serve(async (req) => {
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
 
-    // Prepare email content - simple text version to avoid encoding issues
+    // Prepare email content - HTML with embedded button to avoid URL encoding issues
     const emailSubject = `Invoice from ${invoice.company_name || 'Your Company'}`;
-    const emailContent = `Hi ${invoice.customer_name},
+    const emailContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #2563eb; margin-bottom: 10px;">Invoice Ready</h1>
+  </div>
+  
+  <p>Hi ${invoice.customer_name},</p>
+  
+  <p>Thank you for your business with ${invoice.company_name || 'our company'}!</p>
+  
+  <p>Your invoice is ready for viewing and payment:</p>
+  
+  <ul style="margin: 20px 0;">
+    <li>Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}</li>
+    <li>Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}</li>
+  </ul>
 
-Thank you for your business with ${invoice.company_name || 'our company'}!
-
-Your invoice is ready for viewing and payment. Please click the link below:
-
-${paymentLink}
-
-Invoice Details:
-• Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}
-• Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}
-• Customer: ${invoice.customer_name}
-
-If you have any questions about this invoice, please don't hesitate to contact us.
-
-Best regards,
-${invoice.company_name || 'Your Company'}
-
----
-This is an automated invoice notification.`;
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">Pay Invoice</a>
+  </div>
+  
+  <p style="font-size: 14px; color: #666;">If you have any questions about this invoice, please contact us.</p>
+  
+  <p style="font-size: 14px; color: #666;">Best regards,<br>${invoice.company_name || 'Your Company'}</p>
+  
+</body>
+</html>`;
 
     console.log('Sending email via Gmail API');
     console.log('To:', invoice.customer_email);
