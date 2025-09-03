@@ -40,6 +40,10 @@ const Payment = () => {
       console.log('Fetching invoice with ID:', invoiceId, 'and token:', token);
 
       try {
+        console.log('=== Payment Page Debug ===');
+        console.log('Invoice ID:', invoiceId);
+        console.log('Token:', token);
+        
         // Use the secure function to get invoice data with token verification
         const { data, error } = await supabase
           .rpc('get_invoice_for_payment', {
@@ -47,7 +51,7 @@ const Payment = () => {
             token: token
           });
 
-        console.log('Supabase response:', { data, error });
+        console.log('Supabase RPC response:', { data, error });
 
         if (error) {
           console.error('Supabase error:', error);
@@ -60,6 +64,7 @@ const Payment = () => {
         } else {
           console.log('Invoice data found:', data[0]);
           console.log('PDF path available:', data[0].pdf_path);
+          console.log('Full invoice object:', JSON.stringify(data[0], null, 2));
           setInvoice(data[0]);
         }
       } catch (error: any) {
@@ -255,9 +260,16 @@ const Payment = () => {
             )}
 
             {/* PDF Actions */}
-            {invoice.pdf_path ? (
-              <div className="pt-4 border-t">
-                <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+              
+              {(() => {
+                console.log('Rendering PDF section. Invoice:', invoice);
+                console.log('PDF path check:', invoice?.pdf_path);
+                return null;
+              })()}
+              
+              {invoice.pdf_path ? (
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleViewPDF}
@@ -278,10 +290,7 @@ const Payment = () => {
                     Download
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="pt-4 border-t">
-                <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+              ) : (
                 <Button 
                   onClick={handleGeneratePDF}
                   variant="outline" 
@@ -291,8 +300,8 @@ const Payment = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   Generate & View PDF
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
