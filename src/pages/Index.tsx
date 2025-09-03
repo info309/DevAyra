@@ -302,7 +302,7 @@ const Index = () => {
                 <Input
                   type="email"
                   placeholder="Enter your personal or work email"
-                  className="w-full py-2.5 h-auto text-base font-body font-medium"
+                  className="w-full py-2.5 h-auto text-base font-body font-medium border-0 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
 
                 {/* Continue with Email Button */}
