@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { gmailApi } from '@/utils/gmailApi';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InvoiceComposeProps {
   isOpen: boolean;
@@ -29,65 +29,23 @@ interface InvoiceComposeProps {
 export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: InvoiceComposeProps) {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
-  
-  // Pre-populate email fields
-  const [to, setTo] = useState(invoice.customer_email);
-  const [subject, setSubject] = useState(`Invoice #${invoice.invoice_number || invoice.id.slice(0,8)} from ${invoice.company_name || 'Your Company'}`);
-  
-  // Create payment link
-  const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
-  
-  // Pre-populate professional email content
-  const [content, setContent] = useState(`Dear ${invoice.customer_name},
-
-Thank you for your business with ${invoice.company_name || 'our company'}.
-
-Please find your invoice details below:
-• Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}
-• Amount Due: ${new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: (invoice.currency || 'USD').toUpperCase(),
-  }).format((invoice.total_cents || 0) / 100)}
-
-To view your complete invoice and make a secure payment, please click the link below:
-
-${invoiceLink}
-
-If you have any questions about this invoice, please don't hesitate to contact us.
-
-Best regards,
-${invoice.company_name || 'Your Company'}
-
----
-This is an automated invoice notification. Please do not reply to this email.`);
 
   const handleSend = async () => {
-    if (!to || !subject || !content) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setSending(true);
     
     try {
-      // Send email using gmailApi (without PDF attachment since it's on payment page)
-      const response = await gmailApi.sendEmail(
-        to,
-        subject,
-        content,
-        undefined, // threadId
-        [], // file attachments
-        [], // no document attachments - PDF is on payment page
-        false // sendAsLinks
-      );
+      const { data, error } = await supabase.functions.invoke('send-invoice', {
+        body: { invoiceId: invoice.id }
+      });
 
-      if (response.error) {
-        throw new Error(response.error);
+      if (error) {
+        throw new Error(error.message);
       }
+
+      toast({
+        title: "Invoice Sent",
+        description: "Invoice email has been sent successfully.",
+      });
 
       onClose();
     } catch (error) {
@@ -112,45 +70,41 @@ This is an automated invoice notification. Please do not reply to this email.`);
           </DrawerDescription>
         </DrawerHeader>
         
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-4 pb-4">
-            <div className="space-y-2">
-              <Label htmlFor="to">To</Label>
-              <Input
-                id="to"
-                type="email"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder="recipient@example.com"
-              />
+        <div className="flex-1 px-4 py-4">
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <h3 className="font-medium mb-2">Email Preview</h3>
+              <div className="space-y-2 text-sm">
+                <p><strong>To:</strong> {invoice.customer_email}</p>
+                <p><strong>Subject:</strong> Invoice from {invoice.company_name || 'Your Company'}</p>
+                <p><strong>Content:</strong> Professional invoice email with payment link</p>
+              </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject"
-              />
+              <h4 className="font-medium">Invoice Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Invoice Number</p>
+                  <p>{invoice.invoice_number || invoice.id.slice(0,8)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Amount</p>
+                  <p>{new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: (invoice.currency || 'USD').toUpperCase(),
+                  }).format((invoice.total_cents || 0) / 100)}</p>
+                </div>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="content">Message</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Email content..."
-                rows={12}
-                className="min-h-[200px]"
-              />
-              <p className="text-xs text-muted-foreground">
-                The invoice PDF will be available on the payment page for customers to view.
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+              <p className="text-blue-800">
+                The email will include a secure payment link where {invoice.customer_name} can view and pay the invoice.
               </p>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <DrawerFooter className="flex-shrink-0">
           <div className="flex gap-2">
