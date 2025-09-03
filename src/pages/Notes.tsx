@@ -178,7 +178,7 @@ export default function Notes() {
   // Mobile/tablet view with drawer-style sidebar
   if (isDrawerView) {
     return (
-      <div className="flex h-screen w-full flex-col">
+      <div className="flex h-screen w-full flex-col max-w-[1240px] mx-auto">
         <header className="flex items-center justify-between p-4 border-b bg-background">
           <div className="flex items-center gap-3">
             <Button
@@ -255,7 +255,7 @@ export default function Notes() {
 
   // Desktop view with permanent sidebar
   return (
-    <div className="flex h-screen w-full flex-col">
+    <div className="flex h-screen w-full flex-col max-w-[1240px] mx-auto">
       {/* Header for tablet and desktop */}
       <header className="flex items-center justify-between p-4 border-b bg-background">
         <div className="flex items-center gap-3">
