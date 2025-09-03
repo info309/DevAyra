@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { Send } from 'lucide-react';
+import { Send, Paperclip, Upload } from 'lucide-react';
+import AttachmentManager from '@/components/AttachmentManager';
+import DocumentPicker from '@/components/DocumentPicker';
+import { useAttachments } from '@/hooks/useAttachments';
+import { convertFilesToBase64, ProcessedAttachment } from '@/utils/attachmentProcessor';
+import { useToast } from '@/hooks/use-toast';
 
 interface ComposeFormData {
   to: string;
@@ -12,6 +17,7 @@ interface ComposeFormData {
   content: string;
   replyTo?: string;
   threadId?: string;
+  attachments?: ProcessedAttachment[];
 }
 
 interface ComposeDialogProps {
@@ -37,8 +43,82 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   sendingEmail,
   sendingProgress
 }) => {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileAttachments, setFileAttachments] = useState<ProcessedAttachment[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
+
+  const handleDocumentsSelected = (docs: any[]) => {
+    setSelectedDocuments(docs);
+    toast({
+      description: `Added ${docs.length} document${docs.length > 1 ? 's' : ''} from storage`
+    });
+  };
+
+  const handleFileSelect = async (files: File[]) => {
+    try {
+      const processedFiles = await convertFilesToBase64(files);
+      setFileAttachments(prev => [...prev, ...processedFiles]);
+      
+      // Update parent form with all attachments
+      const allAttachments = [...fileAttachments, ...processedFiles];
+      onComposeFormChange({ 
+        ...composeForm, 
+        attachments: allAttachments 
+      });
+      
+      toast({
+        description: `Added ${processedFiles.length} file${processedFiles.length > 1 ? 's' : ''}`
+      });
+    } catch (error) {
+      console.error('Error processing files:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload Error",
+        description: "Failed to process selected files"
+      });
+    }
+  };
+
+  const handleAddFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFileSelect(files);
+    }
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const updateAttachments = () => {
+    const allAttachments = [...fileAttachments];
+    onComposeFormChange({ 
+      ...composeForm, 
+      attachments: allAttachments 
+    });
+  };
+
+  // Update parent form whenever attachments change
+  React.useEffect(() => {
+    updateAttachments();
+  }, [fileAttachments]);
+
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        onChange={handleFileInputChange}
+        style={{ display: 'none' }}
+        accept="*/*"
+      />
+      
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[95vh] flex flex-col">
           <DrawerHeader>
@@ -68,6 +148,48 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 className="text-base focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
+
+            {/* Attachments Section */}
+            <div className="space-y-3">
+              <AttachmentManager
+                fileAttachments={fileAttachments}
+                documentAttachments={selectedDocuments}
+                onFileAttachmentsChange={setFileAttachments}
+                onDocumentAttachmentsChange={setSelectedDocuments}
+                onAddFiles={handleAddFiles}
+                showAddButton={false}
+              />
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddFiles}
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Files
+                </Button>
+                
+                <DocumentPicker
+                  onDocumentsSelected={handleDocumentsSelected}
+                  selectedDocuments={selectedDocuments}
+                  multiple={true}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                      From Documents
+                    </Button>
+                  }
+                />
+              </div>
+            </div>
             
             <div>
               <Label htmlFor="content">Message</Label>
@@ -76,8 +198,8 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 value={composeForm.content}
                 onChange={(e) => onComposeFormChange({ ...composeForm, content: e.target.value })}
                 placeholder="Write your message here..."
-                rows={15}
-                className="min-h-[300px] resize-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                rows={12}
+                className="min-h-[250px] resize-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
           </div>
