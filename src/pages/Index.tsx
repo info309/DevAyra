@@ -244,10 +244,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-heading font-bold text-gray-800 dark:text-gray-200">/Ayra</h1>
+          <Button 
+            onClick={() => navigate('/auth')}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Lock className="w-4 h-4" />
+            Sign In
+          </Button>
         </div>
       </header>
 
