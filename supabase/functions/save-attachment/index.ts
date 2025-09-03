@@ -149,6 +149,49 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create document record using service role client to bypass RLS
     console.log(`[${requestId}] 📝 Creating document record for user ${user.id}...`);
+    
+    // First, ensure "email attachments" folder exists
+    console.log(`[${requestId}] 📁 Checking for 'email attachments' folder...`);
+    let { data: folderData, error: folderFindError } = await supabaseServiceClient
+      .from('user_documents')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('name', 'email attachments')
+      .eq('is_folder', true)
+      .single();
+      
+    console.log(`[${requestId}] 📋 Folder search result:`, { folderData, folderFindError });
+    
+    let folderId = folderData?.id;
+    
+    // Create folder if it doesn't exist
+    if (!folderData) {
+      console.log(`[${requestId}] 🆕 Creating 'email attachments' folder...`);
+      const { data: newFolderData, error: folderCreateError } = await supabaseServiceClient
+        .from('user_documents')
+        .insert({
+          user_id: user.id,
+          name: 'email attachments',
+          file_path: '', // Folders don't need file paths
+          is_folder: true,
+          source_type: 'system'
+        })
+        .select()
+        .single();
+        
+      console.log(`[${requestId}] 📤 Folder creation result:`, { newFolderData, folderCreateError });
+      
+      if (folderCreateError) {
+        console.error(`[${requestId}] ❌ Folder creation failed:`, folderCreateError);
+        throw new SaveAttachmentError(`Failed to create email attachments folder: ${folderCreateError.message}`, 500);
+      }
+      
+      folderId = newFolderData.id;
+      console.log(`[${requestId}] ✅ Folder created with ID: ${folderId}`);
+    } else {
+      console.log(`[${requestId}] ✅ Using existing folder with ID: ${folderId}`);
+    }
+    
     const documentRecord = {
       user_id: user.id,
       name: request.filename,
@@ -161,7 +204,8 @@ const handler = async (req: Request): Promise<Response> => {
       category: request.category || 'email_attachment',
       tags: request.tags || [],
       description: request.description,
-      is_folder: false
+      is_folder: false,
+      folder_id: folderId
     };
     
     console.log(`[${requestId}] 📋 Document record to insert:`, documentRecord);
