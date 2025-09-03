@@ -274,19 +274,6 @@ const Index = () => {
                   First 10,000 users free for life.
                 </p>
               </div>
-
-              {/* Mobile Video Container */}
-              <div className="md:hidden mt-8">
-                <div className="bg-card border border-border rounded-2xl p-4 shadow-2xl">
-                  <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
-                      <p className="text-muted-foreground text-sm">Mobile Demo Video</p>
-                      <p className="text-xs text-muted-foreground">Upload your mobile recording here</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right Side - Video Container (Desktop/Tablet) */}
@@ -304,6 +291,19 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Mobile iPhone Container - Bottom overlap */}
+        <div className="md:hidden absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-[10%]">
+          <div className="w-40 bg-gray-900 rounded-[2rem] p-2 shadow-2xl">
+            <div className="aspect-[9/19.5] bg-black rounded-[1.5rem] flex items-center justify-center overflow-hidden relative">
+              {/* iPhone notch */}
+              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-16 h-4 bg-gray-900 rounded-full"></div>
+              <div className="text-center space-y-2 mt-4">
+                <Zap className="w-6 h-6 text-primary mx-auto animate-pulse" />
+                <p className="text-white text-xs">Demo Video</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Meet Ayra Section */}
