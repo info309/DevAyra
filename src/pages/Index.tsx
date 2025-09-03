@@ -279,8 +279,8 @@ const Index = () => {
             </div>
 
             {/* iPhone Container - All screen sizes */}
-            <div className="relative flex justify-center items-end">
-              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[15%]">
+            <div className="relative flex justify-center items-center">
+              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[-10%]">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
