@@ -273,6 +273,7 @@ export const gmailApi = {
     content: string, 
     threadId?: string,
     attachments?: any[],
+    documentAttachments?: any[],
     signal?: AbortSignal
   ) {
     return this.invoke({
@@ -282,7 +283,8 @@ export const gmailApi = {
         subject,
         content,
         threadId,
-        attachments
+        attachments,
+        documentAttachments
       },
       signal
     });

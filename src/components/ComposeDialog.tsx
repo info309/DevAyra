@@ -18,6 +18,7 @@ interface ComposeFormData {
   replyTo?: string;
   threadId?: string;
   attachments?: ProcessedAttachment[];
+  documentAttachments?: any[];
 }
 
 interface ComposeDialogProps {
@@ -99,14 +100,15 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
     const allAttachments = [...fileAttachments];
     onComposeFormChange({ 
       ...composeForm, 
-      attachments: allAttachments 
+      attachments: allAttachments,
+      documentAttachments: selectedDocuments 
     });
   };
 
   // Update parent form whenever attachments change
   React.useEffect(() => {
     updateAttachments();
-  }, [fileAttachments]);
+  }, [fileAttachments, selectedDocuments]);
 
   return (
     <>

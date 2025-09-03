@@ -52,6 +52,8 @@ interface ComposeFormData {
   content: string;
   replyTo?: string;
   threadId?: string;
+  attachments?: any[];
+  documentAttachments?: any[];
 }
 
 const Mailbox: React.FC = () => {
@@ -1042,7 +1044,9 @@ const Mailbox: React.FC = () => {
           composeForm.to,
           composeForm.subject,
           composeForm.content,
-          composeForm.threadId
+          composeForm.threadId,
+          composeForm.attachments, // Regular file attachments
+          composeForm.documentAttachments // Document storage attachments
         );
       } catch (error) {
         console.error('Email send error:', error);
@@ -1106,7 +1110,7 @@ const Mailbox: React.FC = () => {
 
       // Reset form and close dialog
       console.log('Resetting form and closing dialog...');
-      setComposeForm({ to: '', subject: '', content: '' });
+      setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
       setShowComposeDialog(false);
 
       // Refresh if it wasn't a reply
@@ -1379,8 +1383,8 @@ const Mailbox: React.FC = () => {
               <Drawer open={showComposeDialog} onOpenChange={setShowComposeDialog}>
                 <DrawerTrigger asChild>
                   <Button variant="compose" className="gap-2" onClick={() => {
-                    // Reset form to empty state for new email
-                    setComposeForm({ to: '', subject: '', content: '' });
+                     // Reset form to empty state for new email
+                     setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
                   }} size="sm">
                     <Send className="w-4 h-4" />
                     <span className="hidden sm:inline">Compose</span>
@@ -1394,10 +1398,10 @@ const Mailbox: React.FC = () => {
                     onSend={async () => {
                       await sendEmail();
                     }}
-                    onCancel={() => {
-                      setShowComposeDialog(false);
-                      setComposeForm({ to: '', subject: '', content: '' });
-                    }}
+                     onCancel={() => {
+                       setShowComposeDialog(false);
+                       setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+                     }}
                     onCancelSend={cancelEmailSend}
                     sendingEmail={sendingEmail}
                     sendingProgress={sendingProgress}

@@ -707,17 +707,22 @@ class GmailService {
       // Get user's email from auth context
       const fromEmail = this.userEmail || 'noreply@example.com';
       
-      // Build email headers with required fields for delivery and spam prevention
+      // Build email headers with improved anti-spam headers
       const headers = [
         `From: ${fromEmail}`,
         `To: ${to}`,
+        `Reply-To: ${fromEmail}`,
         `Subject: ${subject}`,
         `Date: ${new Date().toUTCString()}`,
-        `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@gmail.com>`,
+        `Message-ID: <${Date.now()}.${Math.random().toString(36).substr(2, 9)}@${fromEmail.split('@')[1] || 'gmail.com'}>`,
         `MIME-Version: 1.0`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        `X-Mailer: Ayra App`,
+        `X-Mailer: Gmail API`,
         `X-Priority: 3`,
+        `X-MSMail-Priority: Normal`,
+        `Importance: Normal`,
+        `List-Unsubscribe: <>`,
+        `Auto-Submitted: no`,
         '',
         `This is a multi-part message in MIME format.`,
         ''
@@ -726,13 +731,14 @@ class GmailService {
       // Build email body parts
       const bodyParts = [];
       
-      // Add the main content part with proper encoding
+      // Add the main content part with proper encoding and headers
       bodyParts.push([
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: 8bit`,
+        `Content-Transfer-Encoding: quoted-printable`,
+        `Content-Disposition: inline`,
         '',
-        content,
+        content.replace(/=/g, '=3D').replace(/\r?\n/g, '\r\n'), // Basic quoted-printable encoding
         ''
       ].join('\r\n'));
 
