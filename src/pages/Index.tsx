@@ -328,19 +328,19 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12">
+          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 h-full">
             {/* Left Side - Empty for balance */}
             <div className="hidden md:block"></div>
 
             {/* iPhone Container - All screen sizes */}
-            <div className="relative flex justify-center items-center">
-              <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl translate-y-[10%]">
+            <div className="relative flex justify-center items-end">
+              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[15%]">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
-                  <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
-                  <div className="text-center space-y-3 mt-6">
-                    <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
-                    <p className="text-white text-sm">Ayra Demo Video</p>
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
+                  <div className="text-center space-y-4 mt-8">
+                    <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
+                    <p className="text-white text-base">Ayra Demo Video</p>
                   </div>
                 </div>
               </div>
