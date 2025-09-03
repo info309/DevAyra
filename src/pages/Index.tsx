@@ -293,13 +293,13 @@ const Index = () => {
 
         {/* Mobile iPhone Container - Positioned below text */}
         <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '50%' }}>
-          <div className="w-64 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+          <div className="w-80 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
             <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
               {/* iPhone notch */}
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
               <div className="text-center space-y-4 mt-8">
-                <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
-                <p className="text-white text-base">Demo Video</p>
+                <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
+                <p className="text-white text-lg">Demo Video</p>
               </div>
             </div>
           </div>
