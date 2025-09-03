@@ -72,7 +72,7 @@ const Dashboard = () => {
       title: 'Invoices',
       description: 'Generate and manage client invoices',
       route: '/invoices',
-      image: '/lovable-uploads/b9f654a4-1cd5-476d-aa97-df8cfb64bb25.png'
+      image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
     },
     {
       title: 'Documents',
