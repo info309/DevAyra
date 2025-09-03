@@ -277,13 +277,26 @@ const Index = () => {
             </div>
 
             {/* Right Side - Video Container (Desktop/Tablet) */}
-            <div className="hidden md:block relative">
-              <div className="relative md:translate-x-[5%] lg:translate-x-[10%] bg-card border border-border rounded-2xl p-6 md:p-8 lg:p-12 shadow-2xl md:w-[120%] lg:w-[130%]">
-                <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Zap className="w-16 md:w-24 h-16 md:h-24 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground text-base md:text-xl">Hero Demo Video</p>
-                    <p className="text-sm md:text-lg text-muted-foreground">Upload your screen recording here</p>
+<div className="hidden md:block relative">
+              <div className="relative md:translate-x-[5%] lg:translate-x-[10%] md:w-[120%] lg:w-[130%]">
+                {/* iPad Frame */}
+                <div className="bg-gray-800 rounded-[2rem] p-4 shadow-2xl">
+                  {/* iPad Screen */}
+                  <div className="bg-black rounded-[1.5rem] p-2">
+                    <div className="aspect-[4/3] bg-muted rounded-[1.2rem] flex items-center justify-center overflow-hidden">
+                      <div className="text-center space-y-4">
+                        <Zap className="w-16 md:w-24 h-16 md:h-24 text-primary mx-auto animate-pulse" />
+                        <p className="text-muted-foreground text-base md:text-xl">Hero Demo Video</p>
+                        <p className="text-sm md:text-lg text-muted-foreground">Upload your screen recording here</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* iPad Home Button */}
+                  <div className="flex justify-center mt-3">
+                    <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-600 rounded-full border border-gray-500"></div>
+                    </div>
                   </div>
                 </div>
               </div>
