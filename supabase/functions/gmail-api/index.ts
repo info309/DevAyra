@@ -502,6 +502,9 @@ class GmailService {
         }
       }
 
+      // Sort conversations by most recent date
+      conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+
       return { conversations };
     } catch (error) {
       console.error(`[${this.requestId}] searchEmails error:`, error);
