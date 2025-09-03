@@ -256,7 +256,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full">
           <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 min-h-[70vh] md:min-h-[80vh]">
             {/* Left Side - Content matching Canva design */}
-            <div className="flex flex-col justify-start space-y-8 md:space-y-12 pt-2 md:pt-8">
+            <div className="flex flex-col justify-start space-y-6 md:space-y-8 pt-2 md:pt-8">
               <div className="space-y-4">
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
                   One login.<br />
@@ -265,7 +265,7 @@ const Index = () => {
                 </h1>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-6">
                 <Button 
                   onClick={() => navigate('/auth')}
                   className="bg-compose hover:bg-compose/90 text-compose-foreground text-lg md:text-xl font-medium px-6 py-3 h-auto"
