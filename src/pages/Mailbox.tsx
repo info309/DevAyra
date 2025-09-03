@@ -655,28 +655,59 @@ const Mailbox: React.FC = () => {
       // Update cache and UI with fresh Gmail API data
       const { conversations: newConversations, nextPageToken, allEmailsLoaded } = data;
       
+      // CRITICAL FIX: Handle mixed threads that Gmail API doesn't return in inbox
+      let finalConversations = newConversations;
+      
+      if (view === 'inbox' && viewCache['sent']?.length) {
+        // Find threads in 'sent' that should also appear in 'inbox'
+        // These are threads with both sent and received emails
+        const sentThreads = viewCache['sent'];
+        const inboxThreadIds = new Set(newConversations.map(c => c.id));
+        
+        const mixedThreadsForInbox = sentThreads.filter(sentThread => {
+          // Don't add if already in inbox
+          if (inboxThreadIds.has(sentThread.id)) return false;
+          
+          // Check if thread has received emails (indicates it should be in inbox too)
+          const hasReceivedEmails = sentThread.emails?.some(email => 
+            !email.from?.toLowerCase().includes(user?.email?.toLowerCase() || '')
+          );
+          
+          return hasReceivedEmails;
+        });
+        
+        if (mixedThreadsForInbox.length > 0) {
+          console.log(`🔧 FIXED: Added ${mixedThreadsForInbox.length} mixed threads to inbox view:`, 
+            mixedThreadsForInbox.map(t => ({ id: t.id, subject: t.subject })));
+          
+          // Merge and re-sort by date
+          finalConversations = [...newConversations, ...mixedThreadsForInbox]
+            .sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+        }
+      }
+      
       if (pageToken) {
         // Append to existing conversations for pagination
-        const updatedConversations = [...(viewCache[view] || []), ...newConversations];
+        const updatedConversations = [...(viewCache[view] || []), ...finalConversations];
         setViewCache(prev => ({ ...prev, [view]: updatedConversations }));
         if (view === currentView) {
           setCurrentConversations(updatedConversations);
         }
       } else {
         // Replace conversations for initial load or refresh, but only if we have new data
-        if (newConversations?.length) {
-          setViewCache(prev => ({ ...prev, [view]: newConversations }));
+        if (finalConversations?.length) {
+          setViewCache(prev => ({ ...prev, [view]: finalConversations }));
           if (view === currentView) {
-            setCurrentConversations(newConversations);
+            setCurrentConversations(finalConversations);
           }
-          setConversations(newConversations);
+          setConversations(finalConversations);
           
-          console.log(`Updated UI with ${newConversations.length} fresh conversations from Gmail API`);
+          console.log(`Updated UI with ${finalConversations.length} fresh conversations from Gmail API`);
           
           // Cache emails for assistant search
           try {
             await supabase.functions.invoke('cache-emails', {
-              body: { conversations: newConversations }
+              body: { conversations: finalConversations }
             });
           } catch (cacheError) {
             console.warn('Failed to cache emails for assistant:', cacheError);
