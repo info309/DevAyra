@@ -256,9 +256,9 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full">
           <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12 min-h-[70vh] md:min-h-[80vh]">
             {/* Left Side - Content matching Canva design */}
-            <div className="flex flex-col justify-center space-y-8 md:space-y-12">
+            <div className="flex flex-col justify-start space-y-8 md:space-y-12 pt-8 md:pt-16">
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-foreground leading-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal text-foreground leading-tight">
                   One login,<br />
                   One AI,<br />
                   <span className="text-red-400">Unlimited<br />productivity.</span>
