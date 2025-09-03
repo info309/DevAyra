@@ -294,7 +294,7 @@ const Index = () => {
                 {/* OR Divider */}
                 <div className="flex items-center my-4">
                   <div className="flex-1 border-t border-border"></div>
-                  <span className="px-3 text-base text-muted-foreground font-body font-medium">OR</span>
+                  <span className="px-3 text-base text-muted-foreground font-body">OR</span>
                   <div className="flex-1 border-t border-border"></div>
                 </div>
 
