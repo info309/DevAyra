@@ -1165,6 +1165,17 @@ const Mailbox: React.FC = () => {
     return matchesSearch;
   });
 
+  // Debug filtered conversations
+  console.log('DEBUG - Filtered conversations:', {
+    sortedCount: sortedConversations.length,
+    filteredCount: filteredConversations.length,
+    showOnlyUnread,
+    searchQuery,
+    currentConversationsCount: currentConversations.length,
+    emailLoading,
+    hasGmailConnection
+  });
+
 
   return (
     <div className="h-screen bg-background overflow-hidden">
