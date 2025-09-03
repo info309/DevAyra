@@ -59,6 +59,7 @@ const Payment = () => {
           setInvoice(null);
         } else {
           console.log('Invoice data found:', data[0]);
+          console.log('PDF path available:', data[0].pdf_path);
           setInvoice(data[0]);
         }
       } catch (error: any) {
@@ -99,6 +100,34 @@ const Payment = () => {
         variant: "destructive",
       });
       setProcessing(false);
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!invoice) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
+        body: { invoiceId: invoice.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.pdf_path) {
+        // Open the generated PDF in a new tab
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+        console.log('PDF generated and opened successfully');
+      } else {
+        console.error('No PDF path returned');
+      }
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -226,7 +255,7 @@ const Payment = () => {
             )}
 
             {/* PDF Actions */}
-            {invoice.pdf_path && (
+            {invoice.pdf_path ? (
               <div className="pt-4 border-t">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
                 <div className="flex gap-2">
@@ -249,6 +278,19 @@ const Payment = () => {
                     Download
                   </Button>
                 </div>
+              </div>
+            ) : (
+              <div className="pt-4 border-t">
+                <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+                <Button 
+                  onClick={handleGeneratePDF}
+                  variant="outline" 
+                  size="sm"
+                  className="w-full"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generate & View PDF
+                </Button>
               </div>
             )}
           </CardContent>
