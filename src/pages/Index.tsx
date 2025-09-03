@@ -278,14 +278,15 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Right Side - Video Container (Desktop/Tablet) */}
-            <div className="hidden md:block relative">
-              <div className="relative md:translate-x-[5%] lg:translate-x-[10%] md:w-[120%] lg:w-[130%]">
-                <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center shadow-2xl">
-                  <div className="text-center space-y-4">
-                    <Zap className="w-16 md:w-20 h-16 md:h-20 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground text-base md:text-lg">Hero Demo Video</p>
-                    <p className="text-sm md:text-base text-muted-foreground">Upload your screen recording here</p>
+            {/* Right Side - iPhone Container */}
+            <div className="relative flex justify-center items-end">
+              <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl translate-y-[10%]">
+                <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
+                  {/* iPhone notch */}
+                  <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+                  <div className="text-center space-y-3 mt-6">
+                    <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
+                    <p className="text-white text-sm">Hero Demo Video</p>
                   </div>
                 </div>
               </div>
@@ -320,30 +321,15 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Video Container - Responsive */}
-          <div className="flex justify-center">
-            {/* Desktop/Tablet - Landscape */}
-            <div className="hidden md:block">
-              <div className="relative bg-card border border-border rounded-2xl p-8 shadow-2xl max-w-4xl">
-                <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground">Desktop/Tablet Demo Video</p>
-                    <p className="text-sm text-muted-foreground">Upload your screen recording here</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile - Portrait */}
-            <div className="md:hidden">
-              <div className="relative bg-card border border-border rounded-2xl p-6 shadow-2xl max-w-sm mx-auto">
-                <div className="aspect-[9/16] bg-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground text-sm">Mobile Demo Video</p>
-                    <p className="text-xs text-muted-foreground">Upload your mobile recording here</p>
-                  </div>
+          {/* iPhone Container with 10% overhang */}
+          <div className="flex justify-center relative">
+            <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl translate-y-[10%]">
+              <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
+                {/* iPhone notch */}
+                <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+                <div className="text-center space-y-3 mt-6">
+                  <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
+                  <p className="text-white text-sm">Ayra Demo Video</p>
                 </div>
               </div>
             </div>
@@ -390,14 +376,15 @@ const Index = () => {
                     </div>
                   </div>
 
-                  {/* Screenshot Placeholder */}
-                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
-                    <div className="relative bg-card border border-border rounded-2xl p-6 shadow-xl">
-                      <div className="aspect-[4/3] md:aspect-[4/3] sm:aspect-[3/4] bg-muted rounded-lg flex items-center justify-center">
-                        <div className="text-center space-y-4">
-                          <Icon className="w-12 md:w-16 h-12 md:h-16 text-primary/50 mx-auto" />
-                          <p className="text-muted-foreground font-medium text-sm md:text-base">{tool.title} Screenshot</p>
-                          <p className="text-xs md:text-sm text-muted-foreground">Upload screenshot here</p>
+                  {/* iPhone Screenshot Placeholder with 10% overhang */}
+                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''} flex justify-center relative`}>
+                    <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl translate-y-[10%]">
+                      <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
+                        {/* iPhone notch */}
+                        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
+                        <div className="text-center space-y-3 mt-6">
+                          <Icon className="w-10 h-10 text-primary mx-auto" />
+                          <p className="text-white text-sm font-medium">{tool.title}</p>
                         </div>
                       </div>
                     </div>
