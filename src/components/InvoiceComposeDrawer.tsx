@@ -29,13 +29,26 @@ interface InvoiceComposeProps {
 export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: InvoiceComposeProps) {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+  const [customMessage, setCustomMessage] = useState(`Hi ${invoice.customer_name},
+
+Thank you for your business with ${invoice.company_name || 'our company'}!
+
+Your invoice is ready for viewing and payment. Please click the "Pay Invoice" button below to proceed.
+
+If you have any questions about this invoice, please don't hesitate to contact us.
+
+Best regards,
+${invoice.company_name || 'Your Company'}`);
 
   const handleSend = async () => {
     setSending(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('send-invoice', {
-        body: { invoiceId: invoice.id }
+        body: { 
+          invoiceId: invoice.id,
+          customMessage: customMessage.trim()
+        }
       });
 
       if (error) {
@@ -72,13 +85,19 @@ export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: Invoi
         
         <div className="flex-1 px-4 py-4">
           <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="font-medium mb-2">Email Preview</h3>
-              <div className="space-y-2 text-sm">
-                <p><strong>To:</strong> {invoice.customer_email}</p>
-                <p><strong>Subject:</strong> Invoice from {invoice.company_name || 'Your Company'}</p>
-                <p><strong>Content:</strong> Professional invoice email with payment link</p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="customMessage">Email Message</Label>
+              <Textarea
+                id="customMessage"
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Enter your custom message..."
+                rows={8}
+                className="min-h-[150px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Customize the message that will be sent to {invoice.customer_name}. The "Pay Invoice" button will be added automatically.
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -100,7 +119,7 @@ export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: Invoi
             
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               <p className="text-blue-800">
-                The email will include a secure payment link where {invoice.customer_name} can view and pay the invoice.
+                The email will include a "Pay Invoice" button where {invoice.customer_name} can view and pay the invoice securely.
               </p>
             </div>
           </div>

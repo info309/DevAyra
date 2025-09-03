@@ -29,8 +29,9 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     console.log('User authenticated:', user.email);
 
-    const { invoiceId } = await req.json();
+    const { invoiceId, customMessage } = await req.json();
     console.log('Invoice ID received:', invoiceId);
+    console.log('Custom message provided:', !!customMessage);
     console.log('Invoice ID type:', typeof invoiceId);
     console.log('Invoice ID length:', invoiceId ? invoiceId.length : 'null');
     if (!invoiceId) throw new Error("Invoice ID is required");
@@ -95,8 +96,16 @@ serve(async (req) => {
     console.log('Invoice ID:', invoiceId);
     console.log('Frontend URL used:', frontendUrl);
 
-    // Prepare email content - HTML with embedded button to avoid URL encoding issues
+    // Prepare email content - HTML with custom message and embedded button
     const emailSubject = `Invoice from ${invoice.company_name || 'Your Company'}`;
+    
+    // Use custom message if provided, otherwise use default
+    const messageContent = customMessage || `Hi ${invoice.customer_name},
+
+Thank you for your business with ${invoice.company_name || 'our company'}!
+
+Your invoice is ready for viewing and payment.`;
+
     const emailContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -110,24 +119,17 @@ serve(async (req) => {
     <h1 style="color: #2563eb; margin-bottom: 10px;">Invoice Ready</h1>
   </div>
   
-  <p>Hi ${invoice.customer_name},</p>
+  <div style="white-space: pre-line; margin: 20px 0;">${messageContent}</div>
   
-  <p>Thank you for your business with ${invoice.company_name || 'our company'}!</p>
-  
-  <p>Your invoice is ready for viewing and payment:</p>
-  
-  <ul style="margin: 20px 0;">
-    <li>Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}</li>
-    <li>Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}</li>
-  </ul>
+  <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">
+    <strong>Invoice Details:</strong><br>
+    Invoice Number: ${invoice.invoice_number || invoice.id.slice(0,8)}<br>
+    Amount Due: ${formatCurrency(invoice.total_cents, invoice.currency)}
+  </div>
 
   <div style="text-align: center; margin: 30px 0;">
     <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">Pay Invoice</a>
   </div>
-  
-  <p style="font-size: 14px; color: #666;">If you have any questions about this invoice, please contact us.</p>
-  
-  <p style="font-size: 14px; color: #666;">Best regards,<br>${invoice.company_name || 'Your Company'}</p>
   
 </body>
 </html>`;
