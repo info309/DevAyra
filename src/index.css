@@ -121,6 +121,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-body text-base;
+    font-weight: 400; /* Ensure regular weight for Open Sauce One */
   }
 
   h1, h2, h3, h4, h5, h6 {
