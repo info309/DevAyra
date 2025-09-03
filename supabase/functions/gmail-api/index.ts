@@ -31,7 +31,7 @@ const requestSchema = z.discriminatedUnion('action', [
     content: z.string(),
     replyTo: z.string().optional(),
     threadId: z.string().optional(),
-    sendAsLinks: z.boolean().optional(),
+    
     attachments: z.array(z.object({
       name: z.string(),
       data: z.string(), // base64 content
@@ -578,7 +578,7 @@ class GmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], documentAttachments?: any[], sendAsLinks?: boolean) {
+  async sendEmail(to: string, subject: string, content: string, threadId?: string, attachments?: any[], documentAttachments?: any[]) {
     try {
       console.log(`[${this.requestId}] === STARTING SEND EMAIL ===`);
       console.log(`[${this.requestId}] Recipient: ${to}`);
@@ -586,111 +586,10 @@ class GmailService {
       console.log(`[${this.requestId}] ThreadId: ${threadId || 'none'}`);
       console.log(`[${this.requestId}] Direct attachments: ${attachments?.length || 0}`);
       console.log(`[${this.requestId}] Document attachments: ${documentAttachments?.length || 0}`);
-      console.log(`[${this.requestId}] Send as links: ${sendAsLinks || false}`);
       
-      // Calculate total estimated size for validation
-      let totalSize = 0;
-      if (attachments?.length) {
-        totalSize += attachments.reduce((sum, att) => sum + (att.size || 0), 0);
-      }
-      if (documentAttachments?.length) {
-        totalSize += documentAttachments.reduce((sum, doc) => sum + (doc.file_size || 0), 0);
-      }
       
-      const estimatedEncodedSize = Math.round(totalSize * 1.4); // Base64 + MIME overhead
-      console.log(`[${this.requestId}] Total size: ${totalSize} bytes, estimated encoded: ${estimatedEncodedSize} bytes`);
-      
-      // If over Gmail limit and not sending as links, reject
-      if (estimatedEncodedSize > 25 * 1024 * 1024 && !sendAsLinks) {
-        throw new GmailApiError(
-          `Message size (${Math.round(estimatedEncodedSize / (1024 * 1024))}MB) exceeds Gmail's 25MB limit. Use "Send as links" option for large files.`,
-          400
-        );
-      }
-
-      let updatedContent = content;
       const processedAttachments: any[] = [];
       
-      // If sending as links, upload large files to storage and add links to content
-      if (sendAsLinks && (attachments?.length || documentAttachments?.length)) {
-        console.log(`[${this.requestId}] Processing files as download links`);
-        
-        const serviceRoleClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
-        
-        const uploadedLinks: string[] = [];
-        
-        // Process direct attachments
-        if (attachments?.length) {
-          for (const attachment of attachments) {
-            try {
-              const fileName = `email-attachments/${Date.now()}-${attachment.name}`;
-              
-              // Convert base64 to blob
-              const base64Data = attachment.data.replace(/^data:.*?;base64,/, '');
-              const binaryString = atob(base64Data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              
-              const { data: uploadData, error: uploadError } = await serviceRoleClient.storage
-                .from('email-attachments')
-                .upload(fileName, bytes, {
-                  contentType: attachment.mimeType,
-                  upsert: false
-                });
-              
-              if (uploadError) {
-                console.error(`[${this.requestId}] Error uploading ${attachment.name}:`, uploadError);
-                continue;
-              }
-              
-              const { data: urlData } = serviceRoleClient.storage
-                .from('email-attachments')
-                .getPublicUrl(fileName);
-              
-              uploadedLinks.push(`• ${attachment.name}: ${urlData.publicUrl}`);
-              console.log(`[${this.requestId}] Uploaded ${attachment.name} as link`);
-            } catch (error) {
-              console.error(`[${this.requestId}] Error processing ${attachment.name}:`, error);
-            }
-          }
-        }
-        
-        // Process document attachments (they're already in storage, just get public URLs)
-        if (documentAttachments?.length) {
-          for (const doc of documentAttachments) {
-            try {
-              const serviceRoleClient = createClient(
-                Deno.env.get('SUPABASE_URL') ?? '',
-                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-              );
-              
-              const { data: urlData } = serviceRoleClient.storage
-                .from('documents')
-                .getPublicUrl(doc.file_path);
-              
-              uploadedLinks.push(`• ${doc.name}: ${urlData.publicUrl}`);
-              console.log(`[${this.requestId}] Added document ${doc.name} as link`);
-            } catch (error) {
-              console.error(`[${this.requestId}] Error getting URL for ${doc.name}:`, error);
-            }
-          }
-        }
-        
-        // Add download links to email content
-        if (uploadedLinks.length > 0) {
-          updatedContent += '\n\n---\n\nAttached files (download links):\n' + uploadedLinks.join('\n');
-        }
-        
-        console.log(`[${this.requestId}] Added ${uploadedLinks.length} download links to email`);
-      } else {
-        // Normal attachment processing when not sending as links
-        // Process all attachments into a unified format
-
       // Add direct base64 attachments (already processed from frontend)
       if (attachments && attachments.length > 0) {
         console.log(`[${this.requestId}] Adding ${attachments.length} direct attachments`);
@@ -701,7 +600,7 @@ class GmailService {
           processedAttachments.push({
             name: attachment.name || attachment.filename,
             filename: attachment.name || attachment.filename,
-            data: attachment.data || attachment.content, // base64 content
+            data: attachment.data || attachment.content,
             mimeType: attachment.mimeType || attachment.type,
             size: attachment.size
           });
@@ -789,9 +688,8 @@ class GmailService {
             console.error(`[${this.requestId}] Document processing stack trace:`, docError.stack);
             // Continue with other attachments rather than failing completely
           }
-        }
-      }
-
+       }
+      
       console.log(`[${this.requestId}] Total processed attachments: ${processedAttachments.length}`);
       
       // Log attachment details for debugging
@@ -841,7 +739,7 @@ class GmailService {
         `Content-Transfer-Encoding: quoted-printable`,
         `Content-Disposition: inline`,
         '',
-        updatedContent.replace(/=/g, '=3D').replace(/\r?\n/g, '\r\n'), // Basic quoted-printable encoding
+        content.replace(/=/g, '=3D').replace(/\r?\n/g, '\r\n'),
         ''
       ].join('\r\n'));
 
@@ -1142,8 +1040,7 @@ const handler = async (req: Request): Promise<Response> => {
             hasContent: !!request.content,
             contentLength: request.content?.length || 0,
             attachmentCount: request.attachments?.length || 0,
-            documentAttachmentsCount: request.documentAttachments?.length || 0,
-            sendAsLinks: request.sendAsLinks || false
+            documentAttachmentsCount: request.documentAttachments?.length || 0
           });
           
           const result = await gmailService.sendEmail(
@@ -1152,8 +1049,7 @@ const handler = async (req: Request): Promise<Response> => {
             request.content,
             request.threadId,
             request.attachments,
-            request.documentAttachments,
-            request.sendAsLinks
+            request.documentAttachments
           );
           
           console.log(`[${requestId}] === GMAIL SENDEMAIL ACTION COMPLETE ===`);

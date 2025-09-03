@@ -9,7 +9,7 @@ import { Send, Paperclip, Upload, Link } from 'lucide-react';
 import AttachmentManager from '@/components/AttachmentManager';
 import DocumentPicker from '@/components/DocumentPicker';
 import { useAttachments } from '@/hooks/useAttachments';
-import { convertFilesToBase64, ProcessedAttachment, validateAttachmentSize, calculateTotalSize, estimateEncodedSize } from '@/utils/attachmentProcessor';
+import { convertFilesToBase64, ProcessedAttachment } from '@/utils/attachmentProcessor';
 import { useToast } from '@/hooks/use-toast';
 
 interface ComposeFormData {
@@ -50,14 +50,6 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileAttachments, setFileAttachments] = useState<ProcessedAttachment[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
-  const [processingFiles, setProcessingFiles] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState('');
-  
-  // Calculate size and validate
-  const totalSize = calculateTotalSize(fileAttachments, selectedDocuments);
-  const estimatedEncodedSize = estimateEncodedSize(totalSize);
-  const isOverGmailLimit = estimatedEncodedSize > 25 * 1024 * 1024;
-  const hasOversizedFiles = validateAttachmentSize(fileAttachments, 20).length > 0;
 
   const handleDocumentsSelected = (docs: any[]) => {
     setSelectedDocuments(docs);
@@ -68,25 +60,18 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
 
   const handleFileSelect = async (files: File[]) => {
     try {
-      // Validate file sizes first
-      const oversizedFiles = files.filter(file => file.size > 20 * 1024 * 1024);
+      // Simple validation - reject files over 10MB
+      const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
         toast({
           variant: "destructive",
           title: "Files Too Large",
-          description: `${oversizedFiles.map(f => f.name).join(', ')} exceed 20MB limit`
+          description: `Files over 10MB: ${oversizedFiles.map(f => f.name).join(', ')}`
         });
-        // Filter out oversized files
-        files = files.filter(file => file.size <= 20 * 1024 * 1024);
-        if (files.length === 0) return;
+        return;
       }
 
-      setProcessingFiles(true);
-      setProcessingProgress('Processing files...');
-
-      const processedFiles = await convertFilesToBase64(files, (processed, total, currentFile) => {
-        setProcessingProgress(`Processing ${currentFile} (${processed + 1}/${total})`);
-      });
+      const processedFiles = await convertFilesToBase64(files);
       
       setFileAttachments(prev => [...prev, ...processedFiles]);
       
@@ -107,9 +92,6 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
         title: "Upload Error",
         description: "Failed to process selected files"
       });
-    } finally {
-      setProcessingFiles(false);
-      setProcessingProgress('');
     }
   };
 
@@ -210,11 +192,10 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleAddFiles}
-                  disabled={processingFiles}
                   className="gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  {processingFiles ? processingProgress : 'Upload Files'}
+                  Upload Files
                 </Button>
                 
                 <DocumentPicker
@@ -235,20 +216,10 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 />
               </div>
 
-              {/* Send as links option when files are large */}
-              {isOverGmailLimit && (
-                <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
-                  <Checkbox
-                    id="sendAsLinks"
-                    checked={composeForm.sendAsLinks || false}
-                    onCheckedChange={(checked) => 
-                      onComposeFormChange({ ...composeForm, sendAsLinks: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="sendAsLinks" className="text-sm cursor-pointer">
-                    <Link className="w-4 h-4 inline mr-1" />
-                    Send large files as download links instead
-                  </Label>
+              {/* Size warning if files are large */}
+              {(fileAttachments.length > 0 || selectedDocuments.length > 0) && (
+                <div className="text-sm text-muted-foreground">
+                  Total: {fileAttachments.length + selectedDocuments.length} attachment(s)
                 </div>
               )}
             </div>
@@ -291,7 +262,7 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
               <Button
                 type="button"
                 onClick={onSend}
-                disabled={sendingEmail || !composeForm.to.trim() || !composeForm.subject.trim() || (hasOversizedFiles && !composeForm.sendAsLinks)}
+                disabled={sendingEmail || !composeForm.to.trim() || !composeForm.subject.trim()}
                 className="gap-2"
               >
                 <Send className="w-4 h-4" />

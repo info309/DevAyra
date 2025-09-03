@@ -1038,19 +1038,6 @@ const Mailbox: React.FC = () => {
         content: composeForm.content?.substring(0, 100)
       });
 
-      setSendingProgress('Validating attachments...');
-      
-      // Frontend validation for attachment sizes
-      const totalSize = calculateTotalSize(
-        composeForm.attachments || [], 
-        composeForm.documentAttachments || []
-      );
-      const estimatedEncodedSize = estimateEncodedSize(totalSize);
-      
-      if (estimatedEncodedSize > 25 * 1024 * 1024 && !composeForm.sendAsLinks) {
-        throw new Error(`Message size (${Math.round(estimatedEncodedSize / (1024 * 1024))}MB) exceeds Gmail's 25MB limit. Enable "Send as links" option for large files.`);
-      }
-
       setSendingProgress('Preparing email...');
       
       let result;
@@ -1061,10 +1048,10 @@ const Mailbox: React.FC = () => {
           composeForm.subject,
           composeForm.content,
           composeForm.threadId,
-          composeForm.attachments, // Regular file attachments
-          composeForm.documentAttachments, // Document storage attachments
-          composeForm.sendAsLinks, // Send as links flag
-          abortController.signal // Pass abort signal for timeout handling
+          composeForm.attachments,
+          composeForm.documentAttachments,
+          false, // Simplified - no "send as links"
+          abortController.signal
         );
       } catch (error) {
         console.error('Email send error:', error);
