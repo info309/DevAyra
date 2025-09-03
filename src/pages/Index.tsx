@@ -259,8 +259,8 @@ const Index = () => {
             <div className="flex flex-col justify-start space-y-8 md:space-y-12 pt-2 md:pt-8">
               <div className="space-y-4">
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-normal text-foreground" style={{ lineHeight: 1.2 }}>
-                  One login,<br />
-                  One AI,<br />
+                  One login.<br />
+                  One AI.<br />
                   <span className="text-red-400">Unlimited<br />productivity.</span>
                 </h1>
               </div>
