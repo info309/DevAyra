@@ -323,18 +323,13 @@ const Index = () => {
             <h2 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-6">
               Meet Ayra, your personal AI assistant
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
               Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
             </p>
-          </div>
-
-          <div className="grid md:grid-cols-[1fr_2fr] gap-8 md:gap-12">
-            {/* Left Side - Empty for balance */}
-            <div className="hidden md:block"></div>
-
-            {/* iPhone Container - All screen sizes */}
-            <div className="relative flex justify-center items-start">
-              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[15%]">
+            
+            {/* iPhone Container - Centered under subtitle */}
+            <div className="flex justify-center">
+              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl translate-y-[10%]">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
