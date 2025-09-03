@@ -325,6 +325,15 @@ class GmailService {
 
       console.log(`[${this.requestId}] Processing ${threads.length} threads`);
 
+      // Debug: Check if Herminda's thread is in the threads list
+      const hermindaThreadId = '1973ae6bbfe11c2a';
+      const hermindaThread = threads.find(t => t.id === hermindaThreadId);
+      if (hermindaThread) {
+        console.log(`[${this.requestId}] 🔍 FOUND Herminda thread in ${query} threads list!`);
+      } else {
+        console.log(`[${this.requestId}] ❌ Herminda thread NOT in ${query} threads list. Available thread IDs:`, threads.slice(0, 10).map(t => t.id));
+      }
+
       // Process threads in smaller batches to avoid timeouts
       const batchSize = 5;
       const conversations = [];
