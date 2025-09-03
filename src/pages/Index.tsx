@@ -266,15 +266,12 @@ const Index = () => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => navigate('/auth')}
-                    className="text-red-400 text-lg md:text-xl font-medium hover:text-red-300 transition-colors cursor-pointer"
-                  >
-                    Join today
-                  </button>
-                  <span className="text-red-400 text-lg md:text-xl">→</span>
-                </div>
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  className="bg-compose hover:bg-compose/90 text-compose-foreground text-lg md:text-xl font-medium px-6 py-3 h-auto"
+                >
+                  Join today →
+                </Button>
                 <p className="text-foreground text-base md:text-lg">
                   First 10,000 users free for life.
                 </p>
