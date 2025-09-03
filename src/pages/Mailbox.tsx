@@ -1063,7 +1063,8 @@ const Mailbox: React.FC = () => {
           composeForm.threadId,
           composeForm.attachments, // Regular file attachments
           composeForm.documentAttachments, // Document storage attachments
-          composeForm.sendAsLinks // Send as links flag
+          composeForm.sendAsLinks, // Send as links flag
+          abortController.signal // Pass abort signal for timeout handling
         );
       } catch (error) {
         console.error('Email send error:', error);
