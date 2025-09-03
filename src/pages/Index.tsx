@@ -371,45 +371,27 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="space-y-24">
+          <div className="space-y-12">
             {productivityTools.map((tool, index) => {
               const Icon = tool.icon;
-              const isEven = index % 2 === 0;
               
               return (
-                <div key={tool.title} className={`grid lg:grid-cols-2 gap-12 items-center ${!isEven ? 'lg:grid-flow-col-dense' : ''}`}>
-                  {/* Content */}
-                  <div className={`space-y-6 ${!isEven ? 'lg:col-start-2' : ''}`}>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="p-3 rounded-xl bg-primary/10">
-                        <Icon className="w-8 h-8 text-primary" />
-                      </div>
-                      <h3 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground">{tool.title}</h3>
+                <div key={tool.title} className="text-center space-y-6">
+                  <div className="flex items-center justify-center gap-4 mb-4">
+                    <div className="p-3 rounded-xl bg-primary/10">
+                      <Icon className="w-8 h-8 text-primary" />
                     </div>
-                    <p className="text-base text-muted-foreground leading-relaxed font-body font-medium">
-                      {tool.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {tool.features.map((feature) => (
-                        <span key={feature} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-base font-body font-medium">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
+                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground">{tool.title}</h3>
                   </div>
-
-                  {/* iPhone Screenshot Placeholder with 10% overhang */}
-                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''} flex justify-center relative`}>
-                    <div className="w-72 bg-gray-900 rounded-[2.5rem] p-2.5 shadow-2xl translate-y-[10%]">
-                      <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
-                        {/* iPhone notch */}
-                        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full"></div>
-                        <div className="text-center space-y-3 mt-6">
-                          <Icon className="w-10 h-10 text-primary mx-auto" />
-                          <p className="text-base font-body font-medium">{tool.title}</p>
-                        </div>
-                      </div>
-                    </div>
+                  <p className="text-base text-muted-foreground leading-relaxed font-body font-medium max-w-3xl mx-auto">
+                    {tool.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {tool.features.map((feature) => (
+                      <span key={feature} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-base font-body font-medium">
+                        {feature}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
