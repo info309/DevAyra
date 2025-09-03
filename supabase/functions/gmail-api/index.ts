@@ -1044,11 +1044,11 @@ const handler = async (req: Request): Promise<Response> => {
             totalPayloadSize: JSON.stringify(request).length
           });
           
-          // Add timeout protection for the entire operation
+           // Add timeout protection for the entire operation
           const operationTimeout = setTimeout(() => {
             console.error(`[${requestId}] OPERATION TIMEOUT - Gmail send took too long`);
             throw new Error('Gmail send operation timeout');
-          }, 25000); // 25 second timeout
+          }, 15000); // Reduced to 15 second timeout for faster debugging
           
           try {
             console.log(`[${requestId}] Calling gmailService.sendEmail...`);

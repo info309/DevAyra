@@ -1046,13 +1046,32 @@ const Mailbox: React.FC = () => {
         subject: composeForm.subject,
         hasContent: !!composeForm.content,
         attachmentCount: composeForm.attachments?.length || 0,
+        documentAttachmentCount: composeForm.documentAttachments?.length || 0,
         totalAttachmentSize: composeForm.attachments?.reduce((total, att) => total + att.size, 0) || 0
       });
+      
+      // Debug: Log actual attachment data
+      if (composeForm.attachments?.length) {
+        console.log('[Mailbox] File attachments:', composeForm.attachments.map(att => ({ 
+          name: att.name, 
+          size: att.size, 
+          type: att.type,
+          hasData: !!att.data 
+        })));
+      }
+      
+      if (composeForm.documentAttachments?.length) {
+        console.log('[Mailbox] Document attachments:', composeForm.documentAttachments.length);
+      }
       
       let result;
       try {
         setSendingProgress('Connecting to Gmail...');
         console.log('[Mailbox] Starting Gmail API call...');
+        console.log('[Mailbox] Sending with attachments:', {
+          fileAttachments: composeForm.attachments?.length || 0,
+          documentAttachments: composeForm.documentAttachments?.length || 0
+        });
         
         result = await gmailApi.sendEmail(
           composeForm.to,

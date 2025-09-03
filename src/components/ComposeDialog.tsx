@@ -53,6 +53,16 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
 
   const handleDocumentsSelected = (docs: any[]) => {
     setSelectedDocuments(docs);
+    
+    // Immediately update parent form
+    onComposeFormChange({ 
+      ...composeForm, 
+      attachments: fileAttachments,
+      documentAttachments: docs
+    });
+    
+    console.log('Added document attachments:', docs.length);
+    
     toast({
       description: `Added ${docs.length} document${docs.length > 1 ? 's' : ''} from storage`
     });
@@ -73,14 +83,18 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
 
       const processedFiles = await convertFilesToBase64(files);
       
-      setFileAttachments(prev => [...prev, ...processedFiles]);
+      // Update state with new files
+      const updatedFileAttachments = [...fileAttachments, ...processedFiles];
+      setFileAttachments(updatedFileAttachments);
       
-      // Update parent form with all attachments
-      const allAttachments = [...fileAttachments, ...processedFiles];
+      // Immediately update parent form with correct attachments
       onComposeFormChange({ 
         ...composeForm, 
-        attachments: allAttachments 
+        attachments: updatedFileAttachments,
+        documentAttachments: selectedDocuments
       });
+      
+      console.log('Added file attachments:', processedFiles.length, 'Total now:', updatedFileAttachments.length);
       
       toast({
         description: `Added ${processedFiles.length} file${processedFiles.length > 1 ? 's' : ''}`
@@ -110,29 +124,17 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
     }
   };
 
-  const updateAttachments = () => {
-    const allAttachments = [...fileAttachments];
-    onComposeFormChange({ 
-      ...composeForm, 
-      attachments: allAttachments,
-      documentAttachments: selectedDocuments 
-    });
-  };
-
   // Reset internal attachment state when parent form is reset
   React.useEffect(() => {
     if (composeForm.attachments?.length === 0 && fileAttachments.length > 0) {
+      console.log('Resetting file attachments');
       setFileAttachments([]);
     }
     if (composeForm.documentAttachments?.length === 0 && selectedDocuments.length > 0) {
+      console.log('Resetting document attachments');
       setSelectedDocuments([]);
     }
   }, [composeForm.attachments, composeForm.documentAttachments]);
-
-  // Update parent form whenever attachments change
-  React.useEffect(() => {
-    updateAttachments();
-  }, [fileAttachments, selectedDocuments]);
 
   return (
     <>
@@ -180,8 +182,22 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
               <AttachmentManager
                 fileAttachments={fileAttachments}
                 documentAttachments={selectedDocuments}
-                onFileAttachmentsChange={setFileAttachments}
-                onDocumentAttachmentsChange={setSelectedDocuments}
+                onFileAttachmentsChange={(newFiles) => {
+                  setFileAttachments(newFiles);
+                  onComposeFormChange({ 
+                    ...composeForm, 
+                    attachments: newFiles,
+                    documentAttachments: selectedDocuments
+                  });
+                }}
+                onDocumentAttachmentsChange={(newDocs) => {
+                  setSelectedDocuments(newDocs);
+                  onComposeFormChange({ 
+                    ...composeForm, 
+                    attachments: fileAttachments,
+                    documentAttachments: newDocs
+                  });
+                }}
                 onAddFiles={handleAddFiles}
                 showAddButton={false}
               />
