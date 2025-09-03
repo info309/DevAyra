@@ -89,11 +89,6 @@ This is an automated invoice notification. Please do not reply to this email.`);
         throw new Error(response.error);
       }
 
-      toast({
-        title: "Invoice Sent",
-        description: `Invoice email sent successfully to ${invoice.customer_name}.`,
-      });
-
       onClose();
     } catch (error) {
       console.error('Error sending invoice email:', error);
