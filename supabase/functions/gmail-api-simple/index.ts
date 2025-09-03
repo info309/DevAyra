@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,20 +34,64 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get Gmail access token from request body instead of auth header
-    if (!body.accessToken) {
-      console.error(`[${requestId}] No Gmail access token in request body`);
-      return new Response(JSON.stringify({ error: 'No Gmail access token provided' }), {
+    // Get auth token and verify with Supabase
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error(`[${requestId}] No authorization header`);
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
     
-    const accessToken = body.accessToken;
-    console.log(`[${requestId}] Got Gmail access token (length: ${accessToken.length})`);
+    const supabaseToken = authHeader.replace('Bearer ', '');
+    console.log(`[${requestId}] Got Supabase token (length: ${supabaseToken.length})`);
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(supabaseToken);
+    
+    if (userError || !user) {
+      console.error(`[${requestId}] Failed to get user:`, userError);
+      return new Response(JSON.stringify({ error: 'Invalid authentication token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`[${requestId}] Authenticated user: ${user.id}`);
+
+    // Get user's Gmail connection
+    const { data: gmailConnection, error: connectionError } = await supabase
+      .from('gmail_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (connectionError || !gmailConnection) {
+      console.error(`[${requestId}] No active Gmail connection:`, connectionError);
+      return new Response(JSON.stringify({ error: 'Gmail account not connected' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`[${requestId}] Found Gmail connection for: ${gmailConnection.email_address}`);
+    const gmailAccessToken = gmailConnection.access_token;
 
     if (body.action === 'sendEmail') {
-      return await handleSendEmail(requestId, accessToken, body);
+      return await handleSendEmail(requestId, gmailAccessToken, body);
     } else {
       console.error(`[${requestId}] Unsupported action: ${body.action}`);
       return new Response(JSON.stringify({ error: 'Unsupported action' }), {

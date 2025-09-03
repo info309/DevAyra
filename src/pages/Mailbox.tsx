@@ -1040,22 +1040,15 @@ const Mailbox: React.FC = () => {
 
       setSendingProgress('Connecting to Gmail...');
       
-      // Get Gmail access token from localStorage
-      const gmailAuth = localStorage.getItem('gmail_auth');
-      if (!gmailAuth) {
-        throw new Error('Please connect your Gmail account first');
+      // Get auth token from Supabase session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Authentication failed');
       }
-
-      const authData = JSON.parse(gmailAuth);
-      const gmailAccessToken = authData.access_token;
+      const authToken = session.access_token;
+      console.log('Calling simplified Gmail API...');
       
-      if (!gmailAccessToken) {
-        throw new Error('Gmail access token not found. Please reconnect your Gmail account.');
-      }
-      
-      console.log('Using Gmail access token for sending');
-      
-      // Use direct supabase function call with Gmail access token in body
+      // Use direct supabase function call
       console.log('Function call data:', {
         action: 'sendEmail',
         to: emailData.to,
@@ -1069,8 +1062,10 @@ const Mailbox: React.FC = () => {
           to: emailData.to,
           subject: emailData.subject,
           content: emailData.content,
-          attachments: emailData.attachments,
-          accessToken: gmailAccessToken
+          attachments: emailData.attachments
+        },
+        headers: {
+          Authorization: `Bearer ${authToken}`
         }
       });
       
