@@ -212,47 +212,10 @@ class GmailService {
 
   // Proper Quoted-Printable encoding for email content
   private encodeQuotedPrintable(text: string): string {
+    // Simple approach - just use the text as-is for now to avoid encoding issues
+    // Gmail API can handle UTF-8 content directly in most cases
     return text
-      .replace(/=/g, '=3D')
-      .replace(/\r?\n/g, '\r\n')
-      .split('\r\n')
-      .map(line => {
-        // Encode non-ASCII characters and special characters
-        let encodedLine = '';
-        for (let i = 0; i < line.length; i++) {
-          const char = line.charAt(i);
-          const code = char.charCodeAt(0);
-          
-          if (code > 126 || code < 32 || char === '=') {
-            encodedLine += '=' + code.toString(16).toUpperCase().padStart(2, '0');
-          } else {
-            encodedLine += char;
-          }
-        }
-        
-        // Ensure lines don't exceed 76 characters (RFC requirement)
-        if (encodedLine.length > 76) {
-          const chunks = [];
-          let currentChunk = '';
-          
-          for (let i = 0; i < encodedLine.length; i++) {
-            if (currentChunk.length >= 75) {
-              chunks.push(currentChunk + '=');
-              currentChunk = '';
-            }
-            currentChunk += encodedLine.charAt(i);
-          }
-          
-          if (currentChunk) {
-            chunks.push(currentChunk);
-          }
-          
-          return chunks.join('\r\n');
-        }
-        
-        return encodedLine;
-      })
-      .join('\r\n');
+      .replace(/\r?\n/g, '\r\n'); // Ensure proper line endings
   }
 
   private extractEmailContent(payload: any): { content: string; attachments: ProcessedAttachment[] } {
@@ -786,10 +749,10 @@ class GmailService {
       bodyParts.push([
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: quoted-printable`,
+        `Content-Transfer-Encoding: 8bit`,
         `Content-Disposition: inline`,
         '',
-        this.encodeQuotedPrintable(content),
+        content,
         ''
       ].join('\r\n'));
 
