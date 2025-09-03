@@ -487,7 +487,7 @@ const Mailbox: React.FC = () => {
             .eq('user_id', user.id)
             .eq('email_type', view)
             .order('date_sent', { ascending: false })
-            .limit(50);
+            .limit(200);
 
           if (!cacheError && cachedEmails?.length) {
             console.log(`Loaded ${cachedEmails.length} cached emails from database`);

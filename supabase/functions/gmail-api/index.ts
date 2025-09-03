@@ -12,7 +12,7 @@ const requestSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('getEmails'),
     query: z.string().optional(),
-    maxResults: z.number().min(1).max(100).optional(),
+    maxResults: z.number().min(1).max(200).optional(),
     pageToken: z.string().optional()
   }),
   z.object({
@@ -421,7 +421,7 @@ class GmailService {
       console.log(`[${this.requestId}] Searching emails with query: ${query}`);
       
       // Use Gmail search API with the user's search query
-      const threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=50&q=${encodeURIComponent(query)}`;
+      const threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=200&q=${encodeURIComponent(query)}`;
       
       const threadsData = await this.makeGmailRequest(threadsUrl);
       const threads = threadsData.threads || [];
@@ -1015,7 +1015,7 @@ const handler = async (req: Request): Promise<Response> => {
       case 'getEmails':
         result = await gmailService.getEmails(
           request.query || 'in:inbox',
-          request.maxResults || 50,
+          request.maxResults || 200,
           request.pageToken
         );
         break;
