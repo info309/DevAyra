@@ -206,7 +206,7 @@ export const gmailApi = {
         action: 'getEmails',
         query,
         pageToken,
-        maxResults: 50
+        maxResults: 200  // Increased from 50 to 200 to ensure we don't miss emails
       },
       signal
     });
