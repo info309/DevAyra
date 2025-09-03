@@ -264,7 +264,7 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
             {/* Title Section */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
-              <p className="text-lg md:text-xl text-muted-foreground mb-4 font-body">
+              <p className="text-base text-foreground mb-4 font-body">
                 Your personal AI assistant
               </p>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
