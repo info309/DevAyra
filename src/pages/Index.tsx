@@ -254,9 +254,9 @@ const Index = () => {
       {/* Hero Section - Full Screen Split */}
       <section className="min-h-screen flex items-center pt-20 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center min-h-[70vh] md:min-h-[80vh]">
             {/* Left Side - Typewriter Text */}
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8 mb-8 md:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground leading-tight">
                 <TypewriterText text="One login, One AI" />
                 <div className="text-primary mt-2">
@@ -267,12 +267,12 @@ const Index = () => {
 
             {/* Right Side - Video Container (Desktop/Tablet) */}
             <div className="hidden md:block relative">
-              <div className="relative translate-x-[20%] bg-card border border-border rounded-2xl p-8 shadow-2xl w-[120%]">
+              <div className="relative md:translate-x-[15%] lg:translate-x-[20%] bg-card border border-border rounded-2xl p-4 md:p-6 lg:p-8 shadow-2xl md:w-[115%] lg:w-[120%]">
                 <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
                   <div className="text-center space-y-4">
-                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground">Hero Demo Video</p>
-                    <p className="text-sm text-muted-foreground">Upload your screen recording here</p>
+                    <Zap className="w-12 md:w-16 h-12 md:h-16 text-primary mx-auto animate-pulse" />
+                    <p className="text-muted-foreground text-sm md:text-base">Hero Demo Video</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Upload your screen recording here</p>
                   </div>
                 </div>
               </div>
@@ -281,11 +281,11 @@ const Index = () => {
         </div>
 
         {/* Mobile Video Container - Bottom overflow */}
-        <div className="md:hidden absolute bottom-0 left-0 right-0 translate-y-[20%]">
-          <div className="mx-4 bg-card border border-border rounded-t-2xl p-6 shadow-2xl">
-            <div className="aspect-[9/16] bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
+        <div className="md:hidden absolute bottom-0 left-0 right-0 translate-y-[15%]">
+          <div className="mx-4 bg-card border border-border rounded-t-2xl p-4 shadow-2xl">
+            <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <Zap className="w-10 h-10 text-primary mx-auto animate-pulse" />
                 <p className="text-muted-foreground text-sm">Mobile Demo Video</p>
                 <p className="text-xs text-muted-foreground">Upload your mobile recording here</p>
               </div>
