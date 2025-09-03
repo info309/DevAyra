@@ -265,7 +265,7 @@ const Index = () => {
                 </h1>
               </div>
               
-              <div className="space-y-6">
+              <div className="flex items-center gap-4">
                 <Button 
                   onClick={() => navigate('/auth')}
                   className="bg-compose hover:bg-compose/90 text-compose-foreground text-lg md:text-xl font-medium px-6 py-3 h-auto"
