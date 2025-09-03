@@ -1048,7 +1048,14 @@ const Mailbox: React.FC = () => {
       const authToken = session.access_token;
       console.log('Calling simplified Gmail API...');
       
-      // Use simplified gmail-api-simple function for sending emails
+      // Use direct supabase function call
+      console.log('Function call data:', {
+        action: 'sendEmail',
+        to: emailData.to,
+        subject: emailData.subject,
+        attachmentCount: emailData.attachments?.length || 0
+      });
+      
       const { data, error } = await supabase.functions.invoke('gmail-api-simple', {
         body: {
           action: 'sendEmail',
@@ -1061,6 +1068,8 @@ const Mailbox: React.FC = () => {
           Authorization: `Bearer ${authToken}`
         }
       });
+      
+      console.log('Function response:', { data, error });
       
       if (error) {
         console.error('Supabase function error:', error);
