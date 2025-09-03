@@ -267,9 +267,9 @@ const Index = () => {
       {/* Hero Section - Responsive Layout */}
       <section className="min-h-screen pt-20 pb-12 flex items-start">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
-            {/* Title Section */}
-            <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
+          <div className="flex flex-col tablet:flex-row tablet:items-center tablet:gap-16 h-full">
+            {/* Left Half - Title, Icon, Subheading */}
+            <div className="text-center tablet:text-left tablet:flex-1 mb-8 tablet:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
                 <span className="text-4xl md:text-5xl lg:text-6xl">One login. One AI.</span><br />
                 <span className="text-compose">Unlimited productivity.</span>
@@ -281,13 +281,13 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
-                  className="w-40 mx-auto rounded-lg"
+                  className="w-40 mx-auto tablet:mx-0 rounded-lg"
                 />
               </div>
             </div>
 
-            {/* Login Section */}
-            <div className="w-full max-w-sm mx-auto lg:mx-0 lg:flex-1 lg:max-w-md mt-6 lg:mt-0">
+            {/* Right Half - Login Section */}
+            <div className="w-full max-w-sm mx-auto tablet:mx-0 tablet:flex-1 tablet:max-w-md mt-6 tablet:mt-0">
               <div className="space-y-4">
                 {/* Continue with Google */}
                 <Button 
