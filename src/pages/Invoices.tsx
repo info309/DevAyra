@@ -16,6 +16,7 @@ import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, Chevron
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
+import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -41,6 +42,7 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }
   ]);
@@ -231,51 +233,10 @@ const Invoices = () => {
           throw new Error("PDF generation failed");
         }
         
-        invoice = updatedInvoice;
+        setSendingInvoice(updatedInvoice);
+      } else {
+        setSendingInvoice(invoice);
       }
-
-      const subject = `Invoice from ${invoice.company_name || 'Your Company'}`;
-      const invoiceLink = `https://ayra.app/payment?invoice=${invoice.id}&token=${invoice.payment_token}`;
-      
-      // Create HTML email body with clickable link
-      const htmlBody = `Hi ${invoice.customer_name},
-
-Thanks for your business! Please find your invoice attached.
-
-<a href="${invoiceLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View & Pay Invoice Online</a>
-
-If the button doesn't work, you can copy and paste this link:
-${invoiceLink}
-
-Best regards,
-${invoice.company_name || 'Your Company'}`;
-
-      // Create document attachment for the PDF
-      const pdfAttachment = {
-        id: invoice.id,
-        name: `Invoice-${invoice.invoice_number || invoice.id}.pdf`,
-        size: 0, // Size not available, but not critical for display
-        file_path: invoice.pdf_path,
-        content_type: 'application/pdf',
-        created_at: invoice.updated_at
-      };
-
-      // Navigate to mailbox with compose draft including PDF attachment
-      navigate('/mailbox', { 
-        state: { 
-          composeDraft: { 
-            to: invoice.customer_email, 
-            subject, 
-            content: htmlBody,
-            documentAttachments: [pdfAttachment]
-          } 
-        } 
-      });
-      
-      toast({
-        title: "Email Ready",
-        description: "Invoice email prepared with PDF attachment.",
-      });
       
     } catch (error) {
       console.error('Error in handleSendInvoice:', error);
@@ -709,6 +670,15 @@ ${invoice.company_name || 'Your Company'}`;
           </Card>
         ))}
       </div>
+
+      {/* Invoice Compose Drawer */}
+      {sendingInvoice && (
+        <InvoiceComposeDrawer
+          isOpen={!!sendingInvoice}
+          onClose={() => setSendingInvoice(null)}
+          invoice={sendingInvoice}
+        />
+      )}
     </div>
   );
 };
