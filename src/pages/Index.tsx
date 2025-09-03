@@ -317,7 +317,7 @@ const Index = () => {
       </section>
 
       {/* Meet Ayra Section */}
-      <section className="py-8 bg-card/30">
+      <section className="py-16 bg-card/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-4">
             <h2 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-6">
@@ -327,9 +327,9 @@ const Index = () => {
               Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
             </p>
             
-            {/* iPhone Container - Centered under subtitle with bottom 20% cut off */}
+            {/* iPhone Container - Centered under subtitle showing 80% of screen */}
             <div className="flex justify-center">
-              <div className="relative h-[320px] md:h-[384px] overflow-hidden">
+              <div className="relative h-[430px] md:h-[515px] overflow-hidden">
                 <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
                   <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                     {/* iPhone notch */}
