@@ -575,9 +575,13 @@ export type Database = {
         Returns: {
           company_name: string
           currency: string
+          customer_email: string
           customer_name: string
+          due_date: string
           id: string
           invoice_number: string
+          issue_date: string
+          pdf_path: string
           status: string
           total_cents: number
         }[]

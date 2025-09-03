@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, FileText } from "lucide-react";
+import { Loader2, CreditCard, FileText, Download, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -15,6 +15,7 @@ interface Invoice {
   currency: string;
   status: string;
   company_name: string;
+  pdf_path?: string;
   issue_date?: string;
   due_date?: string;
 }
@@ -99,6 +100,16 @@ const Payment = () => {
       });
       setProcessing(false);
     }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!invoice?.pdf_path) return;
+    
+    const supabaseUrl = 'https://lmkpmnndrygjatnipfgd.supabase.co';
+    const pdfUrl = `${supabaseUrl}/storage/v1/object/public/invoices/${invoice.pdf_path}`;
+    
+    // Open PDF in new tab for viewing/downloading
+    window.open(pdfUrl, '_blank');
   };
 
   const formatCurrency = (cents: number, currency: string) => {
@@ -197,6 +208,27 @@ const Payment = () => {
                 <p className="text-sm text-muted-foreground">
                   <strong>Due Date:</strong> {formatDate(invoice.due_date)}
                 </p>
+              </div>
+            )}
+
+            {/* PDF Download Section */}
+            {invoice.pdf_path && (
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Invoice Document</p>
+                    <p className="text-sm text-muted-foreground">View or download the full invoice PDF</p>
+                  </div>
+                  <Button
+                    onClick={handleDownloadPdf}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View PDF
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

@@ -60,24 +60,14 @@ ${invoice.company_name || 'Your Company'}`);
     setSending(true);
     
     try {
-      // Prepare PDF attachment if available
-      const documentAttachments = invoice.pdf_path ? [{
-        id: invoice.id,
-        name: `Invoice-${invoice.invoice_number || invoice.id}.pdf`,
-        size: 0,
-        file_path: invoice.pdf_path,
-        content_type: 'application/pdf',
-        created_at: new Date().toISOString()
-      }] : [];
-
-      // Send email using gmailApi
+      // Send email using gmailApi (without PDF attachment since it's on payment page)
       const response = await gmailApi.sendEmail(
         to,
         subject,
         content,
         undefined, // threadId
         [], // file attachments
-        documentAttachments, // document attachments
+        [], // no document attachments - PDF is on payment page
         false // sendAsLinks
       );
 
@@ -146,18 +136,10 @@ ${invoice.company_name || 'Your Company'}`);
                 rows={12}
                 className="min-h-[200px]"
               />
+              <p className="text-xs text-muted-foreground">
+                The invoice PDF will be available on the payment page for customers to view.
+              </p>
             </div>
-
-            {invoice.pdf_path && (
-              <div className="space-y-2">
-                <Label>Attachments</Label>
-                <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Invoice-{invoice.invoice_number || invoice.id}.pdf</span>
-                  <Badge variant="secondary" className="text-xs">PDF</Badge>
-                </div>
-              </div>
-            )}
           </div>
         </ScrollArea>
 
