@@ -267,12 +267,12 @@ const Index = () => {
 
             {/* Right Side - Video Container (Desktop/Tablet) */}
             <div className="hidden md:block relative">
-              <div className="relative md:translate-x-[15%] lg:translate-x-[20%] bg-card border border-border rounded-2xl p-4 md:p-6 lg:p-8 shadow-2xl md:w-[115%] lg:w-[120%]">
-                <div className="aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
+              <div className="relative md:translate-x-[25%] lg:translate-x-[30%] bg-card border border-border rounded-2xl p-6 md:p-8 lg:p-10 shadow-2xl md:w-[130%] lg:w-[140%]">
+                <div className="aspect-[4/3] md:aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
                   <div className="text-center space-y-4">
-                    <Zap className="w-12 md:w-16 h-12 md:h-16 text-primary mx-auto animate-pulse" />
-                    <p className="text-muted-foreground text-sm md:text-base">Hero Demo Video</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">Upload your screen recording here</p>
+                    <Zap className="w-16 md:w-20 h-16 md:h-20 text-primary mx-auto animate-pulse" />
+                    <p className="text-muted-foreground text-base md:text-lg">Hero Demo Video</p>
+                    <p className="text-sm md:text-base text-muted-foreground">Upload your screen recording here</p>
                   </div>
                 </div>
               </div>
