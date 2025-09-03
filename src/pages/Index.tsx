@@ -215,31 +215,36 @@ const Index = () => {
       icon: Mail,
       title: 'Mailbox (Gmail)',
       description: 'Connect your Gmail account for seamless email management. Smart threading, search, and AI-powered organization keep your inbox under control.',
-      features: ['Gmail Integration', 'Smart Threading', 'AI Organization']
+      features: ['Gmail Integration', 'Smart Threading', 'AI Organization'],
+      image: '/lovable-uploads/690a95aa-24fc-4792-aa90-f9cd1f512385.png'
     },
     {
       icon: Calendar,
       title: 'Calendar',
       description: 'Sync with Google Calendar to never miss important events. Smart scheduling, reminders, and meeting management all in one place.',
-      features: ['Google Calendar Sync', 'Smart Reminders', 'Meeting Management']
+      features: ['Google Calendar Sync', 'Smart Reminders', 'Meeting Management'],
+      image: '/lovable-uploads/77033c20-8408-4764-a8de-03af915812c4.png'
     },
     {
       icon: FileText,
       title: 'Notes',
       description: 'Capture thoughts with rich text editing, password protection, and smart organization. Lock sensitive notes with built-in security.',
-      features: ['Rich Text Editor', 'Password Lock', 'Smart Organization']
+      features: ['Rich Text Editor', 'Password Lock', 'Smart Organization'],
+      image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
     },
     {
       icon: Receipt,
       title: 'Invoices',
       description: 'Create professional invoices with Stripe integration. Send, track, and manage payments with automated follow-ups and reporting.',
-      features: ['Stripe Integration', 'Payment Tracking', 'Automated Follow-ups']
+      features: ['Stripe Integration', 'Payment Tracking', 'Automated Follow-ups'],
+      image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
     },
     {
       icon: FolderOpen,
       title: 'Documents',
       description: 'Store and organize files with drag-and-drop simplicity. Version control, sharing, and secure storage for all your important documents.',
-      features: ['Drag & Drop Upload', 'Version Control', 'Secure Storage']
+      features: ['Drag & Drop Upload', 'Version Control', 'Secure Storage'],
+      image: '/lovable-uploads/3f43df0b-172f-41eb-900b-8e87884c3e13.png'
     }
   ];
 
@@ -371,29 +376,43 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="space-y-12">
-            {productivityTools.map((tool, index) => {
-              const Icon = tool.icon;
-              
+          {/* Tools Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {productivityTools.map((tool) => {
               return (
-                <div key={tool.title} className="text-center space-y-6">
-                  <div className="flex items-center justify-center gap-4 mb-4">
-                    <div className="p-3 rounded-xl bg-primary/10">
-                      <Icon className="w-8 h-8 text-primary" />
+                <Card 
+                  key={tool.title} 
+                  className="hover:shadow-lg transition-shadow overflow-hidden"
+                >
+                  <div className="flex h-full">
+                    <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{tool.title}</CardTitle>
+                        <CardDescription className="text-sm mt-1">
+                          {tool.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0 flex-1">
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {tool.features.map((feature) => (
+                            <span key={feature} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-body font-medium">
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      </CardContent>
                     </div>
-                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground">{tool.title}</h3>
+                    {tool.image && (
+                      <div className="w-[40%] min-h-[120px] relative flex items-center justify-center">
+                        <img 
+                          src={tool.image} 
+                          alt={tool.title}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-base text-muted-foreground leading-relaxed font-body font-medium max-w-3xl mx-auto">
-                    {tool.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {tool.features.map((feature) => (
-                      <span key={feature} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-base font-body font-medium">
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                </Card>
               );
             })}
           </div>
