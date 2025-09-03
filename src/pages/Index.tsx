@@ -267,7 +267,7 @@ const Index = () => {
 
             {/* Right Side - Video Container (Desktop/Tablet) */}
             <div className="hidden md:block relative">
-              <div className="relative md:translate-x-[25%] lg:translate-x-[30%] bg-card border border-border rounded-2xl p-6 md:p-8 lg:p-10 shadow-2xl md:w-[130%] lg:w-[140%]">
+              <div className="relative md:translate-x-[5%] lg:translate-x-[10%] bg-card border border-border rounded-2xl p-6 md:p-8 lg:p-10 shadow-2xl md:w-[110%] lg:w-[120%]">
                 <div className="aspect-[4/3] md:aspect-[16/10] bg-muted rounded-lg flex items-center justify-center">
                   <div className="text-center space-y-4">
                     <Zap className="w-16 md:w-20 h-16 md:h-20 text-primary mx-auto animate-pulse" />
