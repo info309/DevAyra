@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, FileText, Download, Eye } from "lucide-react";
+import { Loader2, CreditCard, FileText, Download, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -15,9 +15,9 @@ interface Invoice {
   currency: string;
   status: string;
   company_name: string;
-  pdf_path?: string;
   issue_date?: string;
   due_date?: string;
+  pdf_path?: string;
 }
 
 const Payment = () => {
@@ -102,14 +102,23 @@ const Payment = () => {
     }
   };
 
-  const handleDownloadPdf = () => {
-    if (!invoice?.pdf_path) return;
-    
-    const supabaseUrl = 'https://lmkpmnndrygjatnipfgd.supabase.co';
-    const pdfUrl = `${supabaseUrl}/storage/v1/object/public/invoices/${invoice.pdf_path}`;
-    
-    // Open PDF in new tab for viewing/downloading
-    window.open(pdfUrl, '_blank');
+  const handleViewPDF = () => {
+    if (invoice?.pdf_path) {
+      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (invoice?.pdf_path) {
+      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `Invoice-${invoice.invoice_number || invoice.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const formatCurrency = (cents: number, currency: string) => {
@@ -180,6 +189,11 @@ const Payment = () => {
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}
+              {invoice.pdf_path && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                  PDF Available
+                </span>
+              )}
             </CardTitle>
             <CardDescription>
               From {invoice.company_name}
@@ -211,22 +225,28 @@ const Payment = () => {
               </div>
             )}
 
-            {/* PDF Download Section */}
+            {/* PDF Actions */}
             {invoice.pdf_path && (
               <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Invoice Document</p>
-                    <p className="text-sm text-muted-foreground">View or download the full invoice PDF</p>
-                  </div>
-                  <Button
-                    onClick={handleDownloadPdf}
-                    variant="outline"
+                <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleViewPDF}
+                    variant="outline" 
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex-1"
                   >
-                    <Eye className="h-4 w-4" />
+                    <ExternalLink className="h-4 w-4 mr-2" />
                     View PDF
+                  </Button>
+                  <Button 
+                    onClick={handleDownloadPDF}
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
                   </Button>
                 </div>
               </div>

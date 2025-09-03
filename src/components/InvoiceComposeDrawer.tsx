@@ -38,9 +38,9 @@ export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: Invoi
   // Pre-populate HTML content with clickable payment link
   const [content, setContent] = useState(`Hi ${invoice.customer_name},
 
-Thanks for your business! Please find your invoice attached.
+Thanks for your business! Please find your invoice below.
 
-You can view and pay your invoice online by clicking the link below:
+You can view your invoice PDF and pay online by clicking the link below:
 
 ${invoiceLink}
 
