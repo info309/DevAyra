@@ -279,24 +279,20 @@ const Index = () => {
             {/* Right Side - Video Container (Desktop/Tablet) */}
             <div className="hidden md:block relative">
               <div className="relative md:translate-x-[5%] lg:translate-x-[10%] md:w-[120%] lg:w-[130%]">
-                {/* iPad Frame - Landscape */}
-                <div className="bg-gray-200 dark:bg-gray-800 rounded-[1.5rem] p-3 shadow-2xl">
+                {/* iPad Frame - Landscape based on reference */}
+                <div className="bg-gray-900 rounded-[1.8rem] p-4 shadow-2xl">
                   {/* iPad Screen */}
-                  <div className="bg-black rounded-[1rem] p-1">
-                    <div className="aspect-[16/10] bg-white dark:bg-gray-900 rounded-[0.8rem] flex items-center justify-center overflow-hidden">
-                      <div className="text-center space-y-4">
-                        <Zap className="w-16 md:w-20 h-16 md:h-20 text-primary mx-auto animate-pulse" />
-                        <p className="text-muted-foreground text-base md:text-lg">Hero Demo Video</p>
-                        <p className="text-sm md:text-base text-muted-foreground">Upload your screen recording here</p>
-                      </div>
+                  <div className="aspect-[16/10] bg-white dark:bg-gray-100 rounded-[0.8rem] flex items-center justify-center overflow-hidden relative">
+                    <div className="text-center space-y-4">
+                      <Zap className="w-16 md:w-20 h-16 md:h-20 text-primary mx-auto animate-pulse" />
+                      <p className="text-gray-600 text-base md:text-lg">Hero Demo Video</p>
+                      <p className="text-sm md:text-base text-gray-500">Upload your screen recording here</p>
                     </div>
                   </div>
                   
-                  {/* iPad Home Button - positioned on the right side for landscape */}
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                      <div className="w-5 h-5 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
-                    </div>
+                  {/* iPad Home Button - positioned on the left side for landscape */}
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                    <div className="w-6 h-6 bg-gray-800 rounded-full border border-gray-700"></div>
                   </div>
                 </div>
               </div>
