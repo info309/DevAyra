@@ -1040,22 +1040,37 @@ const handler = async (req: Request): Promise<Response> => {
             hasContent: !!request.content,
             contentLength: request.content?.length || 0,
             attachmentCount: request.attachments?.length || 0,
-            documentAttachmentsCount: request.documentAttachments?.length || 0
+            documentAttachmentsCount: request.documentAttachments?.length || 0,
+            totalPayloadSize: JSON.stringify(request).length
           });
           
-          const result = await gmailService.sendEmail(
-            request.to,
-            request.subject,
-            request.content,
-            request.threadId,
-            request.attachments,
-            request.documentAttachments
-          );
+          // Add timeout protection for the entire operation
+          const operationTimeout = setTimeout(() => {
+            console.error(`[${requestId}] OPERATION TIMEOUT - Gmail send took too long`);
+            throw new Error('Gmail send operation timeout');
+          }, 25000); // 25 second timeout
           
-          console.log(`[${requestId}] === GMAIL SENDEMAIL ACTION COMPLETE ===`);
-          return new Response(JSON.stringify(result), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          try {
+            console.log(`[${requestId}] Calling gmailService.sendEmail...`);
+            const result = await gmailService.sendEmail(
+              request.to,
+              request.subject,
+              request.content,
+              request.threadId,
+              request.attachments,
+              request.documentAttachments
+            );
+            
+            clearTimeout(operationTimeout);
+            console.log(`[${requestId}] === GMAIL SENDEMAIL ACTION COMPLETE ===`);
+            return new Response(JSON.stringify(result), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          } catch (sendError) {
+            clearTimeout(operationTimeout);
+            console.error(`[${requestId}] Gmail send error:`, sendError);
+            throw sendError;
+          }
         }
 
       case 'trashMessage':

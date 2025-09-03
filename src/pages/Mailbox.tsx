@@ -1040,9 +1040,20 @@ const Mailbox: React.FC = () => {
 
       setSendingProgress('Preparing email...');
       
+      // Log email details for debugging
+      console.log('[Mailbox] Preparing to send email:', {
+        to: composeForm.to,
+        subject: composeForm.subject,
+        hasContent: !!composeForm.content,
+        attachmentCount: composeForm.attachments?.length || 0,
+        totalAttachmentSize: composeForm.attachments?.reduce((total, att) => total + att.size, 0) || 0
+      });
+      
       let result;
       try {
         setSendingProgress('Connecting to Gmail...');
+        console.log('[Mailbox] Starting Gmail API call...');
+        
         result = await gmailApi.sendEmail(
           composeForm.to,
           composeForm.subject,
@@ -1053,6 +1064,8 @@ const Mailbox: React.FC = () => {
           false, // Simplified - no "send as links"
           abortController.signal
         );
+        
+        console.log('[Mailbox] Gmail API call completed:', { success: !!result?.success });
       } catch (error) {
         console.error('Email send error:', error);
         

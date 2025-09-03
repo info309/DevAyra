@@ -31,10 +31,15 @@ export const gmailApi = {
   async invoke(options: InvokeOptions): Promise<GmailApiResponse> {
     const { body, signal, retries = 2 } = options;
     
-    // Create a timeout signal for long operations like sending emails with attachments
-    const timeoutMs = body.action === 'sendEmail' ? 180000 : 30000; // 3 minutes for email sending
+    console.log(`[GmailAPI] Starting ${body.action} request`);
+    
+    // Much shorter timeout for debugging - 30 seconds max
+    const timeoutMs = 30000;
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+    const timeoutId = setTimeout(() => {
+      console.log(`[GmailAPI] Request timeout after ${timeoutMs}ms`);
+      timeoutController.abort();
+    }, timeoutMs);
     
     // Combine user signal with timeout signal
     const combinedSignal = signal ? 
@@ -84,7 +89,16 @@ export const gmailApi = {
         setTimeout(() => reject(new GmailApiError('Request timeout', 408)), timeoutMs);
       });
 
-      // Race between the actual request and timeout
+      // Log request details for debugging
+      console.log(`[GmailAPI] Making request to gmail-api function:`, {
+        action: body.action,
+        hasAttachments: body.attachments?.length > 0,
+        attachmentCount: body.attachments?.length || 0,
+        payloadSize: JSON.stringify(body).length
+      });
+
+      // Make the request with timeout
+      const startTime = Date.now();
       const invokePromise = supabase.functions.invoke('gmail-api', {
         body,
         headers: {
@@ -92,13 +106,16 @@ export const gmailApi = {
         }
       });
 
-      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      console.log(`[GmailAPI] Request initiated, waiting for response...`);
+      const { data, error } = await invokePromise;
 
       // Clear timeout on successful completion
       clearTimeout(timeoutId);
+      const duration = Date.now() - startTime;
+      console.log(`[GmailAPI] Request completed in ${duration}ms`);
 
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error(`[GmailAPI] Supabase function error after ${duration}ms:`, error);
         
         // Check if it's a transient 5xx error and we have retries left
         if (attempt < retries && error.status && error.status >= 500) {
