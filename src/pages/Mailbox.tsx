@@ -1324,11 +1324,8 @@ const Mailbox: React.FC = () => {
                   <>
                     <div className="divide-y divide-border min-w-0">
                       {filteredConversations.map((conversation, index) => {
-                          // Get most recent email for display (like Gmail)
-                          const sortedEmails = [...conversation.emails].sort((a, b) => 
-                            new Date(b.date).getTime() - new Date(a.date).getTime()
-                          );
-                          const mostRecentEmail = sortedEmails[0];
+                          // Since we removed threading, each conversation has only one email
+                          const mostRecentEmail = conversation.emails[0];
                           const isSelected = selectedConversation?.id === conversation.id;
                           
                           return (

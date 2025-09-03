@@ -417,95 +417,77 @@ class GmailService {
 
   async searchEmails(query: string) {
     try {
-      console.log(`[${this.requestId}] Searching emails with query: ${query}`);
+      console.log(`[${this.requestId}] Searching individual messages with query: ${query}`);
       
-      // Use Gmail search API with the user's search query
-      const threadsUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=50&q=${encodeURIComponent(query)}`;
+      // Use Gmail search API for individual messages
+      const messagesUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${encodeURIComponent(query)}`;
       
-      const threadsData = await this.makeGmailRequest(threadsUrl);
-      const threads = threadsData.threads || [];
+      const messagesData = await this.makeGmailRequest(messagesUrl);
+      const messages = messagesData.messages || [];
       
-      if (threads.length === 0) {
+      if (messages.length === 0) {
         return { conversations: [] };
       }
 
-      console.log(`[${this.requestId}] Found ${threads.length} matching threads`);
+      console.log(`[${this.requestId}] Found ${messages.length} matching messages`);
 
-      // Process threads in batches
-      const batchSize = 5;
-      const conversations = [];
+      // Process messages in batches
+      const batchSize = 10;
+      const emails = [];
       
-      for (let i = 0; i < threads.length; i += batchSize) {
-        const batch = threads.slice(i, i + batchSize);
+      for (let i = 0; i < messages.length; i += batchSize) {
+        const batch = messages.slice(i, i + batchSize);
         
-        const batchPromises = batch.map(async (thread) => {
+        const batchPromises = batch.map(async (message) => {
           try {
-            const threadData = await this.makeGmailRequest(
-              `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
+            const messageData = await this.makeGmailRequest(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`
             );
             
-            const messages = threadData.messages || [];
+            const processedMessage = this.processMessage(messageData);
             
-            if (messages.length === 0) {
-              return null;
-            }
-            
-            const processedMessages = messages.map(msg => this.processMessage(msg));
-            
-            // Sort messages in reverse chronological order within the thread (newest first)
-            const reverseChronologicalMessages = processedMessages.sort((a, b) => 
-              new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-            
-            // Find the most recent message for thread sorting
-            const mostRecentMessage = [...processedMessages].sort((a, b) => 
-              new Date(b.date).getTime() - new Date(a.date).getTime()
-            )[0];
-            
-            // Use first message (now newest) for subject
-            const firstMessage = reverseChronologicalMessages[0];
-            
+            // Convert each message to a "conversation" with one email
             return {
-              id: thread.id,
-              threadId: thread.id,
-              subject: firstMessage?.subject || 'No Subject',
-              emails: reverseChronologicalMessages.map(msg => ({
-                id: msg.id,
-                threadId: msg.threadId,
-                snippet: msg.snippet,
-                subject: msg.subject,
-                from: msg.from,
-                to: msg.to,
-                date: msg.date,
-                content: msg.content,
-                unread: !msg.isRead,
-                attachments: msg.attachments
-              })),
-              messageCount: processedMessages.length,
-              lastDate: mostRecentMessage?.date || new Date().toISOString(),
-              unreadCount: processedMessages.filter(msg => !msg.isRead).length,
-              participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
+              id: message.id,
+              threadId: message.threadId || message.id,
+              subject: processedMessage.subject || 'No Subject',
+              emails: [{
+                id: processedMessage.id,
+                threadId: processedMessage.threadId,
+                snippet: processedMessage.snippet,
+                subject: processedMessage.subject,
+                from: processedMessage.from,
+                to: processedMessage.to,
+                date: processedMessage.date,
+                content: processedMessage.content,
+                unread: !processedMessage.isRead,
+                attachments: processedMessage.attachments
+              }],
+              messageCount: 1,
+              lastDate: processedMessage.date,
+              unreadCount: processedMessage.isRead ? 0 : 1,
+              participants: [processedMessage.from, processedMessage.to].filter(Boolean)
             };
           } catch (error) {
-            console.error(`[${this.requestId}] Error processing search thread ${thread.id}:`, error);
+            console.error(`[${this.requestId}] Error processing search message ${message.id}:`, error);
             return null;
           }
         });
 
         const batchResults = await Promise.all(batchPromises);
         const validResults = batchResults.filter(Boolean);
-        conversations.push(...validResults);
+        emails.push(...validResults);
         
         // Small delay between batches
-        if (i + batchSize < threads.length) {
+        if (i + batchSize < messages.length) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 
-      // Sort conversations by most recent date
-      conversations.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+      // Sort emails by most recent date
+      emails.sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
 
-      return { conversations };
+      return { conversations: emails };
     } catch (error) {
       console.error(`[${this.requestId}] searchEmails error:`, error);
       throw error;
