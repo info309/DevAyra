@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +38,11 @@ interface LineItem {
   [key: string]: any; // Index signature for Json compatibility
 }
 
+// Add interface for unit price display values to fix typing issues
+interface LineItemDisplay extends LineItem {
+  unit_price_display: string;
+}
+
 const Invoices = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,8 +54,8 @@ const Invoices = () => {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }
+  const [lineItems, setLineItems] = useState<LineItemDisplay[]>([
+    { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }
   ]);
 
   const [formData, setFormData] = useState({
@@ -56,8 +66,8 @@ const Invoices = () => {
     customer_email: '',
     customer_address: '',
     invoice_number: '',
-    issue_date: new Date().toISOString().split('T')[0],
-    due_date: '',
+    issue_date: new Date(),
+    due_date: null as Date | null,
     currency: 'gbp',
     notes: '',
   });
@@ -102,9 +112,10 @@ const Invoices = () => {
       const invoiceData: InvoiceInsert = {
         user_id: user.id,
         ...formData,
-        // Convert empty strings to null for timestamp fields
-        due_date: formData.due_date || null,
-        line_items: lineItems as any, // Cast to any for JSONB compatibility
+        // Convert dates to ISO strings for database
+        issue_date: formData.issue_date.toISOString(),
+        due_date: formData.due_date ? formData.due_date.toISOString() : null,
+        line_items: lineItems.map(({ unit_price_display, ...item }) => item) as any, // Remove display field and cast for JSONB
         subtotal_cents: Math.round(subtotal),
         tax_cents: Math.round(tax),
         total_cents: Math.round(total),
@@ -165,12 +176,12 @@ const Invoices = () => {
       customer_email: '',
       customer_address: '',
       invoice_number: '',
-      issue_date: new Date().toISOString().split('T')[0],
-      due_date: '',
+      issue_date: new Date(),
+      due_date: null,
       currency: 'gbp',
       notes: '',
     });
-    setLineItems([{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
+    setLineItems([{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }]);
   };
 
   const handleEdit = (invoice: Invoice) => {
@@ -183,13 +194,17 @@ const Invoices = () => {
       customer_email: invoice.customer_email,
       customer_address: invoice.customer_address || '',
       invoice_number: invoice.invoice_number || '',
-      issue_date: invoice.issue_date.split('T')[0],
-      due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
+      issue_date: new Date(invoice.issue_date),
+      due_date: invoice.due_date ? new Date(invoice.due_date) : null,
       currency: invoice.currency,
       notes: invoice.notes || '',
     });
     const items = Array.isArray(invoice.line_items) ? invoice.line_items as LineItem[] : [];
-    setLineItems(items.length ? items : [{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
+    const displayItems = items.length ? items.map(item => ({
+      ...item,
+      unit_price_display: (item.unit_price_cents / 100).toFixed(2)
+    })) : [{ description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }];
+    setLineItems(displayItems);
     setIsCreateOpen(true);
   };
 
@@ -310,16 +325,26 @@ const Invoices = () => {
   };
 
   const addLineItem = () => {
-    setLineItems([...lineItems, { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0 }]);
+    setLineItems([...lineItems, { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }]);
   };
 
-  const updateLineItem = (index: number, field: keyof LineItem, value: any) => {
+  const updateLineItem = (index: number, field: keyof LineItemDisplay, value: any) => {
     const updatedItems = [...lineItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
     
-    // Calculate amount_cents when quantity or unit_price_cents changes
-    if (field === 'quantity' || field === 'unit_price_cents') {
+    if (field === 'unit_price_display') {
+      // Handle display value updates for better typing experience
+      updatedItems[index].unit_price_display = value;
+      const parsedValue = parseFloat(value) || 0;
+      updatedItems[index].unit_price_cents = Math.round(parsedValue * 100);
+      // Recalculate amount
       updatedItems[index].amount_cents = updatedItems[index].quantity * updatedItems[index].unit_price_cents;
+    } else {
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+      
+      // Calculate amount_cents when quantity changes
+      if (field === 'quantity') {
+        updatedItems[index].amount_cents = updatedItems[index].quantity * updatedItems[index].unit_price_cents;
+      }
     }
     
     setLineItems(updatedItems);
@@ -453,22 +478,55 @@ const Invoices = () => {
                   </div>
                   <div>
                     <Label htmlFor="issue_date">Issue Date *</Label>
-                    <Input
-                      id="issue_date"
-                      type="date"
-                      required
-                      value={formData.issue_date}
-                      onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.issue_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.issue_date ? format(formData.issue_date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.issue_date}
+                          onSelect={(date) => setFormData({ ...formData, issue_date: date || new Date() })}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div>
                     <Label htmlFor="due_date">Due Date</Label>
-                    <Input
-                      id="due_date"
-                      type="date"
-                      value={formData.due_date}
-                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.due_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.due_date ? format(formData.due_date, "PPP") : <span>Pick a date (optional)</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.due_date || undefined}
+                          onSelect={(date) => setFormData({ ...formData, due_date: date || null })}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -525,8 +583,13 @@ const Invoices = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={(item.unit_price_cents / 100).toFixed(2)}
-                              onChange={(e) => updateLineItem(index, 'unit_price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
+                              value={item.unit_price_display}
+                              onChange={(e) => updateLineItem(index, 'unit_price_display', e.target.value)}
+                              onBlur={(e) => {
+                                // Format the display value on blur
+                                const parsedValue = parseFloat(e.target.value) || 0;
+                                updateLineItem(index, 'unit_price_display', parsedValue.toFixed(2));
+                              }}
                             />
                           </div>
                         </div>
