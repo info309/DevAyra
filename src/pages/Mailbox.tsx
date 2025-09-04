@@ -156,20 +156,32 @@ const Mailbox: React.FC = () => {
   useEffect(() => {
     if (location.state?.composeDraft) {
       const draft = location.state.composeDraft;
-      setComposeForm({
+      
+      // Handle serialized undefined values
+      const cleanThreadId = (threadId: any) => {
+        if (!threadId) return undefined;
+        if (typeof threadId === 'object' && threadId._type === 'undefined') return undefined;
+        if (typeof threadId === 'string' && threadId.trim()) return threadId;
+        return undefined;
+      };
+      
+      const cleanedDraft = {
         to: draft.to || '',
         subject: draft.subject || '',
         content: draft.content || '',
-        // Only set threadId if it exists and is a valid string
-        threadId: (draft.threadId && typeof draft.threadId === 'string') ? draft.threadId : undefined,
-      });
+        threadId: cleanThreadId(draft.threadId),
+        attachments: draft.attachments || []
+      };
+      
+      setComposeForm(cleanedDraft);
       
       console.log('AI Draft loaded:', {
         to: draft.to,
         subject: draft.subject,
         content: draft.content,
         threadId: draft.threadId,
-        isValidThreadId: !!(draft.threadId && typeof draft.threadId === 'string')
+        cleanedThreadId: cleanedDraft.threadId,
+        isValidThreadId: !!(cleanedDraft.threadId && typeof cleanedDraft.threadId === 'string')
       });
       setShowComposeDialog(true);
       
