@@ -840,6 +840,76 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
   }
 }
 
+// Fallback date parsing for common phrases
+function fallbackDateParsing(when_text: string, userTimezone: string) {
+  const now = new Date();
+  const text = when_text.toLowerCase().trim();
+  
+  // Parse "next thursday at 10am" type phrases
+  const nextDayMatch = text.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2})(:\d{2})?\s*(am|pm)?/);
+  if (nextDayMatch) {
+    const dayName = nextDayMatch[1];
+    const hour = parseInt(nextDayMatch[2]);
+    const minutes = nextDayMatch[3] ? parseInt(nextDayMatch[3].substring(1)) : 0;
+    const ampm = nextDayMatch[4] || (hour < 12 ? 'am' : 'pm');
+    
+    const dayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(dayName);
+    const currentDay = now.getDay();
+    let daysUntilNext = dayIndex - currentDay;
+    if (daysUntilNext <= 0) daysUntilNext += 7;
+    
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + daysUntilNext);
+    
+    let finalHour = hour;
+    if (ampm === 'pm' && hour !== 12) finalHour += 12;
+    if (ampm === 'am' && hour === 12) finalHour = 0;
+    
+    targetDate.setHours(finalHour, minutes, 0, 0);
+    
+    const endDate = new Date(targetDate);
+    endDate.setHours(targetDate.getHours() + 1); // Default 1 hour duration
+    
+    return {
+      start: targetDate.toISOString(),
+      end: endDate.toISOString()
+    };
+  }
+  
+  // Parse "thursday at 10am" type phrases (this week)
+  const thisDayMatch = text.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2})(:\d{2})?\s*(am|pm)?/);
+  if (thisDayMatch) {
+    const dayName = thisDayMatch[1];
+    const hour = parseInt(thisDayMatch[2]);
+    const minutes = thisDayMatch[3] ? parseInt(thisDayMatch[3].substring(1)) : 0;
+    const ampm = thisDayMatch[4] || (hour < 12 ? 'am' : 'pm');
+    
+    const dayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(dayName);
+    const currentDay = now.getDay();
+    let daysUntil = dayIndex - currentDay;
+    if (daysUntil < 0) daysUntil += 7;
+    
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + daysUntil);
+    
+    let finalHour = hour;
+    if (ampm === 'pm' && hour !== 12) finalHour += 12;
+    if (ampm === 'am' && hour === 12) finalHour = 0;
+    
+    targetDate.setHours(finalHour, minutes, 0, 0);
+    
+    const endDate = new Date(targetDate);
+    endDate.setHours(targetDate.getHours() + 1); // Default 1 hour duration
+    
+    return {
+      start: targetDate.toISOString(),
+      end: endDate.toISOString()
+    };
+  }
+  
+  return null;
+}
+
 async function createCalendarEvent(userId: string, eventData: any) {
   try {
     console.log(`Creating calendar event for user ${userId}:`, eventData);
@@ -894,15 +964,18 @@ async function createCalendarEvent(userId: string, eventData: any) {
         console.log(`Parsed results:`, parsed);
         
         if (!parsed || parsed.length === 0) {
+          console.log(`No parse results for: "${when_text}"`);
           return { 
             error: `I couldn't understand the time "${when_text}". Could you be more specific? For example: "next Monday 3pm", "tomorrow 8:30", or "September 1st at 2pm"` 
           };
         }
         
         const result = parsed[0];
+        console.log(`First parse result:`, result);
         
         // Check if we have a confident parse
         if (!result.start || !result.start.date()) {
+          console.log(`Parse result missing start date:`, result.start);
           return { 
             error: `The time "${when_text}" is ambiguous. Could you specify the exact date and time? For example: "Monday September 1st at 3pm"` 
           };
@@ -937,9 +1010,26 @@ async function createCalendarEvent(userId: string, eventData: any) {
         
       } catch (parseError) {
         console.error('Date parsing error:', parseError);
-        return { 
-          error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
-        };
+        
+        // Fallback: Try manual parsing for common phrases
+        try {
+          console.log('Attempting fallback parsing for:', when_text);
+          const fallbackResult = fallbackDateParsing(when_text, userTimezone);
+          if (fallbackResult) {
+            finalStartTime = fallbackResult.start;
+            finalEndTime = fallbackResult.end;
+            console.log('Fallback parsing successful:', finalStartTime, finalEndTime);
+          } else {
+            return { 
+              error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
+            };
+          }
+        } catch (fallbackError) {
+          console.error('Fallback parsing also failed:', fallbackError);
+          return { 
+            error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
+          };
+        }
       }
       
     } else if (start_time && end_time) {
