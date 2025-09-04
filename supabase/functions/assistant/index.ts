@@ -1122,7 +1122,7 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     
     // Create a new client instance with the user's token
-    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
           Authorization: authHeader,
