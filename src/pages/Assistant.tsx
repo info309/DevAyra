@@ -456,8 +456,8 @@ const Assistant = () => {
       case 'emails_compose_draft':
         // Handle draft composition and show open draft button
         if (toolResult) {
-          // toolResult is the direct result from the function, not nested
-          const draft = toolResult.action === 'compose_draft' ? toolResult : null;
+          // Handle both old format (direct) and new format (nested under draft)
+          const draft = toolResult.draft || (toolResult.action === 'compose_draft' ? toolResult : null);
           if (draft) {
             const openDraft = () => {
               navigate('/mailbox', { 
