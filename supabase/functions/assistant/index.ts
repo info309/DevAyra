@@ -885,8 +885,8 @@ async function createCalendarEvent(userId: string, eventData: any) {
         
         // Import chrono for natural language date parsing
         const { parse } = await import('https://esm.sh/chrono-node@2.7.5');
-        const { fromZonedTime, toZonedTime } = await import('https://esm.sh/date-fns-tz@3.2.0');
-        const { addMinutes, format } = await import('https://esm.sh/date-fns@3.6.0');
+        const { fromZonedTime, toZonedTime } = await import('https://esm.sh/date-fns-tz@2.1.0');
+        const { addMinutes, format } = await import('https://esm.sh/date-fns@2.30.0');
         
         // Parse the natural language date
         const referenceDate = toZonedTime(new Date(), userTimezone);
