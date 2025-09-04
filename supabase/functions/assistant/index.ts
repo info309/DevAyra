@@ -994,6 +994,22 @@ async function createCalendarEvent(userId: string, eventData: any) {
     
     if (gmailConnection) {
       try {
+        // Convert the event data to Google Calendar format
+        const googleEvent = {
+          summary: title,
+          description,
+          start: finalAllDay ? 
+            { date: finalStartTime.split('T')[0] } : 
+            { dateTime: finalStartTime, timeZone: 'UTC' },
+          end: finalAllDay ? 
+            { date: finalEndTime.split('T')[0] } : 
+            { dateTime: finalEndTime, timeZone: 'UTC' },
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: 'popup', minutes: reminder_minutes }]
+          }
+        };
+
         // Call the calendar API function to create the event in Google Calendar
         const calendarApiResponse = await fetch(`${Deno.env.get('SUPABASE_URL')!}/functions/v1/calendar-api`, {
           method: 'POST',
@@ -1003,14 +1019,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
           },
           body: JSON.stringify({
             action: 'create',
-            event: {
-              title,
-              description,
-              start_time: finalStartTime,
-              end_time: finalEndTime,
-              all_day: finalAllDay,
-              reminder_minutes
-            }
+            event: googleEvent
           }),
         });
         
@@ -1022,14 +1031,15 @@ async function createCalendarEvent(userId: string, eventData: any) {
             .from('calendar_events')
             .update({ 
               is_synced: true,
-              google_event_id: syncResult.eventId 
+              google_event_id: syncResult.event?.id 
             })
             .eq('id', newEvent.id);
             
           syncStatus = 'synced';
           syncMessage = ' and synced to Google Calendar';
         } else {
-          console.log('Google Calendar sync failed, event saved locally');
+          const errorResponse = await calendarApiResponse.text();
+          console.log('Google Calendar sync failed:', errorResponse);
           syncMessage = ' (saved locally, Google Calendar sync failed)';
         }
       } catch (syncError) {
@@ -1037,7 +1047,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         syncMessage = ' (saved locally, Google Calendar sync failed)';
       }
     } else {
-      syncMessage = ' (saved locally, no Google Calendar connection)';
+      syncMessage = ' (saved locally only - connect Google Calendar for syncing)';
     }
     
     return {
