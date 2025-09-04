@@ -125,6 +125,12 @@ const Assistant = () => {
 
   const fetchMessages = async (sessionId: string) => {
     try {
+      console.log('Environment check:', {
+        hostname: window.location.hostname,
+        isProduction: window.location.hostname === 'ayra.app',
+        isPreview: window.location.hostname.includes('sandbox.lovable.dev')
+      });
+
       const { data, error } = await supabase
         .from('assistant_messages')
         .select('*')
@@ -142,7 +148,13 @@ const Assistant = () => {
       const displayMessages = allMessages.filter(msg => msg.role !== 'tool');
       
       console.log('Tool messages found:', toolMessages.length);
-      console.log('Tool messages:', toolMessages);
+      console.log('Tool messages details:', toolMessages.map(tm => ({
+        id: tm.id,
+        tool_name: tm.tool_name,
+        created_at: tm.created_at,
+        content_preview: tm.content?.substring(0, 100),
+        hasContent: !!tm.content
+      })));
       console.log('Display messages:', displayMessages.length);
       
       // Associate tool results with assistant messages
@@ -472,12 +484,24 @@ const Assistant = () => {
 
       case 'emails_compose_draft':
         // Handle draft composition and show open draft button
+        console.log('Processing emails_compose_draft tool result:', {
+          toolResult,
+          environment: window.location.hostname,
+          hasToolResult: !!toolResult
+        });
+        
         if (toolResult) {
           console.log('Email compose draft tool result:', toolResult);
           // Handle both old format (direct) and new format (nested under draft)
           const draft = toolResult.draft || (toolResult.action === 'compose_draft' ? toolResult : null);
           console.log('Extracted draft:', draft);
+          
           if (draft) {
+            console.log('Draft found, creating button for:', {
+              to: draft.to,
+              subject: draft.subject,
+              hasContent: !!draft.content
+            });
             const openDraft = () => {
               navigate('/mailbox', { 
                 state: { 
