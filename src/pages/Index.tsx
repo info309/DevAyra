@@ -326,7 +326,7 @@ const Index = () => {
             </div>
 
             {/* Right Half - Image (Desktop) / Mobile sections */}
-            <div className="lg:flex-1 lg:flex lg:justify-center">
+            <div className="lg:flex-1 lg:flex lg:justify-center bg-muted/30 rounded-lg lg:p-8">
               {/* Image - Shown on desktop in right column */}
               <div className="hidden lg:block">
                 <img 
