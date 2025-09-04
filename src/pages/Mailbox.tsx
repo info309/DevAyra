@@ -1478,10 +1478,27 @@ const Mailbox: React.FC = () => {
                     <span className="hidden sm:inline">Compose</span>
                   </Button>
                 </DrawerTrigger>
-                  <SimpleComposeDialog
+                  <ComposeDialog
                     open={showComposeDialog}
                     onOpenChange={setShowComposeDialog}
-                    onSend={sendEmail}
+                    composeForm={composeForm}
+                    onComposeFormChange={setComposeForm}
+                    onSend={() => sendEmail({
+                      to: composeForm.to,
+                      subject: composeForm.subject,
+                      content: composeForm.content,
+                      attachments: composeForm.attachments || []
+                    })}
+                    onCancel={() => {
+                      setShowComposeDialog(false);
+                      setComposeForm({ to: '', subject: '', content: '', attachments: [], documentAttachments: [] });
+                    }}
+                    onCancelSend={() => {
+                      if (emailAbortController) {
+                        emailAbortController.abort();
+                        setEmailAbortController(null);
+                      }
+                    }}
                     sendingEmail={sendingEmail}
                     sendingProgress={sendingProgress}
                   />
