@@ -333,7 +333,7 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
-                  className="w-64 rounded-lg"
+                  className="w-full max-w-lg h-auto rounded-lg"
                 />
               </div>
 
