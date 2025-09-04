@@ -1418,15 +1418,25 @@ serve(async (req) => {
               
               // If attachments were provided, fetch document details
               if (attachments && attachments.length > 0) {
-                // Try to find documents by name (since AI might pass names instead of IDs)
-                const { data: attachedDocs } = await supabase
-                  .from('user_documents')
-                  .select('id, name, file_path, mime_type, file_size')
-                  .eq('user_id', user.id)
-                  .or(attachments.map(att => `name.ilike.%${att}%`).join(','));
+                try {
+                  // Try to find documents by name (since AI might pass names instead of IDs)
+                  const { data: attachedDocs, error: docError } = await supabase
+                    .from('user_documents')
+                    .select('id, name, file_path, mime_type, file_size')
+                    .eq('user_id', user.id)
+                    .or(attachments.map(att => `name.ilike.%${att}%`).join(','));
                   
-                result.attachedDocuments = attachedDocs || [];
-                console.log('Found attached documents:', attachedDocs?.length || 0);
+                  if (docError) {
+                    console.error('Error fetching documents:', docError);
+                    result.attachedDocuments = [];
+                  } else {
+                    result.attachedDocuments = attachedDocs || [];
+                    console.log('Found attached documents:', attachedDocs?.length || 0);
+                  }
+                } catch (attachmentError) {
+                  console.error('Error processing attachments:', attachmentError);
+                  result.attachedDocuments = [];
+                }
               }
               break;
             default:
