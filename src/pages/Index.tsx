@@ -279,7 +279,7 @@ const Index = () => {
               </p>
 
               {/* Login Section - Hidden on mobile, shown in left column on desktop */}
-              <div className="hidden lg:block w-full max-w-sm lg:max-w-md">
+              <div className="hidden lg:block w-full max-w-xs lg:max-w-sm">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
@@ -348,7 +348,7 @@ const Index = () => {
                 </div>
 
                 {/* Mobile Login Section */}
-                <div className="w-full max-w-sm mx-auto">
+                <div className="w-full max-w-xs mx-auto">
                   <div className="space-y-4">
                     {/* Continue with Google */}
                     <Button 
