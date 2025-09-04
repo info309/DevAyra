@@ -1048,7 +1048,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
       return { error: 'End time must be after start time' };
     }
     
-    // Insert into local calendar events table
+    // Save event locally only - no Google Calendar sync needed
     const { data: newEvent, error } = await supabase
       .from('calendar_events')
       .insert({
@@ -1059,7 +1059,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         end_time: finalEndTime,
         all_day: finalAllDay,
         reminder_minutes,
-        is_synced: false // Initially not synced to Google Calendar
+        is_synced: false // Always false for local-only events
       })
       .select()
       .single();
@@ -1069,76 +1069,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
       return { error: `Failed to create calendar event: ${error.message}` };
     }
     
-    console.log('Calendar event created successfully:', newEvent.id);
-    
-    // Try to sync with Google Calendar if user has active connection
-    const { data: gmailConnection } = await supabase
-      .from('gmail_connections')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .single();
-    
-    let syncStatus = 'local_only';
-    let syncMessage = '';
-    
-    if (gmailConnection) {
-      try {
-        // Convert the event data to Google Calendar format
-        const googleEvent = {
-          summary: title,
-          description,
-          start: finalAllDay ? 
-            { date: finalStartTime.split('T')[0] } : 
-            { dateTime: finalStartTime, timeZone: 'UTC' },
-          end: finalAllDay ? 
-            { date: finalEndTime.split('T')[0] } : 
-            { dateTime: finalEndTime, timeZone: 'UTC' },
-          reminders: {
-            useDefault: false,
-            overrides: [{ method: 'popup', minutes: reminder_minutes }]
-          }
-        };
-
-        // Call the calendar API function to create the event in Google Calendar
-        const calendarApiResponse = await fetch(`${Deno.env.get('SUPABASE_URL')!}/functions/v1/calendar-api`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'create',
-            event: googleEvent
-          }),
-        });
-        
-        if (calendarApiResponse.ok) {
-          const syncResult = await calendarApiResponse.json();
-          
-          // Update the local event with Google Calendar ID
-          await supabase
-            .from('calendar_events')
-            .update({ 
-              is_synced: true,
-              google_event_id: syncResult.event?.id 
-            })
-            .eq('id', newEvent.id);
-            
-          syncStatus = 'synced';
-          syncMessage = ' and synced to Google Calendar';
-        } else {
-          const errorResponse = await calendarApiResponse.text();
-          console.log('Google Calendar sync failed:', errorResponse);
-          syncMessage = ' (saved locally, Google Calendar sync failed)';
-        }
-      } catch (syncError) {
-        console.error('Google Calendar sync error:', syncError);
-        syncMessage = ' (saved locally, Google Calendar sync failed)';
-      }
-    } else {
-      syncMessage = ' (saved locally only - connect Google Calendar for syncing)';
-    }
+    console.log('Local calendar event created successfully:', newEvent.id);
     
     return {
       success: true,
@@ -1150,9 +1081,9 @@ async function createCalendarEvent(userId: string, eventData: any) {
         endTime: newEvent.end_time,
         isAllDay: newEvent.all_day,
         reminderMinutes: newEvent.reminder_minutes,
-        syncStatus
+        syncStatus: 'local_only'
       },
-      message: `Calendar event "${title}" created successfully${syncMessage}!`
+      message: `Calendar event "${title}" created successfully and saved locally!`
     };
   } catch (error) {
     console.error('Calendar event creation error:', error);
