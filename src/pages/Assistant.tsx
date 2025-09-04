@@ -150,7 +150,16 @@ const Assistant = () => {
             return {
               ...msg,
               tool_name: toolMsg.tool_name,
-              tool_result: toolMsg.tool_result ? JSON.parse(typeof toolMsg.tool_result === 'string' ? toolMsg.tool_result : JSON.stringify(toolMsg.tool_result)) : null,
+              tool_result: (() => {
+                try {
+                  const result = toolMsg.tool_result ? JSON.parse(typeof toolMsg.tool_result === 'string' ? toolMsg.tool_result : JSON.stringify(toolMsg.tool_result)) : null;
+                  console.log('Parsed tool result for', toolMsg.tool_name, ':', result);
+                  return result;
+                } catch (e) {
+                  console.error('Error parsing tool result:', e, toolMsg.tool_result);
+                  return toolMsg.tool_result;
+                }
+              })(),
               role: msg.role as 'user' | 'assistant'
             };
           }
@@ -456,8 +465,10 @@ const Assistant = () => {
       case 'emails_compose_draft':
         // Handle draft composition and show open draft button
         if (toolResult) {
+          console.log('Email compose draft tool result:', toolResult);
           // Handle both old format (direct) and new format (nested under draft)
           const draft = toolResult.draft || (toolResult.action === 'compose_draft' ? toolResult : null);
+          console.log('Extracted draft:', draft);
           if (draft) {
             const openDraft = () => {
               navigate('/mailbox', { 
