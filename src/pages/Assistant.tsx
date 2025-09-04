@@ -133,10 +133,17 @@ const Assistant = () => {
 
       if (error) throw error;
       
+      console.log('Raw messages fetched:', data?.length);
+      console.log('All messages:', data);
+      
       // Filter out tool messages and associate them with assistant messages
       const allMessages = data || [];
       const toolMessages = allMessages.filter(msg => msg.role === 'tool');
       const displayMessages = allMessages.filter(msg => msg.role !== 'tool');
+      
+      console.log('Tool messages found:', toolMessages.length);
+      console.log('Tool messages:', toolMessages);
+      console.log('Display messages:', displayMessages.length);
       
       // Associate tool results with assistant messages
       const messagesWithTools = displayMessages.map(msg => {
@@ -147,6 +154,7 @@ const Assistant = () => {
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           
           if (toolMsg) {
+            console.log(`Associating tool ${toolMsg.tool_name} with assistant message:`, msg.content?.substring(0, 100));
             return {
               ...msg,
               tool_name: toolMsg.tool_name,
