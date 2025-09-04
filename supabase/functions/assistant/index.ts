@@ -1052,32 +1052,40 @@ async function createCalendarEvent(userId: string, eventData: any) {
 async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[], userName?: string) {
   console.log('Composing email draft:', { to, subject, threadId, attachments });
   
-  // Replace [Your Name] with actual user name
-  let personalizedContent = content;
-  if (userName && content.includes('[Your Name]')) {
-    personalizedContent = content.replace(/\[Your Name\]/g, userName);
-    console.log('Replaced [Your Name] with:', userName);
+  try {
+    // Replace [Your Name] with actual user name
+    let personalizedContent = content;
+    if (userName && content.includes('[Your Name]')) {
+      personalizedContent = content.replace(/\[Your Name\]/g, userName);
+      console.log('Replaced [Your Name] with:', userName);
+    }
+    
+    // Build draft data with only defined fields
+    const draftData: any = {
+      to,
+      subject,
+      content: personalizedContent,
+      action: 'compose_draft'
+    };
+    
+    // Only include threadId if it's a valid string
+    if (threadId && typeof threadId === 'string' && threadId.trim()) {
+      draftData.threadId = threadId;
+    }
+    
+    // Include attachments if provided
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      draftData.attachments = attachments;
+    }
+    
+    return {
+      draft: draftData,
+      message: `Email draft prepared for ${to}`
+    };
+  } catch (error) {
+    console.error('Error composing email draft:', error);
+    return { error: `Failed to compose email draft: ${error.message}` };
   }
-  
-  // Build draft data with only defined fields
-  const draftData: any = {
-    to,
-    subject,
-    content: personalizedContent,
-    action: 'compose_draft'
-  };
-  
-  // Only include threadId if it's a valid string
-  if (threadId && typeof threadId === 'string' && threadId.trim()) {
-    draftData.threadId = threadId;
-  }
-  
-  // Include attachments if provided
-  if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-    draftData.attachments = attachments;
-  }
-  
-  return draftData;
 }
 
 // Main handler
@@ -1416,8 +1424,8 @@ serve(async (req) => {
               const { to, subject, content, threadId, attachments } = args;
               result = await composeEmailDraft(to, subject, content, threadId, attachments, userName);
               
-              // If attachments were provided, fetch document details
-              if (attachments && attachments.length > 0) {
+              // If attachments were provided and the draft was successful, fetch document details
+              if (attachments && attachments.length > 0 && result.draft) {
                 try {
                   // Try to find documents by name (since AI might pass names instead of IDs)
                   const { data: attachedDocs, error: docError } = await supabase
@@ -1461,7 +1469,7 @@ serve(async (req) => {
               tool_result: JSON.stringify(result)
             });
 
-          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || 'error');
+          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || result?.draft ? 'success' : 'error');
         } catch (toolError) {
           console.error('Tool execution error:', toolError);
           toolResults.push({
