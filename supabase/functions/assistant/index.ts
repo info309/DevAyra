@@ -1122,7 +1122,7 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     
     // Create a new client instance with the user's token
-    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
       global: {
         headers: {
           Authorization: authHeader,
@@ -1147,15 +1147,11 @@ serve(async (req) => {
     console.log('User authenticated:', user.id);
 
     // Get user profile for personalization - now synced from Auth metadata
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile } = await supabase
       .from('profiles')
       .select('display_name')
       .eq('user_id', user.id)
       .single();
-
-    if (profileError) {
-      console.warn('Profile fetch error:', profileError);
-    }
 
     // The display_name is now automatically synced from Auth metadata
     // Fall back to email local part if somehow missing
@@ -1379,11 +1375,6 @@ serve(async (req) => {
     }
 
     console.log('Calling OpenAI with model:', openAIRequest.model);
-    console.log('Environment debug:', {
-      origin: req.headers.get('Origin'),
-      hasOpenAIKey: !!openAIApiKey,
-      openAIKeyPrefix: openAIApiKey ? openAIApiKey.substring(0, 8) + '...' : 'missing'
-    });
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1394,17 +1385,7 @@ serve(async (req) => {
       body: JSON.stringify(openAIRequest),
     });
 
-    console.log('OpenAI response status:', openAIResponse.status);
-    console.log('OpenAI response headers:', Object.fromEntries(openAIResponse.headers.entries()));
-
-    if (!openAIResponse.ok) {
-      const errorText = await openAIResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openAIResponse.status} - ${errorText}`);
-    }
-
     const openAIData = await openAIResponse.json();
-    console.log('OpenAI response received, tool calls:', openAIData.choices[0].message.tool_calls?.length || 0);
     
     if (!openAIResponse.ok) {
       console.error('OpenAI API error:', openAIData);
@@ -1586,18 +1567,10 @@ serve(async (req) => {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    console.error('Request origin:', req.headers.get('Origin'));
-    console.error('Environment check:', {
-      supabaseUrl: Deno.env.get('SUPABASE_URL'),
-      hasOpenAIKey: !!Deno.env.get('OPENAI_API_KEY'),
-      hasServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    });
     
     return new Response(JSON.stringify({ 
       error: error.message,
-      success: false,
-      environment: req.headers.get('Origin'),
-      timestamp: new Date().toISOString()
+      success: false
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
