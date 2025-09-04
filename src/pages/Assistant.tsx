@@ -380,6 +380,15 @@ const Assistant = () => {
       const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       // Call Lovable edge function
+      console.log('Calling assistant function from:', window.location.hostname);
+      console.log('Request payload:', {
+        messageLength: message?.length,
+        sessionId: currentSession.id,
+        triggers: detectedTriggers,
+        imageCount: attachments.length,
+        timezone: clientTimezone
+      });
+
       const { data, error } = await supabase.functions.invoke('assistant', {
         body: { 
           message, 
@@ -389,6 +398,14 @@ const Assistant = () => {
           client_timezone: clientTimezone,
           current_time: new Date().toISOString()
         }
+      });
+
+      console.log('Assistant function response:', {
+        hasData: !!data,
+        hasError: !!error,
+        errorMessage: error?.message,
+        dataKeys: data ? Object.keys(data) : null,
+        success: data?.success
       });
 
       if (error) throw error;
