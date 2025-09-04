@@ -410,15 +410,28 @@ const Index = () => {
               Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
             </p>
             
-            {/* iPhone Container - Centered under subtitle showing full screen */}
+            {/* iPad Container - Centered under subtitle showing full screen */}
             <div className="flex justify-center">
-              <div className="w-80 md:w-96 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+              {/* Mobile: Keep iPhone design */}
+              <div className="md:hidden w-80 bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
                 <div className="aspect-[9/19.5] bg-black rounded-[2rem] flex items-center justify-center overflow-hidden relative">
                   {/* iPhone notch */}
                   <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full"></div>
                   <div className="text-center space-y-4 mt-8">
                     <Zap className="w-12 h-12 text-primary mx-auto animate-pulse" />
                     <p className="text-base font-body font-medium">Ayra Demo Video</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Tablet and Desktop: iPad Landscape */}
+              <div className="hidden md:block w-full max-w-4xl bg-gray-900 rounded-[2rem] p-4 shadow-2xl">
+                <div className="aspect-[4/3] bg-black rounded-[1.5rem] flex items-center justify-center overflow-hidden relative">
+                  {/* iPad home indicator */}
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full"></div>
+                  <div className="text-center space-y-6">
+                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
+                    <p className="text-xl font-body font-medium">Ayra Demo Video</p>
                   </div>
                 </div>
               </div>
