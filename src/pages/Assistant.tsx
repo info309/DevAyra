@@ -511,7 +511,14 @@ const Assistant = () => {
                     content: draft.content,
                     replyTo: draft.replyTo,
                     threadId: draft.threadId,
-                    attachments: draft.attachedDocuments || []
+                    attachments: (draft.attachments || draft.attachedDocuments || []).map(doc => ({
+                      id: doc.id,
+                      name: doc.name,
+                      url: doc.publicUrl || doc.url,
+                      mime_type: doc.mime_type,
+                      file_size: doc.file_size,
+                      type: doc.mime_type // Adding type for compatibility
+                    }))
                   }
                 }
               });

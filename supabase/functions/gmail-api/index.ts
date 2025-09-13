@@ -42,6 +42,7 @@ const requestSchema = z.discriminatedUnion('action', [
       id: z.string().optional(),
       name: z.string(),
       file_path: z.string(),
+      publicUrl: z.string().url().optional(),
       mime_type: z.string().optional(),
       file_size: z.number().optional()
     })).optional()
@@ -723,7 +724,6 @@ class GmailService {
             console.log(`[${this.requestId}] Successfully processed document: ${doc.name} (${doc.file_size || arrayBuffer.byteLength || 0} bytes)`);
           } catch (docError) {
             console.error(`[${this.requestId}] Error processing document ${doc.name}:`, docError);
-            console.error(`[${this.requestId}] Document processing stack trace:`, docError.stack);
             // Continue with other attachments rather than failing completely
           }
        }

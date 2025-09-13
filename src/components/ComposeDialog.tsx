@@ -52,12 +52,34 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
 
   const handleDocumentsSelected = (docs: any[]) => {
+    console.log('Received documents:', docs);
     setSelectedDocuments(docs);
     
-    // Immediately update parent form
+    // Merge document attachments with file attachments
+    const mergedAttachments = [
+      ...fileAttachments,
+      ...docs.map(doc => {
+        console.log('Processing document:', doc);
+        return {
+          id: doc.id,
+          name: doc.name,
+          url: doc.url || doc.publicUrl,
+          data: doc.url || doc.publicUrl,
+          mime_type: doc.mime_type || doc.type,
+          type: doc.mime_type || doc.type,
+          file_size: doc.file_size || doc.size,
+          size: doc.file_size || doc.size,
+          isDocument: true,
+          isUrl: true,
+          bucket: 'documents'
+        };
+      })
+    ];
+
+    // Update parent form with merged attachments
     onComposeFormChange({ 
       ...composeForm, 
-      attachments: fileAttachments,
+      attachments: mergedAttachments,
       documentAttachments: docs
     });
     
@@ -184,17 +206,51 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                 documentAttachments={selectedDocuments}
                 onFileAttachmentsChange={(newFiles) => {
                   setFileAttachments(newFiles);
+                  // Merge with existing document attachments
+                  const mergedAttachments = [
+                    ...newFiles,
+                    ...selectedDocuments.map(doc => ({
+                      id: doc.id,
+                      name: doc.name,
+                      url: doc.url || doc.publicUrl,
+                      data: doc.url || doc.publicUrl,
+                      mime_type: doc.mime_type || doc.type,
+                      type: doc.mime_type || doc.type,
+                      file_size: doc.file_size || doc.size,
+                      size: doc.file_size || doc.size,
+                      isDocument: true,
+                      isUrl: true,
+                      bucket: 'documents'
+                    }))
+                  ];
                   onComposeFormChange({ 
                     ...composeForm, 
-                    attachments: newFiles,
+                    attachments: mergedAttachments,
                     documentAttachments: selectedDocuments
                   });
                 }}
                 onDocumentAttachmentsChange={(newDocs) => {
                   setSelectedDocuments(newDocs);
+                  // Merge with existing file attachments
+                  const mergedAttachments = [
+                    ...fileAttachments,
+                    ...newDocs.map(doc => ({
+                      id: doc.id,
+                      name: doc.name,
+                      url: doc.url || doc.publicUrl,
+                      data: doc.url || doc.publicUrl,
+                      mime_type: doc.mime_type || doc.type,
+                      type: doc.mime_type || doc.type,
+                      file_size: doc.file_size || doc.size,
+                      size: doc.file_size || doc.size,
+                      isDocument: true,
+                      isUrl: true,
+                      bucket: 'documents'
+                    }))
+                  ];
                   onComposeFormChange({ 
                     ...composeForm, 
-                    attachments: fileAttachments,
+                    attachments: mergedAttachments,
                     documentAttachments: newDocs
                   });
                 }}
