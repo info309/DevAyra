@@ -212,74 +212,83 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
 
         let attachmentData = att.data;
         
-        // If this is a URL attachment, fetch the data
+        // If this is a URL attachment, check if we need to fetch the data
         if (att.isUrl) {
-          console.log(`[${requestId}] Fetching attachment from URL`);
+          // Check if data is already base64 content or needs to be fetched
+          const isBase64Content = !att.data.startsWith('http') && !att.data.includes('/') && att.data.length > 100;
           
-          let bucket, path;
-          
-          // Handle both full URLs and storage paths
-          if (att.data.startsWith('http')) {
-            // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
-            const url = new URL(att.data);
-            const prefix = '/storage/v1/object/public/';
-            let relativePath = url.pathname.startsWith(prefix)
-              ? url.pathname.slice(prefix.length)
-              : url.pathname.replace(/^\/+/, '');
-            const [bucketName, ...pathParts] = relativePath.split('/');
-            bucket = bucketName;
-            path = pathParts.join('/');
+          if (isBase64Content) {
+            console.log(`[${requestId}] Attachment data is already base64 content, using directly`);
+            // Data is already base64 encoded, use it directly
+            attachmentData = att.data;
           } else {
-            // Handle direct storage path format (bucket provided separately)
-            bucket = att.bucket || 'documents';
-            path = att.data;
-          }
-          
-          console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
-          
-          const { data: fileData, error: downloadError } = await supabaseStorage
-            .storage
-            .from(bucket)
-            .download(path);
+            console.log(`[${requestId}] Fetching attachment from URL`);
             
-          if (downloadError) {
-            console.error(`[${requestId}] Failed to download from storage:`, downloadError);
-            throw new Error(`Failed to download ${att.name}: ${downloadError.message}`);
-          }
-          
-          if (!fileData) {
-            throw new Error(`No data received for ${att.name}`);
-          }
-          
-          console.log(`[${requestId}] File downloaded successfully:`, {
-            name: att.name,
-            type: att.type,
-            size: fileData.size
-          });
-          // Convert Blob to ArrayBuffer
-          const buffer = await fileData.arrayBuffer();
-          // Use Deno stdlib base64 encoder for binary safety
-          let uint8 = new Uint8Array(buffer);
-
-          // Validate magic bytes; if mismatch, fall back to fetching the public URL directly
-          const magic = Array.from(uint8.slice(0, 8));
-          const isLikelyPdf = magic[0] === 0x25 && magic[1] === 0x50 && magic[2] === 0x44 && magic[3] === 0x46; // %PDF
-          const isLikelyIsoBmff = magic[4] === 0x66 && magic[5] === 0x74 && magic[6] === 0x79 && magic[7] === 0x70; // ....ftyp
-          const expectedPdf = att.type === 'application/pdf';
-          const expectedImage = (att.type || '').startsWith('image/');
-
-          if ((expectedPdf && !isLikelyPdf) || (expectedImage && !isLikelyIsoBmff && att.type !== 'image/png' && att.type !== 'image/jpeg')) {
-            console.warn(`[${requestId}] Storage download signature mismatch for ${att.name}. Falling back to direct fetch.`);
-            const direct = await fetch(att.data);
-            if (!direct.ok) {
-              throw new Error(`Fallback fetch failed ${direct.status}`);
+            let bucket, path;
+            
+            // Handle both full URLs and storage paths
+            if (att.data.startsWith('http')) {
+              // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
+              const url = new URL(att.data);
+              const prefix = '/storage/v1/object/public/';
+              let relativePath = url.pathname.startsWith(prefix)
+                ? url.pathname.slice(prefix.length)
+                : url.pathname.replace(/^\/+/, '');
+              const [bucketName, ...pathParts] = relativePath.split('/');
+              bucket = bucketName;
+              path = pathParts.join('/');
+            } else {
+              // Handle direct storage path format (bucket provided separately)
+              bucket = att.bucket || 'documents';
+              path = att.data;
             }
-            const ab = await direct.arrayBuffer();
-            uint8 = new Uint8Array(ab);
-          }
+            
+            console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
+            
+            const { data: fileData, error: downloadError } = await supabaseStorage
+              .storage
+              .from(bucket)
+              .download(path);
+              
+            if (downloadError) {
+              console.error(`[${requestId}] Failed to download from storage:`, downloadError);
+              throw new Error(`Failed to download ${att.name}: ${downloadError.message}`);
+            }
+            
+            if (!fileData) {
+              throw new Error(`No data received for ${att.name}`);
+            }
+            
+            console.log(`[${requestId}] File downloaded successfully:`, {
+              name: att.name,
+              type: att.type,
+              size: fileData.size
+            });
+            // Convert Blob to ArrayBuffer
+            const buffer = await fileData.arrayBuffer();
+            // Use Deno stdlib base64 encoder for binary safety
+            let uint8 = new Uint8Array(buffer);
 
-          attachmentData = encodeBase64(uint8);
-          console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
+            // Validate magic bytes; if mismatch, fall back to fetching the public URL directly
+            const magic = Array.from(uint8.slice(0, 8));
+            const isLikelyPdf = magic[0] === 0x25 && magic[1] === 0x50 && magic[2] === 0x44 && magic[3] === 0x46; // %PDF
+            const isLikelyIsoBmff = magic[4] === 0x66 && magic[5] === 0x74 && magic[6] === 0x79 && magic[7] === 0x70; // ....ftyp
+            const expectedPdf = att.type === 'application/pdf';
+            const expectedImage = (att.type || '').startsWith('image/');
+
+            if ((expectedPdf && !isLikelyPdf) || (expectedImage && !isLikelyIsoBmff && att.type !== 'image/png' && att.type !== 'image/jpeg')) {
+              console.warn(`[${requestId}] Storage download signature mismatch for ${att.name}. Falling back to direct fetch.`);
+              const direct = await fetch(att.data);
+              if (!direct.ok) {
+                throw new Error(`Fallback fetch failed ${direct.status}`);
+              }
+              const ab = await direct.arrayBuffer();
+              uint8 = new Uint8Array(ab);
+            }
+
+            attachmentData = encodeBase64(uint8);
+            console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
+          }
         }
         
         emailContent += [
