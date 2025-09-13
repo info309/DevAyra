@@ -125,6 +125,20 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
   console.log(`[${requestId}] To: ${request.to}`);
   console.log(`[${requestId}] Subject: ${request.subject}`);
   console.log(`[${requestId}] Attachments: ${request.attachments?.length || 0}`);
+  
+  // Log attachment details for debugging
+  if (request.attachments?.length) {
+    request.attachments.forEach((att: any, index: number) => {
+      console.log(`[${requestId}] Attachment ${index}:`, {
+        name: att.name,
+        type: att.type,
+        size: att.size,
+        isUrl: att.isUrl,
+        dataLength: att.data?.length || 0,
+        dataPrefix: att.data?.substring(0, 50) || 'no data'
+      });
+    });
+  }
 
   try {
     // Validate required fields
@@ -198,120 +212,141 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
       
       // Add attachments
       for (const att of request.attachments) {
-        // Normalize name: accept either name or filename from client
-        if (!att.name && att.filename) {
-          att.name = att.filename;
-        }
-        console.log(`[${requestId}] Processing attachment:`, {
-          name: att.name,
-          type: att.type,
-          size: att.size,
-          isUrl: att.isUrl,
-          bucket: att.bucket
-        });
-
-        let attachmentData = att.data;
-        
-        // If this is a URL attachment, check if we need to fetch the data
-        if (att.isUrl) {
-          // Check if data is already base64 content or needs to be fetched
-          // Base64 content typically starts with letters/numbers and doesn't look like a path
-          const looksLikeBase64 = /^[A-Za-z0-9+/]/.test(att.data) && att.data.length > 100;
-          const looksLikePath = att.data.includes('/') && !att.data.startsWith('http') && att.data.split('/').length >= 2;
-          const isBase64Content = looksLikeBase64 && !looksLikePath;
-          
-          if (isBase64Content) {
-            console.log(`[${requestId}] Attachment data is already base64 content, using directly`);
-            // Data is already base64 encoded, use it directly
-            attachmentData = att.data;
-          } else {
-            console.log(`[${requestId}] Fetching attachment from URL`);
-            
-            let bucket, path;
-            
-            // Handle both full URLs and storage paths
-            if (att.data.startsWith('http')) {
-              // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
-              const url = new URL(att.data);
-              const prefix = '/storage/v1/object/public/';
-              let relativePath = url.pathname.startsWith(prefix)
-                ? url.pathname.slice(prefix.length)
-                : url.pathname.replace(/^\/+/, '');
-              const [bucketName, ...pathParts] = relativePath.split('/');
-              bucket = bucketName;
-              path = pathParts.join('/');
-            } else {
-              // Handle direct storage path format (bucket provided separately)
-              bucket = att.bucket || 'documents';
-              path = att.data;
-            }
-            
-            console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
-            
-            const { data: fileData, error: downloadError } = await supabaseStorage
-              .storage
-              .from(bucket)
-              .download(path);
-              
-            if (downloadError) {
-              console.error(`[${requestId}] Failed to download from storage:`, downloadError);
-              throw new Error(`Failed to download ${att.name}: ${downloadError.message}`);
-            }
-            
-            if (!fileData) {
-              throw new Error(`No data received for ${att.name}`);
-            }
-            
-            console.log(`[${requestId}] File downloaded successfully:`, {
-              name: att.name,
-              type: att.type,
-              size: fileData.size
-            });
-            // Convert Blob to ArrayBuffer
-            const buffer = await fileData.arrayBuffer();
-            // Use Deno stdlib base64 encoder for binary safety
-            let uint8 = new Uint8Array(buffer);
-
-            // Validate magic bytes; if mismatch, fall back to fetching the public URL directly
-            const magic = Array.from(uint8.slice(0, 8));
-            const isLikelyPdf = magic[0] === 0x25 && magic[1] === 0x50 && magic[2] === 0x44 && magic[3] === 0x46; // %PDF
-            const isLikelyIsoBmff = magic[4] === 0x66 && magic[5] === 0x74 && magic[6] === 0x79 && magic[7] === 0x70; // ....ftyp
-            const expectedPdf = att.type === 'application/pdf';
-            const expectedImage = (att.type || '').startsWith('image/');
-
-            if ((expectedPdf && !isLikelyPdf) || (expectedImage && !isLikelyIsoBmff && att.type !== 'image/png' && att.type !== 'image/jpeg')) {
-              console.warn(`[${requestId}] Storage download signature mismatch for ${att.name}. Falling back to direct fetch.`);
-              const direct = await fetch(att.data);
-              if (!direct.ok) {
-                throw new Error(`Fallback fetch failed ${direct.status}`);
-              }
-              const ab = await direct.arrayBuffer();
-              uint8 = new Uint8Array(ab);
-            }
-
-            attachmentData = encodeBase64(uint8);
-            console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
+        try {
+          // Normalize name: accept either name or filename from client
+          if (!att.name && att.filename) {
+            att.name = att.filename;
           }
+          console.log(`[${requestId}] Processing attachment:`, {
+            name: att.name,
+            type: att.type,
+            size: att.size,
+            isUrl: att.isUrl,
+            bucket: att.bucket,
+            dataLength: att.data?.length || 0
+          });
+
+          let attachmentData = att.data;
+          
+          // If this is a URL attachment, check if we need to fetch the data
+          if (att.isUrl) {
+            // Check if data is already base64 content or needs to be fetched
+            // Base64 content typically starts with letters/numbers and doesn't look like a path
+            const looksLikeBase64 = /^[A-Za-z0-9+/]/.test(att.data) && att.data.length > 100;
+            const looksLikePath = att.data.includes('/') && !att.data.startsWith('http') && att.data.split('/').length >= 2;
+            const isBase64Content = looksLikeBase64 && !looksLikePath;
+            
+            console.log(`[${requestId}] Attachment analysis:`, {
+              looksLikeBase64,
+              looksLikePath,
+              isBase64Content,
+              dataStart: att.data.substring(0, 20)
+            });
+            
+            if (isBase64Content) {
+              console.log(`[${requestId}] Attachment data is already base64 content, using directly`);
+              // Data is already base64 encoded, use it directly
+              attachmentData = att.data;
+            } else {
+              console.log(`[${requestId}] Fetching attachment from URL`);
+              
+              let bucket, path;
+              
+              // Handle both full URLs and storage paths
+              if (att.data.startsWith('http')) {
+                // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
+                const url = new URL(att.data);
+                const prefix = '/storage/v1/object/public/';
+                let relativePath = url.pathname.startsWith(prefix)
+                  ? url.pathname.slice(prefix.length)
+                  : url.pathname.replace(/^\/+/, '');
+                const [bucketName, ...pathParts] = relativePath.split('/');
+                bucket = bucketName;
+                path = pathParts.join('/');
+              } else {
+                // Handle direct storage path format (bucket provided separately)
+                bucket = att.bucket || 'documents';
+                path = att.data;
+              }
+              
+              console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
+              
+              const { data: fileData, error: downloadError } = await supabaseStorage
+                .storage
+                .from(bucket)
+                .download(path);
+                
+              if (downloadError) {
+                console.error(`[${requestId}] Failed to download from storage:`, downloadError);
+                throw new Error(`Failed to download ${att.name}: ${downloadError.message}`);
+              }
+              
+              if (!fileData) {
+                throw new Error(`No data received for ${att.name}`);
+              }
+              
+              console.log(`[${requestId}] File downloaded successfully:`, {
+                name: att.name,
+                type: att.type,
+                size: fileData.size
+              });
+              // Convert Blob to ArrayBuffer
+              const buffer = await fileData.arrayBuffer();
+              // Use Deno stdlib base64 encoder for binary safety
+              let uint8 = new Uint8Array(buffer);
+
+              // Validate magic bytes; if mismatch, fall back to fetching the public URL directly
+              const magic = Array.from(uint8.slice(0, 8));
+              const isLikelyPdf = magic[0] === 0x25 && magic[1] === 0x50 && magic[2] === 0x44 && magic[3] === 0x46; // %PDF
+              const isLikelyIsoBmff = magic[4] === 0x66 && magic[5] === 0x74 && magic[6] === 0x79 && magic[7] === 0x70; // ....ftyp
+              const expectedPdf = att.type === 'application/pdf';
+              const expectedImage = (att.type || '').startsWith('image/');
+
+              if ((expectedPdf && !isLikelyPdf) || (expectedImage && !isLikelyIsoBmff && att.type !== 'image/png' && att.type !== 'image/jpeg')) {
+                console.warn(`[${requestId}] Storage download signature mismatch for ${att.name}. Falling back to direct fetch.`);
+                const direct = await fetch(att.data);
+                if (!direct.ok) {
+                  throw new Error(`Fallback fetch failed ${direct.status}`);
+                }
+                const ab = await direct.arrayBuffer();
+                uint8 = new Uint8Array(ab);
+              }
+
+              attachmentData = encodeBase64(uint8);
+              console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
+            }
+          }
+          
+          console.log(`[${requestId}] Building attachment section for: ${att.name}`);
+          emailContent += [
+            `--${boundary}`,
+            `Content-Type: ${att.type || 'application/octet-stream'}; name="${att.name}"`,
+            `Content-Disposition: attachment; filename="${att.name}"`,
+            `Content-Transfer-Encoding: base64`,
+            '',
+            attachmentData.match(/.{1,76}/g)?.join('\r\n') || attachmentData,
+            ''
+          ].join('\r\n');
+          
+          console.log(`[${requestId}] Successfully added attachment: ${att.name}`);
+          
+        } catch (attachmentError) {
+          console.error(`[${requestId}] Error processing attachment ${att.name}:`, attachmentError);
+          throw new Error(`Failed to process attachment ${att.name}: ${attachmentError.message}`);
         }
-        
-        emailContent += [
-          `--${boundary}`,
-          `Content-Type: ${att.type || 'application/octet-stream'}; name="${att.name}"`,
-          `Content-Disposition: attachment; filename="${att.name}"`,
-          `Content-Transfer-Encoding: base64`,
-          '',
-          attachmentData.match(/.{1,76}/g)?.join('\r\n') || attachmentData,
-          ''
-        ].join('\r\n');
       }
       
       emailContent += `--${boundary}--\r\n`;
     }
 
     console.log(`[${requestId}] Email built, size: ${emailContent.length} chars`);
+    console.log(`[${requestId}] Email content preview:`, emailContent.substring(0, 500));
 
     // Encode for Gmail API using binary-safe path
+    console.log(`[${requestId}] Starting email encoding...`);
     const rawBytes = new TextEncoder().encode(emailContent);
+    console.log(`[${requestId}] Raw bytes length: ${rawBytes.length}`);
+    
     const encodedEmail = encodeBase64(rawBytes)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
