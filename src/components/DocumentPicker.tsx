@@ -46,6 +46,13 @@ interface DocumentPickerProps {
   trigger?: React.ReactNode;
 }
 
+const SUPABASE_PUBLIC_URL = "https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/";
+
+function buildPublicUrl(filePath: string) {
+  // filePath is the object path inside the 'documents' bucket
+  // Public URL format: /storage/v1/object/public/<bucket>/<path>
+  return `${SUPABASE_PUBLIC_URL}documents/${filePath}`;
+}
 const DocumentPicker: React.FC<DocumentPickerProps> = ({
   onDocumentsSelected,
   selectedDocuments = [],
@@ -174,7 +181,26 @@ const DocumentPicker: React.FC<DocumentPickerProps> = ({
 
   const handleConfirm = () => {
     console.log('DocumentPicker confirm clicked with selection:', localSelection.map(d => d.name));
-    onDocumentsSelected(localSelection);
+    const attachments = localSelection
+      .map(doc => {
+        const publicUrl = buildPublicUrl(doc.file_path);
+        return {
+          id: doc.id,
+          name: doc.name,
+          mime_type: doc.mime_type,
+          type: doc.mime_type,  // Add type field for compatibility
+          file_path: doc.file_path,
+          publicUrl: publicUrl,
+          url: publicUrl,      // Add url field for compatibility
+          file_size: doc.file_size,
+          size: doc.file_size, // Add size field for compatibility
+          bucket: 'documents'  // Add bucket information
+        };
+      });
+
+    console.log("DocumentPicker - Attachments array with public URLs:", attachments);
+    console.log("DocumentPicker - Sample public URL:", attachments[0]?.publicUrl);
+    onDocumentsSelected(attachments as any);
     setOpen(false);
   };
 

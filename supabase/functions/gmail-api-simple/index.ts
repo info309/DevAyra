@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -115,6 +116,11 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 async function handleSendEmail(requestId: string, accessToken: string, request: any): Promise<Response> {
+  // Create a Supabase client for storage operations within this scope
+  const supabaseStorage = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  );
   console.log(`[${requestId}] === SEND EMAIL START ===`);
   console.log(`[${requestId}] To: ${request.to}`);
   console.log(`[${requestId}] Subject: ${request.subject}`);
@@ -138,7 +144,16 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
       // Validate each attachment has required data
       for (const att of request.attachments) {
         if (!att.data) {
-          throw new Error(`Attachment ${att.name} is missing data`);
+          throw new Error(`Attachment ${att.name || 'undefined'} is missing data`);
+        }
+        if (!att.name) {
+          throw new Error('Attachment name is required');
+        }
+        if (!att.type) {
+          throw new Error(`Attachment ${att.name} is missing type`);
+        }
+        if (att.isUrl && !att.data.startsWith('http')) {
+          throw new Error(`Attachment ${att.name} has invalid URL`);
         }
       }
     }
@@ -169,6 +184,7 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
         '',
         `--${boundary}`,
         `Content-Type: text/html; charset=utf-8`,
+        `Content-Transfer-Encoding: 7bit`,
         '',
         request.content || 'No content',
         ''
@@ -176,15 +192,86 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
       
       // Add attachments
       for (const att of request.attachments) {
-        console.log(`[${requestId}] Adding attachment: ${att.name} (${att.size} bytes)`);
+        // Normalize name: accept either name or filename from client
+        if (!att.name && att.filename) {
+          att.name = att.filename;
+        }
+        console.log(`[${requestId}] Processing attachment:`, {
+          name: att.name,
+          type: att.type,
+          size: att.size,
+          isUrl: att.isUrl,
+          bucket: att.bucket
+        });
+
+        let attachmentData = att.data;
+        
+        // If this is a URL attachment, fetch the data
+        if (att.isUrl) {
+          console.log(`[${requestId}] Fetching attachment from URL`);
+          // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
+          const url = new URL(att.data);
+          const prefix = '/storage/v1/object/public/';
+          let relativePath = url.pathname.startsWith(prefix)
+            ? url.pathname.slice(prefix.length)
+            : url.pathname.replace(/^\/+/, '');
+          const [bucket, ...pathParts] = relativePath.split('/');
+          const path = pathParts.join('/');
+          
+          console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
+          
+          const { data: fileData, error: downloadError } = await supabaseStorage
+            .storage
+            .from(bucket)
+            .download(path);
+            
+          if (downloadError) {
+            console.error(`[${requestId}] Failed to download from storage:`, downloadError);
+            throw new Error(`Failed to download ${att.name}: ${downloadError.message}`);
+          }
+          
+          if (!fileData) {
+            throw new Error(`No data received for ${att.name}`);
+          }
+          
+          console.log(`[${requestId}] File downloaded successfully:`, {
+            name: att.name,
+            type: att.type,
+            size: fileData.size
+          });
+          // Convert Blob to ArrayBuffer
+          const buffer = await fileData.arrayBuffer();
+          // Use Deno stdlib base64 encoder for binary safety
+          let uint8 = new Uint8Array(buffer);
+
+          // Validate magic bytes; if mismatch, fall back to fetching the public URL directly
+          const magic = Array.from(uint8.slice(0, 8));
+          const isLikelyPdf = magic[0] === 0x25 && magic[1] === 0x50 && magic[2] === 0x44 && magic[3] === 0x46; // %PDF
+          const isLikelyIsoBmff = magic[4] === 0x66 && magic[5] === 0x74 && magic[6] === 0x79 && magic[7] === 0x70; // ....ftyp
+          const expectedPdf = att.type === 'application/pdf';
+          const expectedImage = (att.type || '').startsWith('image/');
+
+          if ((expectedPdf && !isLikelyPdf) || (expectedImage && !isLikelyIsoBmff && att.type !== 'image/png' && att.type !== 'image/jpeg')) {
+            console.warn(`[${requestId}] Storage download signature mismatch for ${att.name}. Falling back to direct fetch.`);
+            const direct = await fetch(att.data);
+            if (!direct.ok) {
+              throw new Error(`Fallback fetch failed ${direct.status}`);
+            }
+            const ab = await direct.arrayBuffer();
+            uint8 = new Uint8Array(ab);
+          }
+
+          attachmentData = encodeBase64(uint8);
+          console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
+        }
         
         emailContent += [
           `--${boundary}`,
-          `Content-Type: ${att.type || 'application/octet-stream'}`,
+          `Content-Type: ${att.type || 'application/octet-stream'}; name="${att.name}"`,
           `Content-Disposition: attachment; filename="${att.name}"`,
           `Content-Transfer-Encoding: base64`,
           '',
-          att.data.match(/.{1,76}/g)?.join('\r\n') || att.data,
+          attachmentData.match(/.{1,76}/g)?.join('\r\n') || attachmentData,
           ''
         ].join('\r\n');
       }
@@ -194,8 +281,9 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
 
     console.log(`[${requestId}] Email built, size: ${emailContent.length} chars`);
 
-    // Encode for Gmail API
-    const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
+    // Encode for Gmail API using binary-safe path
+    const rawBytes = new TextEncoder().encode(emailContent);
+    const encodedEmail = encodeBase64(rawBytes)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');

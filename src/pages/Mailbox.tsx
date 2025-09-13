@@ -165,12 +165,27 @@ const Mailbox: React.FC = () => {
         return undefined;
       };
       
+      console.log('Processing draft attachments:', draft.attachments);
+      
+      // Log the incoming draft data
+      console.log('Raw draft data:', draft);
+      
       const cleanedDraft = {
         to: draft.to || '',
         subject: draft.subject || '',
         content: draft.content || '',
         threadId: cleanThreadId(draft.threadId),
-        attachments: draft.attachments || []
+        attachments: (draft.attachments || []).map(att => {
+          console.log('Processing attachment:', att);
+          return {
+            id: att.id,
+            name: att.name,
+            url: att.url || att.publicUrl,
+            mime_type: att.mime_type || att.type,
+            file_size: att.file_size || att.size,
+            type: att.mime_type || att.type
+          };
+        })
       };
       
       setComposeForm(cleanedDraft);
@@ -1130,7 +1145,13 @@ const Mailbox: React.FC = () => {
         subject: emailData.subject,
         hasContent: !!emailData.content,
         attachmentCount: emailData.attachments?.length || 0,
-        totalSize: emailData.attachments?.reduce((sum, att) => sum + att.size, 0) || 0
+        totalSize: emailData.attachments?.reduce((sum, att) => sum + (att.file_size || att.size || 0), 0) || 0,
+        attachments: emailData.attachments?.map(att => ({
+          name: att.name,
+          hasUrl: !!att.url,
+          hasPublicUrl: !!att.publicUrl,
+          mime_type: att.mime_type || att.type
+        }))
       });
       
       // Create AbortController for this send operation
@@ -1155,20 +1176,165 @@ const Mailbox: React.FC = () => {
         attachmentCount: emailData.attachments?.length || 0
       });
       
+      // Process attachments
+      const processedAttachments = emailData.attachments?.map(att => ({
+        name: att.name,
+        url: att.url,
+        mime_type: att.mime_type || att.type,
+        file_size: att.file_size || att.size
+      })) || [];
+
+      console.log('Processed attachments for sending:', processedAttachments);
+
+      // Ensure attachments are properly formatted
+      const finalAttachments = emailData.attachments?.map(att => {
+        const originalName = att.name;
+        const mimeType = att.mime_type || att.type;
+        
+        // Get file extension from mime type or original name
+        let fileExtension = '';
+        if (originalName.includes('.')) {
+          fileExtension = originalName.split('.').pop() || '';
+        } else if (mimeType) {
+          const mimeExtMap: { [key: string]: string } = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/avif': 'avif',
+            'application/pdf': 'pdf',
+            'text/plain': 'txt'
+          };
+          fileExtension = mimeExtMap[mimeType] || mimeType.split('/')[1] || '';
+        }
+        
+        // Create safe filename
+        const baseFilename = originalName
+          .replace(/\.[^/.]+$/, '') // Remove extension if exists
+          .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+          .replace(/[^a-zA-Z0-9\-_]/g, '_') // Replace special chars with underscore
+          .replace(/_{2,}/g, '_') // Replace multiple underscores
+          .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+        
+        // Combine filename with extension
+        const finalFilename = baseFilename || 'document';
+        const fullFilename = fileExtension ? `${finalFilename}.${fileExtension}` : finalFilename;
+        
+        // Get the raw URL and ensure it's the full Supabase URL
+        let rawUrl = att.url || att.publicUrl;
+        // Normalize accidental duplicate path segments like /documents/documents/
+        if (rawUrl) {
+          rawUrl = rawUrl.replace(/\/documents\/documents\//g, '/documents/');
+        }
+        
+        // Keep the full URL but ensure it's properly encoded
+        const encodedUrl = encodeURIComponent(rawUrl);
+        
+        console.log('Processing URL:', {
+          original: rawUrl,
+          encoded: encodedUrl
+        });
+        
+        console.log('Processing attachment:', {
+          original: {
+            name: originalName,
+            url: rawUrl,
+            type: att.mime_type || att.type,
+            size: att.file_size || att.size
+          },
+          processed: {
+            filename: finalFilename,
+            url: encodedUrl,
+            mimeType: att.mime_type || att.type,
+            size: att.file_size || att.size
+          }
+        });
+        
+        // Log the processed attachment details
+        console.log('Processing attachment:', {
+          original: {
+            name: originalName,
+            url: rawUrl,
+            type: mimeType,
+            size: att.file_size || att.size
+          },
+          processed: {
+            filename: fullFilename,
+            url: encodedUrl,
+            mimeType: mimeType,
+            size: att.file_size || att.size
+          }
+        });
+        
+        // Format attachment data according to backend expectations
+        const attachment = {
+          // Use 'name' to match backend expectation; include 'filename' for backward compatibility
+          name: fullFilename,
+          filename: fullFilename,
+          data: rawUrl,      // Send raw URL, let backend handle encoding
+          type: mimeType,    // Backend expects 'type' instead of 'mimeType'
+          size: att.file_size || att.size,
+          isUrl: true,       // Tell backend this is a URL
+          bucket: 'documents' // Add bucket information
+        };
+
+        console.log('Formatted attachment:', attachment);
+        return attachment;
+      }) || [];
+
+      console.log('Final attachments being sent:', JSON.stringify(finalAttachments, null, 2));
+
+      // Log the request details
+      const requestBody = {
+        action: 'sendEmail',
+        to: emailData.to,
+        subject: emailData.subject,
+        content: emailData.content,
+        attachments: finalAttachments,
+        sendAsLinks: true
+      };
+
+      console.log('Sending request to gmail-api-simple:', {
+        requestBody,
+          attachmentDetails: finalAttachments.map(att => ({
+            filename: att.filename,
+            dataLength: att.data.length,
+            dataPreview: att.data.substring(0, 100) + '...',
+            type: att.type,
+            size: att.size,
+            isUrl: att.isUrl
+          }))
+      });
+
       const { data, error } = await supabase.functions.invoke('gmail-api-simple', {
-        body: {
-          action: 'sendEmail',
-          to: emailData.to,
-          subject: emailData.subject,
-          content: emailData.content,
-          attachments: emailData.attachments
-        },
+        body: requestBody,
         headers: {
           Authorization: `Bearer ${authToken}`
         }
       });
       
-      console.log('Function response:', { data, error });
+      // Enhanced error logging
+      if (error) {
+        console.error('Gmail API Error:', {
+          error,
+          errorMessage: error.message,
+          errorContext: error.context,
+          responseStatus: error.status,
+          requestDetails: {
+            to: emailData.to,
+            subject: emailData.subject,
+            attachmentCount: finalAttachments.length,
+            attachmentSizes: finalAttachments.map(att => att.size),
+            totalSize: finalAttachments.reduce((sum, att) => sum + att.size, 0)
+          }
+        });
+      } else {
+        console.log('Function response:', {
+          data,
+          success: data?.success,
+          messageId: data?.messageId
+        });
+      }
       
       if (error) {
         console.error('Supabase function error:', error);
