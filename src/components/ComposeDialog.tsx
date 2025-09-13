@@ -61,17 +61,10 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
       ...docs.map(doc => {
         console.log('Processing document:', doc);
         return {
-          id: doc.id,
           name: doc.name,
-          url: doc.url || doc.publicUrl,
-          data: doc.url || doc.publicUrl,
-          mime_type: doc.mime_type || doc.type,
-          type: doc.mime_type || doc.type,
-          file_size: doc.file_size || doc.size,
-          size: doc.file_size || doc.size,
-          isDocument: true,
-          isUrl: true,
-          bucket: 'documents'
+          data: doc.file_path,
+          mimeType: doc.mime_type || 'application/octet-stream',
+          size: doc.file_size || 0
         };
       })
     ];
@@ -210,17 +203,10 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   const mergedAttachments = [
                     ...newFiles,
                     ...selectedDocuments.map(doc => ({
-                      id: doc.id,
                       name: doc.name,
-                      url: doc.url || doc.publicUrl,
-                      data: doc.url || doc.publicUrl,
-                      mime_type: doc.mime_type || doc.type,
-                      type: doc.mime_type || doc.type,
-                      file_size: doc.file_size || doc.size,
-                      size: doc.file_size || doc.size,
-                      isDocument: true,
-                      isUrl: true,
-                      bucket: 'documents'
+                      data: doc.file_path,
+                      mimeType: doc.mime_type || 'application/octet-stream',
+                      size: doc.file_size || 0
                     }))
                   ];
                   onComposeFormChange({ 
@@ -235,17 +221,10 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   const mergedAttachments = [
                     ...fileAttachments,
                     ...newDocs.map(doc => ({
-                      id: doc.id,
                       name: doc.name,
-                      url: doc.url || doc.publicUrl,
-                      data: doc.url || doc.publicUrl,
-                      mime_type: doc.mime_type || doc.type,
-                      type: doc.mime_type || doc.type,
-                      file_size: doc.file_size || doc.size,
-                      size: doc.file_size || doc.size,
-                      isDocument: true,
-                      isUrl: true,
-                      bucket: 'documents'
+                      data: doc.file_path,
+                      mimeType: doc.mime_type || 'application/octet-stream',
+                      size: doc.file_size || 0
                     }))
                   ];
                   onComposeFormChange({ 
