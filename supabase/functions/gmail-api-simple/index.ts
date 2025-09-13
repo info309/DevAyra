@@ -215,7 +215,10 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
         // If this is a URL attachment, check if we need to fetch the data
         if (att.isUrl) {
           // Check if data is already base64 content or needs to be fetched
-          const isBase64Content = !att.data.startsWith('http') && !att.data.includes('/') && att.data.length > 100;
+          // Base64 content typically starts with letters/numbers and doesn't look like a path
+          const looksLikeBase64 = /^[A-Za-z0-9+/]/.test(att.data) && att.data.length > 100;
+          const looksLikePath = att.data.includes('/') && !att.data.startsWith('http') && att.data.split('/').length >= 2;
+          const isBase64Content = looksLikeBase64 && !looksLikePath;
           
           if (isBase64Content) {
             console.log(`[${requestId}] Attachment data is already base64 content, using directly`);
