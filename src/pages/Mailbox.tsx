@@ -1176,20 +1176,20 @@ const Mailbox: React.FC = () => {
         attachmentCount: emailData.attachments?.length || 0
       });
       
-      // Process attachments
+      // Process attachments with null safety
       const processedAttachments = emailData.attachments?.map(att => ({
-        name: att.name,
-        url: att.url,
-        mime_type: att.mime_type || att.type,
-        file_size: att.file_size || att.size
+        name: att?.name || 'unknown',
+        url: att?.url || att?.data || '',
+        mime_type: att?.mime_type || att?.type || 'application/octet-stream',
+        file_size: att?.file_size || att?.size || 0
       })) || [];
 
       console.log('Processed attachments for sending:', processedAttachments);
 
-      // Ensure attachments are properly formatted
-      const finalAttachments = emailData.attachments?.map(att => {
-        const originalName = att.name;
-        const mimeType = att.mime_type || att.type;
+      // Ensure attachments are properly formatted with null safety
+      const finalAttachments = emailData.attachments?.filter(att => att && (att.name || att.url || att.data)).map(att => {
+        const originalName = att?.name || 'document';
+        const mimeType = att?.mime_type || att?.type || 'application/octet-stream';
         
         // Get file extension from mime type or original name
         let fileExtension = '';
@@ -1221,9 +1221,9 @@ const Mailbox: React.FC = () => {
         const fullFilename = fileExtension ? `${finalFilename}.${fileExtension}` : finalFilename;
         
         // Get the raw URL and ensure it's the full Supabase URL
-        let rawUrl = att.url || att.publicUrl;
+        let rawUrl = att?.url || att?.publicUrl || att?.data || '';
         // Normalize accidental duplicate path segments like /documents/documents/
-        if (rawUrl) {
+        if (rawUrl && typeof rawUrl === 'string') {
           rawUrl = rawUrl.replace(/\/documents\/documents\//g, '/documents/');
         }
         
@@ -1297,12 +1297,12 @@ const Mailbox: React.FC = () => {
       console.log('Sending request to gmail-api-simple:', {
         requestBody,
           attachmentDetails: finalAttachments.map(att => ({
-            filename: att.filename,
-            dataLength: att.data.length,
-            dataPreview: att.data.substring(0, 100) + '...',
-            type: att.type,
-            size: att.size,
-            isUrl: att.isUrl
+            filename: att.filename || 'unknown',
+            dataLength: att.data?.length || 0,
+            dataPreview: att.data ? att.data.substring(0, 100) + '...' : 'No data',
+            type: att.type || 'unknown',
+            size: att.size || 0,
+            isUrl: att.isUrl || false
           }))
       });
 
@@ -1323,9 +1323,9 @@ const Mailbox: React.FC = () => {
           requestDetails: {
             to: emailData.to,
             subject: emailData.subject,
-            attachmentCount: finalAttachments.length,
-            attachmentSizes: finalAttachments.map(att => att.size),
-            totalSize: finalAttachments.reduce((sum, att) => sum + att.size, 0)
+            attachmentCount: finalAttachments?.length || 0,
+            attachmentSizes: finalAttachments?.map(att => att.size || 0) || [],
+            totalSize: finalAttachments?.reduce((sum, att) => sum + (att.size || 0), 0) || 0
           }
         });
       } else {
