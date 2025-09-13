@@ -152,7 +152,13 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
         if (!att.type) {
           throw new Error(`Attachment ${att.name} is missing type`);
         }
-        if (att.isUrl && !att.data.startsWith('http')) {
+        // For URL attachments, validate that we have either a full HTTP URL or a valid storage path
+        if (att.isUrl && att.bucket && !att.data.startsWith('http')) {
+          // This is a Supabase storage path - validate it has the expected format
+          if (!att.data.includes('/')) {
+            throw new Error(`Attachment ${att.name} has invalid storage path format`);
+          }
+        } else if (att.isUrl && !att.bucket && !att.data.startsWith('http')) {
           throw new Error(`Attachment ${att.name} has invalid URL`);
         }
       }
@@ -209,14 +215,25 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
         // If this is a URL attachment, fetch the data
         if (att.isUrl) {
           console.log(`[${requestId}] Fetching attachment from URL`);
-          // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
-          const url = new URL(att.data);
-          const prefix = '/storage/v1/object/public/';
-          let relativePath = url.pathname.startsWith(prefix)
-            ? url.pathname.slice(prefix.length)
-            : url.pathname.replace(/^\/+/, '');
-          const [bucket, ...pathParts] = relativePath.split('/');
-          const path = pathParts.join('/');
+          
+          let bucket, path;
+          
+          // Handle both full URLs and storage paths
+          if (att.data.startsWith('http')) {
+            // Extract bucket and path from the public URL: /storage/v1/object/public/<bucket>/<path>
+            const url = new URL(att.data);
+            const prefix = '/storage/v1/object/public/';
+            let relativePath = url.pathname.startsWith(prefix)
+              ? url.pathname.slice(prefix.length)
+              : url.pathname.replace(/^\/+/, '');
+            const [bucketName, ...pathParts] = relativePath.split('/');
+            bucket = bucketName;
+            path = pathParts.join('/');
+          } else {
+            // Handle direct storage path format (bucket provided separately)
+            bucket = att.bucket || 'documents';
+            path = att.data;
+          }
           
           console.log(`[${requestId}] Fetching from storage:`, { bucket, path });
           
