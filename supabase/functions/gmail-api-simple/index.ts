@@ -231,14 +231,19 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
           // If this is a URL attachment, check if we need to fetch the data
           if (att.isUrl) {
             // Check if data is already base64 content or needs to be fetched
-            // Base64 content should be long and not contain forward slashes like a path
-            const isValidBase64 = /^[A-Za-z0-9+/=]+$/.test(att.data) && att.data.length > 100;
-            const hasPathStructure = att.data.includes('/') && !att.data.startsWith('http');
-            const isBase64Content = isValidBase64 && !hasPathStructure;
+            // Base64 data typically starts with common base64 patterns like JVBERi (PDF) or other file signatures
+            const startsWithPdfBase64 = att.data.startsWith('JVBERi0');
+            const isLongBase64String = att.data.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(att.data.substring(0, 100));
+            const isStoragePath = att.data.split('/').length >= 3 && att.data.length < 200;
+            const isHttpUrl = att.data.startsWith('http');
+            
+            const isBase64Content = (startsWithPdfBase64 || isLongBase64String) && !isStoragePath && !isHttpUrl;
             
             console.log(`[${requestId}] Attachment analysis:`, {
-              isValidBase64,
-              hasPathStructure, 
+              startsWithPdfBase64,
+              isLongBase64String,
+              isStoragePath,
+              isHttpUrl,
               isBase64Content,
               dataLength: att.data.length,
               dataStart: att.data.substring(0, 50)
