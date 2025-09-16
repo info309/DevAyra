@@ -267,8 +267,8 @@ const Index = () => {
       {/* Hero Section - Responsive Layout */}
       <section className="pt-20 pb-16 flex items-start">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full">
-            {/* Left Half - Title, Subtitle, Login */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-16 h-full">
+            {/* Left Half - Title, Subtitle, Image */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
                 <span className="text-compose">One login. One AI.</span><br />
@@ -278,8 +278,20 @@ const Index = () => {
                 Your personal AI assistant
               </p>
 
-              {/* Login Section - Hidden on mobile, shown in left column on desktop */}
-              <div className="hidden lg:block w-full max-w-xs lg:max-w-sm">
+              {/* Image - Under title on desktop */}
+              <div className="hidden lg:block mb-8">
+                <img 
+                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                  alt="AI Assistant Illustration" 
+                  className="w-full max-w-md h-auto rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Right Half - Sign Up Module (Desktop) / Mobile sections */}
+            <div className="lg:flex-1 lg:flex lg:justify-center">
+              {/* Sign Up Module - Shown on desktop in right column */}
+              <div className="hidden lg:block w-full max-w-sm">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
@@ -323,18 +335,6 @@ const Index = () => {
                     By continuing, you acknowledge Ayra's Privacy Policy.
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Right Half - Image (Desktop) / Mobile sections */}
-            <div className="lg:flex-1 lg:flex lg:justify-center">
-              {/* Image - Shown on desktop in right column */}
-              <div className="hidden lg:block">
-                <img 
-                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
-                  alt="AI Assistant Illustration" 
-                  className="w-full max-w-lg h-auto rounded-lg"
-                />
               </div>
 
               {/* Mobile Layout - Image and Login */}
