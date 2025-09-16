@@ -265,9 +265,9 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Responsive Layout */}
-      <section className="pt-20 pb-16 flex items-start">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-16 h-full">
+      <section className="pt-20 pb-16 min-h-[80vh] flex items-start">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-4 h-full">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-16 h-full min-h-[60vh]">
             {/* Left Half - Title, Subtitle, Image */}
             <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
