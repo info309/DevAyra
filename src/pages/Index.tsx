@@ -289,7 +289,7 @@ const Index = () => {
             </div>
 
             {/* Right Half - Sign Up Module (Desktop) / Mobile sections */}
-            <div className="lg:flex-1 lg:flex lg:justify-center">
+            <div className="lg:flex-1 lg:flex lg:justify-center lg:items-center">
               {/* Sign Up Module - Shown on desktop in right column */}
               <div className="hidden lg:block w-full max-w-sm">
                 <div className="space-y-4">
