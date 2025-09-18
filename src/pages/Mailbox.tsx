@@ -1665,7 +1665,10 @@ const Mailbox: React.FC = () => {
                       to: composeForm.to,
                       subject: composeForm.subject,
                       content: composeForm.content,
-                      attachments: composeForm.attachments || []
+                      attachments: [
+                        ...(composeForm.attachments || []),
+                        ...(composeForm.documentAttachments || [])
+                      ]
                     })}
                     onCancel={() => {
                       setShowComposeDialog(false);
