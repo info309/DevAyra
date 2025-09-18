@@ -169,8 +169,9 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
         // For URL attachments, validate that we have either a full HTTP URL or a valid storage path
         if (att.isUrl && att.bucket && !att.data.startsWith('http')) {
           // This is a Supabase storage path - validate it has the expected format
-          if (!att.data.includes('/')) {
-            throw new Error(`Attachment ${att.name} has invalid storage path format`);
+          if (!att.data.includes('/') && att.data.length < 10) {
+            console.error(`[${requestId}] Invalid attachment data for ${att.name}: "${att.data}" (length: ${att.data.length})`);
+            throw new Error(`Attachment ${att.name} appears to be corrupted or incomplete. Please re-upload the file.`);
           }
         } else if (att.isUrl && !att.bucket && !att.data.startsWith('http')) {
           throw new Error(`Attachment ${att.name} has invalid URL`);

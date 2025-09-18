@@ -1222,6 +1222,18 @@ const Mailbox: React.FC = () => {
         
         // Get the raw URL and ensure it's the full Supabase URL
         let rawUrl = att?.url || att?.publicUrl || att?.data || '';
+        
+        // Validate attachment data before processing
+        if (!rawUrl || rawUrl.length < 10) {
+          console.error('Invalid attachment data detected:', {
+            name: originalName,
+            rawUrl,
+            dataLength: rawUrl?.length || 0,
+            attachment: att
+          });
+          throw new Error(`Attachment "${originalName}" appears to be corrupted or incomplete. Please re-upload the file.`);
+        }
+        
         // Normalize accidental duplicate path segments like /documents/documents/
         if (rawUrl && typeof rawUrl === 'string') {
           rawUrl = rawUrl.replace(/\/documents\/documents\//g, '/documents/');

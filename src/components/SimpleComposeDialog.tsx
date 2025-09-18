@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Send, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -149,6 +149,9 @@ const SimpleComposeDialog: React.FC<SimpleComposeDialogProps> = ({
         <DrawerContent className="max-h-[95vh] flex flex-col">
           <DrawerHeader>
             <DrawerTitle>Compose Email</DrawerTitle>
+            <DrawerDescription>
+              Create and send a new email message with optional attachments.
+            </DrawerDescription>
           </DrawerHeader>
           
           <div className="flex-1 px-4 space-y-4 overflow-y-auto">
