@@ -37,10 +37,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         || (u.user_metadata as any)?.first_name
         || (u.email ? u.email.split('@')[0] : null)
         || 'User';
-      const email = u.email || null;
       const { error } = await supabase
         .from('profiles')
-        .upsert({ user_id: u.id, display_name: displayName, email }, { onConflict: 'user_id' });
+        .upsert({ user_id: u.id, display_name: displayName }, { onConflict: 'user_id' });
       if (error) console.warn('profiles upsert warning:', error.message);
     } catch (e) {
       console.warn('profiles upsert failed (non-fatal):', (e as Error).message);
