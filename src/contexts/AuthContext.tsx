@@ -9,6 +9,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ error: any | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +26,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const upsertProfileFromUser = async (u: User | null) => {
+    try {
+      if (!u) return;
+      const displayName = (u.user_metadata as any)?.display_name
+        || (u.user_metadata as any)?.name
+        || (u.user_metadata as any)?.full_name
+        || (u.user_metadata as any)?.given_name
+        || (u.user_metadata as any)?.first_name
+        || (u.email ? u.email.split('@')[0] : null)
+        || 'User';
+      const email = u.email || null;
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ user_id: u.id, display_name: displayName, email }, { onConflict: 'user_id' });
+      if (error) console.warn('profiles upsert warning:', error.message);
+    } catch (e) {
+      console.warn('profiles upsert failed (non-fatal):', (e as Error).message);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST to avoid missing events
@@ -44,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('User signed out');
         } else if (event === 'SIGNED_IN') {
           console.log('User signed in');
+          upsertProfileFromUser(session?.user ?? null);
         }
       }
     );
@@ -99,13 +121,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithGoogle = async () => {
+    const redirectTo = `${window.location.origin}/`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: { access_type: 'offline', prompt: 'consent' }
+      }
+    });
+    if (error) {
+      console.error('Google OAuth error:', error);
+      return { error };
+    }
+    return { error: null };
+  };
+
   const value = {
     user,
     session,
     loading,
     signIn,
     signUp,
-    signOut
+    signOut,
+    signInWithGoogle
   };
 
   return (
