@@ -16,7 +16,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,6 +44,22 @@ const Auth = () => {
     }
     
     setLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Google Sign-In Failed",
+        description: error.message
+      });
+      setLoading(false);
+    }
+    // On success, Supabase will redirect; no need to unset loading here.
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -116,6 +132,15 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
+                <div className="relative my-4 text-center">
+                  <span className="px-2 text-xs text-muted-foreground bg-background relative z-10">or</span>
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" />
+                  </div>
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+                  Continue with Google
+                </Button>
               </form>
             </TabsContent>
             
@@ -161,6 +186,15 @@ const Auth = () => {
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Creating Account...' : 'Create Account'}
+                </Button>
+                <div className="relative my-4 text-center">
+                  <span className="px-2 text-xs text-muted-foreground bg-background relative z-10">or</span>
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" />
+                  </div>
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+                  Sign up with Google
                 </Button>
               </form>
             </TabsContent>
