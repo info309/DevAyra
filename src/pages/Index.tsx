@@ -279,7 +279,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Responsive Layout */}
-      <section className="pt-20 pb-16 min-h-[80vh] flex items-center">
+      <section className="pt-32 pb-16 min-h-[80vh] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           {/* Centered Title for Desktop */}
           <div className="text-center mb-12 lg:mb-16">
