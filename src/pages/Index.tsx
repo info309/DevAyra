@@ -426,14 +426,19 @@ const Index = () => {
               
               {/* Tablet and Desktop: iPad Landscape */}
               <div className="hidden md:block w-full max-w-4xl bg-gray-900 rounded-[2rem] p-4 shadow-2xl">
-                <div className="aspect-[4/3] bg-black rounded-[1.5rem] flex items-center justify-center overflow-hidden relative">
-                  {/* iPad home indicator */}
-                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full"></div>
-                  <div className="text-center space-y-6">
-                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
-                    <p className="text-xl font-body font-medium">Ayra Demo Video</p>
-                  </div>
-                </div>
+                 <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative">
+                   {/* iPad home indicator */}
+                   <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full z-10"></div>
+                   <video 
+                     className="w-full h-full object-cover rounded-[1.5rem]"
+                     controls
+                     preload="metadata"
+                     poster=""
+                   >
+                     <source src="/Ayra_in_action.mp4" type="video/mp4" />
+                     Your browser does not support the video tag.
+                   </video>
+                 </div>
               </div>
             </div>
           </div>
