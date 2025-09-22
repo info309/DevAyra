@@ -546,7 +546,7 @@ const Index = () => {
                 </div>
                 <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <div className="mt-4">
-                  <div className="text-4xl font-heading font-normal text-primary">£0</div>
+                  <div className="text-4xl font-heading font-normal text-primary">Free</div>
                   <div className="text-sm text-muted-foreground font-body font-medium">Free for everyone</div>
                 </div>
               </CardHeader>
