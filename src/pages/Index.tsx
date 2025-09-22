@@ -723,13 +723,13 @@ const Index = () => {
               />
             </div>
             <div className="flex space-x-8 text-base text-muted-foreground font-body font-medium">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-primary transition-colors">Anti-Slavery Policy</a>
+              <a href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</a>
+              <a href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</a>
+              <a href="/anti-slavery-policy" className="hover:text-primary transition-colors">Anti-Slavery Policy</a>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-border text-center text-base text-muted-foreground font-body font-medium">
-            <p>&copy; 2025 Ayra. All rights reserved.</p>
+            <p>&copy; 2025 Stargate Labs Inc UK. All rights reserved.</p>
           </div>
         </div>
       </footer>
