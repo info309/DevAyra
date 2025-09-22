@@ -292,9 +292,9 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-center lg:gap-16 h-full">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-center lg:gap-16 h-full">
             {/* Left Half - Image */}
-            <div className="lg:flex-1 lg:flex lg:justify-center mb-8 lg:mb-0">
+            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
               <div className="max-w-md w-full">
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
@@ -305,8 +305,8 @@ const Index = () => {
             </div>
 
             {/* Right Half - Sign Up Module */}
-            <div className="lg:flex-1 lg:flex lg:justify-center lg:items-start">
-              <div className="w-full max-w-sm lg:bg-muted/20 lg:rounded-lg lg:p-8">
+            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-start lg:items-start">
+              <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
