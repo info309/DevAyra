@@ -575,6 +575,15 @@ const Index = () => {
                     Add ons - Unlimited storage for £8 monthly.
                   </p>
                 </div>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    Get started for free
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -624,6 +633,14 @@ const Index = () => {
                     1TB of document storage.
                   </li>
                 </ul>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full"
+                  >
+                    Get started with Pro
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
