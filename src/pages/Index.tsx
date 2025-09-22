@@ -541,9 +541,6 @@ const Index = () => {
             {/* Free Plan */}
             <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
               <CardHeader className="text-center pb-6">
-                <div className="inline-block bg-muted px-3 py-1 rounded-full text-sm font-body font-medium text-muted-foreground mb-2">
-                  Free
-                </div>
                 <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <div className="mt-4">
                   <div className="text-4xl font-heading font-normal text-primary">Free</div>
