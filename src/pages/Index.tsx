@@ -353,7 +353,7 @@ const Index = () => {
               </div>
 
               {/* Mobile Layout - Image and Login */}
-              <div className="lg:hidden text-center">
+              <div className="md:hidden text-center">
                 <div className="mt-6 mb-8">
                   <img 
                     src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
