@@ -538,42 +538,95 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Personal Plan */}
+            {/* Free Plan */}
             <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Personal</CardTitle>
-                <CardDescription className="text-base font-body font-medium">Perfect for individuals</CardDescription>
+                <div className="inline-block bg-muted px-3 py-1 rounded-full text-sm font-body font-medium text-muted-foreground mb-2">
+                  Free
+                </div>
+                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Ayra personal</CardTitle>
                 <div className="mt-4">
-                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-base text-muted-foreground font-body font-medium">/month</div>
+                  <div className="text-4xl font-heading font-normal text-primary">£0</div>
+                  <div className="text-sm text-muted-foreground font-body font-medium">Free for everyone</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Your personal AI assistant Ayra on web, iOS, and Android.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    ChatGPT use inside Ayra.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Personal Tools: Mail, calendar, schedule, notes, documents.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Manage your daily personal life with Ayra
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    50GB of document storage.
+                  </li>
+                </ul>
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-body">
+                    Add ons - Unlimited storage for £8 monthly.
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Business Plan */}
+            {/* Pro Plan */}
             <Card className="relative border-2 border-primary shadow-xl">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-base font-body font-medium">
+                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-body font-medium">
                   Most Popular
                 </span>
               </div>
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Business</CardTitle>
-                <CardDescription className="text-base font-body font-medium">For teams and organizations</CardDescription>
+                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Pro</CardTitle>
+                <CardDescription className="text-sm font-body font-medium">Try Ayra professional</CardDescription>
                 <div className="mt-4">
-                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-base text-muted-foreground font-body font-medium">/month per user</div>
+                  <div className="text-4xl font-heading font-normal text-primary">£18</div>
+                  <div className="text-sm text-muted-foreground font-body font-medium">Billed every 28 days</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
-                </div>
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Your personal AI assistant Ayra on web, iOS, and Android.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    ChatGPT use inside Ayra.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Personal tools: Mail, calendar, schedule, notes, documents.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Manage your daily personal life with Ayra
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Business tools: Invoices, quotes, card payments, bookkeeping, calculator.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Unlock Ayra Pro - AI business and tax advisor (trained on UK tax laws)
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    1TB of document storage.
+                  </li>
+                </ul>
               </CardContent>
             </Card>
           </div>
