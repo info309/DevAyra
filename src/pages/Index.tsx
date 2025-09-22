@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause } from 'lucide-react';
+import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database } from 'lucide-react';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -537,50 +537,6 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Privacy Features Section */}
-          <div className="mb-12">
-            <h3 className="text-2xl font-heading font-normal text-foreground text-center mb-8">
-              Key Privacy Features
-            </h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">User Data Isolation</h4>
-                <p className="text-sm text-muted-foreground">Each user can only access their own emails</p>
-              </Card>
-              
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">Encrypted Storage</h4>
-                <p className="text-sm text-muted-foreground">All data is encrypted at rest and in transit</p>
-              </Card>
-              
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">OAuth Security</h4>
-                <p className="text-sm text-muted-foreground">Uses Google's secure authentication flow</p>
-              </Card>
-              
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">Token Management</h4>
-                <p className="text-sm text-muted-foreground">Secure token storage and automatic refresh</p>
-              </Card>
-              
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">API Authentication</h4>
-                <p className="text-sm text-muted-foreground">All email operations require valid authentication</p>
-              </Card>
-              
-              <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
-                <div className="text-2xl mb-3">✅</div>
-                <h4 className="font-semibold text-card-foreground mb-2">Database Security</h4>
-                <p className="text-sm text-muted-foreground">Row-level security prevents unauthorized access</p>
-              </Card>
-            </div>
-          </div>
-
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
             <Card className="relative border-2 border-border hover:border-primary/50 transition-colors flex flex-col">
@@ -686,6 +642,70 @@ const Index = () => {
                   </Button>
                 </div>
               </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy Features Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4">
+              Key Privacy Features
+            </h2>
+            <p className="text-base text-muted-foreground font-body font-medium max-w-2xl mx-auto">
+              Your data security and privacy are our top priorities. Here's how we protect your information.
+            </p>
+          </div>
+          
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">User Data Isolation</h4>
+              <p className="text-sm text-muted-foreground">Each user can only access their own emails</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Encrypted Storage</h4>
+              <p className="text-sm text-muted-foreground">All data is encrypted at rest and in transit</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">OAuth Security</h4>
+              <p className="text-sm text-muted-foreground">Uses Google's secure authentication flow</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Key className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Token Management</h4>
+              <p className="text-sm text-muted-foreground">Secure token storage and automatic refresh</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <ShieldEllipsis className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">API Authentication</h4>
+              <p className="text-sm text-muted-foreground">All email operations require valid authentication</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Database className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Database Security</h4>
+              <p className="text-sm text-muted-foreground">Row-level security prevents unauthorized access</p>
             </Card>
           </div>
         </div>
