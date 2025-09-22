@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock } from 'lucide-react';
+import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause } from 'lucide-react';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -192,12 +192,26 @@ const AuthModule = ({ onSuccess }: { onSuccess: () => void }) => {
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!loading && user) {
       navigate('/dashboard');
     }
   }, [user, loading, navigate]);
+
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.pause();
+        setIsVideoPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsVideoPlaying(true);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -426,18 +440,29 @@ const Index = () => {
               
               {/* Tablet and Desktop: iPad Landscape */}
               <div className="hidden md:block w-full max-w-4xl bg-gray-900 rounded-[2rem] p-4 shadow-2xl">
-                 <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative">
+                 <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
                    {/* iPad home indicator */}
                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full z-10"></div>
                    <video 
+                     ref={videoRef}
                      className="w-full h-full object-cover rounded-[1.5rem]"
-                     controls
                      preload="metadata"
-                     poster=""
+                     onPlay={() => setIsVideoPlaying(true)}
+                     onPause={() => setIsVideoPlaying(false)}
                    >
                      <source src="/Ayra_in_action.mp4" type="video/mp4" />
                      Your browser does not support the video tag.
                    </video>
+                   {/* Play/Pause Button Overlay */}
+                   <div className="absolute inset-0 flex items-center justify-center">
+                     <div className={`transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'} bg-black/50 rounded-full p-4 hover:bg-black/70`}>
+                       {isVideoPlaying ? (
+                         <Pause className="w-12 h-12 text-white" />
+                       ) : (
+                         <Play className="w-12 h-12 text-white ml-1" />
+                       )}
+                     </div>
+                   </div>
                  </div>
               </div>
             </div>
