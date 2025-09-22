@@ -281,31 +281,32 @@ const Index = () => {
       {/* Hero Section - Responsive Layout */}
       <section className="pt-20 pb-16 min-h-[80vh] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full min-h-[60vh]">
-            {/* Left Half - Title, Subtitle, Image */}
-            <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
-                <span className="text-compose">One login. One AI.</span><br />
-                <span>Unlimited productivity.</span>
-              </h1>
-              <p className="text-base text-foreground mb-8 font-body font-medium">
-                Your personal AI assistant
-              </p>
+          {/* Centered Title for Desktop */}
+          <div className="text-center mb-12 lg:mb-16">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
+              <span className="text-compose">One login. One AI.</span><br />
+              <span>Unlimited productivity.</span>
+            </h1>
+            <p className="text-base text-foreground mb-8 font-body font-medium">
+              Your personal AI assistant
+            </p>
+          </div>
 
-              {/* Image - Under title on desktop */}
-              <div className="hidden lg:block mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-center lg:gap-16 h-full">
+            {/* Left Half - Image */}
+            <div className="lg:flex-1 lg:flex lg:justify-center mb-8 lg:mb-0">
+              <div className="max-w-md w-full">
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
-                  className="w-full max-w-md h-auto rounded-lg"
+                  className="w-full h-auto rounded-lg"
                 />
               </div>
             </div>
 
-            {/* Right Half - Sign Up Module (Desktop) / Mobile sections */}
-            <div className="lg:flex-1 lg:flex lg:justify-center lg:items-center lg:bg-muted/20 lg:rounded-lg">
-              {/* Sign Up Module - Shown on desktop in right column */}
-              <div className="hidden lg:flex lg:flex-col lg:justify-center w-full max-w-sm h-full">
+            {/* Right Half - Sign Up Module */}
+            <div className="lg:flex-1 lg:flex lg:justify-center lg:items-start">
+              <div className="w-full max-w-sm lg:bg-muted/20 lg:rounded-lg lg:p-8">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
