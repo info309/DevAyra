@@ -357,11 +357,11 @@ const Index = () => {
           {/* Mobile Layout - Image and Login */}
           <div className="md:hidden text-center">
             <div className="mt-6 mb-8">
-              <img 
-                src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
-                alt="AI Assistant Illustration" 
-                className="w-40 mx-auto rounded-lg"
-              />
+                <img 
+                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                  alt="AI Assistant Illustration" 
+                  className="w-64 mx-auto rounded-lg"
+                />
             </div>
 
             {/* Mobile Login Section */}
