@@ -539,7 +539,7 @@ const Index = () => {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
-            <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
+            <Card className="relative border-2 border-border hover:border-primary/50 transition-colors flex flex-col">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <div className="mt-4">
@@ -547,8 +547,8 @@ const Index = () => {
                   <div className="text-sm text-muted-foreground font-body font-medium">Free for everyone</div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3 text-left">
+              <CardContent className="space-y-4 flex-1 flex flex-col">
+                <ul className="space-y-3 text-left flex-1">
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
                     Your personal AI assistant Ayra on web, iOS, and Android.
@@ -588,7 +588,7 @@ const Index = () => {
             </Card>
 
             {/* Pro Plan */}
-            <Card className="relative border-2 border-primary shadow-xl">
+            <Card className="relative border-2 border-primary shadow-xl flex flex-col">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-body font-medium">
                   Most Popular
@@ -602,8 +602,8 @@ const Index = () => {
                   <div className="text-sm text-muted-foreground font-body font-medium">Billed every 28 days</div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3 text-left">
+              <CardContent className="space-y-4 flex-1 flex flex-col">
+                <ul className="space-y-3 text-left flex-1">
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
                     Your personal AI assistant Ayra on web, iOS, and Android.
