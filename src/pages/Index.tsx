@@ -637,8 +637,12 @@ const Index = () => {
       <footer className="pt-20 pb-2 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">
-              Ayra
+            <div className="flex items-center">
+              <img 
+                src="/ayra-logo.png" 
+                alt="Ayra" 
+                className="h-8 md:h-10 lg:h-12 w-auto"
+              />
             </div>
             <div className="flex space-x-8 text-base text-muted-foreground font-body font-medium">
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
