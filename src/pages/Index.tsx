@@ -306,7 +306,7 @@ const Index = () => {
 
             {/* Right Half - Sign Up Module */}
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-start lg:items-start">
-              <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8">
+              <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8 md:border md:border-border/50 lg:border lg:border-border/50">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
