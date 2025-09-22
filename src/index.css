@@ -9,7 +9,8 @@ All colors MUST be HSL.
 /* Custom Recoleta Font */
 @font-face {
   font-family: 'Recoleta';
-  src: url('https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/documents/7edab01f-672c-4363-966b-431e2a683c29/documents/1756415916064_recoleta-regulardemo.otf') format('opentype');
+  src: url('./assets/recoleta-regular.woff2') format('woff2'),
+       url('./assets/recoleta-regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
