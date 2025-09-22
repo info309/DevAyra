@@ -363,7 +363,7 @@ const Index = () => {
                 </div>
 
                 {/* Mobile Login Section */}
-                <div className="w-full max-w-xs mx-auto">
+                <div className="w-full max-w-xs mx-auto bg-muted/20 rounded-lg p-6 border border-border/50">
                   <div className="space-y-4">
                     {/* Continue with Google */}
                     <Button 
