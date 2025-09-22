@@ -544,7 +544,7 @@ const Index = () => {
                 <div className="inline-block bg-muted px-3 py-1 rounded-full text-sm font-body font-medium text-muted-foreground mb-2">
                   Free
                 </div>
-                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Ayra personal</CardTitle>
+                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <div className="mt-4">
                   <div className="text-4xl font-heading font-normal text-primary">£0</div>
                   <div className="text-sm text-muted-foreground font-body font-medium">Free for everyone</div>
