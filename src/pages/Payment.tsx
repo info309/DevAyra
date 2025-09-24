@@ -193,15 +193,116 @@ const Payment = () => {
 
   if (invoice.status === "paid") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-green-600">Already Paid</CardTitle>
-            <CardDescription>
-              This invoice has already been paid. Thank you!
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-green-600 mb-2">
+              Payment Complete
+            </h1>
+            <p className="text-muted-foreground">
+              This invoice has been successfully paid. Thank you!
+            </p>
+          </div>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-600">
+                <FileText className="h-5 w-5" />
+                Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)} - PAID
+                {invoice.pdf_path && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                    PDF Available
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                From {invoice.company_name}
+                {invoice.issue_date && ` • Issued ${formatDate(invoice.issue_date)}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bill To:</p>
+                  <p className="font-medium">{invoice.customer_name}</p>
+                  {invoice.customer_email && (
+                    <p className="text-sm text-muted-foreground">{invoice.customer_email}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-muted-foreground">Amount Paid:</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {formatCurrency(invoice.total_cents, invoice.currency)}
+                  </p>
+                </div>
+              </div>
+
+              {invoice.due_date && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Due Date:</strong> {formatDate(invoice.due_date)}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* PDF Section for Paid Invoices */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Invoice Document
+              </CardTitle>
+              <CardDescription>
+                View or download the PDF version of your paid invoice
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-3">
+                {invoice.pdf_path ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleViewPDF}
+                      className="flex-1"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleViewPDF}
+                      className="flex-1"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={handleGeneratePDF}
+                    disabled={generatingPdf}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {generatingPdf ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Generate PDF
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
