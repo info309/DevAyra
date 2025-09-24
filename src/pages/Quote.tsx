@@ -94,23 +94,45 @@ const Quote = () => {
 
       if (error) throw error;
       
-      // Wait a moment for the database to update, then regenerate PDF
-      setTimeout(async () => {
-        try {
-          const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
-            body: { invoiceId: quote.id }
-          });
-          if (pdfError) {
-            console.error('PDF regeneration failed:', pdfError);
-          } else {
-            console.log('PDF regenerated for invoice');
-            // Update local state to reflect the new PDF
-            setQuote(prev => prev ? { ...prev, type: 'invoice', pdf_path: null } : null);
-          }
-        } catch (pdfError) {
-          console.error('PDF regeneration error:', pdfError);
+      // Wait and verify the update, then regenerate PDF
+      const regeneratePdfWithRetry = async (retryCount = 0) => {
+        if (retryCount >= 3) {
+          console.error('Failed to regenerate PDF after 3 attempts');
+          return;
         }
-      }, 1000);
+        
+        try {
+          // First verify the update was successful
+          const { data: updatedInvoice } = await supabase
+            .from('invoices')
+            .select('type')
+            .eq('id', quote.id)
+            .single();
+          
+          if (updatedInvoice?.type === 'invoice') {
+            // Now generate the PDF
+            const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+              body: { invoiceId: quote.id }
+            });
+            
+            if (pdfError) {
+              console.error('PDF regeneration failed:', pdfError);
+            } else {
+              console.log('PDF regenerated successfully for invoice');
+              // Update local state to clear old PDF path
+              setQuote(prev => prev ? { ...prev, type: 'invoice', pdf_path: null } : null);
+            }
+          } else {
+            // Retry if the update hasn't propagated yet
+            setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+          }
+        } catch (error) {
+          console.error('Error in PDF regeneration retry:', error);
+          setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+        }
+      };
+      
+      setTimeout(() => regeneratePdfWithRetry(), 1000);
       
       toast({
         title: "Success",
