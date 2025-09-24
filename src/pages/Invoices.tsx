@@ -759,6 +759,7 @@ const Invoices = () => {
             </div>
           </DrawerContent>
         </Drawer>
+        <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
         </div>
       </div>
 
