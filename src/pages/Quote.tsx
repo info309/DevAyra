@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, CheckCircle } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Download, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Quote {
@@ -28,6 +28,7 @@ const Quote = () => {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -128,6 +129,49 @@ const Quote = () => {
     });
   };
 
+  const handleGeneratePDF = async () => {
+    if (!quote) return;
+
+    setGeneratingPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
+        body: { invoiceId: quote.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.pdf_path) {
+        // Update local state with PDF path
+        setQuote(prev => prev ? { ...prev, pdf_path: data.pdf_path } : null);
+        
+        // Open the generated PDF in a new tab
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+        
+        toast({
+          title: "Success",
+          description: "PDF generated and opened successfully",
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to generate PDF:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleViewPDF = () => {
+    if (!quote?.pdf_path) return;
+    
+    const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${quote.pdf_path}`;
+    window.open(pdfUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -199,6 +243,62 @@ const Quote = () => {
                   {formatCurrency(quote.total_cents, quote.currency)}
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PDF Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Quote Document
+            </CardTitle>
+            <CardDescription>
+              View or download the PDF version of this quote
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              {quote.pdf_path ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleViewPDF}
+                    className="flex-1"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View PDF
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleViewPDF}
+                    className="flex-1"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  onClick={handleGeneratePDF}
+                  disabled={generatingPdf}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate PDF
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
