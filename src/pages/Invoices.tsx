@@ -340,57 +340,39 @@ const Invoices = () => {
 
   const handleConvertToInvoice = async (quote: Invoice) => {
     try {
+      // Convert to invoice and clear old PDF path
       const { error } = await supabase
         .from('invoices')
         .update({ 
           type: 'invoice',
-          status: 'draft'
+          status: 'draft',
+          pdf_path: null // Clear old PDF to force regeneration
         })
         .eq('id', quote.id);
 
       if (error) throw error;
       
-      // Robust PDF regeneration with retry logic
-      const regeneratePdfWithRetry = async (retryCount = 0) => {
-        if (retryCount >= 3) {
-          console.error('Failed to regenerate PDF after 3 attempts');
-          return;
-        }
-        
+      // Wait for database to update, then regenerate PDF with fresh data
+      setTimeout(async () => {
         try {
-          // Verify the database update was successful
-          const { data: updatedInvoice } = await supabase
-            .from('invoices')
-            .select('type')
-            .eq('id', quote.id)
-            .single();
+          console.log('Regenerating PDF for converted invoice...');
+          const { data, error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+            body: { invoiceId: quote.id }
+          });
           
-          if (updatedInvoice?.type === 'invoice') {
-            // Generate the PDF with updated data
-            const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
-              body: { invoiceId: quote.id }
-            });
-            
-            if (pdfError) {
-              console.error('PDF regeneration failed:', pdfError);
-            } else {
-              console.log('PDF regenerated successfully for invoice');
-            }
+          if (pdfError) {
+            console.error('PDF regeneration failed:', pdfError);
           } else {
-            // Retry if the update hasn't propagated yet
-            setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+            console.log('PDF regenerated successfully:', data);
           }
-        } catch (error) {
-          console.error('Error in PDF regeneration retry:', error);
-          setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+        } catch (pdfError) {
+          console.error('PDF regeneration error:', pdfError);
         }
-      };
-      
-      setTimeout(() => regeneratePdfWithRetry(), 1000);
+      }, 2000); // Increased wait time
       
       toast({
         title: "Success",
-        description: "Quote converted to invoice successfully",
+        description: "Quote converted to invoice successfully. New PDF is being generated.",
       });
       
       console.log('Quote converted to invoice successfully');

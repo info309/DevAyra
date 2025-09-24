@@ -83,56 +83,41 @@ const Quote = () => {
 
     setRequesting(true);
     try {
-      // Convert the quote to an invoice
+      // First, convert the quote to an invoice AND clear the old PDF
       const { error } = await supabase
         .from('invoices')
         .update({ 
           type: 'invoice',
-          status: 'draft'
+          status: 'draft',
+          pdf_path: null // Clear old PDF path
         })
         .eq('id', quote.id);
 
       if (error) throw error;
       
-      // Wait and verify the update, then regenerate PDF
-      const regeneratePdfWithRetry = async (retryCount = 0) => {
-        if (retryCount >= 3) {
-          console.error('Failed to regenerate PDF after 3 attempts');
-          return;
-        }
-        
+      // Wait for database to update, then regenerate PDF
+      setTimeout(async () => {
         try {
-          // First verify the update was successful
-          const { data: updatedInvoice } = await supabase
-            .from('invoices')
-            .select('type')
-            .eq('id', quote.id)
-            .single();
+          console.log('Regenerating PDF for converted invoice...');
+          const { data, error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+            body: { invoiceId: quote.id }
+          });
           
-          if (updatedInvoice?.type === 'invoice') {
-            // Now generate the PDF
-            const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
-              body: { invoiceId: quote.id }
-            });
-            
-            if (pdfError) {
-              console.error('PDF regeneration failed:', pdfError);
-            } else {
-              console.log('PDF regenerated successfully for invoice');
-              // Update local state to clear old PDF path
-              setQuote(prev => prev ? { ...prev, type: 'invoice', pdf_path: null } : null);
-            }
+          if (pdfError) {
+            console.error('PDF regeneration failed:', pdfError);
           } else {
-            // Retry if the update hasn't propagated yet
-            setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+            console.log('PDF regenerated successfully:', data);
+            // Update local state with new PDF info
+            setQuote(prev => prev ? { 
+              ...prev, 
+              type: 'invoice',
+              pdf_path: data?.pdf_path || null 
+            } : null);
           }
-        } catch (error) {
-          console.error('Error in PDF regeneration retry:', error);
-          setTimeout(() => regeneratePdfWithRetry(retryCount + 1), 1500);
+        } catch (pdfError) {
+          console.error('PDF regeneration error:', pdfError);
         }
-      };
-      
-      setTimeout(() => regeneratePdfWithRetry(), 1000);
+      }, 2000); // Increased wait time
       
       toast({
         title: "Success",
@@ -140,7 +125,7 @@ const Quote = () => {
       });
       
       // Update the local state to show the converted status
-      setQuote(prev => prev ? { ...prev, type: 'invoice' } : null);
+      setQuote(prev => prev ? { ...prev, type: 'invoice', pdf_path: null } : null);
       
     } catch (error: any) {
       console.error('Failed to request invoice:', error);
