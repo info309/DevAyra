@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, Receipt } from 'lucide-react';
+import { ArrowLeft, FileText, Receipt, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
@@ -16,6 +17,7 @@ type Invoice = Database['public']['Tables']['invoices']['Row'];
 const Finances = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [receipts, setReceipts] = useState<Invoice[]>([]);
@@ -54,6 +56,37 @@ const Finances = () => {
       style: 'currency',
       currency: currency.toUpperCase(),
     }).format(cents / 100);
+  };
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    const token = invoice.payment_token;
+    if (invoice.type === 'quote') {
+      // Redirect to quote page
+      window.open(`/quote?quote=${invoice.id}&token=${token}`, '_blank');
+    } else {
+      // Redirect to payment/invoice page
+      window.open(`/payment?invoice=${invoice.id}&token=${token}`, '_blank');
+    }
+  };
+
+  const handleViewReceipt = (receipt: Invoice) => {
+    if (receipt.pdf_path) {
+      // If it's a document stored in storage
+      if (receipt.pdf_path.startsWith('documents/')) {
+        const documentUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(documentUrl, '_blank');
+      } else {
+        // If it's a PDF path in invoices bucket
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+      }
+    } else {
+      toast({
+        title: "No document",
+        description: "No document is associated with this receipt",
+        variant: "destructive"
+      });
+    }
   };
 
   const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt');
@@ -145,9 +178,19 @@ const Finances = () => {
                       <p className="font-medium">{invoice.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{invoice.invoice_number}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(invoice.total_cents, invoice.currency)}</p>
-                      <p className="text-sm text-muted-foreground">Paid</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-medium">{formatCurrency(invoice.total_cents, invoice.currency)}</p>
+                        <p className="text-sm text-muted-foreground">Paid</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewInvoice(invoice)}
+                        title="View Invoice"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -174,8 +217,18 @@ const Finances = () => {
                       <p className="font-medium">{receipt.customer_name}</p>
                       <p className="text-sm text-muted-foreground">Receipt</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(receipt.total_cents, receipt.currency)}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-medium">{formatCurrency(receipt.total_cents, receipt.currency)}</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewReceipt(receipt)}
+                        title="View Receipt"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
