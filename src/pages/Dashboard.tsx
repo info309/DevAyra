@@ -69,10 +69,16 @@ const Dashboard = () => {
       image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
     },
     {
-      title: 'Invoices & Receipts',
-      description: 'Generate invoices and track receipts',
+      title: 'Invoices',
+      description: 'Generate quotes and invoices',
       route: '/invoices',
       image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
+    },
+    {
+      title: 'Finances',
+      description: 'View financial data and upload receipts',
+      route: '/finances',
+      image: '/lovable-uploads/b9f654a4-1cd5-476d-aa97-df8cfb64bb25.png'
     },
     {
       title: 'Documents',

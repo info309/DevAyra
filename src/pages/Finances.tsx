@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
+import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -75,6 +76,16 @@ const Finances = () => {
       <InvoicePaymentBanner />
       <GmailConnectionBanner />
       <FinancialDashboard />
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="text-sm text-muted-foreground">
+          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices, {receipts.length} receipts
+        </div>
+        <div className="flex gap-2">
+          <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
+        </div>
+      </div>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

@@ -24,8 +24,6 @@ import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
-import FinancialDashboard from '@/components/FinancialDashboard';
-import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -521,7 +519,6 @@ const Invoices = () => {
           {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices, {receipts.length} receipts
         </div>
         <div className="flex gap-2">
-          <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
           <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DrawerTrigger asChild>
               <Button 
