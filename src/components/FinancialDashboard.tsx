@@ -29,6 +29,8 @@ interface FinancialMetrics {
   invoiceTotals: number;
   paidInvoices: number;
   paidInvoiceCount: number;
+  receiptTotals: number;
+  receiptCount: number;
 }
 
 type DateRange = 'this_week' | 'this_month' | 'last_month' | 'all_time' | 'custom';
@@ -39,7 +41,9 @@ const FinancialDashboard = () => {
   const [metrics, setMetrics] = useState<FinancialMetrics>({
     invoiceTotals: 0,
     paidInvoices: 0,
-    paidInvoiceCount: 0
+    paidInvoiceCount: 0,
+    receiptTotals: 0,
+    receiptCount: 0
   });
   const [dateRange, setDateRange] = useState<DateRange>('this_month');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
@@ -103,6 +107,8 @@ const FinancialDashboard = () => {
       let invoiceTotals = 0;
       let paidInvoices = 0;
       let paidInvoiceCount = 0;
+      let receiptTotals = 0;
+      let receiptCount = 0;
 
       const { start, end } = getDateRangeFilter();
 
@@ -110,6 +116,12 @@ const FinancialDashboard = () => {
         // Invoice totals (all invoices regardless of date)
         if (invoice.type === 'invoice') {
           invoiceTotals += invoice.total_cents;
+        }
+        
+        // Receipt totals (all receipts regardless of date)
+        if (invoice.type === 'receipt') {
+          receiptTotals += invoice.total_cents;
+          receiptCount += 1;
         }
         
         // Paid invoices within date range
@@ -120,7 +132,7 @@ const FinancialDashboard = () => {
           if (start && paidDate < start) includeInRange = false;
           if (end && paidDate > end) includeInRange = false;
           
-          if (includeInRange) {
+          if (includeInRange && invoice.type === 'invoice') {
             paidInvoices += invoice.total_cents;
             paidInvoiceCount += 1;
           }
@@ -130,7 +142,9 @@ const FinancialDashboard = () => {
       setMetrics({
         invoiceTotals,
         paidInvoices,
-        paidInvoiceCount
+        paidInvoiceCount,
+        receiptTotals,
+        receiptCount
       });
     } catch (error) {
       console.error('Error fetching financial data:', error);
@@ -228,11 +242,11 @@ const FinancialDashboard = () => {
   return (
     <div className="space-y-6 mb-8">
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -256,104 +270,110 @@ const FinancialDashboard = () => {
             <p className="text-xs text-muted-foreground">
               {metrics.paidInvoiceCount} invoice(s) - {dateRange.replace('_', ' ')}
             </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Select value={dateRange} onValueChange={(value: DateRange) => setDateRange(value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this_week">This Week</SelectItem>
+                    <SelectItem value="this_month">This Month</SelectItem>
+                    <SelectItem value="last_month">Last Month</SelectItem>
+                    <SelectItem value="all_time">All Time</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={exportToCSV} disabled={loading}>
+                  <Download className="mr-1 h-3 w-3" />
+                  Export
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receipts</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {loading ? '...' : formatCurrency(metrics.receiptTotals)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {metrics.receiptCount} receipt(s) - All time
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Date Range and Export Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Paid Invoices Analysis & Export
-          </CardTitle>
-          <CardDescription>
-            Filter paid invoices by date range and export to CSV for accounting software
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-            <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium">Date Range</label>
-              <Select value={dateRange} onValueChange={(value: DateRange) => setDateRange(value)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this_week">This Week</SelectItem>
-                  <SelectItem value="this_month">This Month</SelectItem>
-                  <SelectItem value="last_month">Last Month</SelectItem>
-                  <SelectItem value="all_time">All Time</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {dateRange === 'custom' && (
-              <div className="flex gap-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Start Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[140px] justify-start text-left font-normal",
-                          !customStartDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customStartDate ? format(customStartDate, "PPP") : "Start"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={customStartDate}
-                        onSelect={setCustomStartDate}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">End Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[140px] justify-start text-left font-normal",
-                          !customEndDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customEndDate ? format(customEndDate, "PPP") : "End"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={customEndDate}
-                        onSelect={setCustomEndDate}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+      {/* Custom Date Range Picker */}
+      {dateRange === 'custom' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Custom Date Range</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[140px] justify-start text-left font-normal",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(customStartDate, "PPP") : "Start"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={setCustomStartDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
 
-            <Button onClick={exportToCSV} className="w-full sm:w-auto" disabled={loading}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">End Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[140px] justify-start text-left font-normal",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(customEndDate, "PPP") : "End"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={setCustomEndDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
