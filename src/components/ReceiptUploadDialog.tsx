@@ -1,25 +1,42 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import React, { useState, useCallback } from 'react';
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Receipt, Upload } from 'lucide-react';
-import FileUpload from './FileUpload';
+import { Receipt, Upload, Camera, Loader2, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useDropzone } from 'react-dropzone';
 
 interface ReceiptUploadDialogProps {
   onReceiptUploaded: () => void;
+}
+
+interface ReceiptData {
+  merchant_name: string;
+  total_amount: string;
+  currency: string;
+  date: string;
+  category?: string;
+  line_items?: Array<{
+    description: string;
+    quantity: number;
+    unit_price: string;
+    amount: string;
+  }>;
 }
 
 const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUploaded }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [receiptImage, setReceiptImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
   
   const [formData, setFormData] = useState({
     merchant_name: '',
@@ -39,24 +56,110 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
       category: '',
       notes: ''
     });
-    setSelectedFiles([]);
+    setReceiptImage(null);
+    setImagePreview(null);
+    setAnalysisComplete(false);
   };
 
-  const handleUpload = async (files: File[], metadata: { category?: string; description?: string }) => {
-    if (!user || files.length === 0) return;
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        // Remove the data URL prefix to get just the base64 data
+        resolve(base64.split(',')[1]);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const analyzeReceipt = async (imageFile: File) => {
+    setIsAnalyzing(true);
+    try {
+      const base64Image = await fileToBase64(imageFile);
+      
+      const { data, error } = await supabase.functions.invoke('analyze-receipt', {
+        body: { image_base64: base64Image }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.receipt_data) {
+        const receiptData: ReceiptData = data.receipt_data;
+        
+        // Auto-populate form fields
+        setFormData({
+          merchant_name: receiptData.merchant_name || '',
+          total_amount: receiptData.total_amount || '',
+          currency: receiptData.currency || 'gbp',
+          date: receiptData.date || new Date().toISOString().split('T')[0],
+          category: receiptData.category || '',
+          notes: receiptData.line_items ? 
+            receiptData.line_items.map(item => 
+              `${item.description} x${item.quantity} - ${item.amount}`
+            ).join('\n') : ''
+        });
+
+        setAnalysisComplete(true);
+        
+        toast({
+          title: "Receipt Analyzed",
+          description: "Receipt information has been automatically extracted and populated.",
+        });
+      } else {
+        throw new Error(data.error || 'Failed to analyze receipt');
+      }
+    } catch (error) {
+      console.error('Error analyzing receipt:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not analyze the receipt automatically. Please fill in the details manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      setReceiptImage(file);
+      
+      // Create image preview
+      const imageUrl = URL.createObjectURL(file);
+      setImagePreview(imageUrl);
+      
+      // Automatically analyze the receipt
+      await analyzeReceipt(file);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
+    },
+    maxFiles: 1,
+    disabled: isAnalyzing || isUploading
+  });
+
+  const handleSaveReceipt = async () => {
+    if (!user || !receiptImage) return;
 
     setIsUploading(true);
     
     try {
       // Upload file to storage
-      const file = files[0]; // For receipts, we typically handle one file at a time
-      const fileExt = file.name.split('.').pop();
+      const fileExt = receiptImage.name.split('.').pop();
       const fileName = `receipt_${Date.now()}.${fileExt}`;
       const filePath = `receipts/${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(filePath, file);
+        .upload(filePath, receiptImage);
 
       if (uploadError) throw uploadError;
 
@@ -95,7 +198,7 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
 
       toast({
         title: "Success",
-        description: "Receipt uploaded successfully",
+        description: "Receipt saved successfully with AI-extracted data!",
       });
 
       setOpen(false);
@@ -103,10 +206,10 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
       onReceiptUploaded();
       
     } catch (error) {
-      console.error('Error uploading receipt:', error);
+      console.error('Error saving receipt:', error);
       toast({
         title: "Error",
-        description: "Failed to upload receipt",
+        description: "Failed to save receipt",
         variant: "destructive"
       });
     } finally {
@@ -115,26 +218,75 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
         <Button variant="secondary" className="w-full sm:w-auto">
           <Receipt className="w-4 h-4 mr-2" />
           Upload Receipt
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="text-center sm:text-left">
+          <DrawerTitle className="flex items-center gap-2 justify-center sm:justify-start">
             <Receipt className="w-5 h-5" />
-            Upload Receipt
-          </DialogTitle>
-          <DialogDescription>
-            Upload a receipt image or PDF and add details for your records.
-          </DialogDescription>
-        </DialogHeader>
+            Upload & Analyze Receipt
+          </DrawerTitle>
+          <DrawerDescription>
+            Upload a photo of your receipt and let AI automatically extract the details.
+          </DrawerDescription>
+        </DrawerHeader>
 
-        <div className="space-y-6">
-          {/* Receipt Details Form */}
+        <div className="px-4 pb-6 space-y-6 overflow-y-auto max-h-[70vh]">
+          {/* Image Upload Section */}
+          <div className="space-y-4">
+            <Label>Receipt Image *</Label>
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragActive 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              } ${(isAnalyzing || isUploading) ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              <input {...getInputProps()} />
+              
+              {imagePreview ? (
+                <div className="space-y-3">
+                  <img 
+                    src={imagePreview} 
+                    alt="Receipt preview" 
+                    className="max-h-48 mx-auto rounded-lg shadow-md"
+                  />
+                  {isAnalyzing && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing receipt with AI...
+                    </div>
+                  )}
+                  {analysisComplete && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+                      <Check className="w-4 h-4" />
+                      Receipt analyzed successfully!
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Camera className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isDragActive ? 'Drop your receipt here' : 'Click or drag to upload receipt'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Supports PNG, JPG, JPEG, WEBP
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="merchant">Merchant/Vendor *</Label>
@@ -144,6 +296,7 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
                 onChange={(e) => setFormData({ ...formData, merchant_name: e.target.value })}
                 placeholder="e.g., Office Depot, Amazon"
                 required
+                disabled={isAnalyzing || isUploading}
               />
             </div>
             
@@ -158,12 +311,14 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
                   onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
                   placeholder="0.00"
                   required
+                  disabled={isAnalyzing || isUploading}
                   className="flex-1"
                 />
                 <select 
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                   className="px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  disabled={isAnalyzing || isUploading}
                 >
                   <option value="gbp">GBP</option>
                   <option value="usd">USD</option>
@@ -180,6 +335,7 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 required
+                disabled={isAnalyzing || isUploading}
               />
             </div>
 
@@ -190,48 +346,54 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder="e.g., Office Supplies, Travel"
+                disabled={isAnalyzing || isUploading}
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Notes / Line Items</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional notes about this receipt..."
-              rows={3}
+              placeholder="Additional notes or extracted line items..."
+              rows={4}
+              disabled={isAnalyzing || isUploading}
             />
           </div>
 
-          {/* File Upload */}
-          <div>
-            <Label>Receipt File *</Label>
-            <FileUpload
-              onFileSelect={setSelectedFiles}
-              onUpload={handleUpload}
-              isUploading={isUploading}
-              maxFiles={1}
-              acceptedFileTypes={['image/*', 'application/pdf']}
-              className="mt-2"
-            />
-          </div>
-
-          {/* Submit Button */}
-          {selectedFiles.length > 0 && (
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
             <Button 
-              onClick={() => handleUpload(selectedFiles, { category: formData.category, description: formData.notes })}
-              disabled={isUploading || !formData.merchant_name || !formData.total_amount}
-              className="w-full"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isAnalyzing || isUploading}
+              className="flex-1"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              {isUploading ? 'Uploading...' : 'Upload Receipt'}
+              Cancel
             </Button>
-          )}
+            <Button 
+              onClick={handleSaveReceipt}
+              disabled={isAnalyzing || isUploading || !receiptImage || !formData.merchant_name || !formData.total_amount}
+              className="flex-1"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Save Receipt
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
