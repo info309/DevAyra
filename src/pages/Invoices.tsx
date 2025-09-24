@@ -439,7 +439,7 @@ const Invoices = () => {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">Quotes and Invoices</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Invoices & Receipts</h1>
         </div>
       </div>
 
