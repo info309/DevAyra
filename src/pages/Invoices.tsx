@@ -496,7 +496,7 @@ const Invoices = () => {
     }
   };
 
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid');
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt');
 
 
   return (
