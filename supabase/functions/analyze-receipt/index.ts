@@ -34,17 +34,17 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a receipt analysis expert. Analyze the receipt image and extract key information. 
+            content: `You are a receipt analysis expert. Analyze the receipt image and extract key financial information with focus on accurate VAT/tax breakdown. 
+            
             Return ONLY valid JSON in this exact format (no markdown, no extra text):
             {
               "merchant_name": "string",
-              "total_amount": "number as string (e.g., '25.99')",
-              "subtotal_amount": "number as string (amount before tax/VAT)",
-              "vat_amount": "number as string (tax/VAT amount only)",
-              "vat_rate": "number as string (VAT percentage, e.g., '20')",
+              "total_amount": "number as string (final amount paid)",
+              "subtotal_amount": "number as string (amount before VAT/tax)",
+              "vat_amount": "number as string (VAT/tax amount only)",
+              "vat_rate": "number as string (VAT percentage like '20' for 20%)",
               "currency": "string (gbp, usd, eur)",
               "date": "string in YYYY-MM-DD format",
-              "category": "string (optional category like 'Food', 'Office Supplies', etc.)",
               "line_items": [
                 {
                   "description": "string", 
@@ -55,18 +55,21 @@ serve(async (req) => {
               ]
             }
             
-            Important guidelines:
-            - If you can't read something clearly, use reasonable defaults or leave empty strings
-            - For currency, try to detect from symbols (£=gbp, $=usd, €=eur) or default to 'gbp'
-            - For date, if unclear, use today's date
-            - Extract individual line items if visible
-            - Total amount should be the final total paid (including VAT)
-            - Subtotal should be the amount before tax/VAT is added
-            - VAT amount should be just the tax portion
-            - VAT rate should be the percentage (e.g., "20" for 20% VAT, "7.5" for 7.5% tax)
-            - Look for terms like: VAT, Tax, Sales Tax, GST, HST, etc.
-            - Keep merchant name concise (e.g., "Tesco", not "Tesco Express Store 123")
-            - Category should be general (e.g., "Groceries", "Office Supplies", "Travel", "Fuel")`
+            CRITICAL VAT EXTRACTION RULES:
+            1. Look for these VAT indicators: "VAT", "Tax", "Sales Tax", "GST", "HST", "TVA", "IVA"
+            2. Find the subtotal (amount before VAT) - often labeled "Subtotal", "Net", "Before Tax"
+            3. Find the VAT amount - usually shown separately like "VAT 20%: £5.00" or "Tax: $3.25"  
+            4. Find VAT rate - percentage shown like "20%", "7.5%", "10%"
+            5. Total should equal subtotal + VAT amount
+            6. If subtotal is missing but VAT rate exists, calculate: subtotal = total / (1 + vat_rate/100)
+            7. If VAT amount is missing but rate exists, calculate: vat_amount = subtotal * (vat_rate/100)
+            
+            OTHER GUIDELINES:
+            - Currency: detect from symbols (£=gbp, $=usd, €=eur) or default to 'gbp'
+            - Date: use receipt date, if unclear use today's date  
+            - Merchant: keep concise (e.g., "Tesco", not "Tesco Express Store 123")
+            - If no VAT found, set vat_amount="0.00", vat_rate="0", subtotal_amount=total_amount
+            - Be very precise with decimal places (always 2 decimal places for amounts)`
           },
           {
             role: 'user',
@@ -127,7 +130,6 @@ serve(async (req) => {
         vat_rate: '0',
         currency: 'gbp',
         date: new Date().toISOString().split('T')[0],
-        category: '',
         line_items: []
       };
     }

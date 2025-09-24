@@ -19,7 +19,6 @@ interface ReceiptData {
   total_amount: string;
   currency: string;
   date: string;
-  category?: string;
   subtotal_amount?: string;
   vat_amount?: string;
   vat_rate?: string;
@@ -49,7 +48,6 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
     vat_rate: '',
     currency: 'gbp',
     date: new Date().toISOString().split('T')[0],
-    category: '',
     notes: ''
   });
 
@@ -62,7 +60,6 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
       vat_rate: '',
       currency: 'gbp',
       date: new Date().toISOString().split('T')[0],
-      category: '',
       notes: ''
     });
     setReceiptImage(null);
@@ -107,7 +104,6 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
           vat_rate: receiptData.vat_rate || '',
           currency: receiptData.currency || 'gbp',
           date: receiptData.date || new Date().toISOString().split('T')[0],
-          category: receiptData.category || '',
           notes: receiptData.line_items ? 
             receiptData.line_items.map(item => 
               `${item.description} x${item.quantity} - ${item.amount}`
@@ -318,17 +314,6 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
                 disabled={isAnalyzing || isUploading}
               />
             </div>
-            
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="e.g., Office Supplies, Travel"
-                disabled={isAnalyzing || isUploading}
-              />
-            </div>
 
             <div>
               <Label htmlFor="date">Receipt Date *</Label>
@@ -342,7 +327,7 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <Label htmlFor="currency">Currency *</Label>
               <select 
                 id="currency"
@@ -363,7 +348,7 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
             <h4 className="text-sm font-semibold">Financial Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="subtotal">Subtotal Amount</Label>
+                <Label htmlFor="subtotal">Subtotal (Before VAT)</Label>
                 <Input
                   id="subtotal"
                   type="number"
