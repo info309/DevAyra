@@ -39,6 +39,9 @@ serve(async (req) => {
             {
               "merchant_name": "string",
               "total_amount": "number as string (e.g., '25.99')",
+              "subtotal_amount": "number as string (amount before tax/VAT)",
+              "vat_amount": "number as string (tax/VAT amount only)",
+              "vat_rate": "number as string (VAT percentage, e.g., '20')",
               "currency": "string (gbp, usd, eur)",
               "date": "string in YYYY-MM-DD format",
               "category": "string (optional category like 'Food', 'Office Supplies', etc.)",
@@ -57,7 +60,11 @@ serve(async (req) => {
             - For currency, try to detect from symbols (£=gbp, $=usd, €=eur) or default to 'gbp'
             - For date, if unclear, use today's date
             - Extract individual line items if visible
-            - Total amount should be the final total paid
+            - Total amount should be the final total paid (including VAT)
+            - Subtotal should be the amount before tax/VAT is added
+            - VAT amount should be just the tax portion
+            - VAT rate should be the percentage (e.g., "20" for 20% VAT, "7.5" for 7.5% tax)
+            - Look for terms like: VAT, Tax, Sales Tax, GST, HST, etc.
             - Keep merchant name concise (e.g., "Tesco", not "Tesco Express Store 123")
             - Category should be general (e.g., "Groceries", "Office Supplies", "Travel", "Fuel")`
           },
@@ -115,6 +122,9 @@ serve(async (req) => {
       receiptData = {
         merchant_name: 'Unknown Merchant',
         total_amount: '0.00',
+        subtotal_amount: '0.00',
+        vat_amount: '0.00',
+        vat_rate: '0',
         currency: 'gbp',
         date: new Date().toISOString().split('T')[0],
         category: '',

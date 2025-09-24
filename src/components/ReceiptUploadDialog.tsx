@@ -20,6 +20,9 @@ interface ReceiptData {
   currency: string;
   date: string;
   category?: string;
+  subtotal_amount?: string;
+  vat_amount?: string;
+  vat_rate?: string;
   line_items?: Array<{
     description: string;
     quantity: number;
@@ -41,6 +44,9 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
   const [formData, setFormData] = useState({
     merchant_name: '',
     total_amount: '',
+    subtotal_amount: '',
+    vat_amount: '',
+    vat_rate: '',
     currency: 'gbp',
     date: new Date().toISOString().split('T')[0],
     category: '',
@@ -51,6 +57,9 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
     setFormData({
       merchant_name: '',
       total_amount: '',
+      subtotal_amount: '',
+      vat_amount: '',
+      vat_rate: '',
       currency: 'gbp',
       date: new Date().toISOString().split('T')[0],
       category: '',
@@ -93,6 +102,9 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
         setFormData({
           merchant_name: receiptData.merchant_name || '',
           total_amount: receiptData.total_amount || '',
+          subtotal_amount: receiptData.subtotal_amount || '',
+          vat_amount: receiptData.vat_amount || '',
+          vat_rate: receiptData.vat_rate || '',
           currency: receiptData.currency || 'gbp',
           date: receiptData.date || new Date().toISOString().split('T')[0],
           category: receiptData.category || '',
@@ -165,6 +177,8 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
 
       // Create receipt record in invoices table
       const totalCents = Math.round(parseFloat(formData.total_amount || '0') * 100);
+      const subtotalCents = Math.round(parseFloat(formData.subtotal_amount || formData.total_amount || '0') * 100);
+      const vatCents = Math.round(parseFloat(formData.vat_amount || '0') * 100);
       
       const { error: insertError } = await supabase
         .from('invoices')
@@ -175,6 +189,8 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
           customer_name: formData.merchant_name,
           customer_email: '', // Not required for receipts
           total_cents: totalCents,
+          subtotal_cents: subtotalCents,
+          tax_cents: vatCents,
           currency: formData.currency,
           issue_date: formData.date,
           notes: formData.notes,
@@ -182,13 +198,11 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
             {
               description: `Receipt from ${formData.merchant_name}`,
               quantity: 1,
-              unit_price_cents: totalCents,
-              tax_rate_percent: 0,
-              amount_cents: totalCents
+              unit_price_cents: subtotalCents,
+              tax_rate_percent: formData.vat_rate ? parseFloat(formData.vat_rate) : 0,
+              amount_cents: subtotalCents
             }
           ],
-          subtotal_cents: totalCents,
-          tax_cents: 0,
           paid_at: formData.date,
           // Store file path for future reference
           pdf_path: `documents/${filePath}`
@@ -306,30 +320,14 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
             </div>
             
             <div>
-              <Label htmlFor="amount">Total Amount *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.total_amount}
-                  onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
-                  placeholder="0.00"
-                  required
-                  disabled={isAnalyzing || isUploading}
-                  className="flex-1"
-                />
-                <select 
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="px-3 py-2 border border-input rounded-md bg-background text-sm"
-                  disabled={isAnalyzing || isUploading}
-                >
-                  <option value="gbp">GBP</option>
-                  <option value="usd">USD</option>
-                  <option value="eur">EUR</option>
-                </select>
-              </div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="e.g., Office Supplies, Travel"
+                disabled={isAnalyzing || isUploading}
+              />
             </div>
 
             <div>
@@ -345,14 +343,77 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
             </div>
 
             <div>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="e.g., Office Supplies, Travel"
+              <Label htmlFor="currency">Currency *</Label>
+              <select 
+                id="currency"
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
                 disabled={isAnalyzing || isUploading}
-              />
+              >
+                <option value="gbp">GBP (£)</option>
+                <option value="usd">USD ($)</option>
+                <option value="eur">EUR (€)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Financial Details */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold">Financial Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="subtotal">Subtotal Amount</Label>
+                <Input
+                  id="subtotal"
+                  type="number"
+                  step="0.01"
+                  value={formData.subtotal_amount}
+                  onChange={(e) => setFormData({ ...formData, subtotal_amount: e.target.value })}
+                  placeholder="0.00"
+                  disabled={isAnalyzing || isUploading}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="vat-rate">VAT Rate (%)</Label>
+                <Input
+                  id="vat-rate"
+                  type="number"
+                  step="0.1"
+                  value={formData.vat_rate}
+                  onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                  placeholder="e.g., 20"
+                  disabled={isAnalyzing || isUploading}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="vat-amount">VAT Amount</Label>
+                <Input
+                  id="vat-amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.vat_amount}
+                  onChange={(e) => setFormData({ ...formData, vat_amount: e.target.value })}
+                  placeholder="0.00"
+                  disabled={isAnalyzing || isUploading}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="total-amount">Total Amount *</Label>
+                <Input
+                  id="total-amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.total_amount}
+                  onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                  placeholder="0.00"
+                  required
+                  disabled={isAnalyzing || isUploading}
+                />
+              </div>
             </div>
           </div>
 
