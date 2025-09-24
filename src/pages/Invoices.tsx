@@ -350,19 +350,21 @@ const Invoices = () => {
 
       if (error) throw error;
       
-      // Generate new PDF for the invoice
-      try {
-        const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
-          body: { invoiceId: quote.id }
-        });
-        if (pdfError) {
-          console.error('PDF regeneration failed:', pdfError);
-        } else {
-          console.log('PDF regenerated for invoice');
+      // Wait for database update to commit, then regenerate PDF with correct type
+      setTimeout(async () => {
+        try {
+          const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+            body: { invoiceId: quote.id }
+          });
+          if (pdfError) {
+            console.error('PDF regeneration failed:', pdfError);
+          } else {
+            console.log('PDF regenerated for invoice');
+          }
+        } catch (pdfError) {
+          console.error('PDF regeneration error:', pdfError);
         }
-      } catch (pdfError) {
-        console.error('PDF regeneration error:', pdfError);
-      }
+      }, 1000);
       
       toast({
         title: "Success",
