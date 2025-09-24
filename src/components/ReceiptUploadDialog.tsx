@@ -218,7 +218,12 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
   };
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={(newOpen) => {
+      setOpen(newOpen);
+      if (!newOpen) {
+        resetForm();
+      }
+    }}>
       <DrawerTrigger asChild>
         <Button variant="secondary" className="w-full sm:w-auto">
           <Receipt className="w-4 h-4 mr-2" />
@@ -367,7 +372,10 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
           <div className="flex gap-3 pt-4">
             <Button 
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                resetForm();
+              }}
               disabled={isAnalyzing || isUploading}
               className="flex-1"
             >
