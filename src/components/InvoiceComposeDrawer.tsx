@@ -23,19 +23,23 @@ interface InvoiceComposeProps {
     pdf_path?: string;
     currency?: string;
     total_cents?: number;
+    type?: string;
   };
 }
 
 export default function InvoiceComposeDrawer({ isOpen, onClose, invoice }: InvoiceComposeProps) {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+  const documentType = (invoice.type || 'invoice') === 'quote' ? 'quote' : 'invoice';
+  const documentTypeCapitalized = documentType.charAt(0).toUpperCase() + documentType.slice(1);
+  
   const [customMessage, setCustomMessage] = useState(`Hi ${invoice.customer_name},
 
 Thank you for your business with ${invoice.company_name || 'our company'}!
 
-Your invoice is ready for viewing and payment. Please click the "Pay Invoice" button below to proceed.
+Your ${documentType} is ready for viewing${documentType === 'invoice' ? ' and payment' : ''}. Please click the "${documentType === 'invoice' ? 'Pay Invoice' : 'View Quote'}" button below to proceed.
 
-If you have any questions about this invoice, please don't hesitate to contact us.
+If you have any questions about this ${documentType}, please don't hesitate to contact us.
 
 Best regards,
 ${invoice.company_name || 'Your Company'}`);
@@ -72,9 +76,9 @@ ${invoice.company_name || 'Your Company'}`);
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="max-h-[90vh] flex flex-col">
         <DrawerHeader className="flex-shrink-0">
-          <DrawerTitle>Send Invoice Email</DrawerTitle>
+          <DrawerTitle>Send {documentTypeCapitalized} Email</DrawerTitle>
           <DrawerDescription>
-            Send invoice {invoice.invoice_number || invoice.id} to {invoice.customer_name}
+            Send {documentType} {invoice.invoice_number || invoice.id} to {invoice.customer_name}
           </DrawerDescription>
         </DrawerHeader>
         
@@ -91,15 +95,15 @@ ${invoice.company_name || 'Your Company'}`);
                 className="min-h-[150px]"
               />
               <p className="text-xs text-muted-foreground">
-                Customize the message that will be sent to {invoice.customer_name}. The "Pay Invoice" button will be added automatically.
+                Customize the message that will be sent to {invoice.customer_name}. The "{documentType === 'invoice' ? 'Pay Invoice' : 'View Quote'}" button will be added automatically.
               </p>
             </div>
             
             <div className="space-y-2">
-              <h4 className="font-medium">Invoice Details</h4>
+              <h4 className="font-medium">{documentTypeCapitalized} Details</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Invoice Number</p>
+                  <p className="text-muted-foreground">{documentTypeCapitalized} Number</p>
                   <p>{invoice.invoice_number || invoice.id.slice(0,8)}</p>
                 </div>
                 <div>
@@ -114,7 +118,7 @@ ${invoice.company_name || 'Your Company'}`);
             
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               <p className="text-blue-800">
-                The email will include a "Pay Invoice" button where {invoice.customer_name} can view and pay the invoice securely.
+                The email will include a "{documentType === 'invoice' ? 'Pay Invoice' : 'View Quote'}" button where {invoice.customer_name} can view {documentType === 'invoice' ? 'and pay the invoice' : 'the quote'} securely.
               </p>
             </div>
           </div>
@@ -128,7 +132,7 @@ ${invoice.company_name || 'Your Company'}`);
               className="flex-1"
             >
               <Send className="h-4 w-4 mr-2" />
-              {sending ? "Sending..." : "Send Invoice"}
+              {sending ? "Sending..." : `Send ${documentTypeCapitalized}`}
             </Button>
             <DrawerClose asChild>
               <Button variant="outline">Cancel</Button>
