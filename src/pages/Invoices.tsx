@@ -1026,14 +1026,12 @@ const Invoices = () => {
         </Card>
       )}
 
-      {/* Main invoices list - only show when no specific section is selected */}
-      {!showPaidInvoices && !showReceipts && (
-        <div className="grid gap-4">
-          {loading && invoices.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="text-muted-foreground">Loading invoices...</div>
-            </div>
-          ) : (
+      <div className="grid gap-4">
+        {loading && invoices.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="text-muted-foreground">Loading invoices...</div>
+          </div>
+        ) : (
           invoices.map((invoice) => (
           <Card key={invoice.id}>
             <CardHeader>
@@ -1128,7 +1126,6 @@ const Invoices = () => {
           ))
         )}
       </div>
-      )}
 
       {/* Invoice Compose Drawer */}
       {sendingInvoice && (
