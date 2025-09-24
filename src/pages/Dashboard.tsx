@@ -78,7 +78,7 @@ const Dashboard = () => {
       title: 'Finances',
       description: 'View financial data and upload receipts',
       route: '/finances',
-      image: '/lovable-uploads/1aef5067-8f1e-4b84-94ac-b93e60b55593.png'
+      image: '/lovable-uploads/5340884b-d242-4cd3-a6fd-5addecf0c05e.png'
     },
     {
       title: 'Documents',
