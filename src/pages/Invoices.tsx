@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
+import FinancialDashboard from '@/components/FinancialDashboard';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -444,6 +445,7 @@ const Invoices = () => {
 
       <InvoicePaymentBanner />
       <GmailConnectionBanner />
+      <FinancialDashboard />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
