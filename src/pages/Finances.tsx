@@ -216,7 +216,16 @@ const Finances = () => {
 
       <InvoicePaymentBanner />
       <GmailConnectionBanner />
-      <FinancialDashboard />
+      <FinancialDashboard 
+        onShowPaidInvoices={() => {
+          setShowPaidInvoices(true);
+          setShowReceipts(false);
+        }}
+        onShowReceipts={() => {
+          setShowReceipts(true);
+          setShowPaidInvoices(false);
+        }}
+      />
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -226,47 +235,6 @@ const Finances = () => {
         <div className="flex gap-2">
           <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
         </div>
-      </div>
-
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => {
-            setShowPaidInvoices(true);
-            setShowReceipts(false);
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Paid Invoices</CardTitle>
-            <FileText className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{paidInvoices.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Total: {formatCurrency(paidInvoices.reduce((sum, inv) => sum + inv.total_cents, 0), 'gbp')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => {
-            setShowReceipts(true);
-            setShowPaidInvoices(false);
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Receipts</CardTitle>
-            <Receipt className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{receipts.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Total: {formatCurrency(receipts.reduce((sum, rec) => sum + rec.total_cents, 0), 'gbp')}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Paid Invoices Section */}

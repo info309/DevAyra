@@ -35,7 +35,12 @@ interface FinancialMetrics {
 
 type DateRange = 'this_week' | 'this_month' | 'last_month' | 'all_time' | 'custom';
 
-const FinancialDashboard = () => {
+interface FinancialDashboardProps {
+  onShowPaidInvoices?: () => void;
+  onShowReceipts?: () => void;
+}
+
+const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<FinancialMetrics>({
@@ -243,7 +248,10 @@ const FinancialDashboard = () => {
     <div className="space-y-6 mb-8">
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={onShowPaidInvoices}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Paid Invoices</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -258,7 +266,10 @@ const FinancialDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={onShowReceipts}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Receipts</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
