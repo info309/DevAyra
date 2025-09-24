@@ -522,7 +522,10 @@ const Invoices = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => setShowPaidInvoices(!showPaidInvoices)}
+          onClick={() => {
+            setShowPaidInvoices(true);
+            setShowReceipts(false);
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-medium">Paid Invoices</CardTitle>
@@ -538,7 +541,10 @@ const Invoices = () => {
 
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => setShowReceipts(!showReceipts)}
+          onClick={() => {
+            setShowReceipts(true);
+            setShowPaidInvoices(false);
+          }}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-medium">Receipts</CardTitle>
