@@ -89,16 +89,21 @@ serve(async (req) => {
       throw new Error("FRONTEND_URL is not configured. Please add it to your Supabase Edge Function secrets.");
     }
     
-    // Create secure payment link with token (remove trailing slash to avoid double slash)
-    const cleanFrontendUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
-    const paymentLink = `${cleanFrontendUrl}/payment?invoice=${invoiceId}&token=${invoice.payment_token}`;
-    console.log('Payment link created:', paymentLink);
-    console.log('Invoice ID:', invoiceId);
-    console.log('Frontend URL used:', frontendUrl);
-
     // Determine document type for dynamic content
     const documentType = (invoice.type || 'invoice') === 'quote' ? 'quote' : 'invoice';
     const documentTypeCapitalized = documentType.charAt(0).toUpperCase() + documentType.slice(1);
+    
+    // Create secure payment link with token (remove trailing slash to avoid double slash)
+    const cleanFrontendUrl = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+    
+    // Use different URLs for quotes vs invoices
+    const viewLink = documentType === 'quote' 
+      ? `${cleanFrontendUrl}/quote?quote=${invoiceId}&token=${invoice.payment_token}`
+      : `${cleanFrontendUrl}/payment?invoice=${invoiceId}&token=${invoice.payment_token}`;
+      
+    console.log(`${documentTypeCapitalized} link created:`, viewLink);
+    console.log('Invoice ID:', invoiceId);
+    console.log('Frontend URL used:', frontendUrl);
     
     // Use a more business-appropriate subject line
     const emailSubject = `${documentTypeCapitalized} ${invoice.invoice_number || invoice.id.slice(0,8)} - ${invoice.company_name || 'Your Company'}`;
@@ -137,7 +142,7 @@ Your ${documentType} is ready for viewing${documentType === 'invoice' ? ' and pa
   </table>
 
   <div style="text-align: center; margin: 30px 0;">
-    <a href="${paymentLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">${documentType === 'invoice' ? 'View and Pay Invoice' : 'View Quote'}</a>
+    <a href="${viewLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">${documentType === 'invoice' ? 'View and Pay Invoice' : 'View Quote'}</a>
   </div>
   
   <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #666;">

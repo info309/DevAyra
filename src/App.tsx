@@ -18,6 +18,7 @@ import Invoices from "./pages/Invoices";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import Payment from "./pages/Payment";
+import Quote from "./pages/Quote";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -76,6 +77,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/quote" element={<Quote />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
