@@ -18,6 +18,7 @@ interface Invoice {
   issue_date?: string;
   due_date?: string;
   pdf_path?: string;
+  type?: string;
 }
 
 const Payment = () => {
@@ -212,9 +213,14 @@ const Payment = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Invoice Payment</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} Details
+          </h1>
           <p className="text-muted-foreground">
-            Please review your invoice details below and proceed with payment
+            {(invoice.type || 'invoice') === 'quote' 
+              ? 'Please review your quote details below'
+              : 'Please review your invoice details below and proceed with payment'
+            }
           </p>
         </div>
 
@@ -222,7 +228,7 @@ const Payment = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}
+              {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} #{invoice.invoice_number || invoice.id.slice(0, 8)}
               {invoice.pdf_path && (
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
                   PDF Available
@@ -244,14 +250,16 @@ const Payment = () => {
                 )}
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground">Amount Due:</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Amount {(invoice.type || 'invoice') === 'quote' ? 'Quoted:' : 'Due:'}
+                </p>
                 <p className="text-3xl font-bold text-primary">
                   {formatCurrency(invoice.total_cents, invoice.currency)}
                 </p>
               </div>
             </div>
 
-            {invoice.due_date && (
+            {invoice.due_date && (invoice.type || 'invoice') === 'invoice' && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
                   <strong>Due Date:</strong> {formatDate(invoice.due_date)}
@@ -261,7 +269,9 @@ const Payment = () => {
 
             {/* PDF Actions */}
             <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
+              <p className="text-sm font-medium text-muted-foreground mb-3">
+                {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} PDF
+              </p>
               
               {(() => {
                 console.log('Rendering PDF section. Invoice:', invoice);
@@ -305,41 +315,58 @@ const Payment = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment
-            </CardTitle>
-            <CardDescription>
-              Click below to pay securely with Stripe
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={handlePayment}
-              disabled={processing}
-              className="w-full"
-              size="lg"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pay {formatCurrency(invoice.total_cents, invoice.currency)}
-                </>
-              )}
-            </Button>
+        {/* Only show payment section for invoices, not quotes */}
+        {(invoice.type || 'invoice') === 'invoice' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment
+              </CardTitle>
+              <CardDescription>
+                Click below to pay securely with Stripe
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={handlePayment}
+                disabled={processing}
+                className="w-full"
+                size="lg"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay {formatCurrency(invoice.total_cents, invoice.currency)}
+                  </>
+                )}
+              </Button>
 
-            <p className="text-xs text-muted-foreground mt-4 text-center">
-              Payments are processed securely by Stripe. Your payment information is never stored on our servers.
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Payments are processed securely by Stripe. Your payment information is never stored on our servers.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-blue-600">Quote for Review</CardTitle>
+              <CardDescription className="text-center">
+                This is a quote for your consideration. No payment is required at this time.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-muted-foreground">
+                If you'd like to proceed with this quote, please contact us to convert it to an invoice for payment.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
