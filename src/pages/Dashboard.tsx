@@ -69,7 +69,7 @@ const Dashboard = () => {
       image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
     },
     {
-      title: 'Invoices',
+      title: 'Invoices & Payments',
       description: 'Generate and manage client invoices',
       route: '/invoices',
       image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
