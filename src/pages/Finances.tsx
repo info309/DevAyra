@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, Receipt, Eye } from 'lucide-react';
+import { ArrowLeft, FileText, Receipt, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
@@ -89,6 +89,114 @@ const Finances = () => {
     }
   };
 
+  const exportPaidInvoicesToCSV = () => {
+    if (paidInvoices.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No paid invoices found to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create CSV content for accounting software like Xero
+    const headers = [
+      'Invoice Number',
+      'Customer Name', 
+      'Customer Email',
+      'Amount',
+      'Currency',
+      'Issue Date',
+      'Due Date',
+      'Paid Date',
+      'Type',
+      'Status'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...paidInvoices.map(invoice => [
+        `"${invoice.invoice_number || invoice.id.slice(0, 8)}"`,
+        `"${invoice.customer_name}"`,
+        `"${invoice.customer_email}"`,
+        (invoice.total_cents / 100).toFixed(2),
+        invoice.currency.toUpperCase(),
+        `"${new Date(invoice.issue_date).toLocaleDateString()}"`,
+        invoice.due_date ? `"${new Date(invoice.due_date).toLocaleDateString()}"` : '""',
+        invoice.paid_at ? `"${new Date(invoice.paid_at).toLocaleDateString()}"` : '""',
+        `"${invoice.type}"`,
+        `"${invoice.status}"`
+      ].join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `paid-invoices-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${paidInvoices.length} paid invoice(s) to CSV`,
+    });
+  };
+
+  const exportReceiptsToCSV = () => {
+    if (receipts.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No receipts found to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create CSV content for accounting software like Xero
+    const headers = [
+      'Receipt ID',
+      'Customer Name', 
+      'Amount',
+      'Currency',
+      'Date',
+      'Type',
+      'Notes'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...receipts.map(receipt => [
+        `"${receipt.id.slice(0, 8)}"`,
+        `"${receipt.customer_name}"`,
+        (receipt.total_cents / 100).toFixed(2),
+        receipt.currency.toUpperCase(),
+        `"${new Date(receipt.created_at).toLocaleDateString()}"`,
+        `"${receipt.type}"`,
+        `"${receipt.notes || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `receipts-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${receipts.length} receipt(s) to CSV`,
+    });
+  };
+
   const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt');
 
   return (
@@ -165,7 +273,18 @@ const Finances = () => {
       {showPaidInvoices && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Paid Invoices</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Paid Invoices</CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={exportPaidInvoicesToCSV}
+                disabled={paidInvoices.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {paidInvoices.length === 0 ? (
@@ -204,7 +323,18 @@ const Finances = () => {
       {showReceipts && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Receipts</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Receipts</CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={exportReceiptsToCSV}
+                disabled={receipts.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {receipts.length === 0 ? (

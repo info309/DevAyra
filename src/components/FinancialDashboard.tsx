@@ -270,26 +270,6 @@ const FinancialDashboard = () => {
             <p className="text-xs text-muted-foreground">
               {metrics.paidInvoiceCount} invoice(s) - {dateRange.replace('_', ' ')}
             </p>
-            <div className="mt-4 space-y-2">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Select value={dateRange} onValueChange={(value: DateRange) => setDateRange(value)}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="this_week">This Week</SelectItem>
-                    <SelectItem value="this_month">This Month</SelectItem>
-                    <SelectItem value="last_month">Last Month</SelectItem>
-                    <SelectItem value="all_time">All Time</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" onClick={exportToCSV} disabled={loading}>
-                  <Download className="mr-1 h-3 w-3" />
-                  Export
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
