@@ -815,10 +815,6 @@ const Invoices = () => {
                     <Eye className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">View</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
-                    <FileText className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">PDF</span>
-                  </Button>
                   <Button variant="outline" size="sm" onClick={() => handleDelete(invoice.id)} title="Delete" className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Delete</span>
