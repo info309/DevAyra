@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2, Receipt, Download, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,7 @@ import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
+import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -50,11 +52,14 @@ const Invoices = () => {
   const { toast } = useToast();
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [receipts, setReceipts] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaidInvoices, setShowPaidInvoices] = useState(false);
+  const [showReceipts, setShowReceipts] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemDisplay[]>([
     { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }
   ]);
@@ -89,7 +94,10 @@ const Invoices = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      const allInvoices = data || [];
+      setInvoices(allInvoices.filter(invoice => invoice.type !== 'receipt'));
+      setReceipts(allInvoices.filter(invoice => invoice.type === 'receipt'));
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -427,6 +435,69 @@ const Invoices = () => {
     }).format(cents / 100);
   };
 
+  const handleViewReceipt = (receipt: Invoice) => {
+    if (receipt.pdf_path) {
+      // If it's a document stored in storage
+      if (receipt.pdf_path.startsWith('documents/')) {
+        const documentUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(documentUrl, '_blank');
+      } else {
+        // If it's a PDF path in invoices bucket
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+      }
+    } else {
+      toast({
+        title: "No document",
+        description: "No document is associated with this receipt",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadReceipt = async (receipt: Invoice) => {
+    if (!receipt.pdf_path) {
+      toast({
+        title: "No document",
+        description: "No document is associated with this receipt",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      let downloadUrl: string;
+      
+      if (receipt.pdf_path.startsWith('documents/')) {
+        downloadUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+      } else {
+        downloadUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+      }
+
+      // Create a temporary link element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `receipt_${receipt.customer_name}_${format(new Date(receipt.created_at), 'yyyy-MM-dd')}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "Receipt download started",
+      });
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download receipt",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid');
+
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -439,7 +510,7 @@ const Invoices = () => {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Invoices & Receipts</h1>
         </div>
       </div>
 
@@ -447,11 +518,48 @@ const Invoices = () => {
       <GmailConnectionBanner />
       <FinancialDashboard />
 
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setShowPaidInvoices(!showPaidInvoices)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-medium">Paid Invoices</CardTitle>
+            <FileText className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{paidInvoices.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Total: {formatCurrency(paidInvoices.reduce((sum, inv) => sum + inv.total_cents, 0), 'gbp')}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setShowReceipts(!showReceipts)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-medium">Receipts</CardTitle>
+            <Receipt className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{receipts.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Total: {formatCurrency(receipts.reduce((sum, rec) => sum + rec.total_cents, 0), 'gbp')}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
-          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices
+          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices, {receipts.length} receipts
         </div>
         <div className="flex gap-2">
+          <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
           <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DrawerTrigger asChild>
               <Button 
@@ -760,6 +868,157 @@ const Invoices = () => {
         </Drawer>
         </div>
       </div>
+
+      {/* Paid Invoices Section */}
+      {showPaidInvoices && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Paid Invoices</CardTitle>
+            <CardDescription>
+              View and manage your paid invoices
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paidInvoices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No paid invoices yet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paidInvoices.map((invoice) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">
+                          {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
+                        </TableCell>
+                        <TableCell>{invoice.customer_name}</TableCell>
+                        <TableCell>
+                          {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(invoice.total_cents, invoice.currency)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">Paid</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewInvoice(invoice)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Invoice
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGeneratePDF(invoice)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Receipts Section */}
+      {showReceipts && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Receipts</CardTitle>
+            <CardDescription>
+              View and manage your uploaded receipts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {receipts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No receipts uploaded yet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Merchant</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {receipts.map((receipt) => (
+                      <TableRow key={receipt.id}>
+                        <TableCell className="font-medium">
+                          {receipt.customer_name}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(receipt.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(receipt.total_cents, receipt.currency)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">Paid</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Receipt
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownloadReceipt(receipt)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDelete(receipt.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {loading && invoices.length === 0 ? (

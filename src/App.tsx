@@ -15,7 +15,6 @@ import Account from "./pages/Account";
 import Assistant from "./pages/Assistant";
 import Notes from "./pages/Notes";
 import Invoices from "./pages/Invoices";
-import Receipts from "./pages/Receipts";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import Payment from "./pages/Payment";
@@ -75,11 +74,6 @@ const App = () => (
             <Route path="/invoices" element={
               <ProtectedRoute>
                 <Invoices />
-              </ProtectedRoute>
-            } />
-            <Route path="/receipts" element={
-              <ProtectedRoute>
-                <Receipts />
               </ProtectedRoute>
             } />
             <Route path="/payment" element={<Payment />} />
