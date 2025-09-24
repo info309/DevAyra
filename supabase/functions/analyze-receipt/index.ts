@@ -94,13 +94,22 @@ serve(async (req) => {
     const analysisResult = data.choices[0].message.content;
     console.log('Raw analysis result:', analysisResult);
 
-    // Parse the JSON response
+    // Parse the JSON response, handling markdown code blocks
     let receiptData;
     try {
-      receiptData = JSON.parse(analysisResult);
+      // Remove markdown code blocks if present
+      let jsonString = analysisResult.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replace(/```json\n?/, '').replace(/\n?```$/, '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replace(/```\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      receiptData = JSON.parse(jsonString);
+      console.log('Successfully parsed receipt data:', receiptData);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
-      console.error('Raw response:', analysisResult);
+      console.error('Cleaned JSON string:', jsonString);
       
       // Return a default structure if parsing fails
       receiptData = {
