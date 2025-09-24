@@ -26,7 +26,6 @@ interface Invoice {
 }
 
 interface FinancialMetrics {
-  quoteTotals: number;
   invoiceTotals: number;
   paidInvoices: number;
   paidInvoiceCount: number;
@@ -38,7 +37,6 @@ const FinancialDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<FinancialMetrics>({
-    quoteTotals: 0,
     invoiceTotals: 0,
     paidInvoices: 0,
     paidInvoiceCount: 0
@@ -102,7 +100,6 @@ const FinancialDashboard = () => {
       setInvoices(allInvoices || []);
 
       // Calculate metrics
-      let quoteTotals = 0;
       let invoiceTotals = 0;
       let paidInvoices = 0;
       let paidInvoiceCount = 0;
@@ -110,11 +107,6 @@ const FinancialDashboard = () => {
       const { start, end } = getDateRangeFilter();
 
       allInvoices?.forEach(invoice => {
-        // Quote totals (all quotes regardless of date)
-        if (invoice.type === 'quote') {
-          quoteTotals += invoice.total_cents;
-        }
-        
         // Invoice totals (all invoices regardless of date)
         if (invoice.type === 'invoice') {
           invoiceTotals += invoice.total_cents;
@@ -136,7 +128,6 @@ const FinancialDashboard = () => {
       });
 
       setMetrics({
-        quoteTotals,
         invoiceTotals,
         paidInvoices,
         paidInvoiceCount
@@ -237,22 +228,7 @@ const FinancialDashboard = () => {
   return (
     <div className="space-y-6 mb-8">
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Quotes</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? '...' : formatCurrency(metrics.quoteTotals)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All time quote value
-            </p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
