@@ -74,11 +74,11 @@ const Finances = () => {
       // If it's a document stored in storage
       if (receipt.pdf_path.startsWith('documents/')) {
         const documentUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
-        window.open(documentUrl, '_blank');
+        window.open(documentUrl, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no');
       } else {
         // If it's a PDF path in invoices bucket
         const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
-        window.open(pdfUrl, '_blank');
+        window.open(pdfUrl, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no');
       }
     } else {
       toast({
