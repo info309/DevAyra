@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, Download, ExternalLink, CheckCircle } from "lucide-react";
+import { Loader2, FileText, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Quote {
@@ -113,53 +113,6 @@ const Quote = () => {
     }
   };
 
-  const handleGeneratePDF = async () => {
-    if (!quote) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
-        body: { invoiceId: quote.id }
-      });
-
-      if (error) throw error;
-
-      if (data?.pdf_path) {
-        // Open the generated PDF in a new tab
-        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
-        window.open(pdfUrl, '_blank');
-        console.log('PDF generated and opened successfully');
-      } else {
-        console.error('No PDF path returned');
-      }
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleViewPDF = () => {
-    if (quote?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${quote.pdf_path}`;
-      window.open(pdfUrl, '_blank');
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    if (quote?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${quote.pdf_path}`;
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Quote-${quote.invoice_number || quote.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
   const formatCurrency = (cents: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -246,44 +199,6 @@ const Quote = () => {
                   {formatCurrency(quote.total_cents, quote.currency)}
                 </p>
               </div>
-            </div>
-
-            {/* PDF Actions */}
-            <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Quote PDF</p>
-              
-              {quote.pdf_path ? (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleViewPDF}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View PDF
-                  </Button>
-                  <Button 
-                    onClick={handleDownloadPDF}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  onClick={handleGeneratePDF}
-                  variant="outline" 
-                  size="sm"
-                  className="w-full"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate & View PDF
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>

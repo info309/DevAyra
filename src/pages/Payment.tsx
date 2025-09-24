@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, FileText, Download, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -106,53 +106,6 @@ const Payment = () => {
         variant: "destructive",
       });
       setProcessing(false);
-    }
-  };
-
-  const handleGeneratePDF = async () => {
-    if (!invoice) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
-        body: { invoiceId: invoice.id }
-      });
-
-      if (error) throw error;
-
-      if (data?.pdf_path) {
-        // Open the generated PDF in a new tab
-        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
-        window.open(pdfUrl, '_blank');
-        console.log('PDF generated and opened successfully');
-      } else {
-        console.error('No PDF path returned');
-      }
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleViewPDF = () => {
-    if (invoice?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
-      window.open(pdfUrl, '_blank');
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    if (invoice?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Invoice-${invoice.invoice_number || invoice.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   };
 
@@ -259,59 +212,13 @@ const Payment = () => {
               </div>
             </div>
 
-            {invoice.due_date && (invoice.type || 'invoice') === 'invoice' && (
+            {(invoice.type || 'invoice') === 'invoice' && invoice.due_date && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
                   <strong>Due Date:</strong> {formatDate(invoice.due_date)}
                 </p>
               </div>
             )}
-
-            {/* PDF Actions */}
-            <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">
-                {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} PDF
-              </p>
-              
-              {(() => {
-                console.log('Rendering PDF section. Invoice:', invoice);
-                console.log('PDF path check:', invoice?.pdf_path);
-                return null;
-              })()}
-              
-              {invoice.pdf_path ? (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleViewPDF}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View PDF
-                  </Button>
-                  <Button 
-                    onClick={handleDownloadPDF}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  onClick={handleGeneratePDF}
-                  variant="outline" 
-                  size="sm"
-                  className="w-full"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate & View PDF
-                </Button>
-              )}
-            </div>
           </CardContent>
         </Card>
 
