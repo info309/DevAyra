@@ -350,6 +350,20 @@ const Invoices = () => {
 
       if (error) throw error;
       
+      // Generate new PDF for the invoice
+      try {
+        const { error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+          body: { invoiceId: quote.id }
+        });
+        if (pdfError) {
+          console.error('PDF regeneration failed:', pdfError);
+        } else {
+          console.log('PDF regenerated for invoice');
+        }
+      } catch (pdfError) {
+        console.error('PDF regeneration error:', pdfError);
+      }
+      
       toast({
         title: "Success",
         description: "Quote converted to invoice successfully",
