@@ -287,6 +287,17 @@ const Invoices = () => {
     }
   };
 
+  const handleViewInvoice = (invoice: Invoice) => {
+    const token = invoice.payment_token;
+    if (invoice.type === 'quote') {
+      // Redirect to quote page
+      window.open(`/quote?quote=${invoice.id}&token=${token}`, '_blank');
+    } else {
+      // Redirect to payment/invoice page
+      window.open(`/payment?invoice=${invoice.id}&token=${token}`, '_blank');
+    }
+  };
+
   const handleGeneratePDF = async (invoice: Invoice) => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
@@ -800,9 +811,9 @@ const Invoices = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
-                    <FileText className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">PDF</span>
+                  <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)} title="View">
+                    <Eye className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">View</span>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleDelete(invoice.id)} title="Delete" className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
