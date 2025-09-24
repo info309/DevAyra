@@ -587,6 +587,7 @@ export type Database = {
           pdf_path: string
           status: string
           total_cents: number
+          type: string
         }[]
       }
     }
