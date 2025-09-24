@@ -59,6 +59,7 @@ const Invoices = () => {
   ]);
 
   const [formData, setFormData] = useState({
+    type: 'quote' as 'quote' | 'invoice',
     company_name: '',
     company_email: '',
     company_address: '',
@@ -169,6 +170,7 @@ const Invoices = () => {
 
   const resetForm = () => {
     setFormData({
+      type: 'quote',
       company_name: '',
       company_email: '',
       company_address: '',
@@ -187,6 +189,7 @@ const Invoices = () => {
   const handleEdit = (invoice: Invoice) => {
     setEditingInvoice(invoice);
     setFormData({
+      type: (invoice.type as 'quote' | 'invoice') || 'invoice',
       company_name: invoice.company_name || '',
       company_email: invoice.company_email || '',
       company_address: invoice.company_address || '',
@@ -324,6 +327,35 @@ const Invoices = () => {
     }
   };
 
+  const handleConvertToInvoice = async (quote: Invoice) => {
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .update({ 
+          type: 'invoice',
+          status: 'draft'
+        })
+        .eq('id', quote.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Quote converted to invoice successfully",
+      });
+      
+      console.log('Quote converted to invoice successfully');
+      fetchInvoices();
+    } catch (error) {
+      console.error('Failed to convert quote to invoice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to convert quote to invoice",
+        variant: "destructive"
+      });
+    }
+  };
+
   const addLineItem = () => {
     setLineItems([...lineItems, { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }]);
   };
@@ -375,7 +407,7 @@ const Invoices = () => {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Quotes and Invoices</h1>
         </div>
       </div>
 
@@ -384,26 +416,62 @@ const Invoices = () => {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
-          {invoices.length} total invoice{invoices.length !== 1 ? 's' : ''}
+          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices
         </div>
-        <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DrawerTrigger asChild>
-            <Button 
-              onClick={() => { resetForm(); setEditingInvoice(null); }} 
-              className="w-full sm:w-auto" 
-              style={{ backgroundColor: '#ff6d4d' }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
-          </DrawerTrigger>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</DrawerTitle>
-            </DrawerHeader>
-            
-            <div className="overflow-y-auto px-4 pb-4">
-              <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex gap-2">
+          <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DrawerTrigger asChild>
+              <Button 
+                onClick={() => { resetForm(); setEditingInvoice(null); }} 
+                className="w-full sm:w-auto" 
+                variant="outline"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Quote
+              </Button>
+            </DrawerTrigger>
+            <DrawerTrigger asChild>
+              <Button 
+                onClick={() => { 
+                  resetForm(); 
+                  setFormData(prev => ({ ...prev, type: 'invoice' })); 
+                  setEditingInvoice(null); 
+                }} 
+                className="w-full sm:w-auto" 
+                style={{ backgroundColor: '#ff6d4d' }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[90vh]">
+              <DrawerHeader>
+                <DrawerTitle>
+                  {editingInvoice 
+                    ? `Edit ${editingInvoice.type === 'quote' ? 'Quote' : 'Invoice'}` 
+                    : `Create New ${formData.type === 'quote' ? 'Quote' : 'Invoice'}`
+                  }
+                </DrawerTitle>
+              </DrawerHeader>
+              
+              <div className="overflow-y-auto px-4 pb-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Document Type Selection */}
+                  <div>
+                    <Label htmlFor="type">Document Type *</Label>
+                    <Select 
+                      value={formData.type} 
+                      onValueChange={(value: 'quote' | 'invoice') => setFormData({ ...formData, type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select document type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quote">Quote</SelectItem>
+                        <SelectItem value="invoice">Invoice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 {/* Company Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -649,7 +717,7 @@ const Invoices = () => {
                         {editingInvoice ? 'Updating...' : 'Creating...'}
                       </>
                     ) : (
-                      editingInvoice ? 'Update Invoice' : 'Create Invoice'
+                      editingInvoice ? `Update ${editingInvoice.type === 'quote' ? 'Quote' : 'Invoice'}` : `Create ${formData.type === 'quote' ? 'Quote' : 'Invoice'}`
                     )}
                   </Button>
                 </div>
@@ -657,6 +725,7 @@ const Invoices = () => {
             </div>
           </DrawerContent>
         </Drawer>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -671,7 +740,7 @@ const Invoices = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <CardTitle className="flex items-center gap-2">
-                    <span className="truncate">Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}</span>
+                    <span className="truncate">{(invoice.type as string) === 'quote' ? 'Quote' : 'Invoice'} #{invoice.invoice_number || invoice.id.slice(0, 8)}</span>
                     <Badge variant={
                       invoice.status === 'paid' ? 'default' : 
                       invoice.status === 'sent' ? 'secondary' : 
@@ -679,12 +748,27 @@ const Invoices = () => {
                     }>
                       {invoice.status}
                     </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {(invoice.type as string) === 'quote' ? 'Quote' : 'Invoice'}
+                    </Badge>
                   </CardTitle>
                   <CardDescription className="truncate">
                     {invoice.customer_name} • {formatCurrency(invoice.total_cents, invoice.currency)}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  {invoice.type === 'quote' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleConvertToInvoice(invoice)} 
+                      title="Convert to Invoice"
+                      style={{ backgroundColor: '#ff6d4d', color: 'white' }}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="ml-2 hidden sm:inline">Make Invoice</span>
+                    </Button>
+                  )}
                   {invoice.status === 'draft' && (
                     <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)} title="Edit">
                       <Edit className="w-4 h-4" />
