@@ -24,7 +24,6 @@ import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
 import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
-import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -440,7 +439,7 @@ const Invoices = () => {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold">Invoices & Receipts</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
         </div>
       </div>
 
@@ -759,7 +758,6 @@ const Invoices = () => {
             </div>
           </DrawerContent>
         </Drawer>
-        <ReceiptUploadDialog onReceiptUploaded={fetchInvoices} />
         </div>
       </div>
 

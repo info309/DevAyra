@@ -69,10 +69,16 @@ const Dashboard = () => {
       image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
     },
     {
-      title: 'Invoices & Receipts',
+      title: 'Invoices',
       description: 'Generate and manage client invoices',
       route: '/invoices',
       image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
+    },
+    {
+      title: 'Receipts',
+      description: 'Upload and track expense receipts',
+      route: '/receipts',
+      image: '/lovable-uploads/41e96c75-18f1-45a5-93fe-bda1bd4b1fca.png'
     },
     {
       title: 'Documents',
