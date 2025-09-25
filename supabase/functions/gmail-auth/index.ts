@@ -26,7 +26,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const url = new URL(req.url);
-    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'https://ayra-unified-suite.lovable.app';
+    const baseSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'https://ayra-unified-suite.lovable.app';
+    // Ensure we only use the base URL without any path
+    const siteUrl = new URL(baseSiteUrl).origin;
     const pathname = url.pathname;
 
     if (req.method === 'GET') {
