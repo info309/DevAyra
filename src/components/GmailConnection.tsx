@@ -34,18 +34,20 @@ const GmailConnection: React.FC = () => {
     
     // Check for successful auth return on page load (mobile redirect flow)
     const urlParams = new URLSearchParams(window.location.search);
+    // Handle success/error from any page (home or account)
     if (urlParams.get('gmail_auth') === 'success') {
       toast({
-        title: "Gmail Connected",
-        description: "Your Gmail account has been successfully connected.",
+        title: "Gmail Connected Successfully!",
+        description: "Your Gmail and Calendar have been successfully linked to Ayra.",
       });
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       checkGmailConnection();
     } else if (urlParams.get('gmail_auth') === 'error') {
+      const errorMessage = urlParams.get('error') || 'Failed to connect your Gmail account. Please try again.';
       toast({
         title: "Connection Failed",
-        description: "Failed to connect your Gmail account. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
       // Clean up URL
@@ -271,6 +273,7 @@ const GmailConnection: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+
           {connection && connection.is_active ? (
             <div className="space-y-4">
               <div className={`flex ${isDrawerView ? 'flex-col gap-3' : 'items-center justify-between'} p-4 border rounded-lg`}>
@@ -366,7 +369,7 @@ const GmailConnection: React.FC = () => {
               
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>• {isMobile() ? 'You will be redirected to Google for authentication' : 'This will open a Google authentication window'}</p>
-                <p>• You'll need to grant permission to read and send emails</p>
+                <p>• Permissions requested: read/send Gmail, view/edit Calendar (for app features)</p>
                 <p>• Your credentials are stored securely and can be disconnected anytime</p>
                 {isMobile() && <p>• After authentication, you'll be redirected back to this page</p>}
               </div>
