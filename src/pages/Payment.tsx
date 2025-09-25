@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, FileText, Download, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, FileText, Download, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Invoice {
@@ -18,6 +18,7 @@ interface Invoice {
   issue_date?: string;
   due_date?: string;
   pdf_path?: string;
+  type?: string;
 }
 
 const Payment = () => {
@@ -27,6 +28,7 @@ const Payment = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -108,53 +110,6 @@ const Payment = () => {
     }
   };
 
-  const handleGeneratePDF = async () => {
-    if (!invoice) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
-        body: { invoiceId: invoice.id }
-      });
-
-      if (error) throw error;
-
-      if (data?.pdf_path) {
-        // Open the generated PDF in a new tab
-        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
-        window.open(pdfUrl, '_blank');
-        console.log('PDF generated and opened successfully');
-      } else {
-        console.error('No PDF path returned');
-      }
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleViewPDF = () => {
-    if (invoice?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
-      window.open(pdfUrl, '_blank');
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    if (invoice?.pdf_path) {
-      const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Invoice-${invoice.invoice_number || invoice.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
   const formatCurrency = (cents: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -168,6 +123,49 @@ const Payment = () => {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!invoice) return;
+
+    setGeneratingPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
+        body: { invoiceId: invoice.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.pdf_path) {
+        // Update local state with PDF path
+        setInvoice(prev => prev ? { ...prev, pdf_path: data.pdf_path } : null);
+        
+        // Open the generated PDF in a new tab
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${data.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+        
+        toast({
+          title: "Success",
+          description: "PDF generated and opened successfully",
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to generate PDF:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleViewPDF = () => {
+    if (!invoice?.pdf_path) return;
+    
+    const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${invoice.pdf_path}`;
+    window.open(pdfUrl, '_blank');
   };
 
   if (loading) {
@@ -195,15 +193,116 @@ const Payment = () => {
 
   if (invoice.status === "paid") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-green-600">Already Paid</CardTitle>
-            <CardDescription>
-              This invoice has already been paid. Thank you!
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-green-600 mb-2">
+              Payment Complete
+            </h1>
+            <p className="text-muted-foreground">
+              This invoice has been successfully paid. Thank you!
+            </p>
+          </div>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-600">
+                <FileText className="h-5 w-5" />
+                Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)} - PAID
+                {invoice.pdf_path && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                    PDF Available
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                From {invoice.company_name}
+                {invoice.issue_date && ` • Issued ${formatDate(invoice.issue_date)}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bill To:</p>
+                  <p className="font-medium">{invoice.customer_name}</p>
+                  {invoice.customer_email && (
+                    <p className="text-sm text-muted-foreground">{invoice.customer_email}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-muted-foreground">Amount Paid:</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {formatCurrency(invoice.total_cents, invoice.currency)}
+                  </p>
+                </div>
+              </div>
+
+              {invoice.due_date && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Due Date:</strong> {formatDate(invoice.due_date)}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* PDF Section for Paid Invoices */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Invoice Document
+              </CardTitle>
+              <CardDescription>
+                View or download the PDF version of your paid invoice
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-3">
+                {invoice.pdf_path ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleViewPDF}
+                      className="flex-1"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleViewPDF}
+                      className="flex-1"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={handleGeneratePDF}
+                    disabled={generatingPdf}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {generatingPdf ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Generate PDF
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -212,9 +311,14 @@ const Payment = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Invoice Payment</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} Details
+          </h1>
           <p className="text-muted-foreground">
-            Please review your invoice details below and proceed with payment
+            {(invoice.type || 'invoice') === 'quote' 
+              ? 'Please review your quote details below'
+              : 'Please review your invoice details below and proceed with payment'
+            }
           </p>
         </div>
 
@@ -222,7 +326,7 @@ const Payment = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}
+              {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} #{invoice.invoice_number || invoice.id.slice(0, 8)}
               {invoice.pdf_path && (
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
                   PDF Available
@@ -244,102 +348,133 @@ const Payment = () => {
                 )}
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground">Amount Due:</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Amount {(invoice.type || 'invoice') === 'quote' ? 'Quoted:' : 'Due:'}
+                </p>
                 <p className="text-3xl font-bold text-primary">
                   {formatCurrency(invoice.total_cents, invoice.currency)}
                 </p>
               </div>
             </div>
 
-            {invoice.due_date && (
+            {(invoice.type || 'invoice') === 'invoice' && invoice.due_date && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
                   <strong>Due Date:</strong> {formatDate(invoice.due_date)}
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
 
-            {/* PDF Actions */}
-            <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Invoice PDF</p>
-              
-              {(() => {
-                console.log('Rendering PDF section. Invoice:', invoice);
-                console.log('PDF path check:', invoice?.pdf_path);
-                return null;
-              })()}
-              
+        {/* PDF Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {(invoice.type || 'invoice') === 'quote' ? 'Quote' : 'Invoice'} Document
+            </CardTitle>
+            <CardDescription>
+              View or download the PDF version of this {(invoice.type || 'invoice') === 'quote' ? 'quote' : 'invoice'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
               {invoice.pdf_path ? (
-                <div className="flex gap-2">
+                <>
                   <Button 
-                    onClick={handleViewPDF}
                     variant="outline" 
-                    size="sm"
+                    onClick={handleViewPDF}
                     className="flex-1"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
+                    <Eye className="mr-2 h-4 w-4" />
                     View PDF
                   </Button>
                   <Button 
-                    onClick={handleDownloadPDF}
                     variant="outline" 
-                    size="sm"
+                    onClick={handleViewPDF}
                     className="flex-1"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
                   </Button>
-                </div>
+                </>
               ) : (
                 <Button 
                   onClick={handleGeneratePDF}
-                  variant="outline" 
-                  size="sm"
+                  disabled={generatingPdf}
                   className="w-full"
+                  variant="outline"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate & View PDF
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate PDF
+                    </>
+                  )}
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment
-            </CardTitle>
-            <CardDescription>
-              Click below to pay securely with Stripe
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={handlePayment}
-              disabled={processing}
-              className="w-full"
-              size="lg"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pay {formatCurrency(invoice.total_cents, invoice.currency)}
-                </>
-              )}
-            </Button>
+        {/* Only show payment section for invoices, not quotes */}
+        {(invoice.type || 'invoice') === 'invoice' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment
+              </CardTitle>
+              <CardDescription>
+                Click below to pay securely with Stripe
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={handlePayment}
+                disabled={processing}
+                className="w-full"
+                size="lg"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay {formatCurrency(invoice.total_cents, invoice.currency)}
+                  </>
+                )}
+              </Button>
 
-            <p className="text-xs text-muted-foreground mt-4 text-center">
-              Payments are processed securely by Stripe. Your payment information is never stored on our servers.
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Payments are processed securely by Stripe. Your payment information is never stored on our servers.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-blue-600">Quote for Review</CardTitle>
+              <CardDescription className="text-center">
+                This is a quote for your consideration. No payment is required at this time.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-muted-foreground">
+                If you'd like to proceed with this quote, please contact us to convert it to an invoice for payment.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

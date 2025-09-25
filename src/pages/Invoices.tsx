@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Edit, Eye, Send, CreditCard, Trash2, FileText, ArrowLeft, ChevronDown, Check, Loader2, Receipt, Download, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -49,16 +50,20 @@ const Invoices = () => {
   const { toast } = useToast();
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [receipts, setReceipts] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaidInvoices, setShowPaidInvoices] = useState(false);
+  const [showReceipts, setShowReceipts] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemDisplay[]>([
     { description: '', quantity: 1, unit_price_cents: 0, tax_rate_percent: 0, amount_cents: 0, unit_price_display: '0.00' }
   ]);
 
   const [formData, setFormData] = useState({
+    type: 'quote' as 'quote' | 'invoice',
     company_name: '',
     company_email: '',
     company_address: '',
@@ -87,7 +92,10 @@ const Invoices = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      const allInvoices = data || [];
+      setInvoices(allInvoices.filter(invoice => invoice.type !== 'receipt'));
+      setReceipts(allInvoices.filter(invoice => invoice.type === 'receipt'));
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -169,6 +177,7 @@ const Invoices = () => {
 
   const resetForm = () => {
     setFormData({
+      type: 'quote',
       company_name: '',
       company_email: '',
       company_address: '',
@@ -187,6 +196,7 @@ const Invoices = () => {
   const handleEdit = (invoice: Invoice) => {
     setEditingInvoice(invoice);
     setFormData({
+      type: (invoice.type as 'quote' | 'invoice') || 'invoice',
       company_name: invoice.company_name || '',
       company_email: invoice.company_email || '',
       company_address: invoice.company_address || '',
@@ -284,6 +294,17 @@ const Invoices = () => {
     }
   };
 
+  const handleViewInvoice = (invoice: Invoice) => {
+    const token = invoice.payment_token;
+    if (invoice.type === 'quote') {
+      // Redirect to quote page
+      window.open(`/quote?quote=${invoice.id}&token=${token}`, '_blank');
+    } else {
+      // Redirect to payment/invoice page
+      window.open(`/payment?invoice=${invoice.id}&token=${token}`, '_blank');
+    }
+  };
+
   const handleGeneratePDF = async (invoice: Invoice) => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
@@ -321,6 +342,55 @@ const Invoices = () => {
       fetchInvoices();
     } catch (error) {
       console.error('Failed to mark invoice as paid:', error);
+    }
+  };
+
+  const handleConvertToInvoice = async (quote: Invoice) => {
+    try {
+      // Convert to invoice and clear old PDF path
+      const { error } = await supabase
+        .from('invoices')
+        .update({ 
+          type: 'invoice',
+          status: 'draft',
+          pdf_path: null // Clear old PDF to force regeneration
+        })
+        .eq('id', quote.id);
+
+      if (error) throw error;
+      
+      // Wait for database to update, then regenerate PDF with fresh data
+      setTimeout(async () => {
+        try {
+          console.log('Regenerating PDF for converted invoice...');
+          const { data, error: pdfError } = await supabase.functions.invoke('generate-invoice-pdf', {
+            body: { invoiceId: quote.id }
+          });
+          
+          if (pdfError) {
+            console.error('PDF regeneration failed:', pdfError);
+          } else {
+            console.log('PDF regenerated successfully:', data);
+          }
+        } catch (pdfError) {
+          console.error('PDF regeneration error:', pdfError);
+        }
+      }, 2000); // Increased wait time
+      
+      toast({
+        title: "Success",
+        description: "Quote converted to invoice successfully. New PDF is being generated.",
+      });
+      
+      console.log('Quote converted to invoice successfully');
+      fetchInvoices();
+    } catch (error) {
+      console.error('Failed to convert quote to invoice:', error);
+      toast({
+        title: "Error",
+        description: "Failed to convert quote to invoice",
+        variant: "destructive"
+      });
     }
   };
 
@@ -363,6 +433,69 @@ const Invoices = () => {
     }).format(cents / 100);
   };
 
+  const handleViewReceipt = (receipt: Invoice) => {
+    if (receipt.pdf_path) {
+      // If it's a document stored in storage
+      if (receipt.pdf_path.startsWith('documents/')) {
+        const documentUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(documentUrl, '_blank');
+      } else {
+        // If it's a PDF path in invoices bucket
+        const pdfUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+        window.open(pdfUrl, '_blank');
+      }
+    } else {
+      toast({
+        title: "No document",
+        description: "No document is associated with this receipt",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadReceipt = async (receipt: Invoice) => {
+    if (!receipt.pdf_path) {
+      toast({
+        title: "No document",
+        description: "No document is associated with this receipt",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      let downloadUrl: string;
+      
+      if (receipt.pdf_path.startsWith('documents/')) {
+        downloadUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+      } else {
+        downloadUrl = `https://lmkpmnndrygjatnipfgd.supabase.co/storage/v1/object/public/${receipt.pdf_path}`;
+      }
+
+      // Create a temporary link element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `receipt_${receipt.customer_name}_${format(new Date(receipt.created_at), 'yyyy-MM-dd')}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "Receipt download started",
+      });
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download receipt",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt');
+
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -379,31 +512,66 @@ const Invoices = () => {
         </div>
       </div>
 
-      <InvoicePaymentBanner />
-      <GmailConnectionBanner />
 
+      {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="text-sm text-muted-foreground">
-          {invoices.length} total invoice{invoices.length !== 1 ? 's' : ''}
+          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices, {receipts.length} receipts
         </div>
-        <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DrawerTrigger asChild>
-            <Button 
-              onClick={() => { resetForm(); setEditingInvoice(null); }} 
-              className="w-full sm:w-auto" 
-              style={{ backgroundColor: '#ff6d4d' }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
-          </DrawerTrigger>
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</DrawerTitle>
-            </DrawerHeader>
-            
-            <div className="overflow-y-auto px-4 pb-4">
-              <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex gap-2">
+          <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DrawerTrigger asChild>
+              <Button 
+                onClick={() => { resetForm(); setEditingInvoice(null); }} 
+                className="w-full sm:w-auto" 
+                variant="outline"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Quote
+              </Button>
+            </DrawerTrigger>
+            <DrawerTrigger asChild>
+              <Button 
+                onClick={() => { 
+                  resetForm(); 
+                  setFormData(prev => ({ ...prev, type: 'invoice' })); 
+                  setEditingInvoice(null); 
+                }} 
+                className="w-full sm:w-auto" 
+                style={{ backgroundColor: '#ff6d4d' }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[90vh]">
+              <DrawerHeader>
+                <DrawerTitle>
+                  {editingInvoice 
+                    ? `Edit ${editingInvoice.type === 'quote' ? 'Quote' : 'Invoice'}` 
+                    : `Create New ${formData.type === 'quote' ? 'Quote' : 'Invoice'}`
+                  }
+                </DrawerTitle>
+              </DrawerHeader>
+              
+              <div className="overflow-y-auto px-4 pb-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Document Type Selection */}
+                  <div>
+                    <Label htmlFor="type">Document Type *</Label>
+                    <Select 
+                      value={formData.type} 
+                      onValueChange={(value: 'quote' | 'invoice') => setFormData({ ...formData, type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select document type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quote">Quote</SelectItem>
+                        <SelectItem value="invoice">Invoice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 {/* Company Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -649,7 +817,7 @@ const Invoices = () => {
                         {editingInvoice ? 'Updating...' : 'Creating...'}
                       </>
                     ) : (
-                      editingInvoice ? 'Update Invoice' : 'Create Invoice'
+                      editingInvoice ? `Update ${editingInvoice.type === 'quote' ? 'Quote' : 'Invoice'}` : `Create ${formData.type === 'quote' ? 'Quote' : 'Invoice'}`
                     )}
                   </Button>
                 </div>
@@ -657,7 +825,159 @@ const Invoices = () => {
             </div>
           </DrawerContent>
         </Drawer>
+        </div>
       </div>
+
+      {/* Paid Invoices Section */}
+      {showPaidInvoices && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Paid Invoices</CardTitle>
+            <CardDescription>
+              View and manage your paid invoices
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paidInvoices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No paid invoices yet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paidInvoices.map((invoice) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell className="font-medium">
+                          {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
+                        </TableCell>
+                        <TableCell>{invoice.customer_name}</TableCell>
+                        <TableCell>
+                          {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(invoice.total_cents, invoice.currency)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">Paid</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewInvoice(invoice)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Invoice
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGeneratePDF(invoice)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Receipts Section */}
+      {showReceipts && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Receipts</CardTitle>
+            <CardDescription>
+              View and manage your uploaded receipts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {receipts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No receipts uploaded yet
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Merchant</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {receipts.map((receipt) => (
+                      <TableRow key={receipt.id}>
+                        <TableCell className="font-medium">
+                          {receipt.customer_name}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(receipt.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(receipt.total_cents, receipt.currency)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">Paid</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewReceipt(receipt)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Receipt
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownloadReceipt(receipt)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDelete(receipt.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {loading && invoices.length === 0 ? (
@@ -671,7 +991,7 @@ const Invoices = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <CardTitle className="flex items-center gap-2">
-                    <span className="truncate">Invoice #{invoice.invoice_number || invoice.id.slice(0, 8)}</span>
+                    <span className="truncate">{(invoice.type as string) === 'quote' ? 'Quote' : 'Invoice'} #{invoice.invoice_number || invoice.id.slice(0, 8)}</span>
                     <Badge variant={
                       invoice.status === 'paid' ? 'default' : 
                       invoice.status === 'sent' ? 'secondary' : 
@@ -679,12 +999,27 @@ const Invoices = () => {
                     }>
                       {invoice.status}
                     </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {(invoice.type as string) === 'quote' ? 'Quote' : 'Invoice'}
+                    </Badge>
                   </CardTitle>
                   <CardDescription className="truncate">
                     {invoice.customer_name} • {formatCurrency(invoice.total_cents, invoice.currency)}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  {invoice.type === 'quote' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleConvertToInvoice(invoice)} 
+                      title="Convert to Invoice"
+                      style={{ backgroundColor: '#ff6d4d', color: 'white' }}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="ml-2 hidden sm:inline">Make Invoice</span>
+                    </Button>
+                  )}
                   {invoice.status === 'draft' && (
                     <Button variant="outline" size="sm" onClick={() => handleEdit(invoice)} title="Edit">
                       <Edit className="w-4 h-4" />
@@ -695,7 +1030,7 @@ const Invoices = () => {
                     <Send className="w-4 h-4" />
                     <span className="ml-2 hidden sm:inline">Send</span>
                   </Button>
-                  {invoice.status !== 'paid' && (
+                  {invoice.type === 'invoice' && invoice.status !== 'paid' && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" title="Payment Options">
@@ -716,9 +1051,9 @@ const Invoices = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(invoice)} title="PDF">
-                    <FileText className="w-4 h-4" />
-                    <span className="ml-2 hidden sm:inline">PDF</span>
+                  <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)} title="View">
+                    <Eye className="w-4 h-4" />
+                    <span className="ml-2 hidden sm:inline">View</span>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleDelete(invoice.id)} title="Delete" className="text-red-600 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />

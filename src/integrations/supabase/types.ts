@@ -325,6 +325,7 @@ export type Database = {
           subtotal_cents: number
           tax_cents: number
           total_cents: number
+          type: string
           updated_at: string
           user_id: string
         }
@@ -353,6 +354,7 @@ export type Database = {
           subtotal_cents?: number
           tax_cents?: number
           total_cents?: number
+          type?: string
           updated_at?: string
           user_id: string
         }
@@ -381,6 +383,7 @@ export type Database = {
           subtotal_cents?: number
           tax_cents?: number
           total_cents?: number
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -584,6 +587,7 @@ export type Database = {
           pdf_path: string
           status: string
           total_cents: number
+          type: string
         }[]
       }
     }

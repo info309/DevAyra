@@ -70,9 +70,15 @@ const Dashboard = () => {
     },
     {
       title: 'Invoices',
-      description: 'Generate and manage client invoices',
+      description: 'Generate quotes and invoices',
       route: '/invoices',
       image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
+    },
+    {
+      title: 'Finances',
+      description: 'View financial data and upload receipts',
+      route: '/finances',
+      image: '/lovable-uploads/5340884b-d242-4cd3-a6fd-5addecf0c05e.png'
     },
     {
       title: 'Documents',

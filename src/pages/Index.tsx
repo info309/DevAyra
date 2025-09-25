@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock } from 'lucide-react';
+import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database } from 'lucide-react';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -237,6 +237,8 @@ const Index = () => {
       setConnectingGmail(false);
     }
   };
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -299,6 +301,18 @@ const Index = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [toast, navigate]);
+
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.pause();
+        setIsVideoPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsVideoPlaying(true);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -366,33 +380,34 @@ const Index = () => {
       </header>
 
       {/* Hero Section - Responsive Layout */}
-      <section className="pt-20 pb-16 min-h-[80vh] flex items-center">
+      <section className="pt-32 pb-16 min-h-[80vh] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 h-full min-h-[60vh]">
-            {/* Left Half - Title, Subtitle, Image */}
-            <div className="text-center lg:text-left lg:flex-1 mb-8 lg:mb-0">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
-                <span className="text-compose">One login. One AI.</span><br />
-                <span>Unlimited productivity.</span>
-              </h1>
-              <p className="text-base text-foreground mb-8 font-body font-medium">
-                Your personal AI assistant
-              </p>
+          {/* Centered Title for Desktop */}
+          <div className="text-center mb-12 lg:mb-16">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
+              <span className="text-compose">One login. One AI.</span><br />
+              <span>Unlimited productivity.</span>
+            </h1>
+            <p className="text-base text-foreground mb-8 font-body font-medium">
+              Your personal AI assistant
+            </p>
+          </div>
 
-              {/* Image - Under title on desktop */}
-              <div className="hidden lg:block mb-8">
+          <div className="hidden md:flex md:flex-row md:items-start md:justify-center lg:gap-16 h-full">
+            {/* Left Half - Image */}
+            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
+              <div className="max-w-md w-full">
                 <img 
                   src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
                   alt="AI Assistant Illustration" 
-                  className="w-full max-w-md h-auto rounded-lg"
+                  className="w-full h-auto rounded-lg"
                 />
               </div>
             </div>
 
-            {/* Right Half - Sign Up Module (Desktop) / Mobile sections */}
-            <div className="lg:flex-1 lg:flex lg:justify-center lg:items-center lg:bg-muted/20 lg:rounded-lg">
-              {/* Sign Up Module - Shown on desktop in right column */}
-              <div className="hidden lg:flex lg:flex-col lg:justify-center w-full max-w-sm h-full">
+            {/* Right Half - Sign Up Module */}
+            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-start lg:items-start">
+              <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8 md:border md:border-border/50 lg:border lg:border-border/50">
                 <div className="space-y-4">
                   {/* Continue with Google */}
                   <Button 
@@ -437,63 +452,63 @@ const Index = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Mobile Layout - Image and Login */}
-              <div className="lg:hidden text-center">
-                <div className="mt-6 mb-8">
-                  <img 
-                    src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
-                    alt="AI Assistant Illustration" 
-                    className="w-40 mx-auto rounded-lg"
-                  />
+          {/* Mobile Layout - Image and Login */}
+          <div className="md:hidden text-center">
+            <div className="mt-6 mb-8">
+                <img 
+                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                  alt="AI Assistant Illustration" 
+                  className="w-64 mx-auto rounded-lg"
+                />
+            </div>
+
+            {/* Mobile Login Section */}
+            <div className="w-full max-w-xs mx-auto bg-muted/20 rounded-lg p-6 border border-border/50">
+              <div className="space-y-4">
+                {/* Continue with Google */}
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continue with Google
+                </Button>
+
+                {/* OR Divider */}
+                <div className="flex items-center my-4">
+                  <div className="flex-1 border-t border-border"></div>
+                  <span className="px-3 text-base text-muted-foreground font-body">OR</span>
+                  <div className="flex-1 border-t border-border"></div>
                 </div>
 
-                {/* Mobile Login Section */}
-                <div className="w-full max-w-xs mx-auto">
-                  <div className="space-y-4">
-                    {/* Continue with Google */}
-                    <Button 
-                      onClick={() => navigate('/auth')}
-                      variant="outline"
-                      className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                      Continue with Google
-                    </Button>
+                {/* Email Input */}
+                <Input
+                  type="email"
+                  placeholder="Enter your personal or work email"
+                  className="w-full py-2.5 h-auto text-base font-body font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
 
-                    {/* OR Divider */}
-                    <div className="flex items-center my-4">
-                      <div className="flex-1 border-t border-border"></div>
-                      <span className="px-3 text-base text-muted-foreground font-body">OR</span>
-                      <div className="flex-1 border-t border-border"></div>
-                    </div>
+                {/* Continue with Email Button */}
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background text-base py-2.5 h-auto font-body font-medium"
+                >
+                  Continue with email
+                </Button>
 
-                    {/* Email Input */}
-                    <Input
-                      type="email"
-                      placeholder="Enter your personal or work email"
-                      className="w-full py-2.5 h-auto text-base font-body font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-
-                    {/* Continue with Email Button */}
-                    <Button 
-                      onClick={() => navigate('/auth')}
-                      className="w-full bg-foreground hover:bg-foreground/90 text-background text-base py-2.5 h-auto font-body font-medium"
-                    >
-                      Continue with email
-                    </Button>
-
-                    {/* Privacy Policy Text */}
-                    <p className="text-xs text-muted-foreground text-center mt-4 font-body font-medium">
-                      By continuing, you acknowledge Ayra's Privacy Policy.
-                    </p>
-                  </div>
-                </div>
+                {/* Privacy Policy Text */}
+                <p className="text-xs text-muted-foreground text-center mt-4 font-body font-medium">
+                  By continuing, you acknowledge Ayra's Privacy Policy.
+                </p>
               </div>
             </div>
           </div>
@@ -527,14 +542,30 @@ const Index = () => {
               
               {/* Tablet and Desktop: iPad Landscape */}
               <div className="hidden md:block w-full max-w-4xl bg-gray-900 rounded-[2rem] p-4 shadow-2xl">
-                <div className="aspect-[4/3] bg-black rounded-[1.5rem] flex items-center justify-center overflow-hidden relative">
-                  {/* iPad home indicator */}
-                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full"></div>
-                  <div className="text-center space-y-6">
-                    <Zap className="w-16 h-16 text-primary mx-auto animate-pulse" />
-                    <p className="text-xl font-body font-medium">Ayra Demo Video</p>
-                  </div>
-                </div>
+                 <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
+                   {/* iPad home indicator */}
+                   <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full z-10"></div>
+                   <video 
+                     ref={videoRef}
+                     className="w-full h-full object-cover rounded-[1.5rem]"
+                     preload="metadata"
+                     onPlay={() => setIsVideoPlaying(true)}
+                     onPause={() => setIsVideoPlaying(false)}
+                   >
+                     <source src="/Ayra_in_action.mp4" type="video/mp4" />
+                     Your browser does not support the video tag.
+                   </video>
+                   {/* Play/Pause Button Overlay */}
+                   <div className="absolute inset-0 flex items-center justify-center">
+                     <div className={`transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'} bg-black/50 rounded-full p-4 hover:bg-black/70`}>
+                       {isVideoPlaying ? (
+                         <Pause className="w-12 h-12 text-white" />
+                       ) : (
+                         <Play className="w-12 h-12 text-white ml-1" />
+                       )}
+                     </div>
+                   </div>
+                 </div>
               </div>
             </div>
           </div>
@@ -609,43 +640,174 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Personal Plan */}
-            <Card className="relative border-2 border-border hover:border-primary/50 transition-colors">
+            {/* Free Plan */}
+            <Card className="relative border-2 border-border hover:border-primary/50 transition-colors flex flex-col">
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Personal</CardTitle>
-                <CardDescription className="text-base font-body font-medium">Perfect for individuals</CardDescription>
+                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Personal</CardTitle>
                 <div className="mt-4">
-                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-base text-muted-foreground font-body font-medium">/month</div>
+                  <div className="text-4xl font-heading font-normal text-primary">Free</div>
+                  <div className="text-sm text-muted-foreground font-body font-medium">Free for everyone</div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
+              <CardContent className="space-y-4 flex-1 flex flex-col">
+                <ul className="space-y-3 text-left flex-1">
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Your personal AI assistant Ayra on web, iOS, and Android.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    ChatGPT use inside Ayra.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Personal Tools: Mail, calendar, schedule, notes, documents.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Manage your daily personal life with Ayra
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    50GB of document storage.
+                  </li>
+                </ul>
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-body">
+                    Add ons - Unlimited storage for £8 monthly.
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    Get started for free
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Business Plan */}
-            <Card className="relative border-2 border-primary shadow-xl">
+            {/* Pro Plan */}
+            <Card className="relative border-2 border-primary shadow-xl flex flex-col">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-base font-body font-medium">
+                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-body font-medium">
                   Most Popular
                 </span>
               </div>
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-card-foreground">Business</CardTitle>
-                <CardDescription className="text-base font-body font-medium">For teams and organizations</CardDescription>
+                <CardTitle className="text-2xl font-heading font-normal text-card-foreground">Pro</CardTitle>
+                <CardDescription className="text-sm font-body font-medium">Try Ayra professional</CardDescription>
                 <div className="mt-4">
-                  <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">$--</div>
-                  <div className="text-base text-muted-foreground font-body font-medium">/month per user</div>
+                  <div className="text-4xl font-heading font-normal text-primary">£18</div>
+                  <div className="text-sm text-muted-foreground font-body font-medium">Billed every 28 days</div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <p className="text-base text-muted-foreground font-body font-medium">Coming soon - features and pricing to be announced</p>
+              <CardContent className="space-y-4 flex-1 flex flex-col">
+                <ul className="space-y-3 text-left flex-1">
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Your personal AI assistant Ayra on web, iOS, and Android.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    ChatGPT use inside Ayra.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Personal tools: Mail, calendar, schedule, notes, documents.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Manage your daily personal life with Ayra
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Business tools: Invoices, quotes, card payments, bookkeeping, calculator.
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    Unlock Ayra Pro - AI business and tax advisor (trained on UK tax laws)
+                  </li>
+                  <li className="flex items-start gap-2 text-sm font-body">
+                    <span className="text-primary mt-1">•</span>
+                    1TB of document storage.
+                  </li>
+                </ul>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full"
+                  >
+                    Get started with Pro
+                  </Button>
                 </div>
               </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy Features Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4">
+              Privacy is our priority
+            </h2>
+            <p className="text-base text-muted-foreground font-body font-medium max-w-2xl mx-auto">
+              Your data security and privacy are our top priorities. Here's how we protect your information.
+            </p>
+          </div>
+          
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Shield className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">User Data Isolation</h4>
+              <p className="text-sm text-muted-foreground">Each user can only access their own emails</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Encrypted Storage</h4>
+              <p className="text-sm text-muted-foreground">All data is encrypted at rest and in transit</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">OAuth Security</h4>
+              <p className="text-sm text-muted-foreground">Uses Google's secure authentication flow</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Key className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Token Management</h4>
+              <p className="text-sm text-muted-foreground">Secure token storage and automatic refresh</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <ShieldEllipsis className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">API Authentication</h4>
+              <p className="text-sm text-muted-foreground">All email operations require valid authentication</p>
+            </Card>
+            
+            <Card className="text-center p-6 border border-border hover:border-primary/30 transition-colors">
+              <div className="flex justify-center mb-4">
+                <Database className="h-8 w-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-card-foreground mb-2">Database Security</h4>
+              <p className="text-sm text-muted-foreground">Row-level security prevents unauthorized access</p>
             </Card>
           </div>
         </div>
@@ -655,17 +817,21 @@ const Index = () => {
       <footer className="pt-20 pb-2 border-t border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-primary">
-              Ayra
+            <div className="flex items-center">
+              <img 
+                src="/ayra-logo.png" 
+                alt="Ayra" 
+                className="h-8 md:h-10 lg:h-12 w-auto"
+              />
             </div>
             <div className="flex space-x-8 text-base text-muted-foreground font-body font-medium">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-primary transition-colors">Anti-Slavery Policy</a>
+              <a href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</a>
+              <a href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</a>
+              <a href="/anti-slavery-policy" className="hover:text-primary transition-colors">Anti-Slavery Policy</a>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-border text-center text-base text-muted-foreground font-body font-medium">
-            <p>&copy; 2025 Ayra. All rights reserved.</p>
+            <p>&copy; 2025 Stargate Labs Inc UK. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -15,10 +15,15 @@ import Account from "./pages/Account";
 import Assistant from "./pages/Assistant";
 import Notes from "./pages/Notes";
 import Invoices from "./pages/Invoices";
+import Finances from "./pages/Finances";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import Payment from "./pages/Payment";
+import Quote from "./pages/Quote";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import AntiSlaveryPolicy from "./pages/AntiSlaveryPolicy";
 
 const queryClient = new QueryClient();
 
@@ -72,9 +77,18 @@ const App = () => (
                 <Invoices />
               </ProtectedRoute>
             } />
+            <Route path="/finances" element={
+              <ProtectedRoute>
+                <Finances />
+              </ProtectedRoute>
+            } />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/quote" element={<Quote />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/anti-slavery-policy" element={<AntiSlaveryPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

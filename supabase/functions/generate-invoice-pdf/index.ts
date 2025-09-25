@@ -98,7 +98,7 @@ serve(async (req) => {
           ${invoice.company_address ? `<div style="white-space: pre-line;">${invoice.company_address}</div>` : ''}
         </div>
         <div class="invoice-info">
-          <div class="invoice-title">INVOICE</div>
+          <div class="invoice-title">${(invoice.type || 'invoice').toUpperCase()}</div>
           <div class="invoice-number">#${invoice.invoice_number || invoice.id.slice(0, 8).toUpperCase()}</div>
           <p><strong>Date:</strong> ${formatDate(invoice.issue_date)}</p>
           ${invoice.due_date ? `<p><strong>Due Date:</strong> ${formatDate(invoice.due_date)}</p>` : ''}
