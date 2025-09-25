@@ -75,7 +75,7 @@ const Waitlist = () => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#fff4ed' }}>
         <div className="max-w-2xl mx-auto text-center">
           <div className="mb-8">
             <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-6">
@@ -97,7 +97,7 @@ const Waitlist = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4 pt-16">
+    <div className="min-h-screen flex items-center justify-center p-4 pt-16" style={{ backgroundColor: '#fff4ed' }}>
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-12">
           <div className="relative mb-8">
