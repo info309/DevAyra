@@ -87,6 +87,11 @@ const Waitlist = () => {
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-12">
           <div className="relative mb-8">
+            <img 
+              src="/ayra-logo.png" 
+              alt="Ayra" 
+              className="w-32 h-32 mx-auto mb-8 object-contain"
+            />
             <div className="w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-amber-200 to-orange-200 flex items-center justify-center mb-8">
               <div className="text-6xl">🚀</div>
             </div>
