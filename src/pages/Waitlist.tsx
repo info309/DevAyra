@@ -138,10 +138,10 @@ const Waitlist = () => {
           </div>
           
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Introducing the world's
+            Join the world's
           </h1>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
-            <span className="underline decoration-primary decoration-4">most integrated</span> workspace™
+            <span className="underline decoration-primary decoration-4">most integrated</span> workspace
           </h1>
           
           <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-6">
