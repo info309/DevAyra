@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock } from 'lucide-react';
 
@@ -192,12 +193,112 @@ const AuthModule = ({ onSuccess }: { onSuccess: () => void }) => {
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [showGmailConsent, setShowGmailConsent] = useState(false);
+  const [connectingGmail, setConnectingGmail] = useState(false);
+
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('Homepage: showGmailConsent changed to:', showGmailConsent);
+  }, [showGmailConsent]);
+
+  const connectGmail = async () => {
+    if (!user) return;
+    
+    try {
+      setConnectingGmail(true);
+      
+      // Get auth URL from the edge function
+          const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://lmkpmnndrygjatnipfgd.supabase.co";
+          const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxta3Btbm5kcnlnamF0bmlwZmdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzc3MTQsImV4cCI6MjA3MTk1MzcxNH0.lUFp3O--gVkDEyjcUgNXJY1JB8gQEgLzr8Rqqm8QZQA";
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/gmail-auth?userId=${user.id}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+      if (!response.ok) {
+        throw new Error('Failed to get Gmail auth URL');
+      }
+
+      const { authUrl } = await response.json();
+      
+      // Redirect to Google OAuth
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error connecting Gmail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initiate Gmail connection.",
+        variant: "destructive"
+      });
+      setConnectingGmail(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/dashboard');
+      console.log('Homepage: User loaded, checking for Gmail prompt');
+      console.log('Homepage: Current URL =', window.location.href);
+      
+      // Check if we should prompt for Gmail connection
+      const shouldPromptGmail = localStorage.getItem('prompt_gmail_connect') === '1';
+      const isGoogleUser = (user.app_metadata as any)?.provider === 'google';
+      
+      console.log('Homepage: shouldPromptGmail =', shouldPromptGmail);
+      console.log('Homepage: isGoogleUser =', isGoogleUser);
+      console.log('Homepage: user.app_metadata =', user.app_metadata);
+      
+      // Only show popup if:
+      // 1. The prompt flag is set (meaning Gmail is not connected)
+      // 2. AND the user signed in with Google
+      if (shouldPromptGmail && isGoogleUser) {
+        console.log('Homepage: Showing Gmail consent popup for Google user without Gmail connection');
+        setShowGmailConsent(true);
+        // Clear the flag immediately so it doesn't show again
+        localStorage.removeItem('prompt_gmail_connect');
+      } else if (shouldPromptGmail) {
+        console.log('Homepage: Clearing stale Gmail prompt flag for non-Google user');
+        // Clear stale flag for non-Google users
+        localStorage.removeItem('prompt_gmail_connect');
+        navigate('/dashboard');
+      } else {
+        console.log('Homepage: Redirecting to dashboard (no Gmail prompt needed)');
+        navigate('/dashboard');
+      }
     }
   }, [user, loading, navigate]);
+
+  // Handle Gmail connection success/error messages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.get('gmail_auth') === 'success') {
+      toast({
+        title: "Gmail Connected Successfully!",
+        description: "Your Gmail and Calendar have been successfully linked to Ayra.",
+      });
+      // Clean up URL and redirect to dashboard after success
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Clear any Gmail prompt flags since connection is now successful
+      localStorage.removeItem('prompt_gmail_connect');
+      // Redirect to dashboard after a short delay to let user see the toast
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+    } else if (urlParams.get('gmail_auth') === 'error') {
+      const errorMessage = urlParams.get('error') || 'Failed to connect your Gmail account. Please try again.';
+      toast({
+        title: "Connection Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast, navigate]);
 
   if (loading) {
     return (
@@ -568,6 +669,62 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Gmail Connection Consent Modal */}
+      <Dialog open={showGmailConsent} onOpenChange={setShowGmailConsent}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-blue-600" />
+              Link Gmail & Calendar
+            </DialogTitle>
+            <DialogDescription>
+              To fully integrate Ayra with your workflow, we need access to your Google Gmail and Calendar.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">This will allow Ayra to:</p>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-2">
+                <li>Read and send emails on your behalf</li>
+                <li>View and edit events on your calendars</li>
+              </ul>
+            </div>
+            
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                You will be redirected to Google to grant these permissions. You can revoke access anytime from your Google Account settings or Ayra's Account page.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowGmailConsent(false);
+                // Don't clear the flag - let them be reminded later from Account page
+                navigate('/dashboard');
+              }}
+              disabled={connectingGmail}
+            >
+              Remind Me Later
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowGmailConsent(false);
+                localStorage.removeItem('prompt_gmail_connect');
+                connectGmail();
+              }} 
+              disabled={connectingGmail}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {connectingGmail ? 'Connecting...' : 'Connect Gmail & Calendar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -22,7 +22,8 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      // Always redirect to homepage after sign-in, let homepage handle Gmail prompt
+      navigate('/');
     }
   }, [user, navigate]);
 

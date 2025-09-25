@@ -38,10 +38,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         || (u.email ? u.email.split('@')[0] : null)
         || 'User';
       const email = u.email || null;
-      const { error } = await supabase
+      
+      // First try to insert, then update if needed
+      const { error: insertError } = await supabase
         .from('profiles')
-        .upsert({ user_id: u.id, display_name: displayName, email }, { onConflict: 'user_id' });
-      if (error) console.warn('profiles upsert warning:', error.message);
+        .insert({ user_id: u.id, display_name: displayName, email });
+      
+      if (insertError && insertError.code === '23505') {
+        // User already exists, update instead
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ display_name: displayName, email })
+          .eq('user_id', u.id);
+        if (updateError) console.warn('profiles update warning:', updateError.message);
+      } else if (insertError) {
+        console.warn('profiles insert warning:', insertError.message);
+      }
     } catch (e) {
       console.warn('profiles upsert failed (non-fatal):', (e as Error).message);
     }
@@ -66,6 +78,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_IN') {
           console.log('User signed in');
           upsertProfileFromUser(session?.user ?? null);
+          // If the user signed in with Google, set a flag to check Gmail connection
+          (async () => {
+            try {
+              const provider = (session?.user?.app_metadata as any)?.provider;
+              if (provider === 'google' && session?.user) {
+                console.log('Checking Gmail connection for Google user:', session.user.id);
+                
+                const { data, error } = await supabase
+                  .from('gmail_connections')
+                  .select('id')
+                  .eq('user_id', session.user.id)
+                  .eq('is_active', true)
+                  .maybeSingle();
+                
+                if (error) {
+                  console.warn('Gmail connection check error:', error.message);
+                  // On error, assume no connection and show prompt
+                  localStorage.setItem('prompt_gmail_connect', '1');
+                } else if (!data) {
+                  console.log('No Gmail connection found, setting prompt flag');
+                  // Gmail/Calendar not connected - set flag for homepage to show prompt
+                  localStorage.setItem('prompt_gmail_connect', '1');
+                } else {
+                  console.log('Gmail connection found, no prompt needed');
+                  // Clear any existing prompt flag since Gmail is already connected
+                  localStorage.removeItem('prompt_gmail_connect');
+                }
+              }
+            } catch (e) {
+              console.warn('Auto Gmail connect check failed:', (e as Error).message);
+              // On error, assume no connection and show prompt
+              localStorage.setItem('prompt_gmail_connect', '1');
+            }
+          })();
         }
       }
     );

@@ -26,6 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const url = new URL(req.url);
+    const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:8080'; // Match vite dev server
     const pathname = url.pathname;
 
     if (req.method === 'GET') {
@@ -41,31 +42,10 @@ const handler = async (req: Request): Promise<Response> => {
           const userAgent = req.headers.get('user-agent') || '';
           const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
           
-          if (isMobile) {
-            return new Response(null, {
-              status: 302,
-              headers: {
-                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=error&error=${encodeURIComponent(error)}`,
-                ...corsHeaders
-              }
-            });
-          }
-          
-          return new Response(`
-            <html>
-              <body>
-                <script>
-                  window.opener?.postMessage({
-                    type: 'GMAIL_AUTH_ERROR',
-                    error: '${error}'
-                  }, '*');
-                  window.close();
-                </script>
-              </body>
-            </html>
-          `, {
-            status: 200,
-            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          const redirect = `${siteUrl.replace(/\/$/, '')}/account?gmail_auth=error&error=${encodeURIComponent(error)}`;
+          return new Response(null, {
+            status: 302,
+            headers: { 'Location': redirect, ...corsHeaders },
           });
         }
 
@@ -74,31 +54,10 @@ const handler = async (req: Request): Promise<Response> => {
           const userAgent = req.headers.get('user-agent') || '';
           const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
           
-          if (isMobile) {
-            return new Response(null, {
-              status: 302,
-              headers: {
-                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=error&error=${encodeURIComponent('Missing authorization code')}`,
-                ...corsHeaders
-              }
-            });
-          }
-          
-          return new Response(`
-            <html>
-              <body>
-                <script>
-                  window.opener?.postMessage({
-                    type: 'GMAIL_AUTH_ERROR',
-                    error: 'Missing authorization code or user ID'
-                  }, '*');
-                  window.close();
-                </script>
-              </body>
-            </html>
-          `, {
-            status: 200,
-            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          const redirect = `${siteUrl.replace(/\/$/, '')}/account?gmail_auth=error&error=${encodeURIComponent('Missing authorization code')}`;
+          return new Response(null, {
+            status: 302,
+            headers: { 'Location': redirect, ...corsHeaders },
           });
         }
 
@@ -166,49 +125,42 @@ const handler = async (req: Request): Promise<Response> => {
           const userAgent = req.headers.get('user-agent') || '';
           const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
           
-          if (isMobile) {
-            // Mobile: Redirect back to the account page with success parameter
-            return new Response(null, {
-              status: 302,
-              headers: {
-                'Location': `https://5eb95c88-7b91-431d-abcd-024a8536e78a.sandbox.lovable.dev/account?gmail_auth=success`,
-                ...corsHeaders
-              }
-            });
-          } else {
-            // Desktop: Close popup and notify parent window
-            return new Response(`<html><head><title>Success</title></head><body><script>
-              window.opener?.postMessage({
-                type: 'GMAIL_AUTH_SUCCESS',
-                data: { email: '${userInfo.email}' }
-              }, '*');
-              window.close();
-            </script><p>Gmail connected successfully. Closing...</p></body></html>`, {
-              status: 200,
-              headers: { 
-                'Content-Type': 'text/html; charset=utf-8',
-                ...corsHeaders 
-              },
-            });
-          }
+          const redirect = `${siteUrl.replace(/\/$/, '')}/?gmail_auth=success`;
+          console.log('Redirecting to:', redirect);
+          console.log('Site URL:', siteUrl);
+          
+          // Return HTML that redirects immediately
+          const htmlResponse = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Gmail Connected</title>
+                <meta http-equiv="refresh" content="0; url=${redirect}">
+                <script>
+                  window.location.href = '${redirect}';
+                </script>
+              </head>
+              <body>
+                <p>Gmail connected successfully. Redirecting...</p>
+                <p>If you are not redirected automatically, <a href="${redirect}">click here</a>.</p>
+              </body>
+            </html>
+          `;
+          
+          return new Response(htmlResponse, {
+            status: 200,
+            headers: { 
+              'Content-Type': 'text/html',
+              ...corsHeaders 
+            },
+          });
 
         } catch (err: any) {
           console.error('Error processing OAuth callback:', err);
-          return new Response(`
-            <html>
-              <body>
-                <script>
-                  window.opener?.postMessage({
-                    type: 'GMAIL_AUTH_ERROR',
-                    error: '${err.message}'
-                  }, '*');
-                  window.close();
-                </script>
-              </body>
-            </html>
-          `, {
-            status: 200,
-            headers: { 'Content-Type': 'text/html', ...corsHeaders },
+          const redirect = `${siteUrl.replace(/\/$/, '')}/account?gmail_auth=error&error=${encodeURIComponent(err.message)}`;
+          return new Response(null, {
+            status: 302,
+            headers: { 'Location': redirect, ...corsHeaders },
           });
         }
       }
