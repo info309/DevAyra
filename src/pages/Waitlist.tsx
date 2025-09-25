@@ -103,10 +103,10 @@ const Waitlist = () => {
           <div className="relative mb-8">
             <div className="text-center mb-8">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4">
-                Meet Ayra, your personal AI assistant
+                Meet Ayra, your personal AI assistant.
               </h1>
               <p className="text-base text-muted-foreground font-body font-medium max-w-2xl mx-auto">
-                Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
+                Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace.
               </p>
             </div>
             <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-[2rem] p-4 shadow-2xl mb-8">
@@ -141,7 +141,7 @@ const Waitlist = () => {
             Join the world's
           </h1>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
-            <span className="underline decoration-primary decoration-4">most integrated</span> workspace
+            <span className="underline decoration-primary decoration-4">most integrated</span> workspace.
           </h1>
           
           <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-6">
