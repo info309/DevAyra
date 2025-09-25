@@ -200,7 +200,7 @@ Your ${documentType} is ready for viewing${documentType === 'invoice' ? ' and pa
   } catch (error) {
     console.error('Error sending invoice:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error)?.message || 'Unknown error' }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
