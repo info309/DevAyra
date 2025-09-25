@@ -1,3 +1,11 @@
+// Type declarations for Deno edge runtime
+declare const OffscreenCanvas: {
+  new(width: number, height: number): {
+    getContext(contextId: '2d'): any;
+    convertToBlob(): Promise<Blob>;
+  };
+};
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -123,7 +131,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-thumbnail function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Internal server error', details: (error as Error)?.message || 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
@@ -153,7 +161,7 @@ async function generateImageThumbnail(fileBlob: Blob): Promise<Blob | null> {
     ctx.textAlign = 'center';
     ctx.fillText('Image Thumbnail', 150, 200);
     
-    return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+    return await canvas.convertToBlob();
   } catch (error) {
     console.error('Error generating image thumbnail:', error);
     return null;
@@ -187,7 +195,7 @@ async function generatePDFThumbnail(fileBlob: Blob): Promise<Blob | null> {
     ctx.textAlign = 'center';
     ctx.fillText('PDF', 150, 360);
     
-    return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+    return await canvas.convertToBlob();
   } catch (error) {
     console.error('Error generating PDF thumbnail:', error);
     return null;
@@ -240,7 +248,7 @@ async function generateOfficeThumbnail(fileBlob: Blob, mimeType: string): Promis
     ctx.textAlign = 'center';
     ctx.fillText(docType, 150, 50);
     
-    return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+    return await canvas.convertToBlob();
   } catch (error) {
     console.error('Error generating Office document thumbnail:', error);
     return null;

@@ -103,11 +103,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error(`[${requestId}] Handler error:`, error);
-    console.error(`[${requestId}] Error stack:`, error.stack);
+    console.error(`[${requestId}] Error stack:`, (error as Error)?.stack);
     
     return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error',
-      details: error.toString()
+      error: (error as Error)?.message || 'Internal server error',
+      details: (error as any)?.toString?.() || 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -319,7 +319,7 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
                 uint8 = new Uint8Array(ab);
               }
 
-              attachmentData = encodeBase64(uint8);
+              attachmentData = encodeBase64(uint8.buffer);
               console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
             }
           }
@@ -339,7 +339,7 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
           
         } catch (attachmentError) {
           console.error(`[${requestId}] Error processing attachment ${att.name}:`, attachmentError);
-          throw new Error(`Failed to process attachment ${att.name}: ${attachmentError.message}`);
+          throw new Error(`Failed to process attachment ${att.name}: ${(attachmentError as Error)?.message || 'Unknown error'}`);
         }
       }
       
@@ -354,7 +354,7 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
     const rawBytes = new TextEncoder().encode(emailContent);
     console.log(`[${requestId}] Raw bytes length: ${rawBytes.length}`);
     
-    const encodedEmail = encodeBase64(rawBytes)
+    const encodedEmail = encodeBase64(rawBytes.buffer)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
@@ -407,11 +407,11 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
 
   } catch (error) {
     console.error(`[${requestId}] Send email error:`, error);
-    console.error(`[${requestId}] Send email stack:`, error.stack);
+    console.error(`[${requestId}] Send email stack:`, (error as Error)?.stack);
     
-    return new Response(JSON.stringify({
-      error: error.message || 'Send email failed',
-      details: error.toString()
+    return new Response(JSON.stringify({ 
+      error: (error as Error)?.message || 'Send email failed',
+      details: (error as any)?.toString?.() || 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

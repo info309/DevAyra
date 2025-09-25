@@ -124,7 +124,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Cache emails function error:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: (error as Error)?.message || 'Unknown error',
       success: false
     }), {
       status: 500,

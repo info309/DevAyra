@@ -173,7 +173,7 @@ serve(async (req) => {
         try {
           messagesListResponse = await callGmailApi(currentAccessToken, '/users/me/messages', params);
         } catch (error) {
-          if (error.message === 'UNAUTHORIZED' && connection.refresh_token) {
+          if ((error as any)?.message === 'UNAUTHORIZED' && connection.refresh_token) {
             console.log(`Access token expired for user ${connection.user_id}, refreshing...`);
             
             try {
@@ -197,7 +197,7 @@ serve(async (req) => {
                 .from('gmail_connections')
                 .update({ 
                   is_active: false,
-                  last_error: `Token refresh failed: ${refreshError.message}`
+                  last_error: `Token refresh failed: ${(refreshError as Error)?.message || 'Unknown error'}`
                 })
                 .eq('user_id', connection.user_id);
               
@@ -300,7 +300,7 @@ serve(async (req) => {
         await supabase
           .from('gmail_connections')
           .update({ 
-            last_error: error.message
+            last_error: (error as Error)?.message || 'Unknown error'
           })
           .eq('user_id', connection.user_id);
       }
@@ -317,7 +317,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Auto-cache emails function error:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: (error as Error)?.message || 'Unknown error',
       success: false
     }), {
       status: 500,

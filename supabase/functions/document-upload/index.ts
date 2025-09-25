@@ -2,50 +2,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-interface Database {
-  public: {
-    Tables: {
-      user_documents: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          file_path: string;
-          file_size: number | null;
-          mime_type: string | null;
-          source_type: string;
-          source_email_id: string | null;
-          source_email_subject: string | null;
-          category: string | null;
-          tags: string[] | null;
-          description: string | null;
-          is_favorite: boolean;
-          is_folder: boolean;
-          folder_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          user_id: string;
-          name: string;
-          file_path: string;
-          file_size?: number | null;
-          mime_type?: string | null;
-          source_type?: string;
-          source_email_id?: string | null;
-          source_email_subject?: string | null;
-          category?: string | null;
-          tags?: string[] | null;
-          description?: string | null;
-          is_favorite?: boolean;
-          is_folder?: boolean;
-          folder_id?: string | null;
-        };
-      };
-    };
-  };
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -58,8 +14,8 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client
-    const supabaseClient = createClient<Database>(
+    // Create Supabase client without custom types to use generated types
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
@@ -170,7 +126,7 @@ serve(async (req) => {
 
     // Trigger thumbnail generation asynchronously (don't wait for completion)
     if (document) {
-      console.log('Triggering thumbnail generation for document:', document.id);
+      console.log('Triggering thumbnail generation for document:', document?.id);
       
       // Create service role client for internal function calls
       const serviceClient = createClient(
@@ -181,7 +137,7 @@ serve(async (req) => {
       // Call thumbnail generation function asynchronously
       serviceClient.functions.invoke('generate-thumbnail', {
         body: {
-          documentId: document.id,
+          documentId: document?.id,
           filePath: filePath,
           mimeType: file.type
         }
