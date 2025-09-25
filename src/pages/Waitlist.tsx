@@ -1,15 +1,29 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Play, Pause } from "lucide-react";
 
 const Waitlist = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.pause();
+        setIsVideoPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsVideoPlaying(true);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,17 +106,30 @@ const Waitlist = () => {
               alt="Ayra" 
               className="w-32 h-32 mx-auto mb-8 object-contain"
             />
-            <div className="w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-amber-200 to-orange-200 flex items-center justify-center mb-8">
-              <div className="text-6xl">🚀</div>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black/10 backdrop-blur-sm rounded-lg px-6 py-3 mt-32">
-                <h2 className="text-2xl font-bold text-foreground">
-                  elite productivity
-                </h2>
-                <h2 className="text-2xl font-bold text-foreground">
-                  platform.
-                </h2>
+            <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-[2rem] p-4 shadow-2xl mb-8">
+              <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
+                {/* iPad home indicator */}
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full z-10"></div>
+                <video 
+                  ref={videoRef}
+                  className="w-full h-full object-cover rounded-[1.5rem]"
+                  preload="metadata"
+                  onPlay={() => setIsVideoPlaying(true)}
+                  onPause={() => setIsVideoPlaying(false)}
+                >
+                  <source src="/Ayra_in_action.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                {/* Play/Pause Button Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={`transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'} bg-black/50 rounded-full p-4 hover:bg-black/70`}>
+                    {isVideoPlaying ? (
+                      <Pause className="w-12 h-12 text-white" />
+                    ) : (
+                      <Play className="w-12 h-12 text-white ml-1" />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
