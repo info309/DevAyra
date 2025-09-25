@@ -106,6 +106,15 @@ const Waitlist = () => {
               alt="Ayra" 
               className="w-32 h-32 mx-auto mb-8 object-contain"
             />
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4" style={{ lineHeight: 1.1 }}>
+                <span className="text-primary">One login. One AI.</span><br />
+                <span>Unlimited productivity.</span>
+              </h1>
+              <p className="text-base text-foreground font-body font-medium">
+                Your personal AI assistant
+              </p>
+            </div>
             <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-[2rem] p-4 shadow-2xl mb-8">
               <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
                 {/* iPad home indicator */}
