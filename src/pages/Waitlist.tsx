@@ -101,11 +101,6 @@ const Waitlist = () => {
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-12">
           <div className="relative mb-8">
-            <img 
-              src="/ayra-logo.png" 
-              alt="Ayra" 
-              className="w-32 h-32 mx-auto mb-8 object-contain"
-            />
             <div className="text-center mb-8">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4">
                 Meet Ayra, your personal AI assistant
