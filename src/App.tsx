@@ -20,6 +20,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import Payment from "./pages/Payment";
 import Quote from "./pages/Quote";
+import Waitlist from "./pages/Waitlist";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -84,6 +85,7 @@ const App = () => (
             } />
             <Route path="/payment" element={<Payment />} />
             <Route path="/quote" element={<Quote />} />
+            <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
