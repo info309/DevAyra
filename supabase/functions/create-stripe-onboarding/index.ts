@@ -15,6 +15,7 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const path = url.pathname;
+  const isCallback = path.includes('/callback') || url.searchParams.has('code');
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -27,7 +28,7 @@ serve(async (req) => {
     );
 
     // Handle OAuth callback from Stripe
-    if (path.includes('/callback')) {
+    if (isCallback) {
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state'); // Contains user_id
       
