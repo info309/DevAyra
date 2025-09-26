@@ -84,12 +84,17 @@ const StripeConnectionCard: React.FC = () => {
         // Redirect to Stripe OAuth page in the same window
         window.location.href = data.url;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating Stripe OAuth URL:', error);
+      
+      // Handle different error formats from Supabase functions
+      const errorMessage = error?.message || error?.error || error;
+      const isAlreadyConnected = errorMessage === 'User already has a connected Stripe account';
+      
       toast({
         title: "Error",
-        description: error.message === 'User already has a connected Stripe account' 
-          ? "You already have a connected Stripe account."
+        description: isAlreadyConnected
+          ? "You already have a connected Stripe account. Use the 'Update Account' button to manage your Stripe settings."
           : "Failed to create Stripe connection. Please try again.",
         variant: "destructive",
       });
@@ -209,14 +214,24 @@ const StripeConnectionCard: React.FC = () => {
                 >
                   Refresh Status
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleConnectStripe}
-                  disabled={loading}
-                >
-                  Update Account
-                </Button>
+                {(!stripeStatus.charges_enabled || !stripeStatus.details_submitted) && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleConnectStripe}
+                    disabled={loading}
+                    className="gap-2"
+                  >
+                    {loading ? (
+                      "Redirecting..."
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4" />
+                        Complete Setup
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           )}

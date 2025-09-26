@@ -70,22 +70,12 @@ serve(async (req) => {
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
 
-    // Check if user already has a Stripe account
+    // Check if user already has a Stripe account (we'll allow reconnection for updates)
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('stripe_account_id')
       .eq('user_id', user.id)
       .single();
-
-    if (profile?.stripe_account_id) {
-      return new Response(
-        JSON.stringify({ error: 'User already has a connected Stripe account' }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
 
     // Generate Stripe Connect OAuth URL
     const clientId = Deno.env.get("STRIPE_CLIENT_ID");
