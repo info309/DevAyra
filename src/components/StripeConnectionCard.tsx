@@ -32,6 +32,19 @@ const StripeConnectionCard: React.FC = () => {
     if (user) {
       checkStripeStatus();
     }
+    
+    // Check for success parameter when returning from Stripe OAuth
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('stripe_connected') === 'true') {
+      toast({
+        title: "Success!",
+        description: "Your Stripe account has been connected successfully.",
+      });
+      // Remove the parameter from URL
+      window.history.replaceState({}, '', window.location.pathname);
+      // Refresh status after successful connection
+      setTimeout(() => checkStripeStatus(), 1000);
+    }
   }, [user]);
 
   const checkStripeStatus = async () => {
@@ -55,24 +68,29 @@ const StripeConnectionCard: React.FC = () => {
   };
 
   const handleConnectStripe = async () => {
+    if (!user) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data, error } = await supabase.functions.invoke('create-stripe-onboarding');
-      
+      const { data, error } = await supabase.functions.invoke('create-stripe-onboarding', {
+        headers: {
+          Authorization: `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
+        },
+      });
+
       if (error) throw error;
       
-      // Open Stripe onboarding in a new tab
-      window.open(data.url, '_blank');
-      
-      toast({
-        title: "Redirecting to Stripe",
-        description: "Complete the onboarding process to start accepting payments.",
-      });
+      if (data?.url) {
+        // Redirect to Stripe OAuth page in the same window
+        window.location.href = data.url;
+      }
     } catch (error) {
-      console.error('Error creating Stripe onboarding:', error);
+      console.error('Error creating Stripe OAuth URL:', error);
       toast({
         title: "Error",
-        description: "Failed to create Stripe onboarding link.",
+        description: error.message === 'User already has a connected Stripe account' 
+          ? "You already have a connected Stripe account."
+          : "Failed to create Stripe connection. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -113,30 +131,33 @@ const StripeConnectionCard: React.FC = () => {
           Stripe Payment Processing
         </CardTitle>
         <CardDescription>
-          Connect your Stripe account to accept payments for your invoices
+          Login to your existing Stripe account or create a new one to accept payments for your invoices
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {!stripeStatus.connected ? (
             <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                You need to connect your Stripe account to start accepting payments from your clients.
-              </div>
+                <div className="text-sm text-muted-foreground">
+                  Connect your existing Stripe account or create a new one to start accepting payments.
+                </div>
               <Button 
                 onClick={handleConnectStripe} 
                 disabled={loading}
                 className="gap-2"
               >
                 {loading ? (
-                  "Creating onboarding link..."
+                  "Redirecting to Stripe..."
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4" />
-                    Connect Stripe Account
+                    Login to Stripe Account
                   </>
                 )}
               </Button>
+              <div className="text-xs text-muted-foreground">
+                Don't have a Stripe account? You can create one during the login process.
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
