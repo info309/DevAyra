@@ -17,6 +17,10 @@ serve(async (req) => {
   const path = url.pathname;
   const isCallback = path.includes('/callback') || url.searchParams.has('code');
 
+  console.log('Request path:', path);
+  console.log('Is callback:', isCallback);
+  console.log('Has code param:', url.searchParams.has('code'));
+
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -29,13 +33,22 @@ serve(async (req) => {
 
     // Handle OAuth callback from Stripe
     if (isCallback) {
+      console.log('Processing callback...');
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state'); // Contains user_id
       
       if (!code || !state) {
-        throw new Error('Missing authorization code or state');
+        console.error('Missing code or state:', { code: !!code, state: !!state });
+        return new Response(
+          JSON.stringify({ error: 'Missing authorization code or state' }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
       }
 
+      console.log('Exchanging code for token...');
       const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
       // Exchange authorization code for account access
@@ -47,6 +60,8 @@ serve(async (req) => {
       const accountId = response.stripe_user_id;
       const userId = state; // We passed user_id as state
 
+      console.log('Updating profile for user:', userId, 'with account:', accountId);
+
       // Update user profile with Stripe account ID
       const { error: updateError } = await supabaseClient
         .from('profiles')
@@ -56,8 +71,12 @@ serve(async (req) => {
         })
         .eq('user_id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
+      console.log('Redirecting to success page...');
       // Redirect back to account page with success
       const origin = req.headers.get("origin") || Deno.env.get("FRONTEND_URL");
       return Response.redirect(`${origin}/account?stripe_connected=true`);
