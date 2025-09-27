@@ -26,7 +26,36 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const url = new URL(req.url);
-    const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:8080'; // Match vite dev server
+    // Determine the correct site URL based on the request
+    let siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3001';
+    
+    // Check if this is coming from a Lovable environment
+    const referer = req.headers.get('referer');
+    const origin = req.headers.get('origin');
+    
+    console.log('Headers for URL detection:', { referer, origin });
+    
+    if (referer && referer.includes('lovable.app')) {
+      // Extract the Lovable URL from the referer
+      const lovableUrl = new URL(referer);
+      siteUrl = `${lovableUrl.protocol}//${lovableUrl.host}`;
+      console.log('Detected Lovable environment from referer, using site URL:', siteUrl);
+    } else if (origin && origin.includes('lovable.app')) {
+      siteUrl = origin;
+      console.log('Detected Lovable environment from origin, using site URL:', siteUrl);
+    } else if (referer && referer.includes('ayra-unified-suite')) {
+      siteUrl = 'https://ayra-unified-suite.lovable.app';
+      console.log('Using production Lovable URL:', siteUrl);
+    }
+    
+    // Also check for specific Lovable preview URL pattern
+    if ((siteUrl === 'http://localhost:3001' || siteUrl === 'http://localhost:3000' || siteUrl === 'http://localhost:8080') && (referer || origin)) {
+      const sourceUrl = referer || origin;
+      if (sourceUrl && sourceUrl.includes('5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app')) {
+        siteUrl = 'https://id-preview--5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app';
+        console.log('Using specific Lovable preview URL:', siteUrl);
+      }
+    }
     const pathname = url.pathname;
 
     if (req.method === 'GET') {
@@ -129,28 +158,11 @@ const handler = async (req: Request): Promise<Response> => {
           console.log('Redirecting to:', redirect);
           console.log('Site URL:', siteUrl);
           
-          // Return HTML that redirects immediately
-          const htmlResponse = `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>Gmail Connected</title>
-                <meta http-equiv="refresh" content="0; url=${redirect}">
-                <script>
-                  window.location.href = '${redirect}';
-                </script>
-              </head>
-              <body>
-                <p>Gmail connected successfully. Redirecting...</p>
-                <p>If you are not redirected automatically, <a href="${redirect}">click here</a>.</p>
-              </body>
-            </html>
-          `;
-          
-          return new Response(htmlResponse, {
-            status: 200,
+          // Use proper HTTP redirect
+          return new Response(null, {
+            status: 302,
             headers: { 
-              'Content-Type': 'text/html',
+              'Location': redirect,
               ...corsHeaders 
             },
           });
