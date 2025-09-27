@@ -17,6 +17,7 @@ const SYSTEM_PROMPT = `
 You are a magical AI assistant named "Ayra". You are friendly, human-like, witty, and concise.
 You have access to special tools like email search, document search, calendar events, and email sending.
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
+The user's business/company is: {{BUSINESS_NAME}} - use this context when providing business advice or assistance.
 
 CRITICAL EMAIL DRAFT CONSISTENCY RULE - THIS IS MANDATORY:
 - When you show the user a detailed email draft in your response, you MUST pass that EXACT SAME content to emails_compose_draft
@@ -58,6 +59,13 @@ Core Rules:
 5. Keep answers magical: friendly, clear, slightly playful, and intelligent.
 6. Use the last 6 messages for context. Each message is independent. Focus on clarity and usefulness.
 7. Be conversational and context-aware - don't repeat the same questions.
+
+PROACTIVE ACTION RULES:
+- When user asks to "draft an email" or mentions email composition, IMMEDIATELY create the draft using emails_compose_draft - don't ask for confirmation
+- When user mentions scheduling meetings or calendar events, ALWAYS check their calendar availability first
+- When providing schedule summaries, ALWAYS offer to draft emails or create calendar events based on the content
+- When user asks about meeting times, check availability and suggest free slots automatically
+- After summarizing emails, proactively offer relevant actions like "Would you like me to draft a response?" or "Should I schedule a follow-up meeting?"
 
 Email Handling Rules:
 - CRITICAL: When user asks for email summaries, weekly reviews, or mentions specific people - IMMEDIATELY search emails first
@@ -225,6 +233,43 @@ const CALENDAR_TOOLS = [
           }
         },
         required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calendar_check_availability',
+      description: 'Check calendar availability for a specific time period and find free slots. Use this when user wants to schedule meetings or check availability.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: {
+            type: 'string',
+            description: 'Date to check availability for (YYYY-MM-DD format)'
+          },
+          duration: {
+            type: 'number',
+            description: 'Duration of the meeting in minutes (default: 60)',
+            default: 60
+          },
+          startTime: {
+            type: 'string',
+            description: 'Start time to check from (HH:MM format, 24-hour, default: 09:00)',
+            default: '09:00'
+          },
+          endTime: {
+            type: 'string',
+            description: 'End time to check until (HH:MM format, 24-hour, default: 17:00)',
+            default: '17:00'
+          },
+          period: {
+            type: 'string',
+            description: 'Natural language period like "tomorrow", "next week", "this week" to check multiple days',
+            optional: true
+          }
+        },
+        required: ['date']
       }
     }
   },
@@ -1105,6 +1150,83 @@ async function createCalendarEvent(userId: string, eventData: any) {
   }
 }
 
+async function checkCalendarAvailability(userId: string, date: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string) {
+  try {
+    console.log(`Checking calendar availability for user ${userId}, date: ${date}, duration: ${duration}min`);
+    
+    // Get user's timezone
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('timezone')
+      .eq('user_id', userId)
+      .single();
+
+    const userTimezone = userProfile?.timezone || 'UTC';
+    
+    // Calculate time range for the day
+    const dayStart = new Date(`${date}T${startTime}:00`);
+    const dayEnd = new Date(`${date}T${endTime}:00`);
+    
+    // Get existing events for the day
+    const { data: events, error } = await supabase
+      .from('calendar_events')
+      .select('start_time, end_time, title')
+      .eq('user_id', userId)
+      .gte('start_time', dayStart.toISOString())
+      .lte('start_time', dayEnd.toISOString())
+      .order('start_time');
+    
+    if (error) {
+      console.error('Error fetching calendar events:', error);
+      return { error: `Failed to check availability: ${error.message}` };
+    }
+    
+    // Find free slots
+    const freeSlots = [];
+    const slotDuration = duration * 60 * 1000; // Convert to milliseconds
+    
+    let currentTime = new Date(dayStart);
+    
+    while (currentTime.getTime() + slotDuration <= dayEnd.getTime()) {
+      const slotEnd = new Date(currentTime.getTime() + slotDuration);
+      
+      // Check if this slot conflicts with any existing events
+      const hasConflict = events?.some(event => {
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        
+        return (currentTime < eventEnd && slotEnd > eventStart);
+      });
+      
+      if (!hasConflict) {
+        freeSlots.push({
+          start: currentTime.toISOString(),
+          end: slotEnd.toISOString(),
+          startTime: currentTime.toTimeString().slice(0, 5),
+          endTime: slotEnd.toTimeString().slice(0, 5),
+          duration: duration
+        });
+      }
+      
+      // Move to next 30-minute slot
+      currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
+    }
+    
+    return {
+      success: true,
+      date: date,
+      duration: duration,
+      freeSlots: freeSlots,
+      totalSlots: freeSlots.length,
+      message: `Found ${freeSlots.length} available ${duration}-minute slots on ${date}`
+    };
+    
+  } catch (error) {
+    console.error('Calendar availability check error:', error);
+    return { error: `Failed to check availability: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+}
+
 async function composeEmailDraft(to: string, subject: string, content: string, threadId?: string, attachments?: string[], userName?: string) {
   console.log('Composing email draft:', { to, subject, threadId, attachments });
   
@@ -1325,17 +1447,19 @@ serve(async (req) => {
     // Prepare messages for OpenAI with personalized system prompt
     let personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
     
-    // Get user timezone and format current time
+    // Get user timezone, business name and format current time
     let userTimezone = 'UTC';
+    let businessName = 'Your Business'; // Default fallback
     let currentUserTime = 'Unknown';
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('timezone')
+        .select('timezone, business_name')
         .eq('user_id', user.id)
         .maybeSingle();
       
       userTimezone = profile?.timezone || client_timezone || 'UTC';
+      businessName = profile?.business_name || 'Your Business';
       
       if (current_time) {
         const { format } = await import('https://esm.sh/date-fns@3.6.0');  
@@ -1348,10 +1472,11 @@ serve(async (req) => {
       console.log('Timezone formatting error:', tzError);
     }
     
-    // Replace timezone and current time placeholders
+    // Replace placeholders in system prompt
     personalizedSystemPrompt = personalizedSystemPrompt
       .replace('{{CURRENT_TIME}}', currentUserTime)
-      .replace('{{USER_TIMEZONE}}', userTimezone);
+      .replace('{{USER_TIMEZONE}}', userTimezone)
+      .replace('{{BUSINESS_NAME}}', businessName);
     
     const messages = [
       { role: 'system', content: personalizedSystemPrompt },
@@ -1472,6 +1597,9 @@ serve(async (req) => {
               break;
             case 'calendar_list_events':
               result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
+              break;
+            case 'calendar_check_availability':
+              result = await checkCalendarAvailability(user.id, args.date, args.duration, args.startTime, args.endTime, args.period);
               break;
             case 'calendar_create_event':
               result = await createCalendarEvent(user.id, { ...args, client_timezone });

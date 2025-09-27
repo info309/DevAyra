@@ -502,6 +502,22 @@ const Assistant = () => {
               subject: draft.subject,
               hasContent: !!draft.content
             });
+            
+            // Safely combine and process attachments
+            const processAttachments = () => {
+              const attachments = (draft.attachments && Array.isArray(draft.attachments) ? draft.attachments : []);
+              const attachedDocs = (draft.attachedDocuments && Array.isArray(draft.attachedDocuments) ? draft.attachedDocuments : []);
+              
+              return [...attachments, ...attachedDocs].map(doc => ({
+                id: doc.id,
+                name: doc.name,
+                url: doc.publicUrl || doc.url,
+                mime_type: doc.mime_type,
+                file_size: doc.file_size,
+                type: doc.mime_type // Adding type for compatibility
+              }));
+            };
+            
             const openDraft = () => {
               navigate('/mailbox', { 
                 state: { 
@@ -511,14 +527,7 @@ const Assistant = () => {
                     content: draft.content,
                     replyTo: draft.replyTo,
                     threadId: draft.threadId,
-                    attachments: (draft.attachments || draft.attachedDocuments || []).map(doc => ({
-                      id: doc.id,
-                      name: doc.name,
-                      url: doc.publicUrl || doc.url,
-                      mime_type: doc.mime_type,
-                      file_size: doc.file_size,
-                      type: doc.mime_type // Adding type for compatibility
-                    }))
+                    attachments: processAttachments()
                   }
                 }
               });
@@ -534,8 +543,8 @@ const Assistant = () => {
                   <div className="space-y-3 text-sm">
                     <p><span className="font-medium">To:</span> {draft.to}</p>
                     <p><span className="font-medium">Subject:</span> {draft.subject}</p>
-                    {draft.attachedDocuments && draft.attachedDocuments.length > 0 && (
-                      <p><span className="font-medium">Attachments:</span> {draft.attachedDocuments.length} file(s)</p>
+                    {processAttachments().length > 0 && (
+                      <p><span className="font-medium">Attachments:</span> {processAttachments().length} file(s)</p>
                     )}
                     <Button onClick={openDraft} className="w-full">
                       <Mail className="w-4 h-4 mr-2" />
