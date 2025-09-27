@@ -7,7 +7,6 @@ import { ArrowLeft, FileText, Receipt, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
-import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
 import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
 import type { Database } from '@/integrations/supabase/types';
@@ -215,7 +214,6 @@ const Finances = () => {
       </div>
 
       <InvoicePaymentBanner />
-      <GmailConnectionBanner />
       <FinancialDashboard 
         onShowPaidInvoices={() => {
           setShowPaidInvoices(true);

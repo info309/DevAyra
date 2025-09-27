@@ -23,7 +23,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import InvoiceComposeDrawer from '@/components/InvoiceComposeDrawer';
-import GmailConnectionBanner from '@/components/GmailConnectionBanner';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
