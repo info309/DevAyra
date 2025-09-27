@@ -29,6 +29,37 @@ const handler = async (req: Request): Promise<Response> => {
     // Determine the correct site URL based on the request
     let baseSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'http://localhost:3001';
     let siteUrl = baseSiteUrl;
+    
+    // Check if this is coming from a Lovable environment
+    const referer = req.headers.get('referer');
+    const origin = req.headers.get('origin');
+    
+    console.log('Headers for URL detection:', { referer, origin });
+    
+    if (referer && referer.includes('lovable.app')) {
+      // Extract the Lovable URL from the referer
+      const lovableUrl = new URL(referer);
+      siteUrl = `${lovableUrl.protocol}//${lovableUrl.host}`;
+      console.log('Detected Lovable environment from referer, using site URL:', siteUrl);
+    } else if (origin && origin.includes('lovable.app')) {
+      siteUrl = origin;
+      console.log('Detected Lovable environment from origin, using site URL:', siteUrl);
+    } else if (referer && referer.includes('ayra-unified-suite')) {
+      siteUrl = 'https://ayra-unified-suite.lovable.app';
+      console.log('Using production Lovable URL:', siteUrl);
+    } else {
+      // Ensure we only use the base URL without any path
+      siteUrl = new URL(baseSiteUrl).origin;
+    }
+    
+    // Also check for specific Lovable preview URL pattern
+    if ((siteUrl === 'http://localhost:3001' || siteUrl === 'http://localhost:3000' || siteUrl === 'http://localhost:8080') && (referer || origin)) {
+      const sourceUrl = referer || origin;
+      if (sourceUrl && sourceUrl.includes('5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app')) {
+        siteUrl = 'https://id-preview--5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app';
+        console.log('Using specific Lovable preview URL:', siteUrl);
+      }
+    }
     const pathname = url.pathname;
 
     if (req.method === 'GET') {
