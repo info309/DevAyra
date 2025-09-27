@@ -250,37 +250,28 @@ const Index = () => {
       
       // Check if we should prompt for Gmail connection
       const shouldPromptGmail = localStorage.getItem('prompt_gmail_connect') === '1';
+      const promptDismissedThisSession = sessionStorage.getItem('gmail_prompt_dismissed') === '1';
       const isGoogleUser = (user.app_metadata as any)?.provider === 'google';
       
       console.log('Homepage: shouldPromptGmail =', shouldPromptGmail);
+      console.log('Homepage: promptDismissedThisSession =', promptDismissedThisSession);
       console.log('Homepage: isGoogleUser =', isGoogleUser);
       console.log('Homepage: localStorage prompt_gmail_connect =', localStorage.getItem('prompt_gmail_connect'));
       console.log('Homepage: user.app_metadata =', user.app_metadata);
       
-      // FORCE TEST: Always show popup for Google users
-      if (isGoogleUser) {
-        console.log('Homepage: FORCE TEST - Showing popup for Google user');
-        console.log('Homepage: About to call setShowGmailConsent(true)');
-        setShowGmailConsent(true);
-        console.log('Homepage: Called setShowGmailConsent(true)');
-        return; // Skip the rest of the logic
-      }
-      
-      // Original logic (commented out for testing)
-      /*
-      if ((shouldPromptGmail && isGoogleUser) || isGoogleUser) {
+      // Only show Gmail prompt for Google users who need it and haven't dismissed it this session
+      if (shouldPromptGmail && isGoogleUser && !promptDismissedThisSession) {
         console.log('Homepage: Showing Gmail consent popup for Google user without Gmail connection');
         setShowGmailConsent(true);
         localStorage.removeItem('prompt_gmail_connect');
       } else if (shouldPromptGmail) {
-        console.log('Homepage: Clearing stale Gmail prompt flag for non-Google user');
+        console.log('Homepage: Clearing stale Gmail prompt flag for non-Google user or dismissed this session');
         localStorage.removeItem('prompt_gmail_connect');
         navigate('/dashboard');
       } else {
         console.log('Homepage: Redirecting to dashboard (no Gmail prompt needed)');
         navigate('/dashboard');
       }
-      */
     }
   }, [user, loading, navigate]);
 
@@ -881,7 +872,8 @@ const Index = () => {
               variant="outline" 
               onClick={() => {
                 setShowGmailConsent(false);
-                // Don't clear the flag - let them be reminded later from Account page
+                // Set a session flag to prevent showing again in this session
+                sessionStorage.setItem('gmail_prompt_dismissed', '1');
                 navigate('/dashboard');
               }}
               disabled={connectingGmail}

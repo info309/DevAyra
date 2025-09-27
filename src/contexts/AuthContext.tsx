@@ -78,17 +78,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_IN') {
           console.log('User signed in');
           upsertProfileFromUser(session?.user ?? null);
-          // If the user signed in with Google, set a flag to check Gmail connection
+          // If the user signed in with Google, check if they need Gmail connection
           (async () => {
             try {
               const provider = (session?.user?.app_metadata as any)?.provider;
               console.log('SIGNED_IN event - provider:', provider, 'user:', session?.user?.email);
               if (provider === 'google' && session?.user) {
                 console.log('Checking Gmail connection for Google user:', session.user.id);
-                
-                // For new Google users, always set the prompt flag initially
-                localStorage.setItem('prompt_gmail_connect', '1');
-                console.log('Set initial prompt flag for Google user');
                 
                 const { data, error } = await supabase
                   .from('gmail_connections')
@@ -98,22 +94,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .maybeSingle();
                 
                 if (error) {
-                  console.warn('Gmail connection check error:', error.message, '- keeping prompt flag');
-                  // Keep the prompt flag on error
+                  console.warn('Gmail connection check error:', error.message, '- setting prompt flag');
+                  // Set prompt flag on error (assume no connection)
+                  localStorage.setItem('prompt_gmail_connect', '1');
                 } else if (!data) {
-                  console.log('No Gmail connection found, keeping prompt flag');
-                  // Keep the prompt flag - already set above
-                  console.log('Flag confirmed, localStorage contains:', localStorage.getItem('prompt_gmail_connect'));
+                  console.log('No Gmail connection found, setting prompt flag');
+                  // Set prompt flag since no Gmail connection exists
+                  localStorage.setItem('prompt_gmail_connect', '1');
+                  console.log('Flag set, localStorage contains:', localStorage.getItem('prompt_gmail_connect'));
                 } else {
-                  console.log('Gmail connection found, removing prompt flag');
+                  console.log('Gmail connection found, removing any prompt flag');
                   // Clear the prompt flag since Gmail is already connected
                   localStorage.removeItem('prompt_gmail_connect');
                 }
               }
             } catch (e) {
               console.warn('Auto Gmail connect check failed:', (e as Error).message);
-              // On error, assume no connection and show prompt
-              localStorage.setItem('prompt_gmail_connect', '1');
+              // On error, assume no connection and show prompt for Google users
+              const provider = (session?.user?.app_metadata as any)?.provider;
+              if (provider === 'google') {
+                localStorage.setItem('prompt_gmail_connect', '1');
+              }
             }
           })();
         }
