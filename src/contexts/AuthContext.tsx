@@ -82,8 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (async () => {
             try {
               const provider = (session?.user?.app_metadata as any)?.provider;
+              console.log('SIGNED_IN event - provider:', provider, 'user:', session?.user?.email);
               if (provider === 'google' && session?.user) {
                 console.log('Checking Gmail connection for Google user:', session.user.id);
+                
+                // For new Google users, always set the prompt flag initially
+                localStorage.setItem('prompt_gmail_connect', '1');
+                console.log('Set initial prompt flag for Google user');
                 
                 const { data, error } = await supabase
                   .from('gmail_connections')
@@ -93,16 +98,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .maybeSingle();
                 
                 if (error) {
-                  console.warn('Gmail connection check error:', error.message);
-                  // On error, assume no connection and show prompt
-                  localStorage.setItem('prompt_gmail_connect', '1');
+                  console.warn('Gmail connection check error:', error.message, '- keeping prompt flag');
+                  // Keep the prompt flag on error
                 } else if (!data) {
-                  console.log('No Gmail connection found, setting prompt flag');
-                  // Gmail/Calendar not connected - set flag for homepage to show prompt
-                  localStorage.setItem('prompt_gmail_connect', '1');
+                  console.log('No Gmail connection found, keeping prompt flag');
+                  // Keep the prompt flag - already set above
+                  console.log('Flag confirmed, localStorage contains:', localStorage.getItem('prompt_gmail_connect'));
                 } else {
-                  console.log('Gmail connection found, no prompt needed');
-                  // Clear any existing prompt flag since Gmail is already connected
+                  console.log('Gmail connection found, removing prompt flag');
+                  // Clear the prompt flag since Gmail is already connected
                   localStorage.removeItem('prompt_gmail_connect');
                 }
               }
@@ -168,7 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const redirectTo = `${window.location.origin}/`;
+    // Force localhost redirect during development
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const redirectTo = isLocalhost ? `${window.location.origin}/` : `${window.location.origin}/`;
+    console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

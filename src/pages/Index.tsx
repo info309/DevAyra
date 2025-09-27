@@ -199,7 +199,10 @@ const Index = () => {
 
   // Debug modal state changes
   useEffect(() => {
-    console.log('Homepage: showGmailConsent changed to:', showGmailConsent);
+    console.log('Homepage: showGmailConsent state changed to:', showGmailConsent);
+    if (showGmailConsent) {
+      console.log('Homepage: Gmail consent popup should be visible now!');
+    }
   }, [showGmailConsent]);
 
   const connectGmail = async () => {
@@ -251,25 +254,33 @@ const Index = () => {
       
       console.log('Homepage: shouldPromptGmail =', shouldPromptGmail);
       console.log('Homepage: isGoogleUser =', isGoogleUser);
+      console.log('Homepage: localStorage prompt_gmail_connect =', localStorage.getItem('prompt_gmail_connect'));
       console.log('Homepage: user.app_metadata =', user.app_metadata);
       
-      // Only show popup if:
-      // 1. The prompt flag is set (meaning Gmail is not connected)
-      // 2. AND the user signed in with Google
-      if (shouldPromptGmail && isGoogleUser) {
+      // FORCE TEST: Always show popup for Google users
+      if (isGoogleUser) {
+        console.log('Homepage: FORCE TEST - Showing popup for Google user');
+        console.log('Homepage: About to call setShowGmailConsent(true)');
+        setShowGmailConsent(true);
+        console.log('Homepage: Called setShowGmailConsent(true)');
+        return; // Skip the rest of the logic
+      }
+      
+      // Original logic (commented out for testing)
+      /*
+      if ((shouldPromptGmail && isGoogleUser) || isGoogleUser) {
         console.log('Homepage: Showing Gmail consent popup for Google user without Gmail connection');
         setShowGmailConsent(true);
-        // Clear the flag immediately so it doesn't show again
         localStorage.removeItem('prompt_gmail_connect');
       } else if (shouldPromptGmail) {
         console.log('Homepage: Clearing stale Gmail prompt flag for non-Google user');
-        // Clear stale flag for non-Google users
         localStorage.removeItem('prompt_gmail_connect');
         navigate('/dashboard');
       } else {
         console.log('Homepage: Redirecting to dashboard (no Gmail prompt needed)');
         navigate('/dashboard');
       }
+      */
     }
   }, [user, loading, navigate]);
 

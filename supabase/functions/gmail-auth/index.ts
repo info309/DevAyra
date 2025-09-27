@@ -26,9 +26,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const url = new URL(req.url);
-    const baseSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'https://ayra-unified-suite.lovable.app';
-    // Ensure we only use the base URL without any path
-    const siteUrl = new URL(baseSiteUrl).origin;
+    // Determine the correct site URL based on the request
+    let baseSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'http://localhost:3001';
+    let siteUrl = baseSiteUrl;
     const pathname = url.pathname;
 
     if (req.method === 'GET') {
@@ -131,28 +131,11 @@ const handler = async (req: Request): Promise<Response> => {
           console.log('Redirecting to:', redirect);
           console.log('Site URL:', siteUrl);
           
-          // Return HTML that redirects immediately
-          const htmlResponse = `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>Gmail Connected</title>
-                <meta http-equiv="refresh" content="0; url=${redirect}">
-                <script>
-                  window.location.href = '${redirect}';
-                </script>
-              </head>
-              <body>
-                <p>Gmail connected successfully. Redirecting...</p>
-                <p>If you are not redirected automatically, <a href="${redirect}">click here</a>.</p>
-              </body>
-            </html>
-          `;
-          
-          return new Response(htmlResponse, {
-            status: 200,
+          // Use proper HTTP redirect
+          return new Response(null, {
+            status: 302,
             headers: { 
-              'Content-Type': 'text/html',
+              'Location': redirect,
               ...corsHeaders 
             },
           });
