@@ -529,7 +529,7 @@ async function searchEmails(userId: string, query: string) {
     }
   } catch (error) {
     console.error('Email search error:', error);
-    return { error: `Email search failed: ${error.message}` };
+    return { error: `Email search failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -557,7 +557,7 @@ async function searchDocuments(userId: string, query: string) {
     };
   } catch (error) {
     console.error('Document search error:', error);
-    return { error: `Document search failed: ${error.message}` };
+    return { error: `Document search failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -836,7 +836,7 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
     };
   } catch (error) {
     console.error('Calendar events error:', error);
-    return { error: `Calendar events failed: ${error.message}` };
+    return { error: `Calendar events failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -1011,6 +1011,20 @@ async function createCalendarEvent(userId: string, eventData: any) {
       } catch (parseError) {
         console.error('Date parsing error:', parseError);
         
+        // Get user timezone for fallback parsing
+        let userTimezone = 'UTC';
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('timezone')
+            .eq('user_id', userId)
+            .maybeSingle();
+          userTimezone = profile?.timezone || client_timezone || 'UTC';
+        } catch (tzError) {
+          console.log('Using client timezone fallback:', client_timezone || 'UTC');
+          userTimezone = client_timezone || 'UTC';
+        }
+        
         // Fallback: Try manual parsing for common phrases
         try {
           console.log('Attempting fallback parsing for:', when_text);
@@ -1087,7 +1101,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
     };
   } catch (error) {
     console.error('Calendar event creation error:', error);
-    return { error: `Calendar event creation failed: ${error.message}` };
+    return { error: `Calendar event creation failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -1126,7 +1140,7 @@ async function composeEmailDraft(to: string, subject: string, content: string, t
     };
   } catch (error) {
     console.error('Error composing email draft:', error);
-    return { error: `Failed to compose email draft: ${error.message}` };
+    return { error: `Failed to compose email draft: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -1370,7 +1384,7 @@ serve(async (req) => {
     messages.push(currentMessage);
 
     // Always include email tools since they're core functionality
-    const tools = [...EMAIL_TOOLS];
+    const tools: any[] = [...EMAIL_TOOLS];
     
     // Add document tools if requested
     if (detectedTriggers.includes('document') || message.toLowerCase().includes('document') || message.toLowerCase().includes('file')) {
@@ -1396,7 +1410,7 @@ serve(async (req) => {
 
     // Call OpenAI with vision model if images are present
     const modelToUse = (images && images.length > 0) ? 'gpt-4o' : 'gpt-4o-mini';
-    const openAIRequest = {
+    const openAIRequest: any = {
       model: modelToUse,
       messages,
       max_tokens: 1000,
@@ -1474,18 +1488,18 @@ serve(async (req) => {
                     .from('user_documents')
                     .select('id, name, file_path, mime_type, file_size')
                     .eq('user_id', user.id)
-                    .or(attachments.map(att => `name.ilike.%${att}%`).join(','));
+                    .or(attachments.map((att: string) => `name.ilike.%${att}%`).join(','));
                   
                   if (docError) {
                     console.error('Error fetching documents:', docError);
-                    result.attachedDocuments = [];
+                    (result as any).attachedDocuments = [];
                   } else {
-                    result.attachedDocuments = attachedDocs || [];
+                    (result as any).attachedDocuments = attachedDocs || [];
                     console.log('Found attached documents:', attachedDocs?.length || 0);
                   }
                 } catch (attachmentError) {
                   console.error('Error processing attachments:', attachmentError);
-                  result.attachedDocuments = [];
+                  (result as any).attachedDocuments = [];
                 }
               }
               break;
@@ -1511,12 +1525,15 @@ serve(async (req) => {
               tool_result: JSON.stringify(result)
             });
 
-          console.log(`Tool ${toolCall.function.name} executed, result:`, result?.conversations?.length || result?.documents?.length || result?.draft ? 'success' : 'error');
+          console.log(`Tool ${toolCall.function.name} executed, result:`, 
+            (result as any)?.conversations?.length || 
+            (result as any)?.documents?.length || 
+            (result as any)?.draft ? 'success' : 'error');
         } catch (toolError) {
           console.error('Tool execution error:', toolError);
           toolResults.push({
             toolCall,
-            result: { error: `Tool execution failed: ${toolError.message}` }
+            result: { error: `Tool execution failed: ${toolError instanceof Error ? toolError.message : 'Unknown error'}` }
           });
         }
       }
@@ -1563,8 +1580,8 @@ serve(async (req) => {
           // Use fallback response
           if (toolResults.some(tr => tr.toolCall.function.name === 'emails_search')) {
             const emailResults = toolResults.find(tr => tr.toolCall.function.name === 'emails_search');
-            if (emailResults?.result?.conversations?.length > 0) {
-              finalResponse = `✨ I found ${emailResults.result.conversations.length} email(s) matching your search! Let me know if you'd like me to help with anything specific about these emails.`;
+            if (emailResults && (emailResults.result as any)?.conversations?.length > 0) {
+              finalResponse = `✨ I found ${(emailResults.result as any).conversations.length} email(s) matching your search! Let me know if you'd like me to help with anything specific about these emails.`;
             }
           }
         }
@@ -1598,12 +1615,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('=== ASSISTANT FUNCTION ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       success: false
     }), {
       status: 500,

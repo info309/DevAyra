@@ -290,7 +290,7 @@ class GmailService {
 
   private processMessage(message: any): ProcessedEmail {
     const headers = message.payload?.headers || [];
-    const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+    const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
     
     const { content, attachments } = this.extractEmailContent(message.payload);
     
@@ -328,11 +328,11 @@ class GmailService {
 
       // Debug: Check if Herminda's thread is in the threads list
       const hermindaThreadId = '1973ae6bbfe11c2a';
-      const hermindaThread = threads.find(t => t.id === hermindaThreadId);
+      const hermindaThread = threads.find((t: any) => t.id === hermindaThreadId);
       if (hermindaThread) {
         console.log(`[${this.requestId}] 🔍 FOUND Herminda thread in ${query} threads list!`);
       } else {
-        console.log(`[${this.requestId}] ❌ Herminda thread NOT in ${query} threads list. Available thread IDs:`, threads.slice(0, 10).map(t => t.id));
+        console.log(`[${this.requestId}] ❌ Herminda thread NOT in ${query} threads list. Available thread IDs:`, threads.slice(0, 10).map((t: any) => t.id));
       }
 
       // Process threads in smaller batches to avoid timeouts
@@ -342,7 +342,7 @@ class GmailService {
       for (let i = 0; i < threads.length; i += batchSize) {
         const batch = threads.slice(i, i + batchSize);
         
-        const batchPromises = batch.map(async (thread) => {
+        const batchPromises = batch.map(async (thread: any) => {
           try {
             // Special logging for the Herminda thread
             if (thread.id === '1973ae6bbfe11c2a') {
@@ -367,7 +367,7 @@ class GmailService {
               return null;
             }
             
-            const processedMessages = messages.map(msg => this.processMessage(msg));
+            const processedMessages = messages.map((msg: any) => this.processMessage(msg));
             
             // Special logging for Herminda thread processing
             if (thread.id === '1973ae6bbfe11c2a') {
@@ -375,7 +375,7 @@ class GmailService {
             }
             
             // Sort messages chronologically within the thread (like Gmail)
-            const chronologicalMessages = processedMessages.sort((a, b) => 
+            const chronologicalMessages = processedMessages.sort((a: any, b: any) => 
               new Date(a.date).getTime() - new Date(b.date).getTime()
             );
             
@@ -384,7 +384,7 @@ class GmailService {
               // Parse internalDate from message headers if available, fallback to Date header
               const getInternalDate = (msg: any) => {
                 // Try to get internalDate from the raw message object
-                const messageData = messages.find(m => m.id === msg.id);
+                const messageData = messages.find((m: any) => m.id === msg.id);
                 if (messageData?.internalDate) {
                   return new Date(parseInt(messageData.internalDate));
                 }
@@ -402,7 +402,7 @@ class GmailService {
               id: thread.id,
               threadId: thread.id,
               subject: firstMessage?.subject || 'No Subject',
-              emails: chronologicalMessages.map(msg => ({
+              emails: chronologicalMessages.map((msg: any) => ({
                 id: msg.id,
                 threadId: msg.threadId,
                 snippet: msg.snippet,
@@ -416,15 +416,15 @@ class GmailService {
               })),
               messageCount: processedMessages.length,
               lastDate: mostRecentMessage?.date || new Date().toISOString(),
-              unreadCount: processedMessages.filter(msg => !msg.isRead).length,
-              participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
+              unreadCount: processedMessages.filter((msg: any) => !msg.isRead).length,
+              participants: [...new Set(processedMessages.flatMap((msg: any) => [msg.from, msg.to]).filter(Boolean))]
             };
           } catch (error) {
             console.error(`[${this.requestId}] Error processing thread ${thread.id}:`, error);
             
             // Special error logging for large threads and Herminda thread
             if (thread.id === '1973ae6bbfe11c2a') {
-              console.error(`[${this.requestId}] 🚨 HERMINDA THREAD FAILED! Error:`, error.message);
+              console.error(`[${this.requestId}] 🚨 HERMINDA THREAD FAILED! Error:`, (error as Error)?.message);
             }
             
             return null;
@@ -478,7 +478,7 @@ class GmailService {
       for (let i = 0; i < threads.length; i += batchSize) {
         const batch = threads.slice(i, i + batchSize);
         
-        const batchPromises = batch.map(async (thread) => {
+        const batchPromises = batch.map(async (thread: any) => {
           try {
             const threadData = await this.makeGmailRequest(
               `https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`
@@ -490,10 +490,10 @@ class GmailService {
               return null;
             }
             
-            const processedMessages = messages.map(msg => this.processMessage(msg));
+            const processedMessages = messages.map((msg: any) => this.processMessage(msg));
             
             // Sort messages chronologically within the thread
-            const chronologicalMessages = processedMessages.sort((a, b) => 
+            const chronologicalMessages = processedMessages.sort((a: any, b: any) => 
               new Date(a.date).getTime() - new Date(b.date).getTime()
             );
             
@@ -509,7 +509,7 @@ class GmailService {
               id: thread.id,
               threadId: thread.id,
               subject: firstMessage?.subject || 'No Subject',
-              emails: chronologicalMessages.map(msg => ({
+              emails: chronologicalMessages.map((msg: any) => ({
                 id: msg.id,
                 threadId: msg.threadId,
                 snippet: msg.snippet,
@@ -523,8 +523,8 @@ class GmailService {
               })),
               messageCount: processedMessages.length,
               lastDate: mostRecentMessage?.date || new Date().toISOString(),
-              unreadCount: processedMessages.filter(msg => !msg.isRead).length,
-              participants: [...new Set(processedMessages.flatMap(msg => [msg.from, msg.to]).filter(Boolean))]
+              unreadCount: processedMessages.filter((msg: any) => !msg.isRead).length,
+              participants: [...new Set(processedMessages.flatMap((msg: any) => [msg.from, msg.to]).filter(Boolean))]
             };
           } catch (error) {
             console.error(`[${this.requestId}] Error processing search thread ${thread.id}:`, error);
@@ -878,7 +878,7 @@ class GmailService {
         return { success: true, messageId: result.id, sentMessage: result };
       } catch (encodingError) {
         console.error(`[${this.requestId}] Email encoding error:`, encodingError);
-        throw new GmailApiError(`Failed to encode email content: ${encodingError.message}`, 400);
+        throw new GmailApiError(`Failed to encode email content: ${(encodingError as Error)?.message}`, 400);
       }
     } catch (error) {
       console.error(`[${this.requestId}] sendEmail error:`, error);

@@ -106,9 +106,9 @@ serve(async (req) => {
 
     // Parse the JSON response, handling markdown code blocks
     let receiptData;
+    let jsonString = analysisResult.trim();
     try {
       // Remove markdown code blocks if present
-      let jsonString = analysisResult.trim();
       if (jsonString.startsWith('```json')) {
         jsonString = jsonString.replace(/```json\n?/, '').replace(/\n?```$/, '');
       } else if (jsonString.startsWith('```')) {
@@ -147,7 +147,7 @@ serve(async (req) => {
     console.error('Error in analyze-receipt function:', error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message || 'Failed to analyze receipt'
+      error: error instanceof Error ? error.message : 'Failed to analyze receipt'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
