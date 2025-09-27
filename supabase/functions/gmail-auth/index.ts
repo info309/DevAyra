@@ -27,7 +27,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const url = new URL(req.url);
     // Determine the correct site URL based on the request
-    let siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3001';
+    let baseSiteUrl = Deno.env.get('SITE_URL') || Deno.env.get('FRONTEND_URL') || 'http://localhost:3001';
+    let siteUrl = baseSiteUrl;
     
     // Check if this is coming from a Lovable environment
     const referer = req.headers.get('referer');
@@ -46,6 +47,9 @@ const handler = async (req: Request): Promise<Response> => {
     } else if (referer && referer.includes('ayra-unified-suite')) {
       siteUrl = 'https://ayra-unified-suite.lovable.app';
       console.log('Using production Lovable URL:', siteUrl);
+    } else {
+      // Ensure we only use the base URL without any path
+      siteUrl = new URL(baseSiteUrl).origin;
     }
     
     // Also check for specific Lovable preview URL pattern
