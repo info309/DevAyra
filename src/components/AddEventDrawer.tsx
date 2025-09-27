@@ -34,6 +34,7 @@ interface AddEventDrawerProps {
   trigger?: React.ReactNode;
   gmailConnection?: any;
   eventToEdit?: CalendarEvent | null;
+  prefilledEvent?: any;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -44,6 +45,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
   trigger,
   gmailConnection,
   eventToEdit,
+  prefilledEvent,
   open: controlledOpen,
   onOpenChange
 }) => {
@@ -58,13 +60,16 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
   
   const isEditing = !!eventToEdit;
   
-  // Form state - initialize with event data if editing
-  const [title, setTitle] = useState(eventToEdit?.title || '');
-  const [description, setDescription] = useState(eventToEdit?.description || '');
-  const [allDay, setAllDay] = useState(eventToEdit?.all_day || false);
+  // Form state - initialize with event data if editing or prefilled
+  const [title, setTitle] = useState(eventToEdit?.title || prefilledEvent?.title || '');
+  const [description, setDescription] = useState(eventToEdit?.description || prefilledEvent?.description || '');
+  const [allDay, setAllDay] = useState(eventToEdit?.all_day || prefilledEvent?.isAllDay || false);
   const [startDate, setStartDate] = useState(() => {
     if (eventToEdit) {
       return format(parseISO(eventToEdit.start_time), 'yyyy-MM-dd');
+    }
+    if (prefilledEvent) {
+      return format(new Date(prefilledEvent.startTime), 'yyyy-MM-dd');
     }
     return format(selectedDate, 'yyyy-MM-dd');
   });
@@ -72,11 +77,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     if (eventToEdit && !eventToEdit.all_day) {
       return format(parseISO(eventToEdit.start_time), 'HH:mm');
     }
+    if (prefilledEvent && !prefilledEvent.isAllDay) {
+      return format(new Date(prefilledEvent.startTime), 'HH:mm');
+    }
     return format(selectedDate, 'HH:mm');
   });
   const [endDate, setEndDate] = useState(() => {
     if (eventToEdit) {
       return format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd');
+    }
+    if (prefilledEvent) {
+      return format(new Date(prefilledEvent.endTime), 'yyyy-MM-dd');
     }
     return format(selectedDate, 'yyyy-MM-dd');
   });
@@ -84,11 +95,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     if (eventToEdit && !eventToEdit.all_day) {
       return format(parseISO(eventToEdit.end_time), 'HH:mm');
     }
+    if (prefilledEvent && !prefilledEvent.isAllDay) {
+      return format(new Date(prefilledEvent.endTime), 'HH:mm');
+    }
     return format(addHours(selectedDate, 1), 'HH:mm');
   });
   const [reminderMinutes, setReminderMinutes] = useState<string>(() => {
     if (eventToEdit?.reminder_minutes) {
       return eventToEdit.reminder_minutes.toString();
+    }
+    if (prefilledEvent?.reminderMinutes) {
+      return prefilledEvent.reminderMinutes.toString();
     }
     return 'none';
   });
