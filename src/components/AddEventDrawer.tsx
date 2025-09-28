@@ -26,6 +26,7 @@ interface CalendarEvent {
   user_id: string;
   created_at: string;
   updated_at: string;
+  guests?: string;
 }
 
 interface AddEventDrawerProps {
