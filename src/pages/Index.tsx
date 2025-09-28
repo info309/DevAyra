@@ -191,6 +191,7 @@ const AuthModule = ({ onSuccess }: { onSuccess: () => void }) => {
 };
 
 const Index = () => {
+  const [heroEmail, setHeroEmail] = useState('');
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -437,12 +438,14 @@ const Index = () => {
                   <Input
                     type="email"
                     placeholder="Enter your personal or work email"
+                    value={heroEmail}
+                    onChange={(e) => setHeroEmail(e.target.value)}
                     className="w-full py-2.5 h-auto text-base font-body font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
 
                   {/* Continue with Email Button */}
                   <Button 
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate(`/signup${heroEmail ? `?email=${encodeURIComponent(heroEmail)}` : ''}`)}
                     className="w-full bg-foreground hover:bg-foreground/90 text-background text-base py-2.5 h-auto font-body font-medium"
                   >
                     Continue with email
@@ -496,12 +499,14 @@ const Index = () => {
                 <Input
                   type="email"
                   placeholder="Enter your personal or work email"
+                  value={heroEmail}
+                  onChange={(e) => setHeroEmail(e.target.value)}
                   className="w-full py-2.5 h-auto text-base font-body font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
 
                 {/* Continue with Email Button */}
                 <Button 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate(`/signup${heroEmail ? `?email=${encodeURIComponent(heroEmail)}` : ''}`)}
                   className="w-full bg-foreground hover:bg-foreground/90 text-background text-base py-2.5 h-auto font-body font-medium"
                 >
                   Continue with email
