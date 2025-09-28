@@ -19,6 +19,12 @@ You have access to special tools like email search, document search, calendar ev
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 The user's business/company is: {{BUSINESS_NAME}} - use this context when providing business advice or assistance.
 
+CRITICAL: When user says "set up a meeting", "schedule a meeting", "book a meeting", or "create a meeting" - ALWAYS use calendar_create_event tool. NEVER use emails_compose_draft for meeting scheduling.
+
+ABSOLUTE RULE: "set up a meeting" = calendar_create_event ONLY. Even if user provides email addresses, still use calendar_create_event. Do NOT switch to emails_compose_draft.
+
+IMMEDIATE ACTION RULE: When user says "set up a meeting" (with ANY details or NO details), IMMEDIATELY call calendar_create_event with whatever information you have. Do NOT ask for clarification. Do NOT ask for more details. Just create the event and let the user fill in details in the form.
+
 CRITICAL EMAIL DRAFT CONSISTENCY RULE - THIS IS MANDATORY:
 - When you show the user a detailed email draft in your response, you MUST pass that EXACT SAME content to emails_compose_draft
 - The content parameter in emails_compose_draft MUST be identical to what you show the user word-for-word
@@ -52,6 +58,8 @@ HONESTY & ACCURACY RULES:
 - Do not speculate or create fictional scenarios
 
 Core Rules:
+0. CRITICAL: "set up a meeting" = calendar_create_event tool. "draft an email" = emails_compose_draft tool. NEVER mix these up.
+0.1. ABSOLUTE: If user says "set up a meeting with John and Sarah" and provides email "meitho01@gmail.com" → STILL use calendar_create_event with guests="meitho01@gmail.com". Do NOT use emails_compose_draft.
 1. ALWAYS search emails when users ask about email content, summaries, or specific people's emails
 2. CRITICAL: When the user wants to send an email after discussing its contents, ALWAYS use "emails_compose_draft" to create a draft that opens in their compose window. DO NOT send emails directly unless explicitly asked to "send it now" or similar.
 3. Automatically search emails when users ask for summaries, weekly reviews, or about specific senders
@@ -64,6 +72,7 @@ PROACTIVE ACTION RULES:
 - When user asks to "draft an email" or mentions email composition, IMMEDIATELY create the draft using emails_compose_draft - don't ask for confirmation
 - When user mentions scheduling meetings or calendar events, ALWAYS check their calendar availability first
 - When user says "set up a meeting", "schedule a meeting", "book a meeting", or "create a meeting", IMMEDIATELY use calendar_create_event tool - don't ask for confirmation
+- CRITICAL: For "set up a meeting" - create the event with basic info (title="Meeting", when_text="tomorrow 2pm") and let user fill details in the form
 - When providing schedule summaries, ALWAYS offer to draft emails or create calendar events based on the content
 - When user asks about meeting times, check availability and suggest free slots automatically
 - After summarizing emails, proactively offer relevant actions like "Would you like me to draft a response?" or "Should I schedule a follow-up meeting?"
@@ -74,8 +83,10 @@ CRITICAL TOOL SELECTION RULES:
 - NEVER mix these up - meeting scheduling is NOT email drafting
 
 EXAMPLES:
+- "set up a meeting" → calendar_create_event with title="Meeting", when_text="tomorrow 2pm" (NOT emails_compose_draft)
 - "set up a meeting with John at 2pm" → calendar_create_event (NOT emails_compose_draft)
 - "schedule a meeting with Sarah tomorrow" → calendar_create_event (NOT emails_compose_draft)
+- "set up a meeting with John and Sarah, try with meitho01@gmail.com" → calendar_create_event with guests="meitho01@gmail.com" (NOT emails_compose_draft)
 - "draft an email to John about the project" → emails_compose_draft (NOT calendar_create_event)
 - "send an email to Sarah" → emails_compose_draft (NOT calendar_create_event)
 
@@ -346,6 +357,11 @@ const CALENDAR_TOOLS = [
             type: 'number',
             description: 'Minutes before event to send reminder (default: 15)',
             default: 15,
+            optional: true
+          },
+          guests: {
+            type: 'string',
+            description: 'Comma-separated list of guest email addresses',
             optional: true
           }
         },
@@ -993,6 +1009,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
       description = '', 
       all_day = false, 
       reminder_minutes = 15,
+      guests = '',
       client_timezone 
     } = eventData;
     
@@ -1034,11 +1051,17 @@ async function createCalendarEvent(userId: string, eventData: any) {
         console.log(`Parsed results:`, parsed);
         
         if (!parsed || parsed.length === 0) {
-          console.log(`No parse results for: "${when_text}"`);
-          return { 
-            error: `I couldn't understand the time "${when_text}". Could you be more specific? For example: "next Monday 3pm", "tomorrow 8:30", or "September 1st at 2pm"` 
-          };
-        }
+          console.log(`No parse results for: "${when_text}", creating basic event for tomorrow 2pm`);
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(14, 0, 0, 0); // 2:00 PM
+          const endTime = new Date(tomorrow);
+          endTime.setHours(15, 0, 0, 0); // 3:00 PM
+          
+          finalStartTime = tomorrow.toISOString();
+          finalEndTime = endTime.toISOString();
+          console.log('Created basic event:', finalStartTime, finalEndTime);
+        } else {
         
         const result = parsed[0];
         console.log(`First parse result:`, result);
@@ -1077,6 +1100,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         
         console.log(`Parsed times: ${format(startLocal, 'PPpp')} - ${format(endLocal, 'PPpp')} (${userTimezone})`);
         console.log(`UTC times: ${finalStartTime} - ${finalEndTime}`);
+        }
         
       } catch (parseError) {
         console.error('Date parsing error:', parseError);
@@ -1104,9 +1128,17 @@ async function createCalendarEvent(userId: string, eventData: any) {
             finalEndTime = fallbackResult.end;
             console.log('Fallback parsing successful:', finalStartTime, finalEndTime);
           } else {
-            return { 
-              error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
-            };
+            // If fallback parsing fails, create a basic event for tomorrow at 2pm
+            console.log('Fallback parsing failed, creating basic event for tomorrow 2pm');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(14, 0, 0, 0); // 2:00 PM
+            const endTime = new Date(tomorrow);
+            endTime.setHours(15, 0, 0, 0); // 3:00 PM
+            
+            finalStartTime = tomorrow.toISOString();
+            finalEndTime = endTime.toISOString();
+            console.log('Created basic event:', finalStartTime, finalEndTime);
           }
         } catch (fallbackError) {
           console.error('Fallback parsing also failed:', fallbackError);
@@ -1143,6 +1175,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         end_time: finalEndTime,
         all_day: finalAllDay,
         reminder_minutes,
+        // guests: guests || null, // Temporarily disabled until column is added
         is_synced: false // Always false for local-only events
       })
       .select()

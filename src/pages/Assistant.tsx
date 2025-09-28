@@ -587,7 +587,8 @@ const Assistant = () => {
                   startTime: event.startTime,
                   endTime: event.endTime,
                   isAllDay: event.isAllDay,
-                  reminderMinutes: event.reminderMinutes
+                  reminderMinutes: event.reminderMinutes,
+                  guests: event.guests
                 }
               }
             });
@@ -605,6 +606,9 @@ const Assistant = () => {
                   <p><span className="font-medium">Time:</span> {new Date(event.startTime).toLocaleString()} - {new Date(event.endTime).toLocaleString()}</p>
                   {event.description && (
                     <p><span className="font-medium">Description:</span> {event.description}</p>
+                  )}
+                  {event.guests && (
+                    <p><span className="font-medium">Guests:</span> {event.guests}</p>
                   )}
                   <Button onClick={scheduleMeeting} className="w-full">
                     <Calendar className="w-4 h-4 mr-2" />

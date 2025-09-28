@@ -109,6 +109,12 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     }
     return 'none';
   });
+  const [guests, setGuests] = useState<string>(() => {
+    if (prefilledEvent?.guests) {
+      return prefilledEvent.guests;
+    }
+    return '';
+  });
 
   const resetForm = () => {
     if (isEditing && eventToEdit) {
@@ -121,12 +127,14 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
       setEndDate(format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd'));
       setEndTime(format(parseISO(eventToEdit.end_time), 'HH:mm'));
       setReminderMinutes(eventToEdit.reminder_minutes?.toString() || 'none');
+      setGuests(eventToEdit.guests || '');
     } else {
       // Reset to defaults for new event
       setTitle('');
       setDescription('');
       setAllDay(false);
       setStartDate(format(selectedDate, 'yyyy-MM-dd'));
+      setGuests('');
       setStartTime(format(selectedDate, 'HH:mm'));
       setEndDate(format(selectedDate, 'yyyy-MM-dd'));
       setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
@@ -202,6 +210,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
               end: allDay 
                 ? { date: endDate }
                 : { dateTime: endDateTime },
+              attendees: guests.trim() ? guests.split(',').map(email => ({ email: email.trim() })) : undefined,
               reminders: reminderMinutes !== 'none' ? {
                 useDefault: false,
                 overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
@@ -245,6 +254,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
               end_time: endDateTime,
               all_day: allDay,
               reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
+              guests: guests.trim() || null,
             })
             .eq('id', eventToEdit.id);
 
@@ -264,6 +274,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
         end_time: endDateTime,
         all_day: allDay,
         reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
+        guests: guests.trim() || null,
         user_id: user.id,
         is_synced: false,
         external_id: null,
@@ -283,6 +294,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             end: allDay 
               ? { date: endDate }
               : { dateTime: endDateTime },
+            attendees: guests.trim() ? guests.split(',').map(email => ({ email: email.trim() })) : undefined,
             reminders: reminderMinutes !== 'none' ? {
               useDefault: false,
               overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
@@ -410,6 +422,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a description..."
                 rows={3}
+              />
+            </div>
+
+            {/* Guests */}
+            <div className="space-y-2">
+              <Label htmlFor="guests">Guests</Label>
+              <Input
+                id="guests"
+                value={guests}
+                onChange={(e) => setGuests(e.target.value)}
+                placeholder="Enter guest email addresses (comma separated)"
               />
             </div>
 
