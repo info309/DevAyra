@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,7 @@ interface GmailConnection {
 
 const Calendar = () => {
   const navigate = useNavigate();
+  const location = useLocation() as any;
   const { user } = useAuth();
   const { toast } = useToast();
   const isDrawerView = useIsDrawerView();
@@ -50,6 +51,22 @@ const Calendar = () => {
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [createEventDrawerOpen, setCreateEventDrawerOpen] = useState(false);
+  const [prefilledEvent, setPrefilledEvent] = useState<any>(null);
+
+  // Handle prefilled event from AI assistant
+  useEffect(() => {
+    if (location.state?.createEvent) {
+      const eventData = location.state.createEvent;
+      console.log('Received prefilled event data:', eventData);
+      
+      setPrefilledEvent(eventData);
+      setCreateEventDrawerOpen(true);
+      
+      // Clear the state to prevent reopening
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   // Load events and check Gmail connection
   useEffect(() => {
@@ -586,6 +603,25 @@ const Calendar = () => {
           eventToEdit={eventToEdit}
           open={editDrawerOpen}
           onOpenChange={setEditDrawerOpen}
+        />
+        
+        {/* Create Event Drawer for AI Assistant */}
+        <AddEventDrawer
+          selectedDate={prefilledEvent ? new Date(prefilledEvent.startTime) : selectedDate}
+          onEventAdded={() => {
+            setCreateEventDrawerOpen(false);
+            setPrefilledEvent(null);
+            loadEvents();
+          }}
+          gmailConnection={gmailConnection}
+          prefilledEvent={prefilledEvent}
+          open={createEventDrawerOpen}
+          onOpenChange={(open) => {
+            setCreateEventDrawerOpen(open);
+            if (!open) {
+              setPrefilledEvent(null);
+            }
+          }}
         />
       </div>
     </div>

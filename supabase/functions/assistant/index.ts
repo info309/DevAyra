@@ -17,6 +17,13 @@ const SYSTEM_PROMPT = `
 You are a magical AI assistant named "Ayra". You are friendly, human-like, witty, and concise.
 You have access to special tools like email search, document search, calendar events, and email sending.
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
+The user's business/company is: {{BUSINESS_NAME}} - use this context when providing business advice or assistance.
+
+CRITICAL: When user says "set up a meeting", "schedule a meeting", "book a meeting", or "create a meeting" - ALWAYS use calendar_create_event tool. NEVER use emails_compose_draft for meeting scheduling.
+
+ABSOLUTE RULE: "set up a meeting" = calendar_create_event ONLY. Even if user provides email addresses, still use calendar_create_event. Do NOT switch to emails_compose_draft.
+
+IMMEDIATE ACTION RULE: When user says "set up a meeting" (with ANY details or NO details), IMMEDIATELY call calendar_create_event with whatever information you have. Do NOT ask for clarification. Do NOT ask for more details. Just create the event and let the user fill in details in the form.
 
 CRITICAL EMAIL DRAFT CONSISTENCY RULE - THIS IS MANDATORY:
 - When you show the user a detailed email draft in your response, you MUST pass that EXACT SAME content to emails_compose_draft
@@ -51,6 +58,8 @@ HONESTY & ACCURACY RULES:
 - Do not speculate or create fictional scenarios
 
 Core Rules:
+0. CRITICAL: "set up a meeting" = calendar_create_event tool. "draft an email" = emails_compose_draft tool. NEVER mix these up.
+0.1. ABSOLUTE: If user says "set up a meeting with John and Sarah" and provides email "meitho01@gmail.com" → STILL use calendar_create_event with guests="meitho01@gmail.com". Do NOT use emails_compose_draft.
 1. ALWAYS search emails when users ask about email content, summaries, or specific people's emails
 2. CRITICAL: When the user wants to send an email after discussing its contents, ALWAYS use "emails_compose_draft" to create a draft that opens in their compose window. DO NOT send emails directly unless explicitly asked to "send it now" or similar.
 3. Automatically search emails when users ask for summaries, weekly reviews, or about specific senders
@@ -58,6 +67,41 @@ Core Rules:
 5. Keep answers magical: friendly, clear, slightly playful, and intelligent.
 6. Use the last 6 messages for context. Each message is independent. Focus on clarity and usefulness.
 7. Be conversational and context-aware - don't repeat the same questions.
+
+PROACTIVE ACTION RULES:
+- When user asks to "draft an email" or mentions email composition, IMMEDIATELY create the draft using emails_compose_draft - don't ask for confirmation
+- When user mentions scheduling meetings or calendar events, ALWAYS check their calendar availability first
+- When user says "set up a meeting", "schedule a meeting", "book a meeting", or "create a meeting", IMMEDIATELY use calendar_create_event tool - don't ask for confirmation
+- CRITICAL: For "set up a meeting" - create the event with basic info (title="Meeting", when_text="tomorrow 2pm") and let user fill details in the form
+- When providing schedule summaries, ALWAYS offer to draft emails or create calendar events based on the content
+- When user asks about meeting times, check availability and suggest free slots automatically
+- After summarizing emails, proactively offer relevant actions like "Would you like me to draft a response?" or "Should I schedule a follow-up meeting?"
+
+CRITICAL TOOL SELECTION RULES:
+- Meeting scheduling requests (set up meeting, schedule meeting, book meeting) = USE calendar_create_event
+- Email composition requests (draft email, send email, write email) = USE emails_compose_draft
+- NEVER mix these up - meeting scheduling is NOT email drafting
+
+EXAMPLES:
+- "set up a meeting" → calendar_create_event with title="Meeting", when_text="tomorrow 2pm" (NOT emails_compose_draft)
+- "set up a meeting with John at 2pm" → calendar_create_event (NOT emails_compose_draft)
+- "schedule a meeting with Sarah tomorrow" → calendar_create_event (NOT emails_compose_draft)
+- "set up a meeting with John and Sarah, try with meitho01@gmail.com" → calendar_create_event with guests="meitho01@gmail.com" (NOT emails_compose_draft)
+- "draft an email to John about the project" → emails_compose_draft (NOT calendar_create_event)
+- "send an email to Sarah" → emails_compose_draft (NOT calendar_create_event)
+
+MEETING SCHEDULING RULES:
+- When user wants to schedule a meeting with someone, use calendar_create_event to create the meeting event IMMEDIATELY
+- Do NOT ask for email addresses when scheduling meetings - just create the calendar event with the person's name
+- If user wants to confirm a meeting via email, use BOTH tools: first calendar_create_event, then emails_compose_draft
+- For meeting scheduling: use calendar_create_event for the calendar entry, emails_compose_draft for meeting confirmations
+- Examples: "set up a meeting with John" → use calendar_create_event with title "Meeting with John"
+- Examples: "schedule a meeting with Sarah at 3pm" → use calendar_create_event with title "Meeting with Sarah"
+- Examples: "draft an email about our meeting" → use emails_compose_draft
+- Examples: "schedule a meeting and send confirmation" → use BOTH tools
+- CRITICAL: For meeting scheduling, create the calendar event first with whatever information you have - don't ask for more details
+- CRITICAL: Use simple time formats like "tomorrow at 10am", "next Monday 2pm", "today at 3pm" for when_text parameter
+- NEVER ask for clarification on meeting details - just create the event with the information provided
 
 Email Handling Rules:
 - CRITICAL: When user asks for email summaries, weekly reviews, or mentions specific people - IMMEDIATELY search emails first
@@ -231,6 +275,43 @@ const CALENDAR_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'calendar_check_availability',
+      description: 'Check calendar availability for a specific time period and find free slots. Use this when user wants to schedule meetings or check availability.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: {
+            type: 'string',
+            description: 'Date to check availability for (YYYY-MM-DD format)'
+          },
+          duration: {
+            type: 'number',
+            description: 'Duration of the meeting in minutes (default: 60)',
+            default: 60
+          },
+          startTime: {
+            type: 'string',
+            description: 'Start time to check from (HH:MM format, 24-hour, default: 09:00)',
+            default: '09:00'
+          },
+          endTime: {
+            type: 'string',
+            description: 'End time to check until (HH:MM format, 24-hour, default: 17:00)',
+            default: '17:00'
+          },
+          period: {
+            type: 'string',
+            description: 'Natural language period like "tomorrow", "next week", "this week" to check multiple days',
+            optional: true
+          }
+        },
+        required: ['date']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'calendar_create_event',
       description: 'Create a new calendar event for the user. PREFER using when_text for natural language scheduling (e.g., "next Monday 3pm") instead of calculating ISO timestamps yourself.',
       parameters: {
@@ -276,6 +357,11 @@ const CALENDAR_TOOLS = [
             type: 'number',
             description: 'Minutes before event to send reminder (default: 15)',
             default: 15,
+            optional: true
+          },
+          guests: {
+            type: 'string',
+            description: 'Comma-separated list of guest email addresses',
             optional: true
           }
         },
@@ -923,6 +1009,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
       description = '', 
       all_day = false, 
       reminder_minutes = 15,
+      guests = '',
       client_timezone 
     } = eventData;
     
@@ -964,11 +1051,17 @@ async function createCalendarEvent(userId: string, eventData: any) {
         console.log(`Parsed results:`, parsed);
         
         if (!parsed || parsed.length === 0) {
-          console.log(`No parse results for: "${when_text}"`);
-          return { 
-            error: `I couldn't understand the time "${when_text}". Could you be more specific? For example: "next Monday 3pm", "tomorrow 8:30", or "September 1st at 2pm"` 
-          };
-        }
+          console.log(`No parse results for: "${when_text}", creating basic event for tomorrow 2pm`);
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(14, 0, 0, 0); // 2:00 PM
+          const endTime = new Date(tomorrow);
+          endTime.setHours(15, 0, 0, 0); // 3:00 PM
+          
+          finalStartTime = tomorrow.toISOString();
+          finalEndTime = endTime.toISOString();
+          console.log('Created basic event:', finalStartTime, finalEndTime);
+        } else {
         
         const result = parsed[0];
         console.log(`First parse result:`, result);
@@ -1007,6 +1100,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         
         console.log(`Parsed times: ${format(startLocal, 'PPpp')} - ${format(endLocal, 'PPpp')} (${userTimezone})`);
         console.log(`UTC times: ${finalStartTime} - ${finalEndTime}`);
+        }
         
       } catch (parseError) {
         console.error('Date parsing error:', parseError);
@@ -1034,9 +1128,17 @@ async function createCalendarEvent(userId: string, eventData: any) {
             finalEndTime = fallbackResult.end;
             console.log('Fallback parsing successful:', finalStartTime, finalEndTime);
           } else {
-            return { 
-              error: `I had trouble parsing "${when_text}". Could you try a different format? For example: "next Monday 3pm", "tomorrow at 8:30am", or "September 1st 2pm-3pm"` 
-            };
+            // If fallback parsing fails, create a basic event for tomorrow at 2pm
+            console.log('Fallback parsing failed, creating basic event for tomorrow 2pm');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(14, 0, 0, 0); // 2:00 PM
+            const endTime = new Date(tomorrow);
+            endTime.setHours(15, 0, 0, 0); // 3:00 PM
+            
+            finalStartTime = tomorrow.toISOString();
+            finalEndTime = endTime.toISOString();
+            console.log('Created basic event:', finalStartTime, finalEndTime);
           }
         } catch (fallbackError) {
           console.error('Fallback parsing also failed:', fallbackError);
@@ -1073,6 +1175,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         end_time: finalEndTime,
         all_day: finalAllDay,
         reminder_minutes,
+        // guests: guests || null, // Temporarily disabled until column is added
         is_synced: false // Always false for local-only events
       })
       .select()
@@ -1102,6 +1205,83 @@ async function createCalendarEvent(userId: string, eventData: any) {
   } catch (error) {
     console.error('Calendar event creation error:', error);
     return { error: `Calendar event creation failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+}
+
+async function checkCalendarAvailability(userId: string, date: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string) {
+  try {
+    console.log(`Checking calendar availability for user ${userId}, date: ${date}, duration: ${duration}min`);
+    
+    // Get user's timezone
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('timezone')
+      .eq('user_id', userId)
+      .single();
+
+    const userTimezone = userProfile?.timezone || 'UTC';
+    
+    // Calculate time range for the day
+    const dayStart = new Date(`${date}T${startTime}:00`);
+    const dayEnd = new Date(`${date}T${endTime}:00`);
+    
+    // Get existing events for the day
+    const { data: events, error } = await supabase
+      .from('calendar_events')
+      .select('start_time, end_time, title')
+      .eq('user_id', userId)
+      .gte('start_time', dayStart.toISOString())
+      .lte('start_time', dayEnd.toISOString())
+      .order('start_time');
+    
+    if (error) {
+      console.error('Error fetching calendar events:', error);
+      return { error: `Failed to check availability: ${error.message}` };
+    }
+    
+    // Find free slots
+    const freeSlots = [];
+    const slotDuration = duration * 60 * 1000; // Convert to milliseconds
+    
+    let currentTime = new Date(dayStart);
+    
+    while (currentTime.getTime() + slotDuration <= dayEnd.getTime()) {
+      const slotEnd = new Date(currentTime.getTime() + slotDuration);
+      
+      // Check if this slot conflicts with any existing events
+      const hasConflict = events?.some(event => {
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        
+        return (currentTime < eventEnd && slotEnd > eventStart);
+      });
+      
+      if (!hasConflict) {
+        freeSlots.push({
+          start: currentTime.toISOString(),
+          end: slotEnd.toISOString(),
+          startTime: currentTime.toTimeString().slice(0, 5),
+          endTime: slotEnd.toTimeString().slice(0, 5),
+          duration: duration
+        });
+      }
+      
+      // Move to next 30-minute slot
+      currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
+    }
+    
+    return {
+      success: true,
+      date: date,
+      duration: duration,
+      freeSlots: freeSlots,
+      totalSlots: freeSlots.length,
+      message: `Found ${freeSlots.length} available ${duration}-minute slots on ${date}`
+    };
+    
+  } catch (error) {
+    console.error('Calendar availability check error:', error);
+    return { error: `Failed to check availability: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
@@ -1325,17 +1505,19 @@ serve(async (req) => {
     // Prepare messages for OpenAI with personalized system prompt
     let personalizedSystemPrompt = SYSTEM_PROMPT.replace('{{USER_NAME}}', userName);
     
-    // Get user timezone and format current time
+    // Get user timezone, business name and format current time
     let userTimezone = 'UTC';
+    let businessName = 'Your Business'; // Default fallback
     let currentUserTime = 'Unknown';
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('timezone')
+        .select('timezone, business_name')
         .eq('user_id', user.id)
         .maybeSingle();
       
       userTimezone = profile?.timezone || client_timezone || 'UTC';
+      businessName = profile?.business_name || 'Your Business';
       
       if (current_time) {
         const { format } = await import('https://esm.sh/date-fns@3.6.0');  
@@ -1348,10 +1530,11 @@ serve(async (req) => {
       console.log('Timezone formatting error:', tzError);
     }
     
-    // Replace timezone and current time placeholders
+    // Replace placeholders in system prompt
     personalizedSystemPrompt = personalizedSystemPrompt
       .replace('{{CURRENT_TIME}}', currentUserTime)
-      .replace('{{USER_TIMEZONE}}', userTimezone);
+      .replace('{{USER_TIMEZONE}}', userTimezone)
+      .replace('{{BUSINESS_NAME}}', businessName);
     
     const messages = [
       { role: 'system', content: personalizedSystemPrompt },
@@ -1472,6 +1655,9 @@ serve(async (req) => {
               break;
             case 'calendar_list_events':
               result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
+              break;
+            case 'calendar_check_availability':
+              result = await checkCalendarAvailability(user.id, args.date, args.duration, args.startTime, args.endTime, args.period);
               break;
             case 'calendar_create_event':
               result = await createCalendarEvent(user.id, { ...args, client_timezone });

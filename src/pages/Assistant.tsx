@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -502,6 +502,22 @@ const Assistant = () => {
               subject: draft.subject,
               hasContent: !!draft.content
             });
+            
+            // Safely combine and process attachments
+            const processAttachments = () => {
+              const attachments = (draft.attachments && Array.isArray(draft.attachments) ? draft.attachments : []);
+              const attachedDocs = (draft.attachedDocuments && Array.isArray(draft.attachedDocuments) ? draft.attachedDocuments : []);
+              
+              return [...attachments, ...attachedDocs].map(doc => ({
+                id: doc.id,
+                name: doc.name,
+                url: doc.publicUrl || doc.url,
+                mime_type: doc.mime_type,
+                file_size: doc.file_size,
+                type: doc.mime_type // Adding type for compatibility
+              }));
+            };
+            
             const openDraft = () => {
               navigate('/mailbox', { 
                 state: { 
@@ -511,14 +527,7 @@ const Assistant = () => {
                     content: draft.content,
                     replyTo: draft.replyTo,
                     threadId: draft.threadId,
-                    attachments: (draft.attachments || draft.attachedDocuments || []).map(doc => ({
-                      id: doc.id,
-                      name: doc.name,
-                      url: doc.publicUrl || doc.url,
-                      mime_type: doc.mime_type,
-                      file_size: doc.file_size,
-                      type: doc.mime_type // Adding type for compatibility
-                    }))
+                    attachments: processAttachments()
                   }
                 }
               });
@@ -534,8 +543,8 @@ const Assistant = () => {
                   <div className="space-y-3 text-sm">
                     <p><span className="font-medium">To:</span> {draft.to}</p>
                     <p><span className="font-medium">Subject:</span> {draft.subject}</p>
-                    {draft.attachedDocuments && draft.attachedDocuments.length > 0 && (
-                      <p><span className="font-medium">Attachments:</span> {draft.attachedDocuments.length} file(s)</p>
+                    {processAttachments().length > 0 && (
+                      <p><span className="font-medium">Attachments:</span> {processAttachments().length} file(s)</p>
                     )}
                     <Button onClick={openDraft} className="w-full">
                       <Mail className="w-4 h-4 mr-2" />
@@ -560,6 +569,57 @@ const Assistant = () => {
             </CardContent>
           </Card>
         );
+
+      case 'calendar_create_event':
+        // Handle calendar event creation and show schedule meeting button
+        console.log('Processing calendar_create_event tool result:', toolResult);
+        
+        if (toolResult && toolResult.success && toolResult.event) {
+          const event = toolResult.event;
+          
+          const scheduleMeeting = () => {
+            // Navigate to calendar page with pre-filled event data
+            navigate('/calendar', { 
+              state: { 
+                createEvent: {
+                  title: event.title,
+                  description: event.description,
+                  startTime: event.startTime,
+                  endTime: event.endTime,
+                  isAllDay: event.isAllDay,
+                  reminderMinutes: event.reminderMinutes,
+                  guests: event.guests
+                }
+              }
+            });
+          };
+
+          return (
+            <Card className="mt-2 bg-blue-50 border-blue-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium">Meeting Prepared</span>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <p><span className="font-medium">Title:</span> {event.title}</p>
+                  <p><span className="font-medium">Time:</span> {new Date(event.startTime).toLocaleString()} - {new Date(event.endTime).toLocaleString()}</p>
+                  {event.description && (
+                    <p><span className="font-medium">Description:</span> {event.description}</p>
+                  )}
+                  {event.guests && (
+                    <p><span className="font-medium">Guests:</span> {event.guests}</p>
+                  )}
+                  <Button onClick={scheduleMeeting} className="w-full">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Schedule Meeting
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+        return null;
 
       default:
         return null;

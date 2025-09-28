@@ -34,6 +34,7 @@ interface AddEventDrawerProps {
   trigger?: React.ReactNode;
   gmailConnection?: any;
   eventToEdit?: CalendarEvent | null;
+  prefilledEvent?: any;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -44,6 +45,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
   trigger,
   gmailConnection,
   eventToEdit,
+  prefilledEvent,
   open: controlledOpen,
   onOpenChange
 }) => {
@@ -58,13 +60,16 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
   
   const isEditing = !!eventToEdit;
   
-  // Form state - initialize with event data if editing
-  const [title, setTitle] = useState(eventToEdit?.title || '');
-  const [description, setDescription] = useState(eventToEdit?.description || '');
-  const [allDay, setAllDay] = useState(eventToEdit?.all_day || false);
+  // Form state - initialize with event data if editing or prefilled
+  const [title, setTitle] = useState(eventToEdit?.title || prefilledEvent?.title || '');
+  const [description, setDescription] = useState(eventToEdit?.description || prefilledEvent?.description || '');
+  const [allDay, setAllDay] = useState(eventToEdit?.all_day || prefilledEvent?.isAllDay || false);
   const [startDate, setStartDate] = useState(() => {
     if (eventToEdit) {
       return format(parseISO(eventToEdit.start_time), 'yyyy-MM-dd');
+    }
+    if (prefilledEvent) {
+      return format(new Date(prefilledEvent.startTime), 'yyyy-MM-dd');
     }
     return format(selectedDate, 'yyyy-MM-dd');
   });
@@ -72,11 +77,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     if (eventToEdit && !eventToEdit.all_day) {
       return format(parseISO(eventToEdit.start_time), 'HH:mm');
     }
+    if (prefilledEvent && !prefilledEvent.isAllDay) {
+      return format(new Date(prefilledEvent.startTime), 'HH:mm');
+    }
     return format(selectedDate, 'HH:mm');
   });
   const [endDate, setEndDate] = useState(() => {
     if (eventToEdit) {
       return format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd');
+    }
+    if (prefilledEvent) {
+      return format(new Date(prefilledEvent.endTime), 'yyyy-MM-dd');
     }
     return format(selectedDate, 'yyyy-MM-dd');
   });
@@ -84,13 +95,25 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
     if (eventToEdit && !eventToEdit.all_day) {
       return format(parseISO(eventToEdit.end_time), 'HH:mm');
     }
+    if (prefilledEvent && !prefilledEvent.isAllDay) {
+      return format(new Date(prefilledEvent.endTime), 'HH:mm');
+    }
     return format(addHours(selectedDate, 1), 'HH:mm');
   });
   const [reminderMinutes, setReminderMinutes] = useState<string>(() => {
     if (eventToEdit?.reminder_minutes) {
       return eventToEdit.reminder_minutes.toString();
     }
+    if (prefilledEvent?.reminderMinutes) {
+      return prefilledEvent.reminderMinutes.toString();
+    }
     return 'none';
+  });
+  const [guests, setGuests] = useState<string>(() => {
+    if (prefilledEvent?.guests) {
+      return prefilledEvent.guests;
+    }
+    return '';
   });
 
   const resetForm = () => {
@@ -104,12 +127,14 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
       setEndDate(format(parseISO(eventToEdit.end_time), 'yyyy-MM-dd'));
       setEndTime(format(parseISO(eventToEdit.end_time), 'HH:mm'));
       setReminderMinutes(eventToEdit.reminder_minutes?.toString() || 'none');
+      setGuests(eventToEdit.guests || '');
     } else {
       // Reset to defaults for new event
       setTitle('');
       setDescription('');
       setAllDay(false);
       setStartDate(format(selectedDate, 'yyyy-MM-dd'));
+      setGuests('');
       setStartTime(format(selectedDate, 'HH:mm'));
       setEndDate(format(selectedDate, 'yyyy-MM-dd'));
       setEndTime(format(addHours(selectedDate, 1), 'HH:mm'));
@@ -185,6 +210,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
               end: allDay 
                 ? { date: endDate }
                 : { dateTime: endDateTime },
+              attendees: guests.trim() ? guests.split(',').map(email => ({ email: email.trim() })) : undefined,
               reminders: reminderMinutes !== 'none' ? {
                 useDefault: false,
                 overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
@@ -228,6 +254,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
               end_time: endDateTime,
               all_day: allDay,
               reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
+              guests: guests.trim() || null,
             })
             .eq('id', eventToEdit.id);
 
@@ -247,6 +274,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
         end_time: endDateTime,
         all_day: allDay,
         reminder_minutes: reminderMinutes !== 'none' ? parseInt(reminderMinutes) : null,
+        guests: guests.trim() || null,
         user_id: user.id,
         is_synced: false,
         external_id: null,
@@ -266,6 +294,7 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
             end: allDay 
               ? { date: endDate }
               : { dateTime: endDateTime },
+            attendees: guests.trim() ? guests.split(',').map(email => ({ email: email.trim() })) : undefined,
             reminders: reminderMinutes !== 'none' ? {
               useDefault: false,
               overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
@@ -393,6 +422,17 @@ export const AddEventDrawer: React.FC<AddEventDrawerProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a description..."
                 rows={3}
+              />
+            </div>
+
+            {/* Guests */}
+            <div className="space-y-2">
+              <Label htmlFor="guests">Guests</Label>
+              <Input
+                id="guests"
+                value={guests}
+                onChange={(e) => setGuests(e.target.value)}
+                placeholder="Enter guest email addresses (comma separated)"
               />
             </div>
 
