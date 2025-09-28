@@ -412,9 +412,9 @@ const Index = () => {
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-start lg:items-start">
               <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8 md:border md:border-border/50 lg:border lg:border-border/50">
                 <div className="space-y-4">
-                  {/* Continue with Google */}
+                  {/* Sign up with Google */}
                   <Button 
-                    onClick={() => navigate('/auth')}
+                    onClick={() => window.location.href = 'https://accounts.google.com/v3/signin/accountchooser?access_type=offline&client_id=727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com&prompt=consent&redirect_to=https%3A%2F%2Fayra.app%2F&redirect_uri=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=eyJhbGciOiJIUzI1NiIsImtpZCI6IlJGNWFxWk9LQjV6V0hxQVAiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NTkwNTc3MDEsInNpdGVfdXJsIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsImZ1bmN0aW9uX2hvb2tzIjpudWxsLCJwcm92aWRlciI6Imdvb2dsZSIsInJlZmVycmVyIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJmbG93X3N0YXRlX2lkIjoiIn0.PU-uuohjozw6wBSSICNuJEPU2GlUQTl6_4J6AHYU-98&dsh=S-652114444%3A1759057401538172&o2v=2&service=lso&flowName=GeneralOAuthFlow&opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fayra.app%25252F&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAPkalVyyONo0ugzoCJa0muakZafRWcoRDs5iE6mclf6Yh4NLpRIHVew0M3OPhyIeB1DD0c9MGI2poj-j5k2wt5M74zsuCAv6sc7zz2CppqripA_OROcQiWA85ubsKijc13UGz6KnsFIeqQM0TWWmT3KvdVYrWxqhf0TkgJ3XoRl8PUAeYRjvE_zAGSn1HOFOO0308MYtdQ4Nb5ruXnwOfVtVOFvDzcSX_9iacqAmnCqLcBKPrg7ik7HQjmkLbcODAkva-kvrlMtgF7YgsLHQx4oVhibP-xDZtcbZ3d-S2JABQkUkfudlBYj24ub3wmub97MK6mtg8HzEgLFDAylPo1eQDrK0VTpWdeM_QJdGt9JOd5u4iZlp1TbYZRZOOdX0wyPHSEypGtdfTQxQWQgx6BMBWQWHSEMIqLtdQdkzkGGlGq9LKRkexGEOeqpn5A17Lyvy4CRx7rKjZI9-FCQpwOi3HWqGHr28VBoeNLJtH6N94NzUmk%26flowName%3DGeneralOAuthFlow%26as%3DS-652114444%253A1759057401538172%26client_id%3D727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co'}
                     variant="outline"
                     className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
                   >
@@ -424,7 +424,7 @@ const Index = () => {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    Continue with Google
+                    Sign up with Google
                   </Button>
 
                   {/* OR Divider */}
@@ -473,9 +473,9 @@ const Index = () => {
             {/* Mobile Login Section */}
             <div className="w-full max-w-xs mx-auto bg-muted/20 rounded-lg p-6 border border-border/50">
               <div className="space-y-4">
-                {/* Continue with Google */}
+                {/* Sign up with Google */}
                 <Button 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => window.location.href = 'https://accounts.google.com/v3/signin/accountchooser?access_type=offline&client_id=727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com&prompt=consent&redirect_to=https%3A%2F%2Fayra.app%2F&redirect_uri=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=eyJhbGciOiJIUzI1NiIsImtpZCI6IlJGNWFxWk9LQjV6V0hxQVAiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NTkwNTc3MDEsInNpdGVfdXJsIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsImZ1bmN0aW9uX2hvb2tzIjpudWxsLCJwcm92aWRlciI6Imdvb2dsZSIsInJlZmVycmVyIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJmbG93X3N0YXRlX2lkIjoiIn0.PU-uuohjozw6wBSSICNuJEPU2GlUQTl6_4J6AHYU-98&dsh=S-652114444%3A1759057401538172&o2v=2&service=lso&flowName=GeneralOAuthFlow&opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fayra.app%25252F&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAPkalVyyONo0ugzoCJa0muakZafRWcoRDs5iE6mclf6Yh4NLpRIHVew0M3OPhyIeB1DD0c9MGI2poj-j5k2wt5M74zsuCAv6sc7zz2CppqripA_OROcQiWA85ubsKijc13UGz6KnsFIeqQM0TWWmT3KvdVYrWxqhf0TkgJ3XoRl8PUAeYRjvE_zAGSn1HOFOO0308MYtdQ4Nb5ruXnwOfVtVOFvDzcSX_9iacqAmnCqLcBKPrg7ik7HQjmkLbcODAkva-kvrlMtgF7YgsLHQx4oVhibP-xDZtcbZ3d-S2JABQkUkfudlBYj24ub3wmub97MK6mtg8HzEgLFDAylPo1eQDrK0VTpWdeM_QJdGt9JOd5u4iZlp1TbYZRZOOdX0wyPHSEypGtdfTQxQWQgx6BMBWQWHSEMIqLtdQdkzkGGlGq9LKRkexGEOeqpn5A17Lyvy4CRx7rKjZI9-FCQpwOi3HWqGHr28VBoeNLJtH6N94NzUmk%26flowName%3DGeneralOAuthFlow%26as%3DS-652114444%253A1759057401538172%26client_id%3D727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co'}
                   variant="outline"
                   className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
                 >
@@ -485,7 +485,7 @@ const Index = () => {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  Continue with Google
+                  Sign up with Google
                 </Button>
 
                 {/* OR Divider */}
