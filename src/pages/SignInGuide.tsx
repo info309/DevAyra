@@ -1,8 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SignInGuide = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -13,7 +15,7 @@ const SignInGuide = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/')}
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />
