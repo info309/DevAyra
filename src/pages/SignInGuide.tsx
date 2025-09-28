@@ -242,66 +242,6 @@ const SignInGuide = () => {
           </Card>
         </div>
 
-        {/* Features Overview */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-foreground text-center mb-8">
-            What You Can Do with Ayra
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Mail className="h-5 w-5 text-primary" />
-                  <span>Email Management</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Connect your Gmail account to let Ayra help you organize, prioritize, and respond to emails intelligently.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                  <span>Calendar Integration</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Sync your Google Calendar and let Ayra help you schedule meetings, set reminders, and manage your time.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10,9 9,9 8,9"/>
-                  </svg>
-                  <span>Document Assistant</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Upload and organize documents, let Ayra analyze content, and get intelligent insights from your files.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
         {/* Need Help Section */}
         <div className="mt-16 text-center">
