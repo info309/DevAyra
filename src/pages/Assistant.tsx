@@ -573,6 +573,9 @@ const Assistant = () => {
       case 'calendar_create_event':
         // Handle calendar event creation and show schedule meeting button
         console.log('Processing calendar_create_event tool result:', toolResult);
+        console.log('Tool result success:', toolResult?.success);
+        console.log('Tool result event:', toolResult?.event);
+        console.log('Tool result keys:', Object.keys(toolResult || {}));
         
         if (toolResult && toolResult.success && toolResult.event) {
           const event = toolResult.event;
@@ -618,8 +621,23 @@ const Assistant = () => {
               </CardContent>
             </Card>
           );
+        } else {
+          console.log('Calendar event creation failed or missing data:', toolResult);
+          return (
+            <Card className="mt-2 bg-red-50 border-red-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-red-600" />
+                  <span className="text-sm font-medium">Meeting Creation Failed</span>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <p>There was an issue creating the meeting. Please try again.</p>
+                  <p className="text-xs text-gray-500">Debug info: {JSON.stringify(toolResult)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
         }
-        return null;
 
       default:
         return null;
