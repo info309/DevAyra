@@ -185,7 +185,6 @@ const SignInGuide = () => {
                 <video 
                   controls 
                   className="w-full h-full rounded-lg border border-border"
-                  poster="/ayra-logo.png"
                 >
                   <source src="/Ayra_Google_log_in_and_connection.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
