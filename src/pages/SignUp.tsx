@@ -9,43 +9,49 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 
-const Auth = () => {
+const SignUp = () => {
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn, user, signInWithGoogle } = useAuth();
+  const { signUp, user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      // Always redirect to homepage after sign-in, let homepage handle Gmail prompt
+      // Always redirect to homepage after sign-up, let homepage handle Gmail prompt
       navigate('/');
     }
   }, [user, navigate]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error } = await signIn(email, password);
+    const { error } = await signUp(email, password, firstName);
     
     if (error) {
       setError(error.message);
       toast({
         variant: "destructive",
-        title: "Sign In Failed",
+        title: "Sign Up Failed",
         description: error.message
+      });
+    } else {
+      toast({
+        title: "Account Created!",
+        description: "Please check your email to confirm your account."
       });
     }
     
     setLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setLoading(true);
     setError('');
     const { error } = await signInWithGoogle();
@@ -53,7 +59,7 @@ const Auth = () => {
       setError(error.message);
       toast({
         variant: "destructive",
-        title: "Google Sign-In Failed",
+        title: "Google Sign-Up Failed",
         description: error.message
       });
       setLoading(false);
@@ -76,11 +82,22 @@ const Auth = () => {
               <span>Back</span>
             </Button>
           </div>
-          <CardTitle className="text-2xl font-heading">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your Ayra account</CardDescription>
+          <CardTitle className="text-2xl font-heading">Create Your Account</CardTitle>
+          <CardDescription>Join Ayra and unlock your productivity potential</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="Enter your first name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -97,7 +114,7 @@ const Auth = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -109,7 +126,7 @@ const Auth = () => {
               </Alert>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
             <div className="relative my-4 text-center">
               <span className="px-2 text-xs text-muted-foreground bg-background relative z-10">or</span>
@@ -117,16 +134,16 @@ const Auth = () => {
                 <div className="w-full border-t" />
               </div>
             </div>
-            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
-              Continue with Google
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
+              Sign up with Google
             </Button>
           </form>
           
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Button variant="link" className="p-0 h-auto font-normal" onClick={() => navigate('/signup')}>
-                Sign up here
+              Already have an account?{' '}
+              <Button variant="link" className="p-0 h-auto font-normal" onClick={() => navigate('/auth')}>
+                Sign in here
               </Button>
             </p>
           </div>
@@ -136,4 +153,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default SignUp;
