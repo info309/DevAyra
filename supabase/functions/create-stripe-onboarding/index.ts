@@ -15,7 +15,7 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const path = url.pathname;
-  const isCallback = path.includes('/callback') || url.searchParams.has('code');
+  const isCallback = url.searchParams.has('code');
 
   console.log('Request path:', path);
   console.log('Is callback:', isCallback);
@@ -112,7 +112,7 @@ serve(async (req) => {
     if (!clientId) throw new Error("STRIPE_CLIENT_ID is not set");
 
     const origin = req.headers.get("origin") || Deno.env.get("FRONTEND_URL");
-    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-stripe-onboarding/callback`;
+    const redirectUri = `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-stripe-onboarding`;
     
     const oauthUrl = `https://connect.stripe.com/oauth/authorize?` +
       `response_type=code&` +
