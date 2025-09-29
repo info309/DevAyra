@@ -18,6 +18,8 @@ serve(async (req) => {
   const isCallback = url.searchParams.has('code');
 
   console.log('Request path:', path);
+  console.log('Full URL:', req.url);
+  console.log('Search params:', url.searchParams.toString());
   console.log('Is callback:', isCallback);
   console.log('Has code param:', url.searchParams.has('code'));
   console.log('Environment check - STRIPE_CLIENT_ID exists:', !!Deno.env.get("STRIPE_CLIENT_ID"));
