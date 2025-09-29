@@ -83,7 +83,7 @@ serve(async (req) => {
       return Response.redirect(`${origin}/account?stripe_connected=true`);
     }
 
-    // Handle initial OAuth URL generation
+    // Handle initial OAuth URL generation - only check auth for non-callback requests
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
