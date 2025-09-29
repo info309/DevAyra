@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign } from 'lucide-react';
+import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -539,6 +539,45 @@ const Index = () => {
             <p className="text-base text-muted-foreground max-w-3xl mx-auto mb-8 font-body font-medium">
               Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace
             </p>
+            
+            {/* Ayra AI Assistant Explanation Box */}
+            <div className="mb-8">
+              <Card className="hover:shadow-lg transition-shadow overflow-hidden max-w-4xl mx-auto">
+                <div className="flex h-full">
+                  <div className="flex-1 flex flex-col pr-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Brain className="w-6 h-6 text-primary" />
+                        <CardTitle className="text-xl">Ayra - Your Personal AI Assistant</CardTitle>
+                      </div>
+                      <CardDescription className="text-sm mt-1">
+                        Meet Ayra, your intelligent AI companion that learns your preferences and helps streamline your daily workflow. From managing emails to scheduling meetings, Ayra understands context and provides personalized assistance across all your productivity tools.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex-1">
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-body font-medium">
+                          Natural Language Processing
+                        </span>
+                        <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-body font-medium">
+                          Context Awareness
+                        </span>
+                        <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-body font-medium">
+                          Cross-Platform Integration
+                        </span>
+                      </div>
+                    </CardContent>
+                  </div>
+                  <div className="w-[40%] min-h-[120px] relative flex items-center justify-center">
+                    <img 
+                      src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                      alt="Ayra AI Assistant"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                </div>
+              </Card>
+            </div>
             
             {/* iPad Container - Centered under subtitle showing full screen */}
             <div className="flex justify-center">
