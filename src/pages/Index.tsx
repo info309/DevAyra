@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database } from 'lucide-react';
+import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign } from 'lucide-react';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -363,6 +363,13 @@ const Index = () => {
       description: 'Store and organize files with drag-and-drop simplicity. Version control, sharing, and secure storage for all your important documents.',
       features: ['Drag & Drop Upload', 'Version Control', 'Secure Storage'],
       image: '/lovable-uploads/3f43df0b-172f-41eb-900b-8e87884c3e13.png'
+    },
+    {
+      icon: DollarSign,
+      title: 'Finances',
+      description: 'Track your financial health with receipt uploads, expense categorization, and comprehensive reporting. View paid invoices and manage your money with ease.',
+      features: ['Receipt Processing', 'Expense Tracking', 'Financial Reports'],
+      image: '/lovable-uploads/5340884b-d242-4cd3-a6fd-5addecf0c05e.png'
     }
   ];
 
