@@ -205,7 +205,7 @@ const StripeConnectionCard: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -214,24 +214,22 @@ const StripeConnectionCard: React.FC = () => {
                 >
                   Refresh Status
                 </Button>
-                {(!stripeStatus.charges_enabled || !stripeStatus.details_submitted) && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleConnectStripe}
-                    disabled={loading}
-                    className="gap-2"
-                  >
-                    {loading ? (
-                      "Redirecting..."
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4" />
-                        Complete Setup
-                      </>
-                    )}
-                  </Button>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleConnectStripe}
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  {loading ? (
+                    "Redirecting..."
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4" />
+                      {(!stripeStatus.charges_enabled || !stripeStatus.details_submitted) ? 'Complete Setup' : 'Change Account'}
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
