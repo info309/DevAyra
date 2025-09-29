@@ -20,6 +20,7 @@ serve(async (req) => {
   console.log('Request path:', path);
   console.log('Is callback:', isCallback);
   console.log('Has code param:', url.searchParams.has('code'));
+  console.log('Environment check - STRIPE_CLIENT_ID exists:', !!Deno.env.get("STRIPE_CLIENT_ID"));
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
