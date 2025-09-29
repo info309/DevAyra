@@ -82,7 +82,8 @@ serve(async (req) => {
       console.log('Redirecting to success page...');
       // Redirect back to account page with success
       const origin = req.headers.get("origin") || Deno.env.get("FRONTEND_URL");
-      return Response.redirect(`${origin}/account?stripe_connected=true`);
+      const baseUrl = origin?.endsWith('/') ? origin.slice(0, -1) : origin;
+      return Response.redirect(`${baseUrl}/account?stripe_connected=true`);
     }
 
     // Handle initial OAuth URL generation - only check auth for non-callback requests
