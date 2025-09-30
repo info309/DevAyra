@@ -12,6 +12,7 @@ import invoicesIcon from '@/assets/invoices-icon.png';
 import documentsIcon from '@/assets/documents-icon.png';
 import financesIcon from '@/assets/finances-icon.png';
 import accountIcon from '@/assets/account-icon.svg';
+import aiAssistantIcon from '@/assets/ai-assistant-icon.svg';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -55,7 +56,7 @@ const Dashboard = () => {
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
       route: '/assistant',
-      image: '/lovable-uploads/839337f2-f4b6-4401-abaf-a3a528fbb930.png'
+      image: aiAssistantIcon
     },
     {
       title: 'Mailbox',
