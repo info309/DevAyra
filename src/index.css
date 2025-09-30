@@ -28,7 +28,7 @@ All colors MUST be HSL.
     --popover: 28 100% 98%;
     --popover-foreground: 20 14% 9%;
 
-    --primary: 10 100% 65%; /* Orange #ff6d4d */
+    --primary: 13 78% 60%; /* Orange #e96b49 */
     --primary-foreground: 28 100% 96%;
 
     --secondary: 25 50% 88%;
@@ -45,12 +45,12 @@ All colors MUST be HSL.
 
     --border: 25 25% 85%;
     --input: 25 25% 90%;
-    --ring: 10 100% 65%;
+    --ring: 13 78% 60%;
 
-    --compose-button: 10 100% 65%; /* #ff6d4d */
+    --compose-button: 13 78% 60%; /* #e96b49 */
     --compose-button-foreground: 28 100% 96%;
 
-    --send-button: 10 100% 65%; /* #ff6d4d */
+    --send-button: 13 78% 60%; /* #e96b49 */
     --send-button-foreground: 28 100% 96%;
 
     --radius: 0.75rem;
@@ -82,7 +82,7 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 10 100% 65%; /* Orange #ff6d4d */
+    --primary: 13 78% 60%; /* Orange #e96b49 */
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -99,10 +99,10 @@ All colors MUST be HSL.
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 10 100% 65%;
-    --compose-button: 10 100% 65%; /* #ff6d4d */
+    --ring: 13 78% 60%;
+    --compose-button: 13 78% 60%; /* #e96b49 */
     --compose-button-foreground: 210 40% 98%;
-    --send-button: 10 100% 65%; /* #ff6d4d */
+    --send-button: 13 78% 60%; /* #e96b49 */
     --send-button-foreground: 210 40% 98%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
