@@ -416,7 +416,7 @@ const Index = () => {
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
               <div className="max-w-md w-full">
                 <img 
-                  src="/lovable-uploads/ai-assistant-hero.png" 
+                  src="/lovable-uploads/AI_Assistant-2.png" 
                   alt="AI Assistant Illustration" 
                   className="w-full h-auto rounded-lg"
                 />
@@ -479,7 +479,7 @@ const Index = () => {
           <div className="md:hidden text-center">
             <div className="mt-6 mb-8">
                 <img 
-                  src="/lovable-uploads/ai-assistant-hero.png" 
+                  src="/lovable-uploads/AI_Assistant-2.png" 
                   alt="AI Assistant Illustration" 
                   className="w-64 mx-auto rounded-lg"
                 />
