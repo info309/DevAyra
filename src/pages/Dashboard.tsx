@@ -9,6 +9,7 @@ import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
+import documentsIcon from '@/assets/documents-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -88,7 +89,7 @@ const Dashboard = () => {
       title: 'Documents',
       description: 'Store and organize your files',
       route: '/documents',
-      image: '/lovable-uploads/3f43df0b-172f-41eb-900b-8e87884c3e13.png'
+      image: documentsIcon
     },
     {
       title: 'Account',
