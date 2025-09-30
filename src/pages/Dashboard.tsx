@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import mailIcon from '@/assets/mail-icon.png'; // Updated icon
+// Icon imports - force refresh
+import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
-import documentsIcon from '@/assets/documents-icon.png'; // Updated icon
+import documentsIcon from '@/assets/documents-icon.png';
 import financesIcon from '@/assets/finances-icon.png';
 import accountIcon from '@/assets/account-icon.png';
 import aiAssistantIcon from '@/assets/ai-assistant-icon.png';
