@@ -479,7 +479,7 @@ const Index = () => {
           <div className="md:hidden text-center">
             <div className="mt-6 mb-8">
                 <img 
-                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                  src="/lovable-uploads/ai-assistant-hero.png" 
                   alt="AI Assistant Illustration" 
                   className="w-64 mx-auto rounded-lg"
                 />
