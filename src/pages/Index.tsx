@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
+import heroImage from '@/assets/ai-assistant-hero.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -408,7 +409,7 @@ const Index = () => {
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
               <div className="max-w-md w-full">
                 <img 
-                  src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                  src={heroImage} 
                   alt="AI Assistant Illustration" 
                   className="w-full h-auto rounded-lg"
                 />
