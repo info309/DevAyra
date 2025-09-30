@@ -549,7 +549,7 @@ const Index = () => {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xl text-left">Ayra</CardTitle>
                       <CardDescription className="text-sm mt-1 text-left">
-                        Meet Ayra, your intelligent AI companion that learns your preferences and helps streamline your daily workflow. From managing emails to scheduling meetings, Ayra understands context and provides personalized assistance across all your productivity tools.
+                        An intelligent AI companion that learns your preferences and streamlines your daily workflow. Ayra manages emails, schedules meetings, and provides personalized assistance across all your productivity tools with full context awareness.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0 flex-1">
