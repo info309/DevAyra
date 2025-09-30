@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import mailIcon from '@/assets/mail-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -54,7 +55,7 @@ const Dashboard = () => {
       title: 'Mailbox',
       description: 'Connect and manage your Gmail account',
       route: '/mailbox',
-      image: '/lovable-uploads/690a95aa-24fc-4792-aa90-f9cd1f512385.png'
+      image: mailIcon
     },
     {
       title: 'Calendar',

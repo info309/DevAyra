@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
 import ayraAiAssistant from '@/assets/ayra-ai-assistant.png';
+import mailIcon from '@/assets/mail-icon.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -335,7 +336,7 @@ const Index = () => {
       title: 'Mailbox (Gmail)',
       description: 'Connect your Gmail account for seamless email management. Smart threading, search, and AI-powered organization keep your inbox under control.',
       features: ['Gmail Integration', 'Smart Threading', 'AI Organization'],
-      image: '/lovable-uploads/690a95aa-24fc-4792-aa90-f9cd1f512385.png'
+      image: mailIcon
     },
     {
       icon: Calendar,
