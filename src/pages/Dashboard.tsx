@@ -11,6 +11,7 @@ import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
 import documentsIcon from '@/assets/documents-icon.png';
 import financesIcon from '@/assets/finances-icon.png';
+import accountIcon from '@/assets/account-icon.svg';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -96,7 +97,7 @@ const Dashboard = () => {
       title: 'Account',
       description: 'Manage account settings and connections',
       route: '/account',
-      image: '/lovable-uploads/f9af1339-8fe5-43b0-b36d-d146c3fa8c30.png'
+      image: accountIcon
     }
   ];
 
