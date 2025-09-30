@@ -16,6 +16,7 @@ import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
 import documentsIcon from '@/assets/documents-icon.png';
+import financesIcon from '@/assets/finances-icon.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -375,7 +376,7 @@ const Index = () => {
       title: 'Finances',
       description: 'Track your financial health with receipt uploads, expense categorization, and comprehensive reporting. View paid invoices and manage your money with ease.',
       features: ['Receipt Processing', 'Expense Tracking', 'Financial Reports'],
-      image: '/lovable-uploads/5340884b-d242-4cd3-a6fd-5addecf0c05e.png'
+      image: financesIcon
     }
   ];
 

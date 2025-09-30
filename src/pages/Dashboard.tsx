@@ -10,6 +10,7 @@ import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
 import documentsIcon from '@/assets/documents-icon.png';
+import financesIcon from '@/assets/finances-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -83,7 +84,7 @@ const Dashboard = () => {
       title: 'Finances',
       description: 'View financial data and upload receipts',
       route: '/finances',
-      image: '/lovable-uploads/5340884b-d242-4cd3-a6fd-5addecf0c05e.png'
+      image: financesIcon
     },
     {
       title: 'Documents',
