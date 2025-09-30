@@ -513,10 +513,7 @@ const Invoices = () => {
 
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="text-sm text-muted-foreground">
-          {invoices.filter(i => i.type === 'quote').length} quotes, {invoices.filter(i => i.type === 'invoice').length} invoices, {receipts.length} receipts
-        </div>
+      <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 mb-6">
         <div className="flex gap-2">
           <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DrawerTrigger asChild>
