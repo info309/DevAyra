@@ -150,7 +150,7 @@ const Dashboard = () => {
                     </CardContent>
                   </div>
                   {tool.image && (
-                    <div className="w-[40%] min-h-[120px] relative flex items-center justify-center">
+                    <div className="w-[40%] h-[120px] relative flex items-center justify-center">
                       <img 
                         src={tool.image} 
                         alt={tool.title}
