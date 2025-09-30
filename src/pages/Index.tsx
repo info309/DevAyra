@@ -547,7 +547,7 @@ const Index = () => {
                 <div className="flex h-full">
                   <div className="flex-1 flex flex-col pr-2">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-xl text-left">Ayra - Your Personal AI Assistant</CardTitle>
+                      <CardTitle className="text-xl text-left">Ayra</CardTitle>
                       <CardDescription className="text-sm mt-1 text-left">
                         Meet Ayra, your intelligent AI companion that learns your preferences and helps streamline your daily workflow. From managing emails to scheduling meetings, Ayra understands context and provides personalized assistance across all your productivity tools.
                       </CardDescription>
