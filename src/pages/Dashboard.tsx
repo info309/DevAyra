@@ -6,6 +6,7 @@ import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, R
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import mailIcon from '@/assets/mail-icon.png';
+import calendarIcon from '@/assets/calendar-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -61,7 +62,7 @@ const Dashboard = () => {
       title: 'Calendar',
       description: 'Schedule events and set reminders',
       route: '/calendar',
-      image: '/lovable-uploads/77033c20-8408-4764-a8de-03af915812c4.png'
+      image: calendarIcon
     },
     {
       title: 'Notes',

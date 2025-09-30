@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
 import ayraAiAssistant from '@/assets/ayra-ai-assistant.png';
 import mailIcon from '@/assets/mail-icon.png';
+import calendarIcon from '@/assets/calendar-icon.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -343,7 +344,7 @@ const Index = () => {
       title: 'Calendar',
       description: 'Sync with Google Calendar to never miss important events. Smart scheduling, reminders, and meeting management all in one place.',
       features: ['Google Calendar Sync', 'Smart Reminders', 'Meeting Management'],
-      image: '/lovable-uploads/77033c20-8408-4764-a8de-03af915812c4.png'
+      image: calendarIcon
     },
     {
       icon: FileText,
