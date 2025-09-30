@@ -551,8 +551,8 @@ const Index = () => {
             {/* Ayra AI Assistant Explanation Box */}
             <div className="mb-8">
               <Card className="hover:shadow-lg transition-shadow overflow-hidden max-w-4xl mx-auto">
-                <div className="flex flex-col md:flex-row h-full">
-                  <div className="flex-1 flex flex-col md:pr-2">
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 flex flex-col">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xl text-left">Ayra</CardTitle>
                       <CardDescription className="text-sm mt-1 text-left">
@@ -572,13 +572,6 @@ const Index = () => {
                         </span>
                       </div>
                     </CardContent>
-                  </div>
-                  <div className="w-full md:w-[40%] min-h-[120px] relative flex items-center justify-center p-4 md:p-0">
-                    <img 
-                      src={ayraAiAssistant} 
-                      alt="Ayra AI Assistant"
-                      className="max-w-full max-h-full object-contain"
-                    />
                   </div>
                 </div>
               </Card>
