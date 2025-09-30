@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import mailIcon from '@/assets/mail-icon.png';
+import mailIcon from '@/assets/mail-icon.png'; // Updated icon
 import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
 import invoicesIcon from '@/assets/invoices-icon.png';
