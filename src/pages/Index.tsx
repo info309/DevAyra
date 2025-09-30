@@ -13,6 +13,7 @@ import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock
 import ayraAiAssistant from '@/assets/ayra-ai-assistant.png';
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
+import notesIcon from '@/assets/notes-icon.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -351,7 +352,7 @@ const Index = () => {
       title: 'Notes',
       description: 'Capture thoughts with rich text editing, password protection, and smart organization. Lock sensitive notes with built-in security.',
       features: ['Rich Text Editor', 'Password Lock', 'Smart Organization'],
-      image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
+      image: notesIcon
     },
     {
       icon: Receipt,

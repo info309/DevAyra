@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
+import notesIcon from '@/assets/notes-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -68,7 +69,7 @@ const Dashboard = () => {
       title: 'Notes',
       description: 'Save and edit your notes',
       route: '/notes',
-      image: '/lovable-uploads/6d429c69-a608-4a98-bab2-24f0566fb90d.png'
+      image: notesIcon
     },
     {
       title: 'Invoices',
