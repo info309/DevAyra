@@ -14,6 +14,7 @@ import ayraAiAssistant from '@/assets/ayra-ai-assistant.png';
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
+import invoicesIcon from '@/assets/invoices-icon.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -359,7 +360,7 @@ const Index = () => {
       title: 'Invoices',
       description: 'Create professional invoices with Stripe integration. Send, track, and manage payments with automated follow-ups and reporting.',
       features: ['Stripe Integration', 'Payment Tracking', 'Automated Follow-ups'],
-      image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
+      image: invoicesIcon
     },
     {
       icon: FolderOpen,

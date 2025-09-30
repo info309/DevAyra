@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
 import notesIcon from '@/assets/notes-icon.png';
+import invoicesIcon from '@/assets/invoices-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -75,7 +76,7 @@ const Dashboard = () => {
       title: 'Invoices',
       description: 'Generate quotes and invoices',
       route: '/invoices',
-      image: '/lovable-uploads/01bfd4a7-1c5b-4479-bc09-927426a5ff7a.png'
+      image: invoicesIcon
     },
     {
       title: 'Finances',
