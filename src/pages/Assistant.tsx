@@ -789,7 +789,7 @@ const Assistant = () => {
                   <h3 className="text-xl font-semibold mb-6 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
                   <div className="w-48 h-48 mx-auto mb-1.5 flex items-center justify-center">
                     <img 
-                      src="/lovable-uploads/fc3ef300-a3f1-42f7-9cf2-4eed433cb33c.png" 
+                      src="/lovable-uploads/ayra-assistant-avatar.png" 
                       alt="Ayra Assistant" 
                       className="w-full h-full object-contain"
                     />
