@@ -497,7 +497,7 @@ const Invoices = () => {
 
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto overflow-x-hidden w-full">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
           <Button 
@@ -985,7 +985,7 @@ const Invoices = () => {
           </div>
         ) : (
           invoices.map((invoice) => (
-          <Card key={invoice.id}>
+          <Card key={invoice.id} className="overflow-hidden">
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
@@ -1006,7 +1006,7 @@ const Invoices = () => {
                     {invoice.customer_name} • {formatCurrency(invoice.total_cents, invoice.currency)}
                   </CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
                   {invoice.type === 'quote' && (
                     <Button 
                       variant="outline" 
