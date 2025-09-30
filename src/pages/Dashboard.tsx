@@ -12,7 +12,7 @@ import invoicesIcon from '@/assets/invoices-icon.png';
 import documentsIcon from '@/assets/documents-icon.png';
 import financesIcon from '@/assets/finances-icon.png';
 import accountIcon from '@/assets/account-icon.svg';
-import aiAssistantIcon from '@/assets/ai-assistant-icon.svg';
+import aiAssistantIcon from '@/assets/ai-assistant-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
