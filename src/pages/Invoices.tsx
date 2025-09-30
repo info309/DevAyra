@@ -537,7 +537,7 @@ const Invoices = () => {
                   setEditingInvoice(null); 
                 }} 
                 className="w-full sm:w-auto" 
-                style={{ backgroundColor: '#ff6d4d' }}
+                style={{ backgroundColor: '#e96b49' }}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Invoice
@@ -809,7 +809,7 @@ const Invoices = () => {
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#ff6d4d' }}>
+                  <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#e96b49' }}>
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1013,7 +1013,7 @@ const Invoices = () => {
                       size="sm" 
                       onClick={() => handleConvertToInvoice(invoice)} 
                       title="Convert to Invoice"
-                      style={{ backgroundColor: '#ff6d4d', color: 'white' }}
+                      style={{ backgroundColor: '#e96b49', color: 'white' }}
                     >
                       <FileText className="w-4 h-4" />
                       <span className="ml-2 hidden sm:inline">Make Invoice</span>
