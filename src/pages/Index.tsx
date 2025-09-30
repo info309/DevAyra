@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
+import ayraAiAssistant from '@/assets/ayra-ai-assistant.png';
 
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -570,7 +571,7 @@ const Index = () => {
                   </div>
                   <div className="w-[40%] min-h-[120px] relative flex items-center justify-center">
                     <img 
-                      src="/lovable-uploads/81fcbe09-eea5-49d4-8d19-09cd6d5dbf7a.png" 
+                      src={ayraAiAssistant} 
                       alt="Ayra AI Assistant"
                       className="max-w-full max-h-full object-contain"
                     />
