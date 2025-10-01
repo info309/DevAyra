@@ -27,6 +27,7 @@ import TermsOfService from "./pages/TermsOfService";
 import AntiSlaveryPolicy from "./pages/AntiSlaveryPolicy";
 import SignInGuide from "./pages/SignInGuide";
 import SignUp from "./pages/SignUp";
+import EmailCleanup from "./pages/EmailCleanup";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,11 @@ const App = () => (
             <Route path="/finances" element={
               <ProtectedRoute>
                 <Finances />
+              </ProtectedRoute>
+            } />
+            <Route path="/email-cleanup" element={
+              <ProtectedRoute>
+                <EmailCleanup />
               </ProtectedRoute>
             } />
             <Route path="/payment" element={<Payment />} />

@@ -66,6 +66,12 @@ const Dashboard = () => {
       image: mailIcon
     },
     {
+      title: 'Email Cleanup',
+      description: 'Analyze, unsubscribe, and organize your emails',
+      route: '/email-cleanup',
+      image: mailIcon
+    },
+    {
       title: 'Calendar',
       description: 'Schedule events and set reminders',
       route: '/calendar',

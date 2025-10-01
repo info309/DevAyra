@@ -191,6 +191,81 @@ export type Database = {
         }
         Relationships: []
       }
+      cleanup_history: {
+        Row: {
+          action_type: string
+          completed_at: string | null
+          created_at: string
+          emails_affected: number
+          error_message: string | null
+          id: string
+          sender_domain: string | null
+          sender_email: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          completed_at?: string | null
+          created_at?: string
+          emails_affected?: number
+          error_message?: string | null
+          id?: string
+          sender_domain?: string | null
+          sender_email?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          completed_at?: string | null
+          created_at?: string
+          emails_affected?: number
+          error_message?: string | null
+          id?: string
+          sender_domain?: string | null
+          sender_email?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cleanup_rules: {
+        Row: {
+          action: string
+          created_at: string
+          domain_pattern: string | null
+          id: string
+          is_active: boolean
+          rule_name: string
+          sender_pattern: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          domain_pattern?: string | null
+          id?: string
+          is_active?: boolean
+          rule_name: string
+          sender_pattern?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          domain_pattern?: string | null
+          id?: string
+          is_active?: boolean
+          rule_name?: string
+          sender_pattern?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           company: string | null
@@ -257,6 +332,69 @@ export type Database = {
           name?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      email_cleanup_analysis: {
+        Row: {
+          analyzed_at: string
+          contains_important_keywords: boolean | null
+          created_at: string
+          email_count: number
+          first_email_date: string | null
+          has_unsubscribe_header: boolean | null
+          id: string
+          important_keywords: string[] | null
+          last_email_date: string | null
+          recommended_action: string
+          sender_domain: string
+          sender_email: string
+          sender_name: string | null
+          unread_count: number
+          updated_at: string
+          user_id: string
+          user_opened_count: number
+          user_replied_count: number
+        }
+        Insert: {
+          analyzed_at?: string
+          contains_important_keywords?: boolean | null
+          created_at?: string
+          email_count?: number
+          first_email_date?: string | null
+          has_unsubscribe_header?: boolean | null
+          id?: string
+          important_keywords?: string[] | null
+          last_email_date?: string | null
+          recommended_action?: string
+          sender_domain: string
+          sender_email: string
+          sender_name?: string | null
+          unread_count?: number
+          updated_at?: string
+          user_id: string
+          user_opened_count?: number
+          user_replied_count?: number
+        }
+        Update: {
+          analyzed_at?: string
+          contains_important_keywords?: boolean | null
+          created_at?: string
+          email_count?: number
+          first_email_date?: string | null
+          has_unsubscribe_header?: boolean | null
+          id?: string
+          important_keywords?: string[] | null
+          last_email_date?: string | null
+          recommended_action?: string
+          sender_domain?: string
+          sender_email?: string
+          sender_name?: string | null
+          unread_count?: number
+          updated_at?: string
+          user_id?: string
+          user_opened_count?: number
+          user_replied_count?: number
         }
         Relationships: []
       }
