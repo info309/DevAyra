@@ -10,6 +10,7 @@ interface BulkActionRequest {
   senderEmail: string;
   action: 'unsubscribe' | 'delete' | 'trash' | 'organize' | 'label';
   labelName?: string;
+  unsubscribeUrl?: string;
 }
 
 serve(async (req) => {
@@ -35,7 +36,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { senderEmail, action, labelName }: BulkActionRequest = await req.json();
+    const { senderEmail, action, labelName, unsubscribeUrl }: BulkActionRequest = await req.json();
 
     if (!senderEmail || !action) {
       throw new Error('Missing required fields: senderEmail and action');
@@ -92,21 +93,24 @@ serve(async (req) => {
       let processedCount = 0;
 
       if (action === 'unsubscribe') {
-        // First try to unsubscribe using the unsubscribe function
-        const unsubResponse = await fetch(`${supabaseUrl}/functions/v1/email-unsubscribe`, {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ senderEmail }),
-        });
-
-        if (unsubResponse.ok) {
-          // Then move emails to a folder
-          await moveEmailsToLabel(connection.access_token, messageIds, 'Unsubscribed');
-          processedCount = messageIds.length;
+        // Try to visit the unsubscribe URL if provided
+        if (unsubscribeUrl) {
+          try {
+            console.log(`Attempting to unsubscribe via URL: ${unsubscribeUrl}`);
+            const unsubResponse = await fetch(unsubscribeUrl, {
+              method: 'GET',
+              redirect: 'follow',
+            });
+            console.log(`Unsubscribe URL response: ${unsubResponse.status}`);
+          } catch (error) {
+            console.error('Error visiting unsubscribe URL:', error);
+            // Continue anyway - we'll still move emails to label
+          }
         }
+        
+        // Move emails to "Unsubscribed" label
+        await moveEmailsToLabel(connection.access_token, messageIds, 'Unsubscribed');
+        processedCount = messageIds.length;
       } else if (action === 'trash') {
         // Move to trash
         for (const messageId of messageIds) {

@@ -24,6 +24,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get('Authorization');
@@ -39,7 +40,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    console.log('Starting email analysis for user:', user.id);
+    console.log('Starting subscription analysis for user:', user.id);
 
     // Get Gmail connection
     const { data: connection, error: connError } = await supabase
@@ -77,28 +78,18 @@ serve(async (req) => {
 
     console.log(`Found ${messages.length} messages to analyze`);
 
-    // Group emails by sender
-    const senderGroups = new Map<string, {
+    // Group subscriptions by sender
+    const subscriptions = new Map<string, {
       senderEmail: string;
       senderDomain: string;
       senderName: string;
-      emails: EmailMessage[];
-      hasUnsubscribe: boolean;
-      openedCount: number;
-      repliedCount: number;
-      importantKeywords: Set<string>;
-      firstDate: Date;
-      lastDate: Date;
+      emailCount: number;
+      unsubscribeUrl: string;
+      sampleSubjects: string[];
     }>();
 
-    const importantKeywords = [
-      'invoice', 'receipt', 'booking', 'reservation', 'confirmation',
-      'ticket', 'order', 'payment', 'transaction', 'statement',
-      'account', 'password', 'security', 'verify', 'reset'
-    ];
-
-    // Fetch and analyze each message
-    for (const message of messages.slice(0, 100)) { // Limit to 100 for performance
+    // Fetch and analyze each message (limit to 200 for performance)
+    for (const message of messages.slice(0, 200)) {
       const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=full`;
       const msgResponse = await fetch(msgUrl, {
         headers: {
@@ -111,9 +102,12 @@ serve(async (req) => {
       const msgData: EmailMessage = await msgResponse.json();
       const headers = msgData.payload.headers;
 
+      // Only process emails with unsubscribe headers
+      const unsubscribeHeader = headers.find(h => h.name.toLowerCase() === 'list-unsubscribe');
+      if (!unsubscribeHeader) continue;
+
       const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
       const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
-      const unsubscribeHeader = headers.find(h => h.name.toLowerCase() === 'list-unsubscribe');
       
       // Parse sender email
       const emailMatch = fromHeader.match(/<(.+?)>/) || fromHeader.match(/(\S+@\S+)/);
@@ -121,81 +115,81 @@ serve(async (req) => {
       const senderDomain = senderEmail.split('@')[1] || senderEmail;
       const senderName = fromHeader.replace(/<.+?>/, '').trim().replace(/"/g, '');
 
-      // Check for important keywords
-      const foundKeywords = new Set<string>();
-      const searchText = (subjectHeader + fromHeader).toLowerCase();
-      for (const keyword of importantKeywords) {
-        if (searchText.includes(keyword)) {
-          foundKeywords.add(keyword);
-        }
-      }
+      // Extract unsubscribe URL
+      const urlMatch = unsubscribeHeader.value.match(/<(https?:\/\/[^>]+)>/);
+      const unsubscribeUrl = urlMatch ? urlMatch[1] : '';
 
-      // Check if opened (no UNREAD label)
-      const isOpened = !msgData.labelIds?.includes('UNREAD');
-      
-      // Check if in SENT (user replied)
-      const isReplied = msgData.labelIds?.includes('SENT') || false;
-
-      const msgDate = new Date(parseInt(msgData.internalDate));
-
-      if (!senderGroups.has(senderEmail)) {
-        senderGroups.set(senderEmail, {
+      if (!subscriptions.has(senderEmail)) {
+        subscriptions.set(senderEmail, {
           senderEmail,
           senderDomain,
           senderName,
-          emails: [],
-          hasUnsubscribe: !!unsubscribeHeader,
-          openedCount: 0,
-          repliedCount: 0,
-          importantKeywords: new Set(),
-          firstDate: msgDate,
-          lastDate: msgDate,
+          emailCount: 0,
+          unsubscribeUrl,
+          sampleSubjects: [],
         });
       }
 
-      const group = senderGroups.get(senderEmail)!;
-      group.emails.push(msgData);
-      if (isOpened) group.openedCount++;
-      if (isReplied) group.repliedCount++;
-      if (unsubscribeHeader) group.hasUnsubscribe = true;
-      foundKeywords.forEach(kw => group.importantKeywords.add(kw));
-      if (msgDate < group.firstDate) group.firstDate = msgDate;
-      if (msgDate > group.lastDate) group.lastDate = msgDate;
+      const subscription = subscriptions.get(senderEmail)!;
+      subscription.emailCount++;
+      if (subscription.sampleSubjects.length < 3) {
+        subscription.sampleSubjects.push(subjectHeader);
+      }
     }
 
-    console.log(`Grouped into ${senderGroups.size} sender groups`);
+    console.log(`Found ${subscriptions.size} subscriptions`);
 
-    // Save analysis to database
+    // Generate AI summaries for each subscription
     const analysisRecords = [];
-    for (const [_, group] of senderGroups) {
-      const hasImportantKeywords = group.importantKeywords.size > 0;
-      const hasInteraction = group.openedCount > 0 || group.repliedCount > 0;
+    for (const [_, subscription] of subscriptions) {
+      try {
+        // Generate AI summary
+        const prompt = `Analyze this email subscription and write a brief 1-2 sentence summary of what this subscription is about:
+        
+Sender: ${subscription.senderName || subscription.senderEmail}
+Domain: ${subscription.senderDomain}
+Sample email subjects:
+${subscription.sampleSubjects.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
-      let recommendedAction = 'review';
-      if (hasImportantKeywords) {
-        recommendedAction = 'keep';
-      } else if (group.hasUnsubscribe && !hasInteraction && group.emails.length > 3) {
-        recommendedAction = 'unsubscribe';
-      } else if (!hasInteraction && group.emails.length > 5) {
-        recommendedAction = 'organize';
+Provide a concise summary that helps the user understand what type of content they receive from this subscription.`;
+
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 150,
+          }),
+        });
+
+        let aiSummary = 'Subscription emails';
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          aiSummary = aiData.choices?.[0]?.message?.content || 'Subscription emails';
+        } else {
+          console.error('AI summary generation failed for', subscription.senderEmail);
+        }
+
+        analysisRecords.push({
+          user_id: user.id,
+          sender_email: subscription.senderEmail,
+          sender_domain: subscription.senderDomain,
+          sender_name: subscription.senderName,
+          email_count: subscription.emailCount,
+          has_unsubscribe_header: true,
+          unsubscribe_url: subscription.unsubscribeUrl,
+          ai_summary: aiSummary,
+          recommended_action: 'unsubscribe',
+        });
+      } catch (error) {
+        console.error('Error generating summary for', subscription.senderEmail, error);
       }
-
-      analysisRecords.push({
-        user_id: user.id,
-        sender_email: group.senderEmail,
-        sender_domain: group.senderDomain,
-        sender_name: group.senderName,
-        email_count: group.emails.length,
-        unread_count: group.emails.filter(e => e.labelIds?.includes('UNREAD')).length,
-        has_unsubscribe_header: group.hasUnsubscribe,
-        user_opened_count: group.openedCount,
-        user_replied_count: group.repliedCount,
-        contains_important_keywords: hasImportantKeywords,
-        important_keywords: Array.from(group.importantKeywords),
-        recommended_action: recommendedAction,
-        first_email_date: group.firstDate.toISOString(),
-        last_email_date: group.lastDate.toISOString(),
-      });
     }
 
     // Delete old analysis and insert new
@@ -213,13 +207,13 @@ serve(async (req) => {
       throw insertError;
     }
 
-    console.log(`Analysis complete: ${analysisRecords.length} sender groups analyzed`);
+    console.log(`Analysis complete: ${analysisRecords.length} subscriptions found`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        senderGroups: analysisRecords.length,
-        message: `Analyzed ${messages.length} emails from ${analysisRecords.length} senders`
+        subscriptions: analysisRecords.length,
+        message: `Found ${analysisRecords.length} subscriptions from ${messages.length} emails`
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

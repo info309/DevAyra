@@ -38,7 +38,7 @@ const EmailCleanup = () => {
 
       toast({
         title: "Analysis complete",
-        description: `Analyzed emails from ${response.data.senderGroups} senders`,
+        description: `Found ${response.data.subscriptions} subscriptions`,
       });
 
       // Trigger refresh
@@ -72,7 +72,7 @@ const EmailCleanup = () => {
             <div>
               <h1 className="text-3xl font-bold">Email Cleanup</h1>
               <p className="text-muted-foreground mt-1">
-                Analyze, unsubscribe, and organize your emails
+                Find and unsubscribe from email subscriptions
               </p>
             </div>
           </div>
@@ -83,18 +83,18 @@ const EmailCleanup = () => {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-            {isAnalyzing ? 'Analyzing...' : 'Analyze Emails'}
+            {isAnalyzing ? 'Finding Subscriptions...' : 'Find Subscriptions'}
           </Button>
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="analysis" className="w-full">
+        <Tabs defaultValue="subscriptions" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="analysis" className="mt-6">
+          <TabsContent value="subscriptions" className="mt-6">
             <EmailCleanupDashboard key={refreshKey} />
           </TabsContent>
 

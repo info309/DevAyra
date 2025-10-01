@@ -337,6 +337,7 @@ export type Database = {
       }
       email_cleanup_analysis: {
         Row: {
+          ai_summary: string | null
           analyzed_at: string
           contains_important_keywords: boolean | null
           created_at: string
@@ -351,12 +352,14 @@ export type Database = {
           sender_email: string
           sender_name: string | null
           unread_count: number
+          unsubscribe_url: string | null
           updated_at: string
           user_id: string
           user_opened_count: number
           user_replied_count: number
         }
         Insert: {
+          ai_summary?: string | null
           analyzed_at?: string
           contains_important_keywords?: boolean | null
           created_at?: string
@@ -371,12 +374,14 @@ export type Database = {
           sender_email: string
           sender_name?: string | null
           unread_count?: number
+          unsubscribe_url?: string | null
           updated_at?: string
           user_id: string
           user_opened_count?: number
           user_replied_count?: number
         }
         Update: {
+          ai_summary?: string | null
           analyzed_at?: string
           contains_important_keywords?: boolean | null
           created_at?: string
@@ -391,6 +396,7 @@ export type Database = {
           sender_email?: string
           sender_name?: string | null
           unread_count?: number
+          unsubscribe_url?: string | null
           updated_at?: string
           user_id?: string
           user_opened_count?: number

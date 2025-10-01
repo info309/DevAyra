@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Mail, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -14,50 +13,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-interface AnalysisRecord {
+interface SubscriptionRecord {
   id: string;
   sender_email: string;
   sender_name: string;
   sender_domain: string;
   email_count: number;
-  unread_count: number;
   has_unsubscribe_header: boolean;
-  user_opened_count: number;
-  user_replied_count: number;
-  contains_important_keywords: boolean;
-  important_keywords: string[];
-  recommended_action: string;
-  first_email_date: string;
-  last_email_date: string;
+  unsubscribe_url: string;
+  ai_summary: string;
 }
 
 const EmailCleanupDashboard = () => {
   const { toast } = useToast();
-  const [processingEmails, setProcessingEmails] = useState<Set<string>>(new Set());
+  const [unsubscribing, setUnsubscribing] = useState<Set<string>>(new Set());
 
-  const { data: analysisData, isLoading, refetch } = useQuery({
-    queryKey: ['email-cleanup-analysis'],
+  const { data: subscriptions, isLoading, refetch } = useQuery({
+    queryKey: ['email-subscriptions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_cleanup_analysis')
         .select('*')
+        .eq('has_unsubscribe_header', true)
         .order('email_count', { ascending: false });
 
       if (error) throw error;
-      return data as AnalysisRecord[];
+      return data as SubscriptionRecord[];
     },
   });
 
-  const handleAction = async (senderEmail: string, action: string) => {
-    setProcessingEmails(prev => new Set(prev).add(senderEmail));
+  const handleUnsubscribe = async (subscription: SubscriptionRecord) => {
+    setUnsubscribing(prev => new Set(prev).add(subscription.sender_email));
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -66,11 +53,12 @@ const EmailCleanupDashboard = () => {
         throw new Error('Not authenticated');
       }
 
+      // Call the bulk-email-actions function to handle unsubscribe
       const response = await supabase.functions.invoke('bulk-email-actions', {
         body: {
-          senderEmail,
-          action,
-          labelName: action === 'organize' ? 'Subscriptions' : undefined,
+          senderEmail: subscription.sender_email,
+          action: 'unsubscribe',
+          unsubscribeUrl: subscription.unsubscribe_url,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -80,46 +68,27 @@ const EmailCleanupDashboard = () => {
       if (response.error) throw response.error;
 
       toast({
-        title: "Action completed",
-        description: `${action} applied to ${response.data.emailsProcessed} emails from ${senderEmail}`,
+        title: "Unsubscribed successfully",
+        description: `You've been unsubscribed from ${subscription.sender_name || subscription.sender_email}`,
       });
 
-      // Refresh the analysis
+      // Refresh the list
       refetch();
 
     } catch (error: any) {
-      console.error('Action error:', error);
+      console.error('Unsubscribe error:', error);
       toast({
-        title: "Action failed",
-        description: error.message || "Failed to perform action",
+        title: "Unsubscribe failed",
+        description: error.message || "Failed to unsubscribe. You may need to unsubscribe manually.",
         variant: "destructive",
       });
     } finally {
-      setProcessingEmails(prev => {
+      setUnsubscribing(prev => {
         const next = new Set(prev);
-        next.delete(senderEmail);
+        next.delete(subscription.sender_email);
         return next;
       });
     }
-  };
-
-  const getActionBadge = (action: string) => {
-    const variants: Record<string, any> = {
-      unsubscribe: { variant: "destructive", icon: AlertCircle },
-      organize: { variant: "secondary", icon: TrendingUp },
-      keep: { variant: "default", icon: CheckCircle },
-      review: { variant: "outline", icon: Mail },
-    };
-
-    const config = variants[action] || variants.review;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="gap-1">
-        <Icon className="h-3 w-3" />
-        {action}
-      </Badge>
-    );
   };
 
   if (isLoading) {
@@ -132,62 +101,40 @@ const EmailCleanupDashboard = () => {
     );
   }
 
-  if (!analysisData || analysisData.length === 0) {
+  if (!subscriptions || subscriptions.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No Analysis Data</CardTitle>
+          <CardTitle>No Subscriptions Found</CardTitle>
           <CardDescription>
-            Click "Analyze Emails" to start analyzing your inbox
+            Click "Analyze Emails" to find subscriptions in your inbox
           </CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
-  const stats = {
-    totalSenders: analysisData.length,
-    totalEmails: analysisData.reduce((sum, r) => sum + r.email_count, 0),
-    unsubscribeRecommended: analysisData.filter(r => r.recommended_action === 'unsubscribe').length,
-    organizeRecommended: analysisData.filter(r => r.recommended_action === 'organize').length,
-  };
+  const totalEmails = subscriptions.reduce((sum, s) => sum + s.email_count, 0);
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Senders</CardDescription>
-            <CardTitle className="text-3xl">{stats.totalSenders}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Emails</CardDescription>
-            <CardTitle className="text-3xl">{stats.totalEmails}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Unsubscribe</CardDescription>
-            <CardTitle className="text-3xl">{stats.unsubscribeRecommended}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>To Organize</CardDescription>
-            <CardTitle className="text-3xl">{stats.organizeRecommended}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      {/* Stats Card */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>Subscriptions Found</CardDescription>
+          <CardTitle className="text-3xl">{subscriptions.length}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {totalEmails} total emails from these subscriptions
+          </p>
+        </CardHeader>
+      </Card>
 
-      {/* Email Analysis Table */}
+      {/* Subscriptions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Email Analysis by Sender</CardTitle>
+          <CardTitle>Your Email Subscriptions</CardTitle>
           <CardDescription>
-            Review and take action on emails grouped by sender
+            Review AI-generated summaries and unsubscribe with one click
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -195,60 +142,50 @@ const EmailCleanupDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sender</TableHead>
+                  <TableHead>Subscription</TableHead>
+                  <TableHead>Summary</TableHead>
                   <TableHead className="text-right">Emails</TableHead>
-                  <TableHead className="text-right">Unread</TableHead>
-                  <TableHead>Interaction</TableHead>
-                  <TableHead>Recommendation</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {analysisData.map((record) => (
-                  <TableRow key={record.id}>
+                {subscriptions.map((subscription) => (
+                  <TableRow key={subscription.id}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{record.sender_name || record.sender_email}</span>
-                        <span className="text-sm text-muted-foreground">{record.sender_email}</span>
-                        {record.contains_important_keywords && (
-                          <div className="flex gap-1 mt-1">
-                            {record.important_keywords.slice(0, 3).map(kw => (
-                              <Badge key={kw} variant="outline" className="text-xs">
-                                {kw}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{record.email_count}</TableCell>
-                    <TableCell className="text-right">{record.unread_count}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>Opened: {record.user_opened_count}</div>
-                        <div>Replied: {record.user_replied_count}</div>
+                        <span className="font-medium">
+                          {subscription.sender_name || subscription.sender_email}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {subscription.sender_email}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getActionBadge(record.recommended_action)}
+                      <p className="text-sm max-w-md">{subscription.ai_summary}</p>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Select
-                        disabled={processingEmails.has(record.sender_email)}
-                        onValueChange={(value) => handleAction(record.sender_email, value)}
+                      {subscription.email_count}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={() => handleUnsubscribe(subscription)}
+                        disabled={unsubscribing.has(subscription.sender_email)}
+                        variant="destructive"
+                        size="sm"
                       >
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue placeholder="Take action" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {record.has_unsubscribe_header && (
-                            <SelectItem value="unsubscribe">Unsubscribe</SelectItem>
-                          )}
-                          <SelectItem value="organize">Move to folder</SelectItem>
-                          <SelectItem value="trash">Move to trash</SelectItem>
-                          <SelectItem value="delete">Delete permanently</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        {unsubscribing.has(subscription.sender_email) ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Unsubscribing...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Unsubscribe
+                          </>
+                        )}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
