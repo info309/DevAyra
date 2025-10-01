@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface SubscriptionRecord {
   id: string;
@@ -129,8 +130,59 @@ const EmailCleanupDashboard = () => {
         </CardHeader>
       </Card>
 
-      {/* Subscriptions Table */}
-      <Card>
+      {/* Subscriptions - Mobile Card Layout */}
+      <div className="block lg:hidden space-y-4">
+        {subscriptions.map((subscription) => (
+          <Card key={subscription.id} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base line-clamp-1">
+                    {subscription.sender_name || subscription.sender_email}
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1 line-clamp-1">
+                    {subscription.sender_email}
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary" className="shrink-0">
+                  {subscription.email_count} emails
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Building2 className="h-3 w-3" />
+                  <span>Summary</span>
+                </div>
+                <p className="text-sm">{subscription.ai_summary}</p>
+              </div>
+              <Button
+                onClick={() => handleUnsubscribe(subscription)}
+                disabled={unsubscribing.has(subscription.sender_email)}
+                variant="destructive"
+                className="w-full h-12"
+                size="lg"
+              >
+                {unsubscribing.has(subscription.sender_email) ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Unsubscribing...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-5 w-5 mr-2" />
+                    Unsubscribe
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Subscriptions - Desktop Table Layout */}
+      <Card className="hidden lg:block">
         <CardHeader>
           <CardTitle>Your Email Subscriptions</CardTitle>
           <CardDescription>

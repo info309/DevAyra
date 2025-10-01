@@ -58,20 +58,21 @@ const EmailCleanup = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-6 px-4">
+      <div className="container mx-auto py-4 lg:py-6 px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate('/dashboard')}
+              className="shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Email Cleanup</h1>
-              <p className="text-muted-foreground mt-1">
+            <div className="min-w-0">
+              <h1 className="text-2xl lg:text-3xl font-bold">Email Cleanup</h1>
+              <p className="text-sm lg:text-base text-muted-foreground mt-1">
                 Find and unsubscribe from email subscriptions
               </p>
             </div>
@@ -80,10 +81,11 @@ const EmailCleanup = () => {
           <Button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="gap-2"
+            className="gap-2 w-full lg:w-auto h-12 lg:h-10"
+            size="lg"
           >
             <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-            {isAnalyzing ? 'Finding Subscriptions...' : 'Find Subscriptions'}
+            {isAnalyzing ? 'Finding...' : 'Find Subscriptions'}
           </Button>
         </div>
 
