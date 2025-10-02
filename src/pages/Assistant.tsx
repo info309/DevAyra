@@ -359,11 +359,6 @@ const Assistant = () => {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsLoading(false);
-      
-      toast({
-        title: "Generation stopped",
-        description: "AI response was cancelled",
-      });
     }
   };
 
