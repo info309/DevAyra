@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MeetingFormData {
   title: string;
@@ -139,131 +140,135 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{meeting ? 'Edit Meeting' : 'Schedule Meeting'}</DialogTitle>
-          <DialogDescription>
-            {meeting ? 'Update meeting information' : 'Schedule a new online meeting'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                {...register('title', { required: 'Title is required' })}
-              />
-              {errors.title && (
-                <p className="text-sm text-destructive">{errors.title.message}</p>
-              )}
-            </div>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-2xl">
+          <DrawerHeader>
+            <DrawerTitle>{meeting ? 'Edit Meeting' : 'Schedule Meeting'}</DrawerTitle>
+            <DrawerDescription>
+              {meeting ? 'Update meeting information' : 'Schedule a new online meeting'}
+            </DrawerDescription>
+          </DrawerHeader>
+          <ScrollArea className="max-h-[60vh] overflow-y-auto">
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="grid gap-4 p-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    {...register('title', { required: 'Title is required' })}
+                  />
+                  {errors.title && (
+                    <p className="text-sm text-destructive">{errors.title.message}</p>
+                  )}
+                </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" {...register('description')} rows={2} />
-            </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea id="description" {...register('description')} rows={2} />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="start_time">Start Time *</Label>
-                <Input
-                  id="start_time"
-                  type="datetime-local"
-                  {...register('start_time', { required: 'Start time is required' })}
-                />
-                {errors.start_time && (
-                  <p className="text-sm text-destructive">{errors.start_time.message}</p>
-                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="start_time">Start Time *</Label>
+                    <Input
+                      id="start_time"
+                      type="datetime-local"
+                      {...register('start_time', { required: 'Start time is required' })}
+                    />
+                    {errors.start_time && (
+                      <p className="text-sm text-destructive">{errors.start_time.message}</p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="end_time">End Time *</Label>
+                    <Input
+                      id="end_time"
+                      type="datetime-local"
+                      {...register('end_time', { required: 'End time is required' })}
+                    />
+                    {errors.end_time && (
+                      <p className="text-sm text-destructive">{errors.end_time.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="meeting_platform">Meeting Platform *</Label>
+                  <Select
+                    onValueChange={(value) => setValue('meeting_platform', value)}
+                    defaultValue={meetingPlatform || 'google_meet'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="google_meet">Google Meet</SelectItem>
+                      <SelectItem value="zoom">Zoom</SelectItem>
+                      <SelectItem value="teams">Microsoft Teams</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="meeting_link">Meeting Link</Label>
+                  <Input
+                    id="meeting_link"
+                    placeholder={meetingPlatform === 'google_meet' ? 'Will be auto-generated' : 'Enter meeting link'}
+                    {...register('meeting_link')}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Attendees</Label>
+                  <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
+                    {contacts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No contacts available</p>
+                    ) : (
+                      contacts.map((contact) => (
+                        <div key={contact.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={contact.id}
+                            checked={selectedAttendees.includes(contact.email)}
+                            onCheckedChange={(checked) => {
+                              setSelectedAttendees(prev =>
+                                checked
+                                  ? [...prev, contact.email]
+                                  : prev.filter(email => email !== contact.email)
+                              );
+                            }}
+                          />
+                          <label
+                            htmlFor={contact.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {contact.name} ({contact.email})
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea id="notes" {...register('notes')} rows={2} />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="end_time">End Time *</Label>
-                <Input
-                  id="end_time"
-                  type="datetime-local"
-                  {...register('end_time', { required: 'End time is required' })}
-                />
-                {errors.end_time && (
-                  <p className="text-sm text-destructive">{errors.end_time.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="meeting_platform">Meeting Platform *</Label>
-              <Select
-                onValueChange={(value) => setValue('meeting_platform', value)}
-                defaultValue={meetingPlatform || 'google_meet'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="google_meet">Google Meet</SelectItem>
-                  <SelectItem value="zoom">Zoom</SelectItem>
-                  <SelectItem value="teams">Microsoft Teams</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="meeting_link">Meeting Link</Label>
-              <Input
-                id="meeting_link"
-                placeholder={meetingPlatform === 'google_meet' ? 'Will be auto-generated' : 'Enter meeting link'}
-                {...register('meeting_link')}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Attendees</Label>
-              <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-                {contacts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No contacts available</p>
-                ) : (
-                  contacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={contact.id}
-                        checked={selectedAttendees.includes(contact.email)}
-                        onCheckedChange={(checked) => {
-                          setSelectedAttendees(prev =>
-                            checked
-                              ? [...prev, contact.email]
-                              : prev.filter(email => email !== contact.email)
-                          );
-                        }}
-                      />
-                      <label
-                        htmlFor={contact.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {contact.name} ({contact.email})
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" {...register('notes')} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : meeting ? 'Update' : 'Schedule & Send Invites'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <DrawerFooter>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : meeting ? 'Update' : 'Schedule & Send Invites'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+              </DrawerFooter>
+            </form>
+          </ScrollArea>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
