@@ -198,7 +198,7 @@ const Finances = () => {
     });
   };
 
-  const filterByDateRange = (items: Invoice[], dateField: 'paid_at' | 'created_at') => {
+  const filterByDateRange = (items: Invoice[], dateField: 'paid_at' | 'issue_date') => {
     if (!dateRangeStart && !dateRangeEnd) return items;
     
     return items.filter(item => {
@@ -217,7 +217,7 @@ const Finances = () => {
     'paid_at'
   );
   
-  const filteredReceipts = filterByDateRange(receipts, 'created_at');
+  const filteredReceipts = filterByDateRange(receipts, 'issue_date');
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">

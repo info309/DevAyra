@@ -153,12 +153,6 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeCha
           invoiceTotals += invoice.total_cents;
         }
         
-        // Receipt totals (all receipts regardless of date)
-        if (invoice.type === 'receipt') {
-          receiptTotals += invoice.total_cents;
-          receiptCount += 1;
-        }
-        
         // Paid invoices within date range
         if (invoice.status === 'paid' && invoice.paid_at) {
           const paidDate = parseISO(invoice.paid_at);
@@ -170,6 +164,20 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeCha
           if (includeInRange && invoice.type === 'invoice') {
             paidInvoices += invoice.total_cents;
             paidInvoiceCount += 1;
+          }
+        }
+        
+        // Receipt totals within date range (using issue_date)
+        if (invoice.type === 'receipt' && invoice.issue_date) {
+          const receiptDate = parseISO(invoice.issue_date);
+          
+          let includeInRange = true;
+          if (start && receiptDate < start) includeInRange = false;
+          if (end && receiptDate > end) includeInRange = false;
+          
+          if (includeInRange) {
+            receiptTotals += invoice.total_cents;
+            receiptCount += 1;
           }
         }
       });
@@ -399,7 +407,7 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeCha
               {loading ? '...' : formatCurrency(metrics.receiptTotals)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {metrics.receiptCount} receipt(s) - All time
+              {metrics.receiptCount} receipt(s) - {dateRange.replace(/_/g, ' ')}
             </p>
           </CardContent>
         </Card>
