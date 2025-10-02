@@ -18,6 +18,7 @@ import EmailContent from '@/components/EmailContent';
 import ComposeDialog from '@/components/ComposeDialog';
 import SimpleComposeDialog from '@/components/SimpleComposeDialog';
 import { gmailApi, GmailApiError } from '@/utils/gmailApi';
+import mailWelcomeImage from '@/assets/mail-welcome.png';
 import { calculateTotalSize, estimateEncodedSize } from '@/utils/attachmentProcessor';
 
 interface Email {
@@ -2059,7 +2060,7 @@ const Mailbox: React.FC = () => {
                     <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
                       <div className="text-center">
                         <img 
-                          src="/lovable-uploads/mailbox-welcome.png" 
+                          src={mailWelcomeImage} 
                           alt="Welcome to mail" 
                           className="w-48 h-48 mx-auto mb-3 object-contain"
                         />
@@ -2152,7 +2153,7 @@ const Mailbox: React.FC = () => {
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center">
                           <img 
-                            src="/lovable-uploads/mailbox-welcome.png" 
+                            src={mailWelcomeImage} 
                             alt="Welcome to mail" 
                             className="w-48 h-48 mx-auto mb-3 object-contain"
                           />
