@@ -341,8 +341,8 @@ const Index = () => {
     {
       icon: Mail,
       title: 'Mailbox (Gmail)',
-      description: 'Connect your Gmail account for seamless email management. Smart threading, search, and AI-powered organization keep your inbox under control.',
-      features: ['Gmail Integration', 'Smart Threading', 'AI Organization'],
+      description: 'Connect your Gmail account for seamless email management. Smart threading, search, and AI-powered mass unsubscribe keep your inbox under control.',
+      features: ['Gmail Integration', 'Smart Threading', 'AI Mass Unsubscribe'],
       image: mailIcon
     },
     {
