@@ -225,54 +225,26 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeCha
       return;
     }
 
-    // Create CSV content
-    const headers = [
-      'Invoice Number',
-      'Customer Name', 
-      'Customer Email',
-      'Amount',
-      'Currency',
-      'Issue Date',
-      'Due Date',
-      'Paid Date',
-      'Type'
-    ];
-
-    const csvContent = [
-      headers.join(','),
-      ...paidInvoicesInRange.map(invoice => [
-        `"${invoice.invoice_number || invoice.id.slice(0, 8)}"`,
-        `"${invoice.customer_name}"`,
-        `"${invoice.customer_email}"`,
-        (invoice.total_cents / 100).toFixed(2),
-        invoice.currency.toUpperCase(),
-        `"${format(parseISO(invoice.issue_date), 'yyyy-MM-dd')}"`,
-        invoice.due_date ? `"${format(parseISO(invoice.due_date), 'yyyy-MM-dd')}"` : '""',
-        invoice.paid_at ? `"${format(parseISO(invoice.paid_at), 'yyyy-MM-dd')}"` : '""',
-        `"${invoice.type}"`
-      ].join(','))
-    ].join('\n');
-
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    
-    const dateRangeLabel = dateRange === 'custom' && start && end 
-      ? `${format(start, 'yyyy-MM-dd')}-to-${format(end, 'yyyy-MM-dd')}`
-      : dateRange.replace('_', '-');
-    
-    link.setAttribute('download', `paid-invoices-${dateRangeLabel}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Export Complete",
-      description: `Exported ${paidInvoicesInRange.length} paid invoice(s) to CSV`,
-    });
+    try {
+      const { exportInvoicesToCSV } = require('@/utils/csvExport');
+      
+      const dateRangeLabel = dateRange === 'custom' && start && end 
+        ? `${format(start, 'yyyy-MM-dd')}-to-${format(end, 'yyyy-MM-dd')}`
+        : dateRange.replace('_', '-');
+      
+      exportInvoicesToCSV(paidInvoicesInRange, `paid-invoices-${dateRangeLabel}.csv`);
+      
+      toast({
+        title: "Export Complete",
+        description: `Exported ${paidInvoicesInRange.length} paid invoice(s) to CSV`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export invoices",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (cents: number) => {

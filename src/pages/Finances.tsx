@@ -100,55 +100,25 @@ const Finances = () => {
       return;
     }
 
-    // Create CSV content for accounting software like Xero
-    const headers = [
-      'Invoice Number',
-      'Customer Name', 
-      'Customer Email',
-      'Amount',
-      'Currency',
-      'Issue Date',
-      'Due Date',
-      'Paid Date',
-      'Type',
-      'Status'
-    ];
-
-    const csvContent = [
-      headers.join(','),
-      ...paidInvoices.map(invoice => [
-        `"${invoice.invoice_number || invoice.id.slice(0, 8)}"`,
-        `"${invoice.customer_name}"`,
-        `"${invoice.customer_email}"`,
-        (invoice.total_cents / 100).toFixed(2),
-        invoice.currency.toUpperCase(),
-        `"${new Date(invoice.issue_date).toLocaleDateString()}"`,
-        invoice.due_date ? `"${new Date(invoice.due_date).toLocaleDateString()}"` : '""',
-        invoice.paid_at ? `"${new Date(invoice.paid_at).toLocaleDateString()}"` : '""',
-        `"${invoice.type}"`,
-        `"${invoice.status}"`
-      ].join(','))
-    ].join('\n');
-
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `paid-invoices-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Export Complete",
-      description: `Exported ${paidInvoices.length} paid invoice(s) to CSV`,
-    });
+    try {
+      const { exportInvoicesToCSV } = require('@/utils/csvExport');
+      exportInvoicesToCSV(paidInvoices, `paid-invoices-${new Date().toISOString().split('T')[0]}.csv`);
+      
+      toast({
+        title: "Export Complete",
+        description: `Exported ${paidInvoices.length} paid invoice(s) to CSV`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export invoices",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportReceiptsToCSV = () => {
-    if (receipts.length === 0) {
+    if (filteredReceipts.length === 0) {
       toast({
         title: "No Data",
         description: "No receipts found to export",
@@ -157,45 +127,21 @@ const Finances = () => {
       return;
     }
 
-    // Create CSV content for accounting software like Xero
-    const headers = [
-      'Receipt ID',
-      'Customer Name', 
-      'Amount',
-      'Currency',
-      'Date',
-      'Type',
-      'Notes'
-    ];
-
-    const csvContent = [
-      headers.join(','),
-      ...receipts.map(receipt => [
-        `"${receipt.id.slice(0, 8)}"`,
-        `"${receipt.customer_name}"`,
-        (receipt.total_cents / 100).toFixed(2),
-        receipt.currency.toUpperCase(),
-        `"${new Date(receipt.created_at).toLocaleDateString()}"`,
-        `"${receipt.type}"`,
-        `"${receipt.notes || ''}"`
-      ].join(','))
-    ].join('\n');
-
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `receipts-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Export Complete",
-      description: `Exported ${receipts.length} receipt(s) to CSV`,
-    });
+    try {
+      const { exportReceiptsToCSV } = require('@/utils/csvExport');
+      exportReceiptsToCSV(filteredReceipts, `receipts-${new Date().toISOString().split('T')[0]}.csv`);
+      
+      toast({
+        title: "Export Complete",
+        description: `Exported ${filteredReceipts.length} receipt(s) to CSV`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export receipts",
+        variant: "destructive"
+      });
+    }
   };
 
   const filterByDateRange = (items: Invoice[], dateField: 'paid_at' | 'issue_date') => {
