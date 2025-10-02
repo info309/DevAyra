@@ -27,14 +27,6 @@ interface CalendarEvent {
       minutes: number;
     }>;
   };
-  conferenceData?: {
-    createRequest?: {
-      requestId: string;
-      conferenceSolutionKey: {
-        type: string;
-      };
-    };
-  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -253,12 +245,9 @@ async function listEvents(connection: any, { timeMin, timeMax }: any, supabaseCl
 }
 
 async function createEvent(connection: any, { event }: { event: CalendarEvent }, supabaseClient: any) {
-  console.log('Creating calendar event in Google Calendar');
+  console.log('Creating calendar event in Google Calendar only');
   
-  // Add conferenceDataVersion parameter if conferenceData is requested
-  const queryParams = event.conferenceData ? '?conferenceDataVersion=1' : '';
-  
-  const data = await makeCalendarRequest(connection, `/calendars/primary/events${queryParams}`, {
+  const data = await makeCalendarRequest(connection, '/calendars/primary/events', {
     method: 'POST',
     body: JSON.stringify(event),
   }, supabaseClient);

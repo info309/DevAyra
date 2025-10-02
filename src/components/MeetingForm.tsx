@@ -211,23 +211,14 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
                   </Select>
                 </div>
 
-                {meetingPlatform === 'google_meet' ? (
-                  <div className="grid gap-2">
-                    <Label>Meeting Link</Label>
-                    <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                      ✨ Google Meet link will be auto-generated when you schedule the meeting
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    <Label htmlFor="meeting_link">Meeting Link</Label>
-                    <Input
-                      id="meeting_link"
-                      placeholder="Enter meeting link"
-                      {...register('meeting_link')}
-                    />
-                  </div>
-                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="meeting_link">Meeting Link</Label>
+                  <Input
+                    id="meeting_link"
+                    placeholder={meetingPlatform === 'google_meet' ? 'Will be auto-generated' : 'Enter meeting link'}
+                    {...register('meeting_link')}
+                  />
+                </div>
 
                 <div className="grid gap-2">
                   <Label>Attendees</Label>
