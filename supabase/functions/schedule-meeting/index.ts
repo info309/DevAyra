@@ -36,8 +36,71 @@ serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Create calendar event
+    // Create calendar event and Google Meet link if needed
+    let generatedMeetLink = meetingData.meeting_link;
+    
     try {
+      // Check if Google Meet is selected and auto-generate link
+      if (meetingData.meeting_platform === 'google_meet' && !meetingData.meeting_link) {
+        console.log('Auto-generating Google Meet link');
+        
+        const { data: gmailConnection } = await supabaseClient
+          .from('gmail_connections')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (gmailConnection) {
+          try {
+            // Create Google Calendar event with conference data
+            const calendarEventData = {
+              summary: meetingData.title,
+              description: meetingData.description,
+              start: {
+                dateTime: meetingData.start_time,
+                timeZone: 'UTC',
+              },
+              end: {
+                dateTime: meetingData.end_time,
+                timeZone: 'UTC',
+              },
+              conferenceData: {
+                createRequest: {
+                  requestId: crypto.randomUUID(),
+                  conferenceSolutionKey: {
+                    type: 'hangoutsMeet',
+                  },
+                },
+              },
+            };
+
+            const { data: calendarResult, error: calendarApiError } = await supabaseClient.functions.invoke('calendar-api', {
+              body: {
+                action: 'create',
+                event: calendarEventData,
+              },
+            });
+
+            if (!calendarApiError && calendarResult?.event?.hangoutLink) {
+              generatedMeetLink = calendarResult.event.hangoutLink;
+              console.log('Google Meet link generated:', generatedMeetLink);
+              
+              // Update meeting with generated link
+              await supabaseClient
+                .from('meetings')
+                .update({ meeting_link: generatedMeetLink })
+                .eq('id', meeting.id);
+            } else {
+              console.error('Failed to generate Google Meet link:', calendarApiError);
+            }
+          } catch (meetError) {
+            console.error('Error generating Google Meet link:', meetError);
+          }
+        }
+      }
+
+      // Create local calendar event
       const { data: calendarEvent, error: calendarError } = await supabaseClient
         .from('calendar_events')
         .insert([{
@@ -47,7 +110,7 @@ serve(async (req) => {
           start_time: meetingData.start_time,
           end_time: meetingData.end_time,
           all_day: false,
-          is_synced: false,
+          is_synced: meetingData.meeting_platform === 'google_meet',
         }])
         .select()
         .single();
@@ -63,7 +126,7 @@ serve(async (req) => {
     }
 
     // Generate .ics file content
-    const icsContent = generateICS(meetingData);
+    const icsContent = generateICS(meetingData, generatedMeetLink);
 
     // Send email invitations to all attendees
     if (meetingData.attendees && meetingData.attendees.length > 0) {
@@ -73,7 +136,7 @@ serve(async (req) => {
             action: 'send',
             to: meetingData.attendees.map((a: any) => a.email).join(','),
             subject: `Meeting Invitation: ${meetingData.title}`,
-            content: generateEmailContent(meetingData, user),
+            content: generateEmailContent(meetingData, user, generatedMeetLink),
             attachments: [{
               filename: 'meeting.ics',
               content: btoa(icsContent),
@@ -99,9 +162,10 @@ serve(async (req) => {
   }
 });
 
-function generateICS(meeting: any): string {
+function generateICS(meeting: any, meetLink?: string): string {
   const startDate = new Date(meeting.start_time);
   const endDate = new Date(meeting.end_time);
+  const finalMeetLink = meetLink || meeting.meeting_link;
   
   const formatDate = (date: Date) => {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -117,16 +181,17 @@ DTSTART:${formatDate(startDate)}
 DTEND:${formatDate(endDate)}
 SUMMARY:${meeting.title}
 DESCRIPTION:${meeting.description || ''}
-LOCATION:${meeting.meeting_link || meeting.location || ''}
+LOCATION:${finalMeetLink || meeting.location || ''}
 STATUS:CONFIRMED
 SEQUENCE:0
 END:VEVENT
 END:VCALENDAR`;
 }
 
-function generateEmailContent(meeting: any, user: any): string {
+function generateEmailContent(meeting: any, user: any, meetLink?: string): string {
   const startDate = new Date(meeting.start_time);
   const endDate = new Date(meeting.end_time);
+  const finalMeetLink = meetLink || meeting.meeting_link;
 
   return `
 <html>
@@ -141,7 +206,7 @@ function generateEmailContent(meeting: any, user: any): string {
     <div style="margin: 15px 0;">
       <strong>📅 Date:</strong> ${startDate.toLocaleDateString()}<br/>
       <strong>🕐 Time:</strong> ${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}<br/>
-      ${meeting.meeting_link ? `<strong>🔗 Meeting Link:</strong> <a href="${meeting.meeting_link}">${meeting.meeting_link}</a><br/>` : ''}
+      ${finalMeetLink ? `<strong>🔗 Meeting Link:</strong> <a href="${finalMeetLink}">${finalMeetLink}</a><br/>` : ''}
       ${meeting.location ? `<strong>📍 Location:</strong> ${meeting.location}<br/>` : ''}
     </div>
     
