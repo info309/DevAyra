@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus, Calendar } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus, Calendar, Square } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -78,6 +78,7 @@ const Assistant = () => {
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -353,6 +354,19 @@ const Assistant = () => {
     setSelectedImages(prev => prev.filter(img => img.id !== imageId));
   };
 
+  const stopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      
+      toast({
+        title: "Generation stopped",
+        description: "AI response was cancelled",
+      });
+    }
+  };
+
   const sendMessage = async () => {
     if ((!inputMessage.trim() && selectedImages.length === 0) || !currentSession || isLoading) return;
 
@@ -361,6 +375,9 @@ const Assistant = () => {
     setInputMessage('');
     setSelectedImages([]);
     setIsLoading(true);
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
 
     try {
       // Optimistic add
@@ -379,19 +396,33 @@ const Assistant = () => {
       // Get client timezone for calendar parsing
       const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      // Call Lovable edge function
-      const { data, error } = await supabase.functions.invoke('assistant', {
-        body: { 
+      // Call Lovable edge function with abort signal using fetch
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/assistant`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
           message, 
           sessionId: currentSession.id, 
           detectedTriggers,
           images: attachments.map(img => ({ url: img.url, type: img.type })),
           client_timezone: clientTimezone,
           current_time: new Date().toISOString()
-        }
+        }),
+        signal: abortControllerRef.current?.signal
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Assistant request failed');
+      }
+
+      const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Assistant request failed');
 
       // Update messages
@@ -407,6 +438,13 @@ const Assistant = () => {
 
     } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      // Check if it was aborted
+      if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+        // Don't show error for intentional cancellation
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
       
       // Extract error message from supabase function response
       let errorMessage = "Failed to send message";
@@ -425,6 +463,7 @@ const Assistant = () => {
       // Remove the user message we optimistically added
       setMessages(prev => prev.slice(0, -1));
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
@@ -918,13 +957,17 @@ const Assistant = () => {
                   <span className="sr-only">Add images</span>
                 </Button>
                 <Button 
-                  onClick={sendMessage} 
-                  disabled={!inputMessage.trim() || isLoading}
+                  onClick={isLoading ? stopGeneration : sendMessage} 
+                  disabled={!isLoading && !inputMessage.trim()}
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 rounded-full bg-send hover:bg-send/90 text-send-foreground disabled:bg-muted disabled:text-muted-foreground"
                 >
-                  <Send className="w-4 h-4" />
-                  <span className="sr-only">Send message</span>
+                  {isLoading ? (
+                    <Square className="w-4 h-4" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  <span className="sr-only">{isLoading ? 'Stop generation' : 'Send message'}</span>
                 </Button>
               </div>
             </div>
