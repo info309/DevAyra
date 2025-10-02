@@ -533,6 +533,71 @@ export type Database = {
         }
         Relationships: []
       }
+      meetings: {
+        Row: {
+          attendees: Json | null
+          calendar_event_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string
+          id: string
+          location: string | null
+          meeting_link: string | null
+          meeting_platform: string
+          notes: string | null
+          reminder_minutes: number | null
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendees?: Json | null
+          calendar_event_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time: string
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          meeting_platform: string
+          notes?: string | null
+          reminder_minutes?: number | null
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendees?: Json | null
+          calendar_event_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          meeting_platform?: string
+          notes?: string | null
+          reminder_minutes?: number | null
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           content: string | null

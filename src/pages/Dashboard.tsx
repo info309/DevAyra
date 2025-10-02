@@ -110,6 +110,18 @@ const Dashboard = () => {
       description: 'Store and organize your files',
       route: '/documents',
       image: documentsIcon
+    },
+    {
+      title: 'Contacts',
+      description: 'Manage your contacts and clients',
+      route: '/contacts',
+      icon: Users
+    },
+    {
+      title: 'Meetings',
+      description: 'Schedule online meetings with clients',
+      route: '/meetings',
+      icon: Calendar
     }
   ];
 
@@ -184,6 +196,7 @@ const Dashboard = () => {
         {/* Pro Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {proTools.map((tool) => {
+            const Icon = 'icon' in tool ? tool.icon : null;
             return (
               <Card 
                 key={tool.title} 
@@ -191,7 +204,7 @@ const Dashboard = () => {
                 onClick={() => navigate(tool.route)}
               >
                 <div className="flex h-full">
-                  <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
+                  <div className={`flex-1 flex flex-col ${tool.image || Icon ? 'pr-2' : ''}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{tool.title}</CardTitle>
                       <CardDescription className="text-sm mt-1">
@@ -209,6 +222,11 @@ const Dashboard = () => {
                         alt={tool.title}
                         className="max-w-full max-h-full object-contain"
                       />
+                    </div>
+                  )}
+                  {Icon && !tool.image && (
+                    <div className="w-[40%] h-[120px] relative flex items-center justify-center">
+                      <Icon className="w-16 h-16 text-muted-foreground" />
                     </div>
                   )}
                 </div>

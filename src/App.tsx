@@ -28,6 +28,8 @@ import AntiSlaveryPolicy from "./pages/AntiSlaveryPolicy";
 import SignInGuide from "./pages/SignInGuide";
 import SignUp from "./pages/SignUp";
 import EmailCleanup from "./pages/EmailCleanup";
+import Contacts from "./pages/Contacts";
+import Meetings from "./pages/Meetings";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +92,16 @@ const App = () => (
             <Route path="/email-cleanup" element={
               <ProtectedRoute>
                 <EmailCleanup />
+              </ProtectedRoute>
+            } />
+            <Route path="/contacts" element={
+              <ProtectedRoute>
+                <Contacts />
+              </ProtectedRoute>
+            } />
+            <Route path="/meetings" element={
+              <ProtectedRoute>
+                <Meetings />
               </ProtectedRoute>
             } />
             <Route path="/payment" element={<Payment />} />
