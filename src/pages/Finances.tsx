@@ -23,6 +23,8 @@ const Finances = () => {
   const [loading, setLoading] = useState(true);
   const [showPaidInvoices, setShowPaidInvoices] = useState(false);
   const [showReceipts, setShowReceipts] = useState(false);
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -196,7 +198,26 @@ const Finances = () => {
     });
   };
 
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt');
+  const filterByDateRange = (items: Invoice[], dateField: 'paid_at' | 'created_at') => {
+    if (!dateRangeStart && !dateRangeEnd) return items;
+    
+    return items.filter(item => {
+      const date = item[dateField] ? new Date(item[dateField]!) : null;
+      if (!date) return false;
+      
+      if (dateRangeStart && date < dateRangeStart) return false;
+      if (dateRangeEnd && date > dateRangeEnd) return false;
+      
+      return true;
+    });
+  };
+
+  const paidInvoices = filterByDateRange(
+    invoices.filter(invoice => invoice.status === 'paid' && invoice.type !== 'receipt'),
+    'paid_at'
+  );
+  
+  const filteredReceipts = filterByDateRange(receipts, 'created_at');
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -222,6 +243,10 @@ const Finances = () => {
         onShowReceipts={() => {
           setShowReceipts(true);
           setShowPaidInvoices(false);
+        }}
+        onDateRangeChange={(start, end) => {
+          setDateRangeStart(start);
+          setDateRangeEnd(end);
         }}
       />
 
@@ -301,11 +326,11 @@ const Finances = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {receipts.length === 0 ? (
-              <p className="text-muted-foreground">No receipts found.</p>
+            {filteredReceipts.length === 0 ? (
+              <p className="text-muted-foreground">No receipts found for the selected period.</p>
             ) : (
               <div className="space-y-2">
-                {receipts.map((receipt) => (
+                {filteredReceipts.map((receipt) => (
                   <div key={receipt.id} className="flex justify-between items-center p-3 border rounded">
                     <div>
                       <p className="font-medium">{receipt.customer_name}</p>

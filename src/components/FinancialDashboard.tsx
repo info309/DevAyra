@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { CalendarIcon, Download, TrendingUp, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,14 +33,15 @@ interface FinancialMetrics {
   receiptCount: number;
 }
 
-type DateRange = 'this_week' | 'this_month' | 'last_month' | 'all_time' | 'custom';
+type DateRange = 'today' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'custom';
 
 interface FinancialDashboardProps {
   onShowPaidInvoices?: () => void;
   onShowReceipts?: () => void;
+  onDateRangeChange?: (start: Date | null, end: Date | null) => void;
 }
 
-const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDashboardProps) => {
+const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeChange }: FinancialDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<FinancialMetrics>({
@@ -62,14 +63,33 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDas
     }
   }, [user, dateRange, customStartDate, customEndDate]);
 
+  useEffect(() => {
+    const { start, end } = getDateRangeFilter();
+    if (onDateRangeChange) {
+      onDateRangeChange(start || null, end || null);
+    }
+  }, [dateRange, customStartDate, customEndDate]);
+
   const getDateRangeFilter = () => {
     const now = new Date();
     
     switch (dateRange) {
+      case 'today':
+        return {
+          start: startOfDay(now),
+          end: endOfDay(now)
+        };
       case 'this_week':
         return {
           start: startOfWeek(now, { weekStartsOn: 1 }),
           end: endOfWeek(now, { weekStartsOn: 1 })
+        };
+      case 'last_week':
+        const lastWeekDate = new Date(now);
+        lastWeekDate.setDate(now.getDate() - 7);
+        return {
+          start: startOfWeek(lastWeekDate, { weekStartsOn: 1 }),
+          end: endOfWeek(lastWeekDate, { weekStartsOn: 1 })
         };
       case 'this_month':
         return {
@@ -82,12 +102,22 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDas
           start: startOfMonth(lastMonth),
           end: endOfMonth(lastMonth)
         };
+      case 'this_year':
+        return {
+          start: startOfYear(now),
+          end: endOfYear(now)
+        };
+      case 'last_year':
+        const lastYear = subYears(now, 1);
+        return {
+          start: startOfYear(lastYear),
+          end: endOfYear(lastYear)
+        };
       case 'custom':
         return {
           start: customStartDate,
           end: customEndDate
         };
-      case 'all_time':
       default:
         return { start: null, end: null };
     }
@@ -246,6 +276,96 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDas
 
   return (
     <div className="space-y-6 mb-8">
+      {/* Date Range Selector */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <label className="text-sm font-medium whitespace-nowrap">Date Range:</label>
+            <Select value={dateRange} onValueChange={(value) => setDateRange(value as DateRange)}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="this_week">This Week</SelectItem>
+                <SelectItem value="last_week">Last Week</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
+                <SelectItem value="this_year">This Year</SelectItem>
+                <SelectItem value="last_year">Last Year</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Date Range Picker */}
+      {dateRange === 'custom' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Custom Date Range</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full sm:w-[200px] justify-start text-left font-normal",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(customStartDate, "PPP") : "Select start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={setCustomStartDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">End Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full sm:w-[200px] justify-start text-left font-normal",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(customEndDate, "PPP") : "Select end date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={setCustomEndDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card 
@@ -261,7 +381,7 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDas
               {loading ? '...' : formatCurrency(metrics.paidInvoices)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {metrics.paidInvoiceCount} invoice(s) - {dateRange.replace('_', ' ')}
+              {metrics.paidInvoiceCount} invoice(s) - {dateRange.replace(/_/g, ' ')}
             </p>
           </CardContent>
         </Card>
@@ -285,71 +405,6 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts }: FinancialDas
         </Card>
       </div>
 
-      {/* Custom Date Range Picker */}
-      {dateRange === 'custom' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Custom Date Range</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Start Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[140px] justify-start text-left font-normal",
-                        !customStartDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {customStartDate ? format(customStartDate, "PPP") : "Start"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customStartDate}
-                      onSelect={setCustomStartDate}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">End Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[140px] justify-start text-left font-normal",
-                        !customEndDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {customEndDate ? format(customEndDate, "PPP") : "End"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customEndDate}
-                      onSelect={setCustomEndDate}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
