@@ -21,8 +21,7 @@ import {
   Folder,
   MoreVertical,
   Edit,
-  Trash2,
-  Share2
+  Trash2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -1087,17 +1086,7 @@ const Documents = () => {
                              Download
                            </DropdownMenuItem>
                          )}
-                         <DropdownMenuItem onClick={(e) => {
-                           e.stopPropagation();
-                           toast({
-                             title: "Share",
-                             description: "Share functionality coming soon!",
-                           });
-                         }}>
-                           <Share2 className="w-4 h-4 mr-2" />
-                           Share
-                         </DropdownMenuItem>
-                         <DropdownMenuItem 
+                         <DropdownMenuItem
                            className="text-destructive"
                            onClick={(e) => {
                              e.stopPropagation();
