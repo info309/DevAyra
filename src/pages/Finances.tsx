@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import InvoicePaymentBanner from '@/components/InvoicePaymentBanner';
 import FinancialDashboard from '@/components/FinancialDashboard';
 import ReceiptUploadDialog from '@/components/ReceiptUploadDialog';
+import { exportInvoicesToCSV, exportReceiptsToCSV } from '@/utils/csvExport';
 import type { Database } from '@/integrations/supabase/types';
 
 type Invoice = Database['public']['Tables']['invoices']['Row'];
@@ -101,7 +102,6 @@ const Finances = () => {
     }
 
     try {
-      const { exportInvoicesToCSV } = require('@/utils/csvExport');
       exportInvoicesToCSV(paidInvoices, `paid-invoices-${new Date().toISOString().split('T')[0]}.csv`);
       
       toast({
@@ -117,7 +117,7 @@ const Finances = () => {
     }
   };
 
-  const exportReceiptsToCSV = () => {
+  const handleExportReceiptsToCSV = () => {
     if (filteredReceipts.length === 0) {
       toast({
         title: "No Data",
@@ -128,7 +128,6 @@ const Finances = () => {
     }
 
     try {
-      const { exportReceiptsToCSV } = require('@/utils/csvExport');
       exportReceiptsToCSV(filteredReceipts, `receipts-${new Date().toISOString().split('T')[0]}.csv`);
       
       toast({
@@ -268,7 +267,7 @@ const Finances = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={exportReceiptsToCSV}
+                onClick={handleExportReceiptsToCSV}
                 disabled={receipts.length === 0}
               >
                 <Download className="mr-2 h-4 w-4" />

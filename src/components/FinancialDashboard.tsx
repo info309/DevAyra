@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { exportInvoicesToCSV } from '@/utils/csvExport';
 
 interface Invoice {
   id: string;
@@ -17,12 +18,16 @@ interface Invoice {
   customer_name: string;
   customer_email: string;
   total_cents: number;
+  subtotal_cents: number;
+  tax_cents: number;
   currency: string;
   status: string;
   type: string;
   paid_at: string | null;
   issue_date: string;
   due_date: string | null;
+  notes: string | null;
+  line_items?: any;
 }
 
 interface FinancialMetrics {
@@ -226,8 +231,6 @@ const FinancialDashboard = ({ onShowPaidInvoices, onShowReceipts, onDateRangeCha
     }
 
     try {
-      const { exportInvoicesToCSV } = require('@/utils/csvExport');
-      
       const dateRangeLabel = dateRange === 'custom' && start && end 
         ? `${format(start, 'yyyy-MM-dd')}-to-${format(end, 'yyyy-MM-dd')}`
         : dateRange.replace('_', '-');
