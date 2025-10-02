@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Calendar, FileText, Receipt, FolderOpen, Shield, Zap, Clock, Lock, Play, Pause, ShieldCheck, Key, ShieldEllipsis, Database, DollarSign, Brain } from 'lucide-react';
 import ayraAiAssistant from '@/assets/ai-assistant-icon.png';
+import heroImage from '@/assets/ai-assistant-hero-new.png';
 // Updated icon imports
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
@@ -416,7 +417,7 @@ const Index = () => {
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
               <div className="max-w-md w-full">
                 <img 
-                  src="/lovable-uploads/AI_Assistant-2.png" 
+                  src={heroImage} 
                   alt="AI Assistant Illustration" 
                   className="w-full h-auto rounded-lg"
                 />
