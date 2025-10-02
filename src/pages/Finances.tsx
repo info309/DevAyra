@@ -282,9 +282,14 @@ const Finances = () => {
               <div className="space-y-2">
                 {paidInvoices.map((invoice) => (
                   <div key={invoice.id} className="flex justify-between items-center p-3 border rounded">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{invoice.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{invoice.invoice_number}</p>
+                      {invoice.paid_at && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Paid: {new Date(invoice.paid_at).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
@@ -332,9 +337,14 @@ const Finances = () => {
               <div className="space-y-2">
                 {filteredReceipts.map((receipt) => (
                   <div key={receipt.id} className="flex justify-between items-center p-3 border rounded">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{receipt.customer_name}</p>
                       <p className="text-sm text-muted-foreground">Receipt</p>
+                      {receipt.issue_date && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Date: {new Date(receipt.issue_date).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
