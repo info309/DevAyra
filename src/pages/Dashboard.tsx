@@ -15,6 +15,7 @@ import financesIcon from '@/assets/finances-icon.png';
 import accountIcon from '@/assets/account-icon.png';
 import aiAssistantIcon from '@/assets/ai-assistant-icon.png';
 import emailCleanupIcon from '@/assets/email-cleanup-icon.png';
+import contactsIcon from '@/assets/contacts-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -115,7 +116,7 @@ const Dashboard = () => {
       title: 'Contacts',
       description: 'Manage your contacts and clients',
       route: '/contacts',
-      icon: Users
+      image: contactsIcon
     },
     {
       title: 'Meetings',
