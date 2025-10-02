@@ -236,14 +236,12 @@ const ReceiptUploadDialog: React.FC<ReceiptUploadDialogProps> = ({ onReceiptUplo
     }}>
       <DrawerTrigger asChild>
         <Button variant="secondary" className="w-full sm:w-auto">
-          <Receipt className="w-4 h-4 mr-2" />
           Upload Receipt
         </Button>
       </DrawerTrigger>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="text-center sm:text-left">
-          <DrawerTitle className="flex items-center gap-2 justify-center sm:justify-start">
-            <Receipt className="w-5 h-5" />
+          <DrawerTitle>
             Upload & Analyze Receipt
           </DrawerTitle>
           <DrawerDescription>
