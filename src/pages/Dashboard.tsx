@@ -14,6 +14,7 @@ import documentsIcon from '@/assets/documents-icon.png';
 import financesIcon from '@/assets/finances-icon.png';
 import accountIcon from '@/assets/account-icon.png';
 import aiAssistantIcon from '@/assets/ai-assistant-icon.png';
+import emailCleanupIcon from '@/assets/email-cleanup-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -69,7 +70,7 @@ const Dashboard = () => {
       title: 'Email Cleanup',
       description: 'Analyze, unsubscribe, and organize your emails',
       route: '/email-cleanup',
-      image: mailIcon
+      image: emailCleanupIcon
     },
     {
       title: 'Calendar',
