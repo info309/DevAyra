@@ -53,7 +53,7 @@ const Dashboard = () => {
     navigate('/auth');
   };
 
-  const tools = [
+  const personalTools = [
     {
       title: 'AI Assistant',
       description: 'Chat with AI about your emails and documents',
@@ -85,6 +85,15 @@ const Dashboard = () => {
       image: notesIcon
     },
     {
+      title: 'Account',
+      description: 'Manage account settings and connections',
+      route: '/account',
+      image: accountIcon
+    }
+  ];
+
+  const proTools = [
+    {
       title: 'Invoices',
       description: 'Generate quotes and invoices',
       route: '/invoices',
@@ -101,12 +110,6 @@ const Dashboard = () => {
       description: 'Store and organize your files',
       route: '/documents',
       image: documentsIcon
-    },
-    {
-      title: 'Account',
-      description: 'Manage account settings and connections',
-      route: '/account',
-      image: accountIcon
     }
   ];
 
@@ -136,9 +139,51 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Tools Grid */}
+        {/* Personal Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {personalTools.map((tool) => {
+            return (
+              <Card 
+                key={tool.title} 
+                className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
+                onClick={() => navigate(tool.route)}
+              >
+                <div className="flex h-full">
+                  <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{tool.title}</CardTitle>
+                      <CardDescription className="text-sm mt-1">
+                        {tool.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex-1">
+                      {/* Content area - can be used for future additions */}
+                    </CardContent>
+                  </div>
+                  {tool.image && (
+                    <div className="w-[40%] h-[120px] relative flex items-center justify-center">
+                      <img 
+                        src={tool.image} 
+                        alt={tool.title}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Pro Tools Section */}
+        <div className="mb-4">
+          <h3 className="text-2xl font-heading font-bold text-foreground">Pro Tools</h3>
+          <p className="text-muted-foreground mt-1">Professional tools for business management</p>
+        </div>
+
+        {/* Pro Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => {
+          {proTools.map((tool) => {
             return (
               <Card 
                 key={tool.title} 
