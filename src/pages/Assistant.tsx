@@ -391,15 +391,22 @@ const Assistant = () => {
       // Get client timezone for calendar parsing
       const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+      // Get user's JWT token for authentication
+      const { data: session } = await supabase.auth.getSession();
+      const authToken = session.session?.access_token;
+      
+      if (!authToken) {
+        throw new Error('You must be signed in to use the assistant.');
+      }
+
       // Call Lovable edge function with abort signal using fetch
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       const response = await fetch(`${supabaseUrl}/functions/v1/assistant`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           message, 
