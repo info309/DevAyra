@@ -68,10 +68,10 @@ const Dashboard = () => {
       image: mailIcon
     },
     {
-      title: 'Email Cleanup',
-      description: 'Analyze, unsubscribe, and organize your emails',
-      route: '/email-cleanup',
-      image: emailCleanupIcon
+      title: 'Contacts',
+      description: 'Manage your contacts and clients',
+      route: '/contacts',
+      image: contactsIcon
     },
     {
       title: 'Calendar',
@@ -113,10 +113,10 @@ const Dashboard = () => {
       image: documentsIcon
     },
     {
-      title: 'Contacts',
-      description: 'Manage your contacts and clients',
-      route: '/contacts',
-      image: contactsIcon
+      title: 'Email Cleanup',
+      description: 'Analyze, unsubscribe, and organize your emails',
+      route: '/email-cleanup',
+      image: emailCleanupIcon
     },
     {
       title: 'Meetings',
