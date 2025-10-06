@@ -120,7 +120,7 @@ const Dashboard = () => {
       image: emailCleanupIcon
     },
     {
-      title: 'Meetings',
+      title: 'Online meetings',
       description: 'Schedule online meetings with clients',
       route: '/meetings',
       image: meetingsIcon
