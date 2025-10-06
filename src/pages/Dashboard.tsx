@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Calendar, FileText, FolderOpen, Users, LogOut, Bot, StickyNote, Receipt } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 // Icon imports - force refresh
@@ -16,6 +16,7 @@ import accountIcon from '@/assets/account-icon.png';
 import aiAssistantIcon from '@/assets/ai-assistant-icon.png';
 import emailCleanupIcon from '@/assets/email-cleanup-icon.png';
 import contactsIcon from '@/assets/contacts-icon.png';
+import meetingsIcon from '@/assets/meetings-icon.png';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -122,7 +123,7 @@ const Dashboard = () => {
       title: 'Meetings',
       description: 'Schedule online meetings with clients',
       route: '/meetings',
-      icon: Calendar
+      image: meetingsIcon
     }
   ];
 
@@ -197,7 +198,6 @@ const Dashboard = () => {
         {/* Pro Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {proTools.map((tool) => {
-            const Icon = 'icon' in tool ? tool.icon : null;
             return (
               <Card 
                 key={tool.title} 
@@ -205,7 +205,7 @@ const Dashboard = () => {
                 onClick={() => navigate(tool.route)}
               >
                 <div className="flex h-full">
-                  <div className={`flex-1 flex flex-col ${tool.image || Icon ? 'pr-2' : ''}`}>
+                  <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{tool.title}</CardTitle>
                       <CardDescription className="text-sm mt-1">
@@ -223,11 +223,6 @@ const Dashboard = () => {
                         alt={tool.title}
                         className="max-w-full max-h-full object-contain"
                       />
-                    </div>
-                  )}
-                  {Icon && !tool.image && (
-                    <div className="w-[40%] h-[120px] relative flex items-center justify-center">
-                      <Icon className="w-16 h-16 text-muted-foreground" />
                     </div>
                   )}
                 </div>
