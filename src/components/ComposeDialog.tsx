@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
-import { Send, Paperclip, Upload, Link } from 'lucide-react';
+import { Send, Paperclip, Upload, Link, Calendar } from 'lucide-react';
 import AttachmentManager from '@/components/AttachmentManager';
 import DocumentPicker from '@/components/DocumentPicker';
 import { useAttachments } from '@/hooks/useAttachments';
@@ -21,6 +21,15 @@ interface ComposeFormData {
   attachments?: ProcessedAttachment[];
   documentAttachments?: any[];
   sendAsLinks?: boolean;
+  calendarInvite?: {
+    icsContent: string;
+    filename: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+    description?: string;
+    location?: string;
+  };
 }
 
 interface ComposeDialogProps {
@@ -269,6 +278,21 @@ const ComposeDialog: React.FC<ComposeDialogProps> = ({
                   }
                 />
               </div>
+
+              {/* Calendar invitation attachment indicator */}
+              {composeForm.calendarInvite && (
+                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium text-blue-900 dark:text-blue-100">Calendar Invitation Attached</span>
+                  </div>
+                  <div className="text-xs space-y-1 text-blue-800 dark:text-blue-200">
+                    <p>📅 {composeForm.calendarInvite.title}</p>
+                    <p>🕐 {new Date(composeForm.calendarInvite.startTime).toLocaleString()}</p>
+                    <p>📎 {composeForm.calendarInvite.filename}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Size warning if files are large */}
               {(fileAttachments.length > 0 || selectedDocuments.length > 0) && (

@@ -20,6 +20,10 @@ interface CalendarEvent {
     timeZone?: string;
   };
   location?: string;
+  attendees?: Array<{
+    email: string;
+    responseStatus?: string;
+  }>;
   reminders?: {
     useDefault: boolean;
     overrides?: Array<{
@@ -245,9 +249,18 @@ async function listEvents(connection: any, { timeMin, timeMax }: any, supabaseCl
 }
 
 async function createEvent(connection: any, { event }: { event: CalendarEvent }, supabaseClient: any) {
-  console.log('Creating calendar event in Google Calendar only');
+  console.log('Creating calendar event in Google Calendar');
   
-  const data = await makeCalendarRequest(connection, '/calendars/primary/events', {
+  // Check if event has attendees to determine if we should send notifications
+  const hasAttendees = event.attendees && event.attendees.length > 0;
+  const sendUpdates = hasAttendees ? 'all' : 'none';
+  
+  console.log(`Event has ${event.attendees?.length || 0} attendees, sendUpdates: ${sendUpdates}`);
+  
+  // Add sendUpdates parameter to notify attendees
+  const endpoint = `/calendars/primary/events?sendUpdates=${sendUpdates}`;
+  
+  const data = await makeCalendarRequest(connection, endpoint, {
     method: 'POST',
     body: JSON.stringify(event),
   }, supabaseClient);

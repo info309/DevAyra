@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus, Calendar, Square } from 'lucide-react';
+import { Bot, User, Send, Plus, MessageSquare, Mail, FileText, AlertCircle, PanelLeft, ArrowLeft, Pencil, Trash2, ImagePlus, Calendar, Square, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -162,8 +162,14 @@ const Assistant = () => {
       const messagesWithTools = displayMessages.map(msg => {
         if (msg.role === 'assistant') {
           // Find the most recent tool message before this assistant message
+          // Only associate if tool message is within 5 seconds of the assistant message
           const toolMsg = toolMessages
-            .filter(tool => tool.created_at <= msg.created_at)
+            .filter(tool => {
+              const toolTime = new Date(tool.created_at).getTime();
+              const msgTime = new Date(msg.created_at).getTime();
+              const timeDiff = msgTime - toolTime;
+              return tool.created_at <= msg.created_at && timeDiff < 30000; // Within 30 seconds (increased for slower operations)
+            })
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
           
           if (toolMsg) {
@@ -523,6 +529,45 @@ const Assistant = () => {
           </Card>
         );
 
+      case 'calendar_check_availability':
+        // Render clickable time slot buttons
+        if (toolResult && toolResult.freeSlots && toolResult.freeSlots.length > 0) {
+          return (
+            <Card className="mt-2 bg-blue-50 border-blue-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium">Available Time Slots</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {toolResult.freeSlots.map((slot: any, idx: number) => {
+                    const startTime = new Date(slot.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    const endTime = new Date(slot.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    
+                    return (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        className="justify-start text-sm"
+                        onClick={() => {
+                          // Set the input and trigger send
+                          setInputMessage(startTime);
+                          // Use setTimeout to ensure state update completes before sending
+                          setTimeout(() => sendMessage(), 100);
+                        }}
+                      >
+                        <Clock className="w-3 h-3 mr-2" />
+                        {startTime} - {endTime}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+        return null;
+
       case 'emails_compose_draft':
         // Handle draft composition and show open draft button
         console.log('Processing emails_compose_draft tool result:', {
@@ -531,8 +576,91 @@ const Assistant = () => {
           hasToolResult: !!toolResult
         });
         
-        if (toolResult) {
+      // Check if this is an error result first
+      if (toolResult && toolResult.error) {
+        console.log('❌ Email compose draft error:', toolResult.error);
+        
+        // Don't show INVALID_TOOL or TOOL_ERROR to user - these are internal validation errors
+        if (toolResult.error.includes('INVALID_TOOL') || toolResult.error.includes('TOOL_ERROR')) {
+          console.log('🔄 Tool validation error detected - AI should retry with correct tool');
+          return null; // Don't render anything, let the AI retry
+        }
+        
+        return (
+          <Card className="mt-2 bg-red-50 border-red-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-medium text-red-600">Error</span>
+              </div>
+              <p className="text-sm text-red-700">{toolResult.error}</p>
+            </CardContent>
+          </Card>
+        );
+      }
+        
+        if (toolResult && !toolResult.error) {
           console.log('Email compose draft tool result:', toolResult);
+          
+          // Check if this is actually a calendar event (auto-fixed by backend)
+          if (toolResult.event && toolResult.success) {
+            console.log('🔄 Backend auto-fixed: emails_compose_draft → calendar_create_event');
+            console.log('Event data:', toolResult.event);
+            
+            // Render as a calendar event card instead of email draft
+            const event = toolResult.event;
+            
+            const editInvitation = () => {
+              // Clean up the description if it contains the email draft content
+              const cleanDescription = event.description?.includes('Hi Sarah') 
+                ? '' // Don't include the email draft content in the meeting invitation
+                : event.description || '';
+              
+              navigate('/mailbox', {
+                state: {
+                  composeDraft: {
+                    to: event.guests || '',
+                    subject: `Meeting - ${new Date(event.startTime).toLocaleDateString()} at ${new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                    content: `Hi,\n\nI've scheduled a meeting for ${new Date(event.startTime).toLocaleDateString()} at ${new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.\n\n${cleanDescription ? cleanDescription + '\n\n' : ''}Looking forward to our discussion!\n\nBest regards`,
+                    action: 'compose_draft'
+                  }
+                }
+              });
+            };
+
+            return (
+              <Card className="mt-2 bg-green-50 border-green-200">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium">
+                      Meeting Prepared
+                    </span>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <p><span className="font-medium">Title:</span> {event.title}</p>
+                    <p><span className="font-medium">Time:</span> {new Date(event.startTime).toLocaleString()} - {new Date(event.endTime).toLocaleString()}</p>
+                    {event.description && (
+                      <p><span className="font-medium">Description:</span> {event.description}</p>
+                    )}
+                    {event.guests && (
+                      <p><span className="font-medium">Guests:</span> {event.guests}</p>
+                    )}
+                    <div className="space-y-2">
+                      <p className="text-xs text-green-700">
+                        📅 Meeting scheduled in your calendar
+                        {event.guests && ` • ${event.guests} will be notified`}
+                      </p>
+                      <Button onClick={editInvitation} className="w-full">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Invitation Message
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+          
           // Handle both old format (direct) and new format (nested under draft)
           const draft = toolResult.draft || (toolResult.action === 'compose_draft' ? toolResult : null);
           console.log('Extracted draft:', draft);
@@ -568,7 +696,8 @@ const Assistant = () => {
                     content: draft.content,
                     replyTo: draft.replyTo,
                     threadId: draft.threadId,
-                    attachments: processAttachments()
+                    attachments: processAttachments(),
+                    calendarInvite: draft.calendarInvite // Pass calendar invite to compose window
                   }
                 }
               });
@@ -579,13 +708,26 @@ const Assistant = () => {
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Mail className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">Draft Prepared</span>
+                    <span className="text-sm font-medium">{draft.calendarInvite ? 'Meeting Invitation Draft' : 'Draft Prepared'}</span>
                   </div>
                   <div className="space-y-3 text-sm">
                     <p><span className="font-medium">To:</span> {draft.to}</p>
                     <p><span className="font-medium">Subject:</span> {draft.subject}</p>
+                    {draft.calendarInvite && (
+                      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium text-blue-900 dark:text-blue-100">Calendar Invitation Attached</span>
+                        </div>
+                        <div className="text-xs space-y-1 text-blue-800 dark:text-blue-200">
+                          <p>📅 {draft.calendarInvite.title}</p>
+                          <p>🕐 {new Date(draft.calendarInvite.startTime).toLocaleString()}</p>
+                          <p>📎 {draft.calendarInvite.filename}</p>
+                        </div>
+                      </div>
+                    )}
                     {processAttachments().length > 0 && (
-                      <p><span className="font-medium">Attachments:</span> {processAttachments().length} file(s)</p>
+                      <p><span className="font-medium">Documents:</span> {processAttachments().length} file(s)</p>
                     )}
                     <Button onClick={openDraft} className="w-full">
                       <Mail className="w-4 h-4 mr-2" />
@@ -620,30 +762,33 @@ const Assistant = () => {
         
         if (toolResult && toolResult.success && toolResult.event) {
           const event = toolResult.event;
+          const showEditInvitation = toolResult.showEditInvitation;
+          const meetingDetails = toolResult.meetingDetails;
           
-          const scheduleMeeting = () => {
-            // Navigate to calendar page with pre-filled event data
-            navigate('/calendar', { 
-              state: { 
-                createEvent: {
-                  title: event.title,
-                  description: event.description,
-                  startTime: event.startTime,
-                  endTime: event.endTime,
-                  isAllDay: event.isAllDay,
-                  reminderMinutes: event.reminderMinutes,
-                  guests: event.guests
+          // Note: scheduleMeeting function removed since meeting is already created by auto-fix
+
+          const editInvitation = () => {
+            // Open email compose with meeting details
+            navigate('/mailbox', {
+              state: {
+                composeDraft: {
+                  to: meetingDetails?.recipient || event.guests || '',
+                  subject: `${meetingDetails?.title || event.title} - ${meetingDetails?.when || 'Meeting'}`,
+                  content: meetingDetails?.content || `Hi,\n\nI've scheduled a meeting for ${meetingDetails?.when || new Date(event.startTime).toLocaleString()}.\n\n${event.description || 'Looking forward to our discussion!'}\n\nBest regards`,
+                  action: 'compose_draft'
                 }
               }
             });
           };
 
           return (
-            <Card className="mt-2 bg-blue-50 border-blue-200">
+            <Card className="mt-2 bg-green-50 border-green-200">
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium">Meeting Prepared</span>
+                  <Calendar className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">
+                    {showEditInvitation ? '✅ Meeting Scheduled!' : 'Meeting Prepared'}
+                  </span>
                 </div>
                 <div className="space-y-3 text-sm">
                   <p><span className="font-medium">Title:</span> {event.title}</p>
@@ -654,10 +799,16 @@ const Assistant = () => {
                   {event.guests && (
                     <p><span className="font-medium">Guests:</span> {event.guests}</p>
                   )}
-                  <Button onClick={scheduleMeeting} className="w-full">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Meeting
-                  </Button>
+                  <div className="space-y-2">
+                    <p className="text-xs text-green-700">
+                      📅 Meeting scheduled in your calendar
+                      {event.guests && ` • ${event.guests} will be notified`}
+                    </p>
+                    <Button onClick={editInvitation} className="w-full">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Invitation Message
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -827,7 +978,7 @@ const Assistant = () => {
             <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground pt-6 pb-1 px-4">
-                  <h3 className="text-xl font-semibold mb-6 text-foreground">Hi, i'm Ayra your personal AI assistant.</h3>
+                  <h3 className="text-xl font-semibold mb-6 text-foreground">Hi, I'm Ayra—your personal AI assistant!</h3>
                   <div className="w-48 h-48 mx-auto mb-1.5 flex items-center justify-center">
                     <img 
                       src="/lovable-uploads/ayra-assistant-avatar.png" 
@@ -836,13 +987,13 @@ const Assistant = () => {
                     />
                   </div>
                   <p className="text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">
-                    Try asking me something like:
+                    I can help you manage your emails, check your calendar, schedule meetings, and more. Try asking me:
                   </p>
                   <div className="grid gap-3 max-w-md mx-auto">
                     {[
-                      "What's on my schedule next week",
-                      "Can you show me my email's from last Monday",
-                      "Draft an email to John about our meeting next week"
+                      "What's on my schedule next week?",
+                      "Can I schedule a meeting with Sarah tomorrow?",
+                      "Show me my recent emails"
                     ].map((example, idx) => (
                       <div 
                         key={idx}

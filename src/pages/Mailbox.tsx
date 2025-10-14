@@ -58,6 +58,15 @@ interface ComposeFormData {
   attachments?: any[];
   documentAttachments?: any[];
   sendAsLinks?: boolean;
+  calendarInvite?: {
+    icsContent: string;
+    filename: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+    description?: string;
+    location?: string;
+  };
 }
 
 const Mailbox: React.FC = () => {
@@ -186,9 +195,11 @@ const Mailbox: React.FC = () => {
             file_size: att.file_size || att.size,
             type: att.mime_type || att.type
           };
-        })
+        }),
+        calendarInvite: draft.calendarInvite // Preserve calendar invitation
       };
       
+      console.log('Calendar invite in draft:', draft.calendarInvite);
       setComposeForm(cleanedDraft);
       
       console.log('AI Draft loaded:', {
@@ -1178,17 +1189,35 @@ const Mailbox: React.FC = () => {
       });
       
       // Process attachments with null safety
-      const processedAttachments = emailData.attachments?.map(att => ({
+      const processedAttachments: any[] = emailData.attachments?.map(att => ({
         name: att?.name || 'unknown',
-        url: att?.url || att?.data || '',
-        mime_type: att?.mime_type || att?.type || 'application/octet-stream',
-        file_size: att?.file_size || att?.size || 0
+        url: att?.url,
+        data: att?.data,
+        publicUrl: att?.publicUrl,
+        mime_type: att?.mime_type,
+        type: att?.type,
+        file_size: att?.file_size,
+        size: att?.size
       })) || [];
+
+      // Add calendar invitation as attachment if present
+      if (composeForm.calendarInvite) {
+        console.log('Adding calendar invitation attachment:', composeForm.calendarInvite.filename);
+        processedAttachments.push({
+          name: composeForm.calendarInvite.filename,
+          data: btoa(composeForm.calendarInvite.icsContent), // Raw base64 without data: prefix
+          mime_type: 'text/calendar',
+          type: 'text/calendar',
+          file_size: composeForm.calendarInvite.icsContent.length,
+          size: composeForm.calendarInvite.icsContent.length,
+          isUrl: false // Mark as not a URL since it's raw base64 data
+        });
+      }
 
       console.log('Processed attachments for sending:', processedAttachments);
 
       // Ensure attachments are properly formatted with null safety
-      const finalAttachments = emailData.attachments?.filter(att => att && (att.name || att.url || att.data)).map(att => {
+      const finalAttachments = processedAttachments.filter(att => att && (att.name || att.url || att.data)).map(att => {
         const originalName = att?.name || 'document';
         const mimeType = att?.mime_type || att?.type || 'application/octet-stream';
         
@@ -1280,18 +1309,36 @@ const Mailbox: React.FC = () => {
         });
         
         // Format attachment data according to backend expectations
+        // Check if this is a calendar invitation (has raw base64 data)
+        const isCalendarInvite = (att.type === 'text/calendar' || originalName.endsWith('.ics')) && att.data && !att.url && !att.publicUrl;
+        
+        console.log('Calendar invite detection:', {
+          type: att.type,
+          originalName,
+          hasData: !!att.data,
+          hasUrl: !!att.url,
+          hasPublicUrl: !!att.publicUrl,
+          isCalendarInvite,
+          mime_type: att.mime_type,
+          dataPreview: att.data ? att.data.substring(0, 50) + '...' : 'no data'
+        });
+        
         const attachment = {
           // Use 'name' to match backend expectation; include 'filename' for backward compatibility
           name: fullFilename,
           filename: fullFilename,
-          data: rawUrl,      // Send raw URL, let backend handle encoding
+          data: rawUrl,      // Send raw URL or base64 data
           type: mimeType,    // Backend expects 'type' instead of 'mimeType'
           size: att.file_size || att.size,
-          isUrl: true,       // Tell backend this is a URL
-          bucket: 'documents' // Add bucket information
+          isUrl: !isCalendarInvite,       // Calendar invites are not URLs
+          bucket: isCalendarInvite ? undefined : 'documents' // Calendar invites don't need bucket
         };
 
-        console.log('Formatted attachment:', attachment);
+        console.log('Formatted attachment:', {
+          ...attachment,
+          isCalendarInvite,
+          attachmentType: isCalendarInvite ? 'calendar_invite' : 'regular_file'
+        });
         return attachment;
       }) || [];
 

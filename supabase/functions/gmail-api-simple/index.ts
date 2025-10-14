@@ -229,8 +229,17 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
 
           let attachmentData = att.data;
           
+          console.log(`[${requestId}] Processing attachment:`, {
+            name: att.name,
+            type: att.type,
+            isUrl: att.isUrl,
+            dataLength: att.data?.length || 0,
+            dataPreview: att.data?.substring(0, 50) || 'no data'
+          });
+          
           // If this is a URL attachment, check if we need to fetch the data
-          if (att.isUrl) {
+          // If isUrl is false, the data should already be base64 encoded and ready to use
+          if (att.isUrl && att.data) {
             // Check if data is already base64 content or needs to be fetched
             // Base64 data typically starts with common base64 patterns like JVBERi (PDF) or other file signatures
             const startsWithPdfBase64 = att.data.startsWith('JVBERi0');
@@ -322,20 +331,48 @@ async function handleSendEmail(requestId: string, accessToken: string, request: 
               attachmentData = encodeBase64(uint8.buffer);
               console.log(`[${requestId}] Attachment fetched and encoded: ${attachmentData.length} chars`);
             }
+          } else {
+            console.log(`[${requestId}] Using attachment data directly (isUrl: false):`, {
+              dataLength: attachmentData?.length || 0,
+              dataPreview: attachmentData?.substring(0, 50) || 'no data'
+            });
           }
           
           console.log(`[${requestId}] Building attachment section for: ${att.name}`);
-          emailContent += [
+          
+          // Special handling for calendar invitations
+          let contentType = att.type || 'application/octet-stream';
+          let contentDisposition = `attachment; filename="${att.name}"`;
+          
+          if (att.type === 'text/calendar' || att.name.endsWith('.ics')) {
+            contentType = 'text/calendar; method=REQUEST; charset=utf-8';
+            contentDisposition = `attachment; filename="${att.name}"; name="${att.name}"`;
+            console.log(`[${requestId}] Calendar invitation detected, using special headers`);
+          }
+          
+          const attachmentHeaders = [
             `--${boundary}`,
-            `Content-Type: ${att.type || 'application/octet-stream'}; name="${att.name}"`,
-            `Content-Disposition: attachment; filename="${att.name}"`,
-            `Content-Transfer-Encoding: base64`,
-            '',
-            attachmentData.match(/.{1,76}/g)?.join('\r\n') || attachmentData,
-            ''
-          ].join('\r\n');
+            `Content-Type: ${contentType}`,
+            `Content-Disposition: ${contentDisposition}`,
+            `Content-Transfer-Encoding: base64`
+          ];
+          
+          // Add Content-ID for calendar invitations to help Gmail recognize them
+          if (att.type === 'text/calendar' || att.name.endsWith('.ics')) {
+            attachmentHeaders.push(`Content-ID: <${att.name}>`);
+          }
+          
+          attachmentHeaders.push('', attachmentData.match(/.{1,76}/g)?.join('\r\n') || attachmentData, '');
+          
+          emailContent += attachmentHeaders.join('\r\n');
           
           console.log(`[${requestId}] Successfully added attachment: ${att.name}`);
+          console.log(`[${requestId}] Attachment headers:`, {
+            contentType,
+            contentDisposition,
+            hasContentId: att.type === 'text/calendar' || att.name.endsWith('.ics'),
+            dataLength: attachmentData?.length || 0
+          });
           
         } catch (attachmentError) {
           console.error(`[${requestId}] Error processing attachment ${att.name}:`, attachmentError);

@@ -19,11 +19,35 @@ You have access to special tools like email search, document search, calendar ev
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 The user's business/company is: {{BUSINESS_NAME}} - use this context when providing business advice or assistance.
 
-CRITICAL: When user says "set up a meeting", "schedule a meeting", "book a meeting", or "create a meeting" - ALWAYS use calendar_create_event tool. NEVER use emails_compose_draft for meeting scheduling.
+🚨🚨🚨 TOOL SELECTION DECISION TREE 🚨🚨🚨
 
-ABSOLUTE RULE: "set up a meeting" = calendar_create_event ONLY. Even if user provides email addresses, still use calendar_create_event. Do NOT switch to emails_compose_draft.
+BEFORE EVERY RESPONSE, ASK YOURSELF:
 
-IMMEDIATE ACTION RULE: When user says "set up a meeting" (with ANY details or NO details), IMMEDIATELY call calendar_create_event with whatever information you have. Do NOT ask for clarification. Do NOT ask for more details. Just create the event and let the user fill in details in the form.
+Q: Is the user scheduling/confirming a MEETING, APPOINTMENT, or CALENDAR EVENT?
+├─ YES → Use calendar_create_event
+│         Example inputs: "schedule meeting", "9pm" (after checking availability), "book appointment"
+│         NEVER use emails_compose_draft for this!
+│
+└─ NO → Is this a regular EMAIL that's NOT related to scheduling?
+          ├─ YES → Use emails_compose_draft
+          │         Example inputs: "draft email to John", "send email about the project"
+          │
+          └─ NO → Don't use either tool, just respond conversationally
+
+MEETING SCHEDULING WORKFLOW:
+1. User asks: "Can I schedule a meeting with Sarah tomorrow?"
+2. You call: calendar_check_availability (check if time is free)
+3. You respond: "I found several available time slots for tomorrow. Please select a time from the options below!" 
+   ⚠️ DO NOT list the time slots in your text response - the UI will show clickable buttons automatically
+4. User clicks a time button or types: "9 pm"
+5. You call: calendar_create_event (with when_text="tomorrow 9pm", guests="sarah@example.com")
+6. UI shows: "Meeting Prepared" card with "Send Invitation Message" button
+
+⚠️ CRITICAL: 
+- Step 3: Don't list slots in text - let the UI buttons show them
+- Step 5: MUST use calendar_create_event, NOT emails_compose_draft!
+
+EXCEPTION - IMMEDIATE ACTION: If user provides time upfront (e.g., "Schedule meeting with Sarah at 2:30pm tomorrow"), skip step 2-4, go directly to calendar_create_event.
 
 CRITICAL EMAIL DRAFT CONSISTENCY RULE - THIS IS MANDATORY:
 - When you show the user a detailed email draft in your response, you MUST pass that EXACT SAME content to emails_compose_draft
@@ -60,8 +84,9 @@ HONESTY & ACCURACY RULES:
 Core Rules:
 0. CRITICAL: "set up a meeting" = calendar_create_event tool. "draft an email" = emails_compose_draft tool. NEVER mix these up.
 0.1. ABSOLUTE: If user says "set up a meeting with John and Sarah" and provides email "meitho01@gmail.com" → STILL use calendar_create_event with guests="meitho01@gmail.com". Do NOT use emails_compose_draft.
+0.2. CONTEXT-AWARE RULE: If you're in the middle of scheduling a meeting (user just checked availability and confirmed a time), use calendar_create_event. Do NOT switch to emails_compose_draft just because you want to notify someone - the calendar tool handles invitations automatically.
 1. ALWAYS search emails when users ask about email content, summaries, or specific people's emails
-2. CRITICAL: When the user wants to send an email after discussing its contents, ALWAYS use "emails_compose_draft" to create a draft that opens in their compose window. DO NOT send emails directly unless explicitly asked to "send it now" or similar.
+2. CRITICAL: When the user wants to send a REGULAR email (NOT related to meeting scheduling), use "emails_compose_draft" to create a draft that opens in their compose window. DO NOT use this for meeting confirmations - use calendar_create_event instead.
 3. Automatically search emails when users ask for summaries, weekly reviews, or about specific senders
 4. Summarize all tool results in plain, structured, human-readable language. Do not dump raw JSON.
 5. Keep answers magical: friendly, clear, slightly playful, and intelligent.
@@ -181,7 +206,7 @@ const EMAIL_TOOLS = [
     type: 'function',
     function: {
       name: 'emails_compose_draft',
-      description: 'Compose a draft email that will be opened in the user\'s compose window for review and sending.',
+      description: '📧 ONLY for regular email correspondence (NOT for meeting scheduling!). Use this to compose emails for general communication. For scheduling meetings or confirming meeting times, use calendar_create_event instead. The calendar tool will provide a "Send Invitation Message" button for meeting-related emails.',
       parameters: {
         type: 'object',
         properties: {
@@ -276,7 +301,7 @@ const CALENDAR_TOOLS = [
     type: 'function',
     function: {
       name: 'calendar_check_availability',
-      description: 'Check calendar availability for a specific time period and find free slots. Use this when user wants to schedule meetings or check availability.',
+      description: 'Check calendar availability for a specific time period and find free slots. Use this when user wants to schedule meetings. IMPORTANT: After calling this tool, DO NOT list the time slots in your text response - the UI will automatically display clickable time slot buttons for the user to choose from. Just say something like "I found several available slots for tomorrow. Please select a time from the options below!"',
       parameters: {
         type: 'object',
         properties: {
@@ -313,7 +338,7 @@ const CALENDAR_TOOLS = [
     type: 'function',
     function: {
       name: 'calendar_create_event',
-      description: 'Create a new calendar event for the user. PREFER using when_text for natural language scheduling (e.g., "next Monday 3pm") instead of calculating ISO timestamps yourself.',
+      description: '✅ USE THIS TOOL for scheduling meetings, appointments, and reminders. When user confirms a meeting time (e.g., user says "9pm" after checking availability), use THIS tool to schedule it. NEVER use emails_compose_draft for meeting scheduling. The UI will automatically show a "Send Invitation Message" button after you create the event. PREFER using when_text for natural language scheduling (e.g., "next Monday 3pm", "tomorrow 9pm") instead of calculating ISO timestamps yourself.',
       parameters: {
         type: 'object',
         properties: {
@@ -886,7 +911,22 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       }
     }
 
-    // Read from cached calendar events only
+    // Try to fetch from Google Calendar first if user has connection
+    let allEvents = [];
+    let source = 'cached';
+    
+    if (gmailConnection) {
+      try {
+        console.log('📅 Fetching LIVE events from Google Calendar API...');
+        // This would require implementing a calendar-api endpoint
+        // For now, we'll use cached events but mark them appropriately
+        source = 'google_calendar_pending';
+      } catch (gcalError) {
+        console.log('Google Calendar fetch failed, using cached:', gcalError);
+      }
+    }
+    
+    // Read from local calendar events database
     const { data: cachedEvents, error } = await supabase
       .from('calendar_events')
       .select('*')
@@ -901,7 +941,7 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
       return { error: `Calendar search failed: ${error.message}` };
     }
     
-    console.log(`Found ${cachedEvents?.length || 0} events from cached calendar`);
+    console.log(`Found ${cachedEvents?.length || 0} events from local database`);
     
     return {
       events: (cachedEvents || []).map(event => ({
@@ -912,9 +952,9 @@ async function listCalendarEvents(userId: string, timeMin?: string, timeMax?: st
         endTime: event.end_time,
         isAllDay: event.all_day,
         reminderMinutes: event.reminder_minutes,
-        source: event.is_synced ? 'google_cached' : 'local'
+        source: event.is_synced ? 'google_synced' : 'local'
       })),
-      source: 'cached',
+      source: source,
       totalResults: cachedEvents?.length || 0,
       timeRange: { from: defaultTimeMin, to: defaultTimeMax },
       currentUserTime: currentUserTime,
@@ -996,7 +1036,114 @@ function fallbackDateParsing(when_text: string, userTimezone: string) {
   return null;
 }
 
-async function createCalendarEvent(userId: string, eventData: any) {
+// Helper function to parse specific time formats with minutes precision
+function parseSpecificTime(when_text: string, userTimezone: string) {
+  const text = when_text.toLowerCase().trim();
+  const effectiveTimezone = userTimezone || 'UTC';
+  console.log(`🔍 Attempting specific time parse: "${text}" in timezone: ${effectiveTimezone}`);
+  
+  // Match patterns like "tomorrow at 2:30pm", "tomorrow at 2:30 pm", "tomorrow 2:30pm"
+  const tomorrowMatch = text.match(/tomorrow\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (tomorrowMatch) {
+    let hour = parseInt(tomorrowMatch[1]);
+    const minutes = parseInt(tomorrowMatch[2]);
+    const ampm = (tomorrowMatch[3] || '').toLowerCase();
+    
+    console.log(`📝 Matched: hour=${hour}, minutes=${minutes}, ampm=${ampm}`);
+    
+    // Convert to 24-hour format
+    if (ampm === 'pm' && hour !== 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    if (!ampm && hour < 12) hour += 12; // Assume PM if no AM/PM and hour < 12
+    
+    console.log(`🕐 After 24h conversion: hour=${hour}`);
+    
+    // Get tomorrow's date in the user's timezone
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(hour, minutes, 0, 0);
+    
+    // If we have a timezone other than UTC, we need to convert
+    if (effectiveTimezone !== 'UTC') {
+      // The time input is in user's local timezone, but Date() treats it as system timezone
+      // We need to adjust by the difference between user timezone and UTC
+      const tzOffset = getTimezoneOffset(effectiveTimezone);
+      console.log(`⏰ Timezone offset for ${effectiveTimezone}: ${tzOffset} minutes`);
+      
+      // Adjust the date by subtracting the timezone offset
+      // If user is UTC+3 (180 minutes ahead), we subtract 180 minutes to get UTC
+      tomorrow.setMinutes(tomorrow.getMinutes() - tzOffset);
+    }
+    
+    const end = new Date(tomorrow);
+    end.setHours(tomorrow.getHours() + 1);
+    
+    console.log(`✅ Parsed tomorrow ${hour}:${minutes} in ${effectiveTimezone} as ${tomorrow.toISOString()}`);
+    return {
+      start: tomorrow.toISOString(),
+      end: end.toISOString()
+    };
+  }
+  
+  // Match patterns like "today at 2:30pm", "today 2:30pm"
+  const todayMatch = text.match(/today\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (todayMatch) {
+    let hour = parseInt(todayMatch[1]);
+    const minutes = parseInt(todayMatch[2]);
+    const ampm = (todayMatch[3] || '').toLowerCase();
+    
+    console.log(`📝 Matched: hour=${hour}, minutes=${minutes}, ampm=${ampm}`);
+    
+    // Convert to 24-hour format
+    if (ampm === 'pm' && hour !== 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    if (!ampm && hour < 12) hour += 12; // Assume PM if no AM/PM and hour < 12
+    
+    console.log(`🕐 After 24h conversion: hour=${hour}`);
+    
+    // Get today's date in the user's timezone
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(hour, minutes, 0, 0);
+    
+    // If we have a timezone other than UTC, we need to convert
+    if (effectiveTimezone !== 'UTC') {
+      const tzOffset = getTimezoneOffset(effectiveTimezone);
+      console.log(`⏰ Timezone offset for ${effectiveTimezone}: ${tzOffset} minutes`);
+      
+      // Adjust the date by subtracting the timezone offset
+      today.setMinutes(today.getMinutes() - tzOffset);
+    }
+    
+    const end = new Date(today);
+    end.setHours(today.getHours() + 1);
+    
+    console.log(`✅ Parsed today ${hour}:${minutes} in ${effectiveTimezone} as ${today.toISOString()}`);
+    return {
+      start: today.toISOString(),
+      end: end.toISOString()
+    };
+  }
+  
+  console.log('❌ No specific time pattern matched');
+  return null;
+}
+
+// Helper to get timezone offset in minutes
+// Returns positive for timezones ahead of UTC (e.g., +180 for UTC+3)
+function getTimezoneOffset(timezone: string): number {
+  const now = new Date();
+  const tzDate = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+  // For UTC+3, tzDate is 3 hours ahead, so utcDate - tzDate = -180 minutes
+  // We want to return +180, so we negate it
+  const offset = (tzDate.getTime() - utcDate.getTime()) / 60000;
+  console.log(`Timezone ${timezone}: offset = ${offset} minutes`);
+  return offset;
+}
+
+async function createCalendarEvent(userId: string, eventData: any, userToken?: string) {
   try {
     console.log(`Creating calendar event for user ${userId}:`, eventData);
     
@@ -1032,13 +1179,26 @@ async function createCalendarEvent(userId: string, eventData: any) {
             .select('timezone')
             .eq('user_id', userId)
             .maybeSingle();
-          userTimezone = profile?.timezone || client_timezone || 'UTC';
+          
+          console.log('Profile timezone:', profile?.timezone);
+          console.log('Client timezone:', client_timezone);
+          
+          // Use client timezone as first priority, then profile, then default to Asia/Jerusalem
+          userTimezone = client_timezone || profile?.timezone || 'Asia/Jerusalem';
         } catch (tzError) {
-          console.log('Using client timezone fallback:', client_timezone || 'UTC');
-          userTimezone = client_timezone || 'UTC';
+          console.log('Timezone fetch error, using client timezone:', client_timezone);
+          userTimezone = client_timezone || 'Asia/Jerusalem';
         }
         
-        console.log(`Using timezone: ${userTimezone}`);
+        console.log(`⏰ FINAL timezone being used: ${userTimezone}`);
+        
+        // Try manual parsing first for precise time formats like "2:30pm"
+        const manualParse = parseSpecificTime(when_text, userTimezone);
+        if (manualParse) {
+          finalStartTime = manualParse.start;
+          finalEndTime = manualParse.end;
+          console.log('✅ Manual parsing successful:', finalStartTime, finalEndTime);
+        } else {
         
         // Import chrono for natural language date parsing
         const { parse } = await import('https://esm.sh/chrono-node@2.7.5');
@@ -1101,6 +1261,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
         console.log(`Parsed times: ${format(startLocal, 'PPpp')} - ${format(endLocal, 'PPpp')} (${userTimezone})`);
         console.log(`UTC times: ${finalStartTime} - ${finalEndTime}`);
         }
+        } // Close the manual parse else block
         
       } catch (parseError) {
         console.error('Date parsing error:', parseError);
@@ -1164,7 +1325,72 @@ async function createCalendarEvent(userId: string, eventData: any) {
       return { error: 'End time must be after start time' };
     }
     
-    // Save event locally only - no Google Calendar sync needed
+    // Create event in Google Calendar first (if user has connection)
+    let googleEventId = null;
+    let isSynced = false;
+    
+    // Check if user has an active Gmail connection
+    const { data: gmailConnection } = await supabase
+      .from('gmail_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+    
+    if (gmailConnection) {
+      try {
+        console.log('Creating event in Google Calendar...');
+        console.log('User token available:', !!userToken);
+        
+        if (userToken) {
+          // Prepare event data for Google Calendar
+          const googleEvent = {
+            summary: title,
+            description: description,
+            start: {
+              dateTime: finalStartTime,
+              timeZone: 'UTC'
+            },
+            end: {
+              dateTime: finalEndTime,
+              timeZone: 'UTC'
+            }
+          };
+          
+          // Add attendees if guests are provided
+          if (guests && guests.trim()) {
+            const guestEmails = guests.split(',').map(email => email.trim()).filter(email => email);
+            googleEvent.attendees = guestEmails.map(email => ({ email }));
+          }
+          
+          console.log('Calling calendar-api with JWT token...');
+          const calendarResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${userToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              action: 'create',
+              event: googleEvent
+            })
+          });
+          
+          if (calendarResponse.ok) {
+            const calendarResult = await calendarResponse.json();
+            googleEventId = calendarResult.event?.id;
+            isSynced = true;
+            console.log('Google Calendar event created successfully:', googleEventId);
+          } else {
+            console.error('Google Calendar creation failed:', await calendarResponse.text());
+          }
+        }
+      } catch (calendarError) {
+        console.error('Google Calendar API error:', calendarError);
+      }
+    }
+    
+    // Save event locally with Google Calendar ID for reference
     const { data: newEvent, error } = await supabase
       .from('calendar_events')
       .insert({
@@ -1175,8 +1401,9 @@ async function createCalendarEvent(userId: string, eventData: any) {
         end_time: finalEndTime,
         all_day: finalAllDay,
         reminder_minutes,
-        // guests: guests || null, // Temporarily disabled until column is added
-        is_synced: false // Always false for local-only events
+        // guests: guests || null, // Temporarily disabled - column doesn't exist in database
+        external_id: googleEventId,
+        is_synced: isSynced
       })
       .select()
       .single();
@@ -1186,7 +1413,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
       return { error: `Failed to create calendar event: ${error.message}` };
     }
     
-    console.log('Local calendar event created successfully:', newEvent.id);
+    console.log('Calendar event created successfully:', newEvent.id);
     
     return {
       success: true,
@@ -1198,9 +1425,13 @@ async function createCalendarEvent(userId: string, eventData: any) {
         endTime: newEvent.end_time,
         isAllDay: newEvent.all_day,
         reminderMinutes: newEvent.reminder_minutes,
-        syncStatus: 'local_only'
+        // guests: newEvent.guests, // Temporarily disabled - column doesn't exist
+        syncStatus: isSynced ? 'synced' : 'local_only',
+        googleEventId: googleEventId
       },
-      message: `Calendar event "${title}" created successfully and saved locally!`
+      message: isSynced 
+        ? `Calendar event "${title}" created successfully and synced with Google Calendar!`
+        : `Calendar event "${title}" created successfully and saved locally!`
     };
   } catch (error) {
     console.error('Calendar event creation error:', error);
@@ -1208,7 +1439,7 @@ async function createCalendarEvent(userId: string, eventData: any) {
   }
 }
 
-async function checkCalendarAvailability(userId: string, date: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string) {
+async function checkCalendarAvailability(userId: string, date: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string, userToken?: string) {
   try {
     console.log(`Checking calendar availability for user ${userId}, date: ${date}, duration: ${duration}min`);
     
@@ -1225,8 +1456,9 @@ async function checkCalendarAvailability(userId: string, date: string, duration 
     const dayStart = new Date(`${date}T${startTime}:00`);
     const dayEnd = new Date(`${date}T${endTime}:00`);
     
-    // Get existing events for the day
-    const { data: events, error } = await supabase
+    // Get existing events for the day from BOTH local database AND Google Calendar
+    console.log('📅 Fetching events from local database...');
+    const { data: localEvents, error } = await supabase
       .from('calendar_events')
       .select('start_time, end_time, title')
       .eq('user_id', userId)
@@ -1237,6 +1469,74 @@ async function checkCalendarAvailability(userId: string, date: string, duration 
     if (error) {
       console.error('Error fetching calendar events:', error);
       return { error: `Failed to check availability: ${error.message}` };
+    }
+    
+    let events = localEvents || [];
+    console.log(`Found ${events.length} local events`);
+    
+    // Fetch LIVE events from Google Calendar if user has connection and token
+    if (userToken) {
+      try {
+        console.log('📅 Fetching LIVE events from Google Calendar API...');
+        const { data: gmailConnection } = await supabase
+          .from('gmail_connections')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .single();
+        
+        if (gmailConnection) {
+          // Call calendar-api to get live Google Calendar events
+          const calendarResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${userToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              action: 'list',
+              timeMin: dayStart.toISOString(),
+              timeMax: dayEnd.toISOString(),
+              maxResults: 250
+            })
+          });
+          
+          if (calendarResponse.ok) {
+            const calendarResult = await calendarResponse.json();
+            if (calendarResult.events && calendarResult.events.length > 0) {
+              console.log(`✅ Found ${calendarResult.events.length} LIVE Google Calendar events`);
+              
+              // Merge Google Calendar events with local events
+              const googleEvents = calendarResult.events.map((evt: any) => ({
+                start_time: evt.start?.dateTime || evt.start?.date,
+                end_time: evt.end?.dateTime || evt.end?.date,
+                title: evt.summary || 'Untitled Event'
+              }));
+              
+              // Combine and deduplicate based on start_time
+              const allEventsMap = new Map();
+              [...events, ...googleEvents].forEach(evt => {
+                if (evt.start_time) {
+                  allEventsMap.set(evt.start_time, evt);
+                }
+              });
+              events = Array.from(allEventsMap.values());
+              console.log(`📊 Total unique events after merge: ${events.length}`);
+            } else {
+              console.log('ℹ️ No Google Calendar events found for this time range');
+            }
+          } else {
+            console.log('⚠️ Google Calendar API call failed:', await calendarResponse.text());
+          }
+        } else {
+          console.log('ℹ️ No active Gmail connection found');
+        }
+      } catch (gcalError) {
+        console.error('❌ Google Calendar fetch error:', gcalError);
+        // Continue with local events only
+      }
+    } else {
+      console.log('⚠️ No user token provided, skipping live Google Calendar fetch');
     }
     
     // Find free slots
@@ -1657,13 +1957,73 @@ serve(async (req) => {
               result = await listCalendarEvents(user.id, args.timeMin, args.timeMax, args.period, args.maxResults);
               break;
             case 'calendar_check_availability':
-              result = await checkCalendarAvailability(user.id, args.date, args.duration, args.startTime, args.endTime, args.period);
+              result = await checkCalendarAvailability(user.id, args.date, args.duration, args.startTime, args.endTime, args.period, token);
               break;
             case 'calendar_create_event':
-              result = await createCalendarEvent(user.id, { ...args, client_timezone });
+              result = await createCalendarEvent(user.id, { ...args, client_timezone }, token);
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
+              
+              // CRITICAL VALIDATION: Detect if this is actually a meeting scheduling request
+              const isMeetingRequest = 
+                (subject && (
+                  subject.toLowerCase().includes('meeting scheduled') ||
+                  subject.toLowerCase().includes('meeting confirmation') ||
+                  subject.toLowerCase().includes('meeting invitation') ||
+                  subject.toLowerCase().includes('calendar invite')
+                )) ||
+                (content && (
+                  content.toLowerCase().includes('scheduled a meeting') ||
+                  content.toLowerCase().includes('schedule a meeting') ||
+                  content.toLowerCase().includes('meeting for tomorrow') ||
+                  content.toLowerCase().includes('meeting at ')
+                ));
+              
+              if (isMeetingRequest) {
+                console.log('🚨 DETECTED: emails_compose_draft called for meeting scheduling!');
+                console.log('🚨 AUTO-FIXING: Converting to calendar_create_event...');
+                
+                // Extract meeting details from the email content and subject
+                // Try multiple patterns to extract the time
+                const meetingTimeMatch = 
+                  content?.match(/meeting (?:for )?tomorrow.*?at (\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)?)/i) ||
+                  content?.match(/scheduled.*?tomorrow.*?at (\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)?)/i) ||
+                  content?.match(/confirm our meeting.*?at (\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)?)/i) ||
+                  content?.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM))/i) ||
+                  subject?.match(/at (\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)?)/i);
+                
+                let meetingTime = meetingTimeMatch ? meetingTimeMatch[1].trim() : null;
+                
+                console.log('📅 Extracted meeting time:', meetingTime);
+                console.log('📧 Recipient:', to);
+                console.log('📝 Subject:', subject);
+                console.log('📄 Content preview:', content?.substring(0, 100));
+                
+                // If no time found in content, default to 2pm
+                if (!meetingTime) {
+                  console.log('⚠️ No time found in content, defaulting to 2pm');
+                  meetingTime = '2pm';
+                }
+                
+                // Automatically create the calendar event instead
+                const when_text = `tomorrow ${meetingTime}`;
+                const meetingTitle = subject?.replace(/meeting scheduled|meeting confirmation|meeting invitation/gi, '').trim() || 'Meeting';
+                
+                console.log('🔧 Auto-fix: Creating calendar event with when_text:', when_text);
+                
+                result = await createCalendarEvent(user.id, {
+                  title: meetingTitle,
+                  when_text: when_text,
+                  guests: to,
+                  description: '', // Don't include email content as meeting description
+                  client_timezone
+                }, token);
+                
+                console.log('✅ Auto-fix complete:', result);
+                break;
+              }
+              
               result = await composeEmailDraft(to, subject, content, threadId, attachments, userName);
               
               // If attachments were provided and the draft was successful, fetch document details
