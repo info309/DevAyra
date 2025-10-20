@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, UserSearch } from 'lucide-react';
 import ContactsTable from '@/components/ContactsTable';
 import ContactForm from '@/components/ContactForm';
+import FindContactsDialog from '@/components/FindContactsDialog';
 
 const Contacts = () => {
   const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFindContactsOpen, setIsFindContactsOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleEdit = (contact: any) => {
     setSelectedContact(contact);
@@ -18,6 +21,10 @@ const Contacts = () => {
   const handleFormClose = () => {
     setIsFormOpen(false);
     setSelectedContact(null);
+  };
+
+  const handleContactsAdded = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -31,20 +38,31 @@ const Contacts = () => {
             </Button>
             <h1 className="text-2xl font-heading font-bold">Contacts</h1>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Contact
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsFindContactsOpen(true)}>
+              <UserSearch className="w-4 h-4 mr-2" />
+              Find Contacts
+            </Button>
+            <Button onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Contact
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
-        <ContactsTable onEdit={handleEdit} />
+        <ContactsTable key={refreshKey} onEdit={handleEdit} />
         <ContactForm 
           open={isFormOpen}
           onOpenChange={handleFormClose}
           contact={selectedContact}
+        />
+        <FindContactsDialog
+          open={isFindContactsOpen}
+          onOpenChange={setIsFindContactsOpen}
+          onContactsAdded={handleContactsAdded}
         />
       </main>
     </div>

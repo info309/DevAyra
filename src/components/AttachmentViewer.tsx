@@ -147,7 +147,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
       });
       
       // Create blob from the binary data
-      const blob = new Blob([uint8Data], { type: attachment.mimeType });
+      const blob = new Blob([uint8Data.buffer as ArrayBuffer], { type: attachment.mimeType });
       console.log('AttachmentViewer: Created blob:', {
         size: blob.size,
         type: blob.type,

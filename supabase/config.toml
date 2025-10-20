@@ -89,6 +89,9 @@ verify_jwt = false
 [functions.assistant]
 verify_jwt = true
 
+[functions.extract-email-contacts]
+verify_jwt = true
+
 [functions.create-stripe-onboarding]
 verify_jwt = false
 
