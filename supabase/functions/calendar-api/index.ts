@@ -250,6 +250,11 @@ async function listEvents(connection: any, { timeMin, timeMax }: any, supabaseCl
 
 async function createEvent(connection: any, { event }: { event: CalendarEvent }, supabaseClient: any) {
   console.log('Creating calendar event in Google Calendar');
+  console.log('Event has conferenceData:', !!(event as any).conferenceData);
+  
+  if ((event as any).conferenceData) {
+    console.log('📞 ConferenceData details:', JSON.stringify((event as any).conferenceData, null, 2));
+  }
   
   // Check if event has attendees to determine if we should send notifications
   const hasAttendees = event.attendees && event.attendees.length > 0;
@@ -257,13 +262,33 @@ async function createEvent(connection: any, { event }: { event: CalendarEvent },
   
   console.log(`Event has ${event.attendees?.length || 0} attendees, sendUpdates: ${sendUpdates}`);
   
-  // Add sendUpdates parameter to notify attendees
-  const endpoint = `/calendars/primary/events?sendUpdates=${sendUpdates}`;
+  // Check if event has conference data (Google Meet request)
+  const hasConferenceData = !!(event as any).conferenceData;
+  
+  // Build endpoint with parameters
+  const params = new URLSearchParams({
+    sendUpdates,
+    ...(hasConferenceData && { conferenceDataVersion: '1' }) // Required for Google Meet links!
+  });
+  
+  const endpoint = `/calendars/primary/events?${params.toString()}`;
+  console.log('Creating event with endpoint:', endpoint);
+  console.log('Full URL will be:', `https://www.googleapis.com/calendar/v3${endpoint}`);
+  
+  console.log('📤 Sending event to Google Calendar API:', JSON.stringify(event, null, 2));
   
   const data = await makeCalendarRequest(connection, endpoint, {
     method: 'POST',
     body: JSON.stringify(event),
   }, supabaseClient);
+
+  console.log('📥 Calendar API response received');
+  console.log('Response has conferenceData:', !!data.conferenceData);
+  if (data.conferenceData) {
+    console.log('✅ Conference data in response:', JSON.stringify(data.conferenceData, null, 2));
+  } else {
+    console.log('❌ No conferenceData in response. Full response:', JSON.stringify(data, null, 2));
+  }
 
   return new Response(
     JSON.stringify({ event: data }),

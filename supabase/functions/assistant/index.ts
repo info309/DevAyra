@@ -19,14 +19,26 @@ You have access to special tools like email search, document search, calendar ev
 The user's name is: {{USER_NAME}} - use it naturally in conversation when appropriate.
 The user's business/company is: {{BUSINESS_NAME}} - use this context when providing business advice or assistance.
 
+🚨🚨🚨 CRITICAL: NEVER USE emails_search FOR MEETING SCHEDULING 🚨🚨🚨
+❌ WRONG: User says "schedule meeting tomorrow" → You call emails_search
+✅ RIGHT: User says "schedule meeting tomorrow" → You call calendar_check_availability
+
+🚨 CRITICAL TOOL SELECTION RULE:
+- If user says "schedule a meeting", "set up a meeting", "book a meeting", "create a meeting", or ANY meeting-related request → USE calendar_check_availability FIRST, then calendar_create_event
+- If user says "draft an email", "send an email", "write an email" → USE emails_compose_draft tool
+- NEVER use emails_search when scheduling meetings!
+- NEVER use emails_compose_draft for meeting scheduling!
+
 🚨🚨🚨 TOOL SELECTION DECISION TREE 🚨🚨🚨
 
 BEFORE EVERY RESPONSE, ASK YOURSELF:
 
 Q: Is the user scheduling/confirming a MEETING, APPOINTMENT, or CALENDAR EVENT?
-├─ YES → Use calendar_create_event
-│         Example inputs: "schedule meeting", "9pm" (after checking availability), "book appointment"
-│         NEVER use emails_compose_draft for this!
+├─ YES → Step 1: Ask if virtual/physical
+│         Step 2: Call calendar_check_availability (NOT emails_search!)
+│         Step 3: User clicks time slot
+│         Step 4: Call calendar_create_event
+│         NEVER use emails_search or emails_compose_draft for this!
 │
 └─ NO → Is this a regular EMAIL that's NOT related to scheduling?
           ├─ YES → Use emails_compose_draft
@@ -34,20 +46,50 @@ Q: Is the user scheduling/confirming a MEETING, APPOINTMENT, or CALENDAR EVENT?
           │
           └─ NO → Don't use either tool, just respond conversationally
 
-MEETING SCHEDULING WORKFLOW:
+MEETING SCHEDULING WORKFLOW (FOLLOW EXACTLY):
 1. User asks: "Can I schedule a meeting with Sarah tomorrow?"
-2. You call: calendar_check_availability (check if time is free)
-3. You respond: "I found several available time slots for tomorrow. Please select a time from the options below!" 
+2. You ask: "Would you like this to be a virtual or physical meeting?"
+3a. IF user responds: "virtual"
+    → Go to step 4
+3b. IF user responds: "physical"
+    → Ask: "Would you like to add a location for this meeting?"
+    → User responds: "yes [location]" or "no" or just the location name
+    → Store location for later use
+    → Go to step 4
+4. You IMMEDIATELY call: calendar_check_availability with period="tomorrow"
+   ❌ DO NOT call emails_search - this is WRONG
+   ❌ DO NOT search for emails
+   ✅ ONLY call calendar_check_availability
+5. You respond: "I found several available time slots for tomorrow. Please select a time from the options below!" 
    ⚠️ DO NOT list the time slots in your text response - the UI will show clickable buttons automatically
-4. User clicks a time button or types: "9 pm"
-5. You call: calendar_create_event (with when_text="tomorrow 9pm", guests="sarah@example.com")
-6. UI shows: "Meeting Prepared" card with "Send Invitation Message" button
+6. User clicks a time button or types a time like: "2 pm"
+7. You call: calendar_create_event with:
+   - meeting_type: "virtual" or "physical"  
+   - meeting_platform: "google_meet" (for virtual meetings ONLY)
+   - location: "[address]" (for physical meetings if user provided one)
+   - For virtual meetings with Google Meet: meeting_link will be auto-generated
+   - For physical meetings: location will be included in calendar and email
+8. UI shows: "Meeting Prepared" card with "Send Invitation Message" button
 
-⚠️ CRITICAL: 
-- Step 3: Don't list slots in text - let the UI buttons show them
-- Step 5: MUST use calendar_create_event, NOT emails_compose_draft!
+⚠️ CRITICAL RULES: 
+- Step 2: ALWAYS ask about meeting type (virtual/physical) before checking availability
+- Step 3b: For PHYSICAL meetings, ALWAYS ask "Would you like to add a location for this meeting?" before checking availability
+- Step 4: ALWAYS call calendar_check_availability - NEVER EVER call emails_search for meeting scheduling!
+- Step 4: Use period parameter like period="tomorrow" or period="in two days"
+- Step 5: Don't list slots in text - let the UI buttons show them
+- Step 7: MUST use calendar_create_event with meeting_type parameter, NOT emails_compose_draft!
+- Step 7: For virtual meetings, ALWAYS include meeting_platform="google_meet" to generate Meet links
+- Step 7: For physical meetings with location, include location parameter in calendar_create_event
+- Virtual meetings with meeting_platform="google_meet" get automatic Google Meet links
+- Physical meetings with location get the address in Google Calendar and invitation emails
 
-EXCEPTION - IMMEDIATE ACTION: If user provides time upfront (e.g., "Schedule meeting with Sarah at 2:30pm tomorrow"), skip step 2-4, go directly to calendar_create_event.
+❌ NEVER SKIP AVAILABILITY CHECK: Even if user says "schedule meeting at 2pm tomorrow", you MUST:
+   1. Ask: virtual or physical?
+   2. Call: calendar_check_availability (NOT emails_search!) with period="tomorrow"
+   3. Show: available slots (UI will display buttons)
+   4. Then: create event when user confirms time
+
+❌ FORBIDDEN: DO NOT use emails_search when user says "virtual" or "physical" after being asked about meeting type!
 
 CRITICAL EMAIL DRAFT CONSISTENCY RULE - THIS IS MANDATORY:
 - When you show the user a detailed email draft in your response, you MUST pass that EXACT SAME content to emails_compose_draft
@@ -82,9 +124,10 @@ HONESTY & ACCURACY RULES:
 - Do not speculate or create fictional scenarios
 
 Core Rules:
-0. CRITICAL: "set up a meeting" = calendar_create_event tool. "draft an email" = emails_compose_draft tool. NEVER mix these up.
-0.1. ABSOLUTE: If user says "set up a meeting with John and Sarah" and provides email "meitho01@gmail.com" → STILL use calendar_create_event with guests="meitho01@gmail.com". Do NOT use emails_compose_draft.
-0.2. CONTEXT-AWARE RULE: If you're in the middle of scheduling a meeting (user just checked availability and confirmed a time), use calendar_create_event. Do NOT switch to emails_compose_draft just because you want to notify someone - the calendar tool handles invitations automatically.
+0. CRITICAL: ANY meeting request = calendar_create_event tool. "draft an email" = emails_compose_draft tool. NEVER mix these up.
+0.1. MEETING KEYWORDS: "schedule a meeting", "set up a meeting", "book a meeting", "create a meeting", "meeting with", "meeting tomorrow", "meeting at" = ALWAYS use calendar_create_event
+0.2. ABSOLUTE: If user says "set up a meeting with John and Sarah" and provides email "meitho01@gmail.com" → STILL use calendar_create_event with guests="meitho01@gmail.com". Do NOT use emails_compose_draft.
+0.3. CONTEXT-AWARE RULE: If you're in the middle of scheduling a meeting (user just checked availability and confirmed a time), use calendar_create_event. Do NOT switch to emails_compose_draft just because you want to notify someone - the calendar tool handles invitations automatically.
 1. ALWAYS search emails when users ask about email content, summaries, or specific people's emails
 2. CRITICAL: When the user wants to send a REGULAR email (NOT related to meeting scheduling), use "emails_compose_draft" to create a draft that opens in their compose window. DO NOT use this for meeting confirmations - use calendar_create_event instead.
 3. Automatically search emails when users ask for summaries, weekly reviews, or about specific senders
@@ -178,7 +221,7 @@ const EMAIL_TOOLS = [
     type: 'function',
     function: {
       name: 'emails_search',
-      description: 'Search through the user\'s cached emails by content, subject, sender, or other criteria.',
+      description: 'Search through the user\'s cached emails by content, subject, sender, or other criteria. ⚠️ DO NOT use this tool for meeting scheduling, checking availability, or finding free time slots - use calendar_check_availability instead!',
       parameters: {
         type: 'object',
         properties: {
@@ -301,13 +344,13 @@ const CALENDAR_TOOLS = [
     type: 'function',
     function: {
       name: 'calendar_check_availability',
-      description: 'Check calendar availability for a specific time period and find free slots. Use this when user wants to schedule meetings. IMPORTANT: After calling this tool, DO NOT list the time slots in your text response - the UI will automatically display clickable time slot buttons for the user to choose from. Just say something like "I found several available slots for tomorrow. Please select a time from the options below!"',
+      description: 'MANDATORY TOOL FOR ALL MEETING SCHEDULING: Check calendar availability and find free time slots. ALWAYS use this tool when user wants to schedule a meeting, even if they specify a specific time. After calling this, the UI will automatically display clickable time slot buttons - DO NOT list slots in your text response. Just say "I found several available slots. Please select a time from the options below!"',
       parameters: {
         type: 'object',
         properties: {
           date: {
             type: 'string',
-            description: 'Date to check availability for (YYYY-MM-DD format)'
+            description: 'Date to check availability for (YYYY-MM-DD format). Optional if period is provided.'
           },
           duration: {
             type: 'number',
@@ -326,11 +369,11 @@ const CALENDAR_TOOLS = [
           },
           period: {
             type: 'string',
-            description: 'Natural language period like "tomorrow", "next week", "this week" to check multiple days',
+            description: 'Natural language period like "tomorrow", "next week", "in two days" to check multiple days. Use this instead of date for natural language requests.',
             optional: true
           }
         },
-        required: ['date']
+        required: []
       }
     }
   },
@@ -387,6 +430,24 @@ const CALENDAR_TOOLS = [
           guests: {
             type: 'string',
             description: 'Comma-separated list of guest email addresses',
+            optional: true
+          },
+          meeting_type: {
+            type: 'string',
+            enum: ['virtual', 'physical'],
+            description: 'Type of meeting: "virtual" for online meetings or "physical" for in-person meetings. ALWAYS ask the user which type they prefer before scheduling.',
+            optional: true
+          },
+          meeting_platform: {
+            type: 'string',
+            enum: ['google_meet', 'zoom', 'teams', 'other'],
+            description: 'Platform for virtual meetings. Use "google_meet" to auto-generate Google Meet link. Only used when meeting_type is "virtual".',
+            default: 'google_meet',
+            optional: true
+          },
+          location: {
+            type: 'string',
+            description: 'Physical location address. Only used when meeting_type is "physical". Required for physical meetings.',
             optional: true
           }
         },
@@ -1042,6 +1103,23 @@ function parseSpecificTime(when_text: string, userTimezone: string) {
   const effectiveTimezone = userTimezone || 'UTC';
   console.log(`🔍 Attempting specific time parse: "${text}" in timezone: ${effectiveTimezone}`);
   
+  // Match ISO timestamp format: "Schedule meeting at 2025-10-22T13:00:00.000Z"
+  const isoMatch = when_text.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
+  if (isoMatch) {
+    const isoTimestamp = isoMatch[1];
+    console.log(`📝 Matched ISO timestamp: ${isoTimestamp}`);
+    
+    const start = new Date(isoTimestamp);
+    const end = new Date(start);
+    end.setHours(start.getHours() + 1);
+    
+    console.log(`✅ Parsed ISO timestamp as ${start.toISOString()}`);
+    return {
+      start: start.toISOString(),
+      end: end.toISOString()
+    };
+  }
+  
   // Match patterns like "tomorrow at 2:30pm", "tomorrow at 2:30 pm", "tomorrow 2:30pm"
   const tomorrowMatch = text.match(/tomorrow\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*(am|pm)?/i);
   if (tomorrowMatch) {
@@ -1126,6 +1204,63 @@ function parseSpecificTime(when_text: string, userTimezone: string) {
     };
   }
   
+  // Match patterns like "Schedule for October 22, 2025, 1:00 PM"
+  // Format: "schedule for [Month] [Day], [Year], [Hour]:[Minute] [AM/PM]"
+  const scheduleMatch = text.match(/schedule\s+for\s+(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (scheduleMatch) {
+    const monthName = scheduleMatch[1];
+    const day = parseInt(scheduleMatch[2]);
+    const year = parseInt(scheduleMatch[3]);
+    let hour = parseInt(scheduleMatch[4]);
+    const minutes = parseInt(scheduleMatch[5]);
+    const ampm = (scheduleMatch[6] || '').toLowerCase();
+    
+    console.log(`📝 Matched full date: month=${monthName}, day=${day}, year=${year}, hour=${hour}, minutes=${minutes}, ampm=${ampm}`);
+    
+    // Convert month name to month number (0-indexed)
+    const monthMap: { [key: string]: number } = {
+      'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+      'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+    };
+    const month = monthMap[monthName.toLowerCase()];
+    
+    if (month === undefined) {
+      console.log(`❌ Invalid month name: ${monthName}`);
+      return null;
+    }
+    
+    // Convert to 24-hour format
+    if (ampm === 'pm' && hour !== 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    
+    console.log(`🕐 After 24h conversion: hour=${hour}`);
+    
+    // Create date in user's local timezone
+    // The user sees "1:00 PM" on their screen, so we create a date at 1:00 PM in their timezone
+    const scheduledDate = new Date(year, month, day, hour, minutes, 0, 0);
+    
+    console.log(`📅 Created date (local): ${scheduledDate.toString()}`);
+    console.log(`📅 ISO string (will be in local system timezone): ${scheduledDate.toISOString()}`);
+    
+    // If we have a timezone other than UTC, adjust it
+    if (effectiveTimezone !== 'UTC') {
+      const tzOffset = getTimezoneOffset(effectiveTimezone);
+      console.log(`⏰ Timezone offset for ${effectiveTimezone}: ${tzOffset} minutes`);
+      
+      // Adjust the date by subtracting the timezone offset to get UTC
+      scheduledDate.setMinutes(scheduledDate.getMinutes() - tzOffset);
+    }
+    
+    const end = new Date(scheduledDate);
+    end.setHours(scheduledDate.getHours() + 1);
+    
+    console.log(`✅ Parsed ${monthName} ${day}, ${year} ${hour}:${minutes} in ${effectiveTimezone} as ${scheduledDate.toISOString()}`);
+    return {
+      start: scheduledDate.toISOString(),
+      end: end.toISOString()
+    };
+  }
+  
   console.log('❌ No specific time pattern matched');
   return null;
 }
@@ -1146,6 +1281,12 @@ function getTimezoneOffset(timezone: string): number {
 async function createCalendarEvent(userId: string, eventData: any, userToken?: string) {
   try {
     console.log(`Creating calendar event for user ${userId}:`, eventData);
+    console.log('📊 Event data details:');
+    console.log('  - meeting_type:', eventData.meeting_type);
+    console.log('  - meeting_platform:', eventData.meeting_platform);
+    console.log('  - start_time:', eventData.start_time);
+    console.log('  - end_time:', eventData.end_time);
+    console.log('  - when_text:', eventData.when_text);
     
     const { 
       title, 
@@ -1157,17 +1298,63 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
       all_day = false, 
       reminder_minutes = 15,
       guests = '',
-      client_timezone 
+      client_timezone,
+      meeting_type = null,
+      meeting_platform = 'google_meet',
+      location = null
     } = eventData;
+    
+    console.log('📊 After destructuring:');
+    console.log('  - meeting_type:', meeting_type);
+    console.log('  - meeting_platform:', meeting_platform);
     
     if (!title) {
       return { error: 'Title is required' };
     }
     
+    // Fix title if it contains date/time information (should be "Meeting")
+    let finalTitle = title;
+    if (title.toLowerCase().includes('october') || 
+        title.toLowerCase().includes('november') || 
+        title.toLowerCase().includes('december') ||
+        title.toLowerCase().includes('january') ||
+        title.toLowerCase().includes('february') ||
+        title.toLowerCase().includes('march') ||
+        title.toLowerCase().includes('april') ||
+        title.toLowerCase().includes('may') ||
+        title.toLowerCase().includes('june') ||
+        title.toLowerCase().includes('july') ||
+        title.toLowerCase().includes('august') ||
+        title.toLowerCase().includes('september') ||
+        title.toLowerCase().includes('pm') ||
+        title.toLowerCase().includes('am') ||
+        title.toLowerCase().includes('at ') ||
+        title.toLowerCase().includes('for ')) {
+      finalTitle = 'Meeting';
+      console.log(`Fixed title from "${title}" to "${finalTitle}"`);
+    }
+    
+    // Check for duplicate events before creating
     let finalStartTime, finalEndTime, finalAllDay = all_day;
     
-    // Parse natural language if when_text is provided
-    if (when_text) {
+    // Priority 1: If start_time is provided as ISO timestamp (from slot selection), use it directly
+    if (start_time && start_time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) {
+      console.log('🎯 Using provided ISO timestamp directly:', start_time);
+      finalStartTime = start_time;
+      
+      if (end_time && end_time.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) {
+        finalEndTime = end_time;
+      } else {
+        // Calculate end time by adding duration
+        const startDate = new Date(start_time);
+        const endDate = new Date(startDate.getTime() + (duration_minutes * 60 * 1000));
+        finalEndTime = endDate.toISOString();
+      }
+      
+      console.log('✅ Using slot times:', finalStartTime, 'to', finalEndTime);
+    }
+    // Priority 2: Parse natural language if when_text is provided
+    else if (when_text) {
       console.log(`Parsing natural language: "${when_text}"`);
       
       try {
@@ -1325,9 +1512,14 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
       return { error: 'End time must be after start time' };
     }
     
+    // Temporarily disable deduplication to fix issues
+    // TODO: Re-enable with better logic later
+    console.log('✅ Skipping duplicate check, proceeding with event creation');
+    
     // Create event in Google Calendar first (if user has connection)
     let googleEventId = null;
     let isSynced = false;
+    let meetingLink = null;
     
     // Check if user has an active Gmail connection
     const { data: gmailConnection } = await supabase
@@ -1344,8 +1536,8 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
         
         if (userToken) {
           // Prepare event data for Google Calendar
-          const googleEvent = {
-            summary: title,
+          const googleEvent: any = {
+            summary: finalTitle,
             description: description,
             start: {
               dateTime: finalStartTime,
@@ -1357,6 +1549,27 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
             }
           };
           
+          // Add location for physical meetings
+          if (meeting_type === 'physical' && location) {
+            googleEvent.location = location;
+          }
+          
+          // Add conference data for virtual meetings with Google Meet
+          if (meeting_type === 'virtual' && meeting_platform === 'google_meet') {
+            console.log('🎯 Adding conferenceData for Google Meet...');
+            googleEvent.conferenceData = {
+              createRequest: {
+                requestId: `meet-${Date.now()}`,
+                conferenceSolutionKey: {
+                  type: 'hangoutsMeet'
+                }
+              }
+            };
+            console.log('✅ conferenceData added:', JSON.stringify(googleEvent.conferenceData, null, 2));
+          } else {
+            console.log('⚠️ NOT adding conferenceData. meeting_type:', meeting_type, 'meeting_platform:', meeting_platform);
+          }
+          
           // Add attendees if guests are provided
           if (guests && guests.trim()) {
             const guestEmails = guests.split(',').map(email => email.trim()).filter(email => email);
@@ -1364,7 +1577,11 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
           }
           
           console.log('Calling calendar-api with JWT token...');
-          const calendarResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`, {
+          console.log('Meeting type:', meeting_type, 'Platform:', meeting_platform);
+          console.log('Event has conferenceData:', !!googleEvent.conferenceData);
+          
+          const calendarApiUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/calendar-api`;
+          const calendarResponse = await fetch(calendarApiUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${userToken}`,
@@ -1380,9 +1597,29 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
             const calendarResult = await calendarResponse.json();
             googleEventId = calendarResult.event?.id;
             isSynced = true;
+            
+            console.log('📅 Calendar API Response:', JSON.stringify(calendarResult, null, 2));
+            
+            // Extract Google Meet link from conference data
+            if (calendarResult.event?.conferenceData?.entryPoints) {
+              console.log('🔗 Conference data found:', calendarResult.event.conferenceData);
+              const videoEntry = calendarResult.event.conferenceData.entryPoints.find(
+                (ep: any) => ep.entryPointType === 'video'
+              );
+              if (videoEntry) {
+                meetingLink = videoEntry.uri;
+                console.log('✅ Google Meet link generated:', meetingLink);
+              } else {
+                console.log('❌ No video entry point found in conference data');
+              }
+            } else {
+              console.log('❌ No conference data in calendar event response');
+            }
+            
             console.log('Google Calendar event created successfully:', googleEventId);
           } else {
-            console.error('Google Calendar creation failed:', await calendarResponse.text());
+            const errorText = await calendarResponse.text();
+            console.error('❌ Google Calendar creation failed:', errorText);
           }
         }
       } catch (calendarError) {
@@ -1395,7 +1632,7 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
       .from('calendar_events')
       .insert({
         user_id: userId,
-        title,
+        title: finalTitle,
         description,
         start_time: finalStartTime,
         end_time: finalEndTime,
@@ -1415,33 +1652,87 @@ async function createCalendarEvent(userId: string, eventData: any, userToken?: s
     
     console.log('Calendar event created successfully:', newEvent.id);
     
-    return {
+    // If this is a meeting (has meeting_type), save to meetings table as well
+    if (meeting_type) {
+      console.log('💾 Saving to meetings table with meeting_link:', meetingLink);
+      try {
+        const { data: newMeeting, error: meetingError } = await supabase
+          .from('meetings')
+          .insert({
+            user_id: userId,
+            title,
+            description: description || '',
+            meeting_platform: meeting_platform || 'other',
+            meeting_link: meetingLink || null,
+            start_time: finalStartTime,
+            end_time: finalEndTime,
+            location: location || null,
+            attendees: guests ? guests.split(',').map((email: string) => ({ 
+              email: email.trim(),
+              name: email.trim().split('@')[0]
+            })) : [],
+            status: 'scheduled',
+            calendar_event_id: newEvent.id,
+            reminder_minutes,
+            notes: null
+          })
+          .select()
+          .single();
+        
+        if (meetingError) {
+          console.error('❌ Meetings table insert error:', meetingError);
+        } else {
+          console.log('✅ Meeting saved to meetings table:', newMeeting.id);
+        }
+      } catch (meetingInsertError) {
+        console.error('❌ Failed to insert into meetings table:', meetingInsertError);
+      }
+    }
+    
+    // Build the result
+    const result: any = {
       success: true,
       event: {
         id: newEvent.id,
-        title: newEvent.title,
+        title: finalTitle,
         description: newEvent.description,
         startTime: newEvent.start_time,
         endTime: newEvent.end_time,
         isAllDay: newEvent.all_day,
         reminderMinutes: newEvent.reminder_minutes,
-        // guests: newEvent.guests, // Temporarily disabled - column doesn't exist
         syncStatus: isSynced ? 'synced' : 'local_only',
-        googleEventId: googleEventId
+        googleEventId: googleEventId,
+        guests: guests || null,
+        meetingType: meeting_type,
+        location: location
       },
       message: isSynced 
-        ? `Calendar event "${title}" created successfully and synced with Google Calendar!`
-        : `Calendar event "${title}" created successfully and saved locally!`
+        ? `Calendar event "${finalTitle}" created successfully and synced with Google Calendar!`
+        : `Calendar event "${finalTitle}" created successfully and saved locally!`
     };
+    
+    // Add Google Meet link if available
+    if (meetingLink) {
+      result.event.meetingLink = meetingLink;
+      console.log('✅ Returning result with meetingLink:', meetingLink);
+      result.message = `Virtual meeting "${finalTitle}" created with Google Meet link!`;
+    } else if (meeting_type === 'virtual') {
+      console.log('⚠️ Virtual meeting but no meetingLink generated');
+      result.message = `Virtual meeting "${finalTitle}" created successfully!`;
+    } else if (meeting_type === 'physical' && location) {
+      result.message = `Physical meeting "${finalTitle}" scheduled at ${location}!`;
+    }
+    
+    return result;
   } catch (error) {
     console.error('Calendar event creation error:', error);
     return { error: `Calendar event creation failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
 
-async function checkCalendarAvailability(userId: string, date: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string, userToken?: string) {
+async function checkCalendarAvailability(userId: string, date?: string, duration = 60, startTime = '09:00', endTime = '17:00', period?: string, userToken?: string) {
   try {
-    console.log(`Checking calendar availability for user ${userId}, date: ${date}, duration: ${duration}min`);
+    console.log(`Checking calendar availability for user ${userId}, date: ${date}, period: ${period}, duration: ${duration}min`);
     
     // Get user's timezone
     const { data: userProfile } = await supabase
@@ -1452,9 +1743,64 @@ async function checkCalendarAvailability(userId: string, date: string, duration 
 
     const userTimezone = userProfile?.timezone || 'UTC';
     
+    // If period is provided but no date, calculate date from period
+    let actualDate = date;
+    if (!actualDate && period) {
+      const now = new Date();
+      const periodLower = period.toLowerCase();
+      
+      if (periodLower.includes('tomorrow')) {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        actualDate = tomorrow.toISOString().split('T')[0];
+      } else if (periodLower.includes('two days') || periodLower.includes('2 days')) {
+        const twoDays = new Date(now);
+        twoDays.setDate(twoDays.getDate() + 2);
+        actualDate = twoDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('three days') || periodLower.includes('3 days')) {
+        const threeDays = new Date(now);
+        threeDays.setDate(threeDays.getDate() + 3);
+        actualDate = threeDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('four days') || periodLower.includes('4 days')) {
+        const fourDays = new Date(now);
+        fourDays.setDate(fourDays.getDate() + 4);
+        actualDate = fourDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('five days') || periodLower.includes('5 days')) {
+        const fiveDays = new Date(now);
+        fiveDays.setDate(fiveDays.getDate() + 5);
+        actualDate = fiveDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('six days') || periodLower.includes('6 days')) {
+        const sixDays = new Date(now);
+        sixDays.setDate(sixDays.getDate() + 6);
+        actualDate = sixDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('seven days') || periodLower.includes('7 days') || periodLower.includes('week')) {
+        const sevenDays = new Date(now);
+        sevenDays.setDate(sevenDays.getDate() + 7);
+        actualDate = sevenDays.toISOString().split('T')[0];
+      } else if (periodLower.includes('next week')) {
+        const nextWeek = new Date(now);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        actualDate = nextWeek.toISOString().split('T')[0];
+      } else {
+        // Default to tomorrow
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        actualDate = tomorrow.toISOString().split('T')[0];
+      }
+      console.log(`Calculated date from period "${period}": ${actualDate}`);
+    }
+    
+    // If still no date, default to tomorrow
+    if (!actualDate) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      actualDate = tomorrow.toISOString().split('T')[0];
+      console.log(`No date or period provided, defaulting to tomorrow: ${actualDate}`);
+    }
+    
     // Calculate time range for the day
-    const dayStart = new Date(`${date}T${startTime}:00`);
-    const dayEnd = new Date(`${date}T${endTime}:00`);
+    const dayStart = new Date(`${actualDate}T${startTime}:00`);
+    const dayEnd = new Date(`${actualDate}T${endTime}:00`);
     
     // Get existing events for the day from BOTH local database AND Google Calendar
     console.log('📅 Fetching events from local database...');
@@ -1636,6 +1982,12 @@ serve(async (req) => {
   try {
     // Create client with JWT token from request
     const authHeader = req.headers.get('Authorization');
+    console.log('🔐 Server Auth Debug:', {
+      hasAuthHeader: !!authHeader,
+      authHeaderLength: authHeader?.length,
+      authHeaderStart: authHeader?.substring(0, 20) + '...'
+    });
+    
     if (!authHeader) {
       console.error('No authorization header');
       return new Response(JSON.stringify({ 
@@ -1689,14 +2041,15 @@ serve(async (req) => {
     console.log('User profile loaded:', userName);
 
     // Parse request
-    const { message, sessionId, detectedTriggers = [], images = [], client_timezone, current_time } = await req.json();
+    const { message, sessionId, detectedTriggers = [], images = [], client_timezone, current_time, selected_slot_time } = await req.json();
     console.log('Request params:', { 
       messageLength: message?.length, 
       sessionId, 
       detectedTriggers,
       imageCount: images?.length || 0,
       clientTimezone: client_timezone,
-      currentTime: current_time
+      currentTime: current_time,
+      selectedSlotTime: selected_slot_time
     });
 
     if ((!message || !message.trim()) && (!images || images.length === 0)) {
@@ -1866,6 +2219,44 @@ serve(async (req) => {
 
     messages.push(currentMessage);
 
+    // Fast-path: handle explicit slot selection like "Schedule for October 21, 2025, 3:00 PM"
+    const fastPathMatch = message && message.match(/^\s*Schedule for\s+([A-Za-z]+\s+\d{1,2},\s+\d{4},\s+\d{1,2}:\d{2}\s*(AM|PM))\s*$/i);
+    if (fastPathMatch) {
+      const whenText = fastPathMatch[1];
+      console.log('⚡ Fast-path scheduling detected with when_text:', whenText, 'tz:', client_timezone);
+      const fastResult = await createCalendarEvent(user.id, {
+        title: 'Meeting',
+        when_text: whenText,
+        description: '',
+        guests: '',
+        client_timezone,
+        meeting_type: 'virtual',
+        meeting_platform: 'google_meet',
+        location: ''
+      }, token);
+
+      // Save tool message for UI
+      await supabase
+        .from('assistant_messages')
+        .insert({
+          session_id: session.id,
+          user_id: user.id,
+          role: 'tool',
+          content: JSON.stringify(fastResult),
+          tool_name: 'calendar_create_event',
+          tool_args: JSON.stringify({ when_text: whenText, title: 'Meeting' }),
+          tool_result: JSON.stringify(fastResult)
+        });
+
+      // Respond immediately without calling the model
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Scheduled via quick action: ${whenText}`,
+        tool: 'calendar_create_event',
+        result: fastResult
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // Always include email tools since they're core functionality
     const tools: any[] = [...EMAIL_TOOLS];
     
@@ -1880,13 +2271,24 @@ serve(async (req) => {
       'calendar', 'schedule', 'meeting', 'appointment', 'event', 'busy', 'free', 'available', 
       'space', 'time', 'today', 'tomorrow', 'yesterday', 'week', 'month', 'day',
       'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-      'next', 'this', 'last', 'upcoming', 'when', 'what time', 'book', 'reserve'
+      'next', 'this', 'last', 'upcoming', 'when', 'what time', 'book', 'reserve',
+      'virtual', 'physical', 'in-person', 'online', 'zoom', 'google meet'  // Add these for meeting type responses
     ];
     
-    if (detectedTriggers.includes('calendar') || 
-        calendarKeywords.some(keyword => message.toLowerCase().includes(keyword))) {
+    // Check conversation history for calendar context
+    const recentConversation = messages.slice(-5).map((m: any) => 
+      typeof m.content === 'string' ? m.content : ''
+    ).join(' ').toLowerCase();
+    
+    const needsCalendarTools = detectedTriggers.includes('calendar') || 
+        calendarKeywords.some(keyword => message.toLowerCase().includes(keyword)) ||
+        recentConversation.includes('meeting') ||
+        recentConversation.includes('schedule') ||
+        recentConversation.includes('virtual or physical');
+    
+    if (needsCalendarTools) {
       tools.push(...CALENDAR_TOOLS);
-      console.log('Added calendar tools');
+      console.log('Added calendar tools (detected:', calendarKeywords.find(k => message.toLowerCase().includes(k)) || 'from context', ')');
     }
 
     console.log('Tools to use:', tools.map(t => t.function.name));
@@ -1960,7 +2362,26 @@ serve(async (req) => {
               result = await checkCalendarAvailability(user.id, args.date, args.duration, args.startTime, args.endTime, args.period, token);
               break;
             case 'calendar_create_event':
-              result = await createCalendarEvent(user.id, { ...args, client_timezone }, token);
+              // If selected_slot_time is provided (user clicked a time slot), use it directly
+              if (selected_slot_time) {
+                console.log('🎯 Using selected_slot_time from button click:', selected_slot_time);
+                // Calculate end time (1 hour later)
+                const startDate = new Date(selected_slot_time);
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+                
+                result = await createCalendarEvent(user.id, { 
+                  ...args, 
+                  start_time: selected_slot_time,
+                  end_time: endDate.toISOString(),
+                  when_text: undefined, // Don't use when_text since we have exact times
+                  client_timezone,
+                  // Ensure meeting_type and meeting_platform are preserved from AI's tool call
+                  meeting_type: args.meeting_type || 'virtual',
+                  meeting_platform: args.meeting_platform || 'google_meet'
+                }, token);
+              } else {
+                result = await createCalendarEvent(user.id, { ...args, client_timezone }, token);
+              }
               break;
             case 'emails_compose_draft':
               const { to, subject, content, threadId, attachments } = args;
@@ -2017,7 +2438,10 @@ serve(async (req) => {
                   when_text: when_text,
                   guests: to,
                   description: '', // Don't include email content as meeting description
-                  client_timezone
+                  client_timezone,
+                  meeting_type: 'virtual', // Default to virtual for auto-fix
+                  meeting_platform: 'google_meet', // This will trigger Google Meet link creation
+                  location: '' // Empty for virtual meetings
                 }, token);
                 
                 console.log('✅ Auto-fix complete:', result);

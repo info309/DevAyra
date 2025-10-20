@@ -39,20 +39,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         || 'User';
       const email = u.email || null;
       
-      // First try to insert, then update if needed
-      const { error: insertError } = await supabase
+      // First try to upsert (insert or update)
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .insert({ user_id: u.id, display_name: displayName, email });
+        .upsert({ 
+          user_id: u.id, 
+          display_name: displayName, 
+          email 
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        });
       
-      if (insertError && insertError.code === '23505') {
-        // User already exists, update instead
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ display_name: displayName, email })
-          .eq('user_id', u.id);
-        if (updateError) console.warn('profiles update warning:', updateError.message);
-      } else if (insertError) {
-        console.warn('profiles insert warning:', insertError.message);
+      if (upsertError) {
+        console.warn('profiles upsert warning:', upsertError.message);
       }
     } catch (e) {
       console.warn('profiles upsert failed (non-fatal):', (e as Error).message);

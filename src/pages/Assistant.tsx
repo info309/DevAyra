@@ -76,6 +76,7 @@ const Assistant = () => {
   const [editingTitle, setEditingTitle] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -368,11 +369,20 @@ const Assistant = () => {
     }
   };
 
-  const sendMessage = async () => {
+  const sendMessage = async (slotTimeOverride?: string | null) => {
     if ((!inputMessage.trim() && selectedImages.length === 0) || !currentSession || isLoading) return;
 
     const message = inputMessage.trim();
     const attachments = [...selectedImages];
+    
+    // Defensive: Ensure slotTime is always a string or null, never an object
+    let slotTime: string | null = null;
+    if (slotTimeOverride !== undefined && typeof slotTimeOverride === 'string') {
+      slotTime = slotTimeOverride;
+    } else if (selectedSlotTime && typeof selectedSlotTime === 'string') {
+      slotTime = selectedSlotTime;
+    }
+    
     setInputMessage('');
     setSelectedImages([]);
     setIsLoading(true);
@@ -401,6 +411,13 @@ const Assistant = () => {
       const { data: session } = await supabase.auth.getSession();
       const authToken = session.session?.access_token;
       
+      console.log('🔐 Auth Debug:', {
+        hasSession: !!session.session,
+        hasToken: !!authToken,
+        tokenLength: authToken?.length,
+        user: session.session?.user?.email
+      });
+      
       if (!authToken) {
         throw new Error('You must be signed in to use the assistant.');
       }
@@ -420,7 +437,8 @@ const Assistant = () => {
           detectedTriggers,
           images: attachments.map(img => ({ url: img.url, type: img.type })),
           client_timezone: clientTimezone,
-          current_time: new Date().toISOString()
+          current_time: new Date().toISOString(),
+          selected_slot_time: slotTime
         }),
         signal: abortControllerRef.current?.signal
       });
@@ -433,6 +451,9 @@ const Assistant = () => {
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Assistant request failed');
 
+      // Clear selected slot time after sending
+      setSelectedSlotTime(null);
+      
       // Update messages
       await fetchMessages(currentSession.id);
 
@@ -543,18 +564,30 @@ const Assistant = () => {
                   {toolResult.freeSlots.map((slot: any, idx: number) => {
                     const startTime = new Date(slot.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                     const endTime = new Date(slot.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    const slotTimeString = String(slot.start); // Convert to string outside handler
+                    
+                    const handleSlotClick = () => {
+                      if (isLoading) return;
+                      
+                      const start = new Date(slotTimeString);
+                      const timeStr = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                      
+                      setInputMessage(timeStr);
+                      setSelectedSlotTime(slotTimeString);
+                      
+                      // Use a clean timeout with no closures
+                      setTimeout(() => {
+                        sendMessage(slotTimeString);
+                      }, 100);
+                    };
                     
                     return (
                       <Button
                         key={idx}
                         variant="outline"
                         className="justify-start text-sm"
-                        onClick={() => {
-                          // Set the input and trigger send
-                          setInputMessage(startTime);
-                          // Use setTimeout to ensure state update completes before sending
-                          setTimeout(() => sendMessage(), 100);
-                        }}
+                        disabled={isLoading}
+                        onClick={handleSlotClick}
                       >
                         <Clock className="w-3 h-3 mr-2" />
                         {startTime} - {endTime}
@@ -768,13 +801,26 @@ const Assistant = () => {
           // Note: scheduleMeeting function removed since meeting is already created by auto-fix
 
           const editInvitation = () => {
+            // Create email content with Google Meet link or location
+            let emailContent = `Hi,\n\nI've scheduled a meeting for ${meetingDetails?.when || new Date(event.startTime).toLocaleString()}.`;
+            
+            if (event.meeting_link || event.meetingLink) {
+              emailContent += `\n\nJoin the meeting using this Google Meet link:\n${event.meeting_link || event.meetingLink}`;
+            }
+            
+            if (event.location) {
+              emailContent += `\n\n📍 Location: ${event.location}`;
+            }
+            
+            emailContent += `\n\n${event.description || 'Looking forward to our discussion!'}\n\nBest regards`;
+            
             // Open email compose with meeting details
             navigate('/mailbox', {
               state: {
                 composeDraft: {
                   to: meetingDetails?.recipient || event.guests || '',
                   subject: `${meetingDetails?.title || event.title} - ${meetingDetails?.when || 'Meeting'}`,
-                  content: meetingDetails?.content || `Hi,\n\nI've scheduled a meeting for ${meetingDetails?.when || new Date(event.startTime).toLocaleString()}.\n\n${event.description || 'Looking forward to our discussion!'}\n\nBest regards`,
+                  content: emailContent,
                   action: 'compose_draft'
                 }
               }
@@ -796,13 +842,44 @@ const Assistant = () => {
                   {event.description && (
                     <p><span className="font-medium">Description:</span> {event.description}</p>
                   )}
+                  {event.location && (
+                    <p><span className="font-medium">📍 Location:</span> {event.location}</p>
+                  )}
                   {event.guests && (
                     <p><span className="font-medium">Guests:</span> {event.guests}</p>
+                  )}
+                  {(event.meeting_link || event.meetingLink) && (
+                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 87.5 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z" fill="#00832d"/>
+                          <path d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z" fill="#0066da"/>
+                          <path d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z" fill="#e94235"/>
+                          <path d="M20.5 20.5H0v31h20.5z" fill="#2684fc"/>
+                          <path d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h35.67c3.315 0 6-2.685 6-6V53.08z" fill="#00ac47"/>
+                          <path d="M62.17 0H6c-3.315 0-6 2.685-6 6v14.5h20.5V0z" fill="#ffba00"/>
+                          <path d="M20.5 20.5H49.5V36l-29 .03z" fill="#ff6d00"/>
+                        </svg>
+                        <p className="font-medium text-sm text-gray-800 dark:text-gray-100">Google Meet</p>
+                      </div>
+                      <a 
+                        href={event.meeting_link || event.meetingLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium underline break-all inline-flex items-center gap-1"
+                      >
+                        Join Meeting
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
                   )}
                   <div className="space-y-2">
                     <p className="text-xs text-green-700">
                       📅 Meeting scheduled in your calendar
                       {event.guests && ` • ${event.guests} will be notified`}
+                      {(event.meeting_link || event.meetingLink) && ` • Google Meet link created`}
                     </p>
                     <Button onClick={editInvitation} className="w-full">
                       <Mail className="w-4 h-4 mr-2" />
@@ -1110,7 +1187,7 @@ const Assistant = () => {
                   <span className="sr-only">Add images</span>
                 </Button>
                 <Button 
-                  onClick={isLoading ? stopGeneration : sendMessage} 
+                  onClick={isLoading ? stopGeneration : () => sendMessage()} 
                   disabled={!isLoading && !inputMessage.trim()}
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 rounded-full bg-send hover:bg-send/90 text-send-foreground disabled:bg-muted disabled:text-muted-foreground"

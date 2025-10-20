@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { createGoogleMeetSpace } from '@/utils/googleMeet';
 import {
   Drawer,
   DrawerContent,
@@ -29,6 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface MeetingFormData {
   title: string;
   description?: string;
+  meeting_type: 'virtual' | 'physical';
   meeting_platform: string;
   meeting_link?: string;
   start_time: string;
@@ -49,8 +51,10 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [generatingMeetLink, setGeneratingMeetLink] = useState(false);
 
   const meetingPlatform = watch('meeting_platform');
+  const meetingType = watch('meeting_type');
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -70,6 +74,7 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
       reset({
         title: meeting.title,
         description: meeting.description,
+        meeting_type: meeting.meeting_type || 'virtual',
         meeting_platform: meeting.meeting_platform,
         meeting_link: meeting.meeting_link,
         start_time: format(new Date(meeting.start_time), "yyyy-MM-dd'T'HH:mm"),
@@ -82,6 +87,7 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
       reset({
         title: '',
         description: '',
+        meeting_type: 'virtual',
         meeting_platform: 'google_meet',
         meeting_link: '',
         start_time: '',
@@ -168,6 +174,22 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
                   <Textarea id="description" {...register('description')} rows={2} />
                 </div>
 
+                <div className="grid gap-2">
+                  <Label htmlFor="meeting_type">Meeting Type *</Label>
+                  <Select
+                    onValueChange={(value) => setValue('meeting_type', value as 'virtual' | 'physical')}
+                    defaultValue={meetingType || 'virtual'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="virtual">💻 Virtual Meeting</SelectItem>
+                      <SelectItem value="physical">🏢 Physical Meeting</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="start_time">Start Time *</Label>
@@ -193,32 +215,79 @@ const MeetingForm = ({ open, onOpenChange, meeting }: MeetingFormProps) => {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="meeting_platform">Meeting Platform *</Label>
-                  <Select
-                    onValueChange={(value) => setValue('meeting_platform', value)}
-                    defaultValue={meetingPlatform || 'google_meet'}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="google_meet">Google Meet</SelectItem>
-                      <SelectItem value="zoom">Zoom</SelectItem>
-                      <SelectItem value="teams">Microsoft Teams</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+{meetingType === 'virtual' && (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="meeting_platform">Meeting Platform *</Label>
+                      <Select
+                        onValueChange={(value) => setValue('meeting_platform', value)}
+                        defaultValue={meetingPlatform || 'google_meet'}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select platform" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="google_meet">Google Meet</SelectItem>
+                          <SelectItem value="zoom">Zoom</SelectItem>
+                          <SelectItem value="teams">Microsoft Teams</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="meeting_link">Meeting Link</Label>
-                  <Input
-                    id="meeting_link"
-                    placeholder={meetingPlatform === 'google_meet' ? 'Will be auto-generated' : 'Enter meeting link'}
-                    {...register('meeting_link')}
-                  />
-                </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="meeting_link">Meeting Link</Label>
+                        {meetingPlatform === 'google_meet' && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              setGeneratingMeetLink(true);
+                              try {
+                                const meetSpace = await createGoogleMeetSpace({ title: watch('title') });
+                                if (meetSpace) {
+                                  setValue('meeting_link', meetSpace.meetingUri);
+                                  toast.success('Google Meet link generated!');
+                                } else {
+                                  toast.error('Failed to generate Meet link. You can enter one manually.');
+                                }
+                              } catch (error) {
+                                console.error('Error generating Meet link:', error);
+                                toast.error('Failed to generate Meet link. You can enter one manually.');
+                              } finally {
+                                setGeneratingMeetLink(false);
+                              }
+                            }}
+                            disabled={generatingMeetLink}
+                          >
+                            {generatingMeetLink ? 'Generating...' : 'Generate Meet Link'}
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        id="meeting_link"
+                        placeholder={meetingPlatform === 'google_meet' ? 'Click to generate or enter manually' : 'Enter meeting link'}
+                        {...register('meeting_link')}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {meetingType === 'physical' && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="location">Location *</Label>
+                    <Input
+                      id="location"
+                      placeholder="Enter physical location"
+                      {...register('location', { required: meetingType === 'physical' ? 'Location is required for physical meetings' : false })}
+                    />
+                    {errors.location && (
+                      <p className="text-sm text-destructive">{errors.location.message}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid gap-2">
                   <Label>Attendees</Label>

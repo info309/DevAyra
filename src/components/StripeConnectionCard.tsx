@@ -50,17 +50,49 @@ const StripeConnectionCard: React.FC = () => {
   const checkStripeStatus = async () => {
     try {
       setChecking(true);
-      const { data, error } = await supabase.functions.invoke('get-stripe-status');
       
-      if (error) throw error;
+      // Use direct fetch to get better error messages
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      
+      const response = await fetch(
+        'https://lmkpmnndrygjatnipfgd.supabase.co/functions/v1/get-stripe-status',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Stripe function error:', data);
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
       
       setStripeStatus(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking Stripe status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to check Stripe connection status.",
-        variant: "destructive",
+      
+      // More user-friendly error handling
+      const errorMsg = error?.message || 'Failed to check Stripe connection status';
+      
+      // Don't show toast for every error - just log it
+      console.warn('Stripe status check failed (non-critical):', errorMsg);
+      
+      // Set a default "not connected" state instead of showing error
+      setStripeStatus({
+        connected: false,
+        charges_enabled: false,
+        details_submitted: false,
+        payouts_enabled: false
       });
     } finally {
       setChecking(false);
