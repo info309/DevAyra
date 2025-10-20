@@ -87,10 +87,10 @@ const Dashboard = () => {
       image: notesIcon
     },
     {
-      title: 'Account',
-      description: 'Manage account settings and connections',
-      route: '/account',
-      image: accountIcon
+      title: 'Documents',
+      description: 'Store and organize your files',
+      route: '/documents',
+      image: documentsIcon
     }
   ];
 
@@ -108,10 +108,10 @@ const Dashboard = () => {
       image: financesIcon
     },
     {
-      title: 'Documents',
-      description: 'Store and organize your files',
-      route: '/documents',
-      image: documentsIcon
+      title: 'Account',
+      description: 'Manage account settings and connections',
+      route: '/account',
+      image: accountIcon
     },
     {
       title: 'Email Cleanup',
