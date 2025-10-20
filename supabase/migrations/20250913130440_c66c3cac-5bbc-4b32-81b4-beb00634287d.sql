@@ -6,6 +6,7 @@ DROP POLICY IF EXISTS "Allow secure payment access to invoices" ON public.invoic
 
 -- Create a more restrictive policy that only allows authenticated users to see their own invoices
 -- Payment processing will use the secure get_invoice_for_payment function instead
+DROP POLICY IF EXISTS "Users can only view their own invoices" ON public.invoices;
 CREATE POLICY "Users can only view their own invoices" 
 ON public.invoices 
 FOR SELECT 

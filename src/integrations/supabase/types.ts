@@ -544,6 +544,8 @@ export type Database = {
           location: string | null
           meeting_link: string | null
           meeting_platform: string
+          meeting_type: string
+          meet_space_id: string | null
           notes: string | null
           reminder_minutes: number | null
           start_time: string
@@ -562,6 +564,8 @@ export type Database = {
           location?: string | null
           meeting_link?: string | null
           meeting_platform: string
+          meeting_type?: string
+          meet_space_id?: string | null
           notes?: string | null
           reminder_minutes?: number | null
           start_time: string
@@ -580,6 +584,8 @@ export type Database = {
           location?: string | null
           meeting_link?: string | null
           meeting_platform?: string
+          meeting_type?: string
+          meet_space_id?: string | null
           notes?: string | null
           reminder_minutes?: number | null
           start_time?: string

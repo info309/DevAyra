@@ -6,6 +6,65 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to create Google Meet link via Calendar API
+async function createGoogleMeetLink(accessToken: string, title: string, startTime: string, endTime: string): Promise<string | null> {
+  try {
+    const event = {
+      summary: title,
+      start: {
+        dateTime: startTime,
+        timeZone: 'UTC',
+      },
+      end: {
+        dateTime: endTime,
+        timeZone: 'UTC',
+      },
+      conferenceData: {
+        createRequest: {
+          requestId: `meet-${Date.now()}`,
+          conferenceSolutionKey: {
+            type: 'hangoutsMeet',
+          },
+        },
+      },
+    };
+
+    const response = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to create Meet link:', await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.conferenceData && data.conferenceData.entryPoints) {
+      const videoEntry = data.conferenceData.entryPoints.find(
+        (ep: any) => ep.entryPointType === 'video'
+      );
+      
+      if (videoEntry) {
+        return videoEntry.uri;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error creating Google Meet link:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -26,6 +85,38 @@ serve(async (req) => {
     if (!user) throw new Error('Not authenticated');
 
     const meetingData = await req.json();
+
+    // Auto-generate Google Meet link for virtual meetings if not provided
+    if (meetingData.meeting_type === 'virtual' && 
+        meetingData.meeting_platform === 'google_meet' && 
+        !meetingData.meeting_link) {
+      try {
+        // Get Gmail connection for access token
+        const { data: connection } = await supabaseClient
+          .from('gmail_connections')
+          .select('access_token')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (connection && connection.access_token) {
+          const meetLink = await createGoogleMeetLink(
+            connection.access_token,
+            meetingData.title,
+            meetingData.start_time,
+            meetingData.end_time
+          );
+          
+          if (meetLink) {
+            meetingData.meeting_link = meetLink;
+            console.log('Auto-generated Google Meet link:', meetLink);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to auto-generate Meet link:', error);
+        // Continue without Meet link - user can add it manually
+      }
+    }
 
     // Create meeting in database
     const { data: meeting, error: insertError } = await supabaseClient

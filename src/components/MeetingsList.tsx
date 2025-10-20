@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Video, Calendar, Clock } from 'lucide-react';
+import { Pencil, Trash2, Video, Calendar, Clock, MapPin, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
@@ -23,6 +23,7 @@ interface Meeting {
   id: string;
   title: string;
   description?: string;
+  meeting_type?: 'virtual' | 'physical';
   meeting_platform: string;
   meeting_link?: string;
   start_time: string;
@@ -100,6 +101,11 @@ const MeetingsList = ({ onEdit }: MeetingsListProps) => {
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
+              {meeting.meeting_type === 'physical' ? (
+                <MapPin className="w-5 h-5 text-primary" />
+              ) : (
+                <Monitor className="w-5 h-5 text-primary" />
+              )}
               <h3 className="font-semibold text-lg">{meeting.title}</h3>
               <Badge variant={meeting.status === 'scheduled' ? 'default' : 'secondary'}>
                 {meeting.status}
@@ -121,7 +127,7 @@ const MeetingsList = ({ onEdit }: MeetingsListProps) => {
                   {format(new Date(meeting.start_time), 'p')} - {format(new Date(meeting.end_time), 'p')}
                 </span>
               </div>
-              {meeting.meeting_link && (
+              {meeting.meeting_type === 'virtual' && meeting.meeting_link && (
                 <div className="flex items-center gap-2">
                   <Video className="w-4 h-4 text-muted-foreground" />
                   <a 
@@ -130,8 +136,14 @@ const MeetingsList = ({ onEdit }: MeetingsListProps) => {
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    Join Meeting
+                    Join {meeting.meeting_platform === 'google_meet' ? 'Google Meet' : 'Meeting'}
                   </a>
+                </div>
+              )}
+              {meeting.meeting_type === 'physical' && meeting.location && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span>{meeting.location}</span>
                 </div>
               )}
               {meeting.attendees && meeting.attendees.length > 0 && (

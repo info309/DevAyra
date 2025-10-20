@@ -19,23 +19,38 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
+    );
+
+    // Get the user from the JWT token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      throw new Error(`Authentication error: ${userError?.message || 'User not found'}`);
+    }
+
+    // Now use service role for database operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user) throw new Error("User not authenticated");
-
-    // Get user profile with Stripe account ID
-    const { data: profile } = await supabaseClient
+    // Get user profile with Stripe account ID using service role
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('stripe_account_id, stripe_charges_enabled, stripe_details_submitted, stripe_payouts_enabled')
       .eq('user_id', user.id)
       .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      throw new Error(`Profile query error: ${profileError.message}`);
+    }
 
     if (!profile?.stripe_account_id) {
       return new Response(
@@ -63,8 +78,8 @@ serve(async (req) => {
       stripe_payouts_enabled: account.payouts_enabled,
     };
 
-    // Update profile with latest status
-    const { error: updateError } = await supabaseClient
+    // Update profile with latest status using service role
+    const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update(updatedStatus)
       .eq('user_id', user.id);

@@ -1,4 +1,7 @@
 -- Update the get_invoice_for_payment function to include PDF path
+-- Drop the function first if it exists to avoid return type conflicts
+DROP FUNCTION IF EXISTS public.get_invoice_for_payment(uuid, text);
+
 CREATE OR REPLACE FUNCTION public.get_invoice_for_payment(invoice_id uuid, token text)
  RETURNS TABLE(id uuid, invoice_number text, company_name text, customer_name text, customer_email text, total_cents integer, currency text, status text, pdf_path text, issue_date timestamptz, due_date timestamptz)
  LANGUAGE plpgsql
