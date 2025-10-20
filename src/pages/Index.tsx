@@ -412,7 +412,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="hidden md:flex md:flex-row md:items-start md:justify-center lg:gap-16 h-full">
+          <div className="hidden md:flex md:flex-row md:items-center md:justify-center lg:gap-16 h-full">
             {/* Left Half - Image */}
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center mb-8 md:mb-0 lg:mb-0">
               <div className="max-w-md w-full">
@@ -425,7 +425,7 @@ const Index = () => {
             </div>
 
             {/* Right Half - Sign Up Module */}
-            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-start lg:items-start">
+            <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-center lg:items-center">
               <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8 md:border md:border-border/50 lg:border lg:border-border/50">
                 <div className="space-y-4">
                   {/* Sign up with Google */}
