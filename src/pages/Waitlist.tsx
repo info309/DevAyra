@@ -120,7 +120,7 @@ const Waitlist = () => {
                   onPlay={() => setIsVideoPlaying(true)}
                   onPause={() => setIsVideoPlaying(false)}
                 >
-                  <source src="/Ayra_in_action.mp4" type="video/mp4" />
+                  <source src="/AYRA.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 {/* Play/Pause Button Overlay */}
