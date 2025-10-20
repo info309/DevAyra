@@ -764,7 +764,7 @@ const Index = () => {
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
-                    Personal tools: Mail, calendar, schedule, notes, documents.
+                    Personal tools: Mail, calendar, schedule, notes.
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
