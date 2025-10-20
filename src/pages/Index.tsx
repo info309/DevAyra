@@ -722,7 +722,7 @@ const Index = () => {
                 </ul>
                 <div className="pt-4 border-t border-border">
                   <p className="text-xs text-muted-foreground font-body">
-                    Add ons - Unlimited storage for £8 monthly.
+                    Free plan for life for the first 1000 users.
                   </p>
                 </div>
                 <div className="pt-4">
