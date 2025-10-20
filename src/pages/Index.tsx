@@ -386,7 +386,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-3xl font-heading font-normal text-gray-800 dark:text-gray-200">/Ayra</h1>
+          <h1 className="text-3xl font-heading font-normal text-gray-800 dark:text-gray-200">Ayra</h1>
           <Button 
             onClick={() => navigate('/auth')}
             variant="outline"
