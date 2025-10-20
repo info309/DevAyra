@@ -772,7 +772,7 @@ const Index = () => {
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
-                    Business tools: Invoices, quotes, card payments, finances, email cleanup, task manager, documents, calculator.
+                    Business tools: Invoices, quotes, card payments, finances, email cleanup, task manager, documents.
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
