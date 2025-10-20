@@ -713,15 +713,11 @@ const Index = () => {
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
-                    Personal Tools: Mail, calendar, schedule, notes, documents.
+                    Personal Tools: Mail, calendar, schedule, notes.
                   </li>
                   <li className="flex items-start gap-2 text-sm font-body">
                     <span className="text-primary mt-1">•</span>
                     Manage your daily personal life with Ayra
-                  </li>
-                  <li className="flex items-start gap-2 text-sm font-body">
-                    <span className="text-primary mt-1">•</span>
-                    50GB of document storage.
                   </li>
                 </ul>
                 <div className="pt-4 border-t border-border">
