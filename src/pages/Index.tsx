@@ -731,7 +731,7 @@ const Index = () => {
                 </div>
                 <div className="pt-4">
                   <Button 
-                    onClick={() => navigate('/sign-up')}
+                    onClick={() => navigate('/signup')}
                     className="w-full"
                     variant="outline"
                   >
@@ -789,7 +789,7 @@ const Index = () => {
                 </ul>
                 <div className="pt-4">
                   <Button 
-                    onClick={() => navigate('/sign-up')}
+                    onClick={() => navigate('/signup')}
                     className="w-full"
                   >
                     Get started with Pro
