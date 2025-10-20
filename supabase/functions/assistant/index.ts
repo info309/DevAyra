@@ -46,7 +46,10 @@ Q: Is the user scheduling/confirming a MEETING, APPOINTMENT, or CALENDAR EVENT?
           │
           └─ NO → Don't use either tool, just respond conversationally
 
-MEETING SCHEDULING WORKFLOW (FOLLOW EXACTLY):
+MEETING SCHEDULING WORKFLOW (FOLLOW EXACTLY - NEVER SKIP STEPS):
+
+🚨 CRITICAL: NEVER call calendar_create_event WITHOUT a time! ALWAYS check availability first!
+
 1. User asks: "Can I schedule a meeting with Sarah tomorrow?"
 2. You ask: "Would you like this to be a virtual or physical meeting?"
 3a. IF user responds: "virtual"
@@ -58,18 +61,27 @@ MEETING SCHEDULING WORKFLOW (FOLLOW EXACTLY):
     → Go to step 4
 4. You IMMEDIATELY call: calendar_check_availability with period="tomorrow"
    ❌ DO NOT call emails_search - this is WRONG
+   ❌ DO NOT call calendar_create_event yet - NO TIME PROVIDED YET!
    ❌ DO NOT search for emails
    ✅ ONLY call calendar_check_availability
 5. You respond: "I found several available time slots for tomorrow. Please select a time from the options below!" 
    ⚠️ DO NOT list the time slots in your text response - the UI will show clickable buttons automatically
-6. User clicks a time button or types a time like: "2 pm"
-7. You call: calendar_create_event with:
+   ⚠️ WAIT for user to select a time - DO NOT create event yet!
+6. User clicks a time button (this sends the exact time)
+7. ONLY NOW you call: calendar_create_event with:
+   - title: from earlier in conversation
+   - when_text: the time from step 6 (e.g., "1:00 PM" or "October 23 at 13:00")
    - meeting_type: "virtual" or "physical"  
    - meeting_platform: "google_meet" (for virtual meetings ONLY)
    - location: "[address]" (for physical meetings if user provided one)
-   - For virtual meetings with Google Meet: meeting_link will be auto-generated
-   - For physical meetings: location will be included in calendar and email
+   - guests: email address from step 1
 8. UI shows: "Meeting Prepared" card with "Send Invitation Message" button
+
+🚨 FORBIDDEN ACTIONS:
+❌ NEVER call calendar_create_event in step 2, 3, 4, or 5 - ONLY in step 7!
+❌ NEVER create an event without when_text or start_time/end_time!
+❌ NEVER skip the calendar_check_availability call!
+❌ If user doesn't specify a time, ASK them or check availability - don't create blindly!
 
 ⚠️ CRITICAL RULES: 
 - Step 2: ALWAYS ask about meeting type (virtual/physical) before checking availability
@@ -1204,6 +1216,66 @@ function parseSpecificTime(when_text: string, userTimezone: string) {
     };
   }
   
+  // Match patterns like "October 21st 1:00 PM", "October 23 at 13:00", "October 21 1:00 PM"
+  const monthDayMatch = text.match(/(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(?:at\s+)?(\d{1,2}):?(\d{2})?\s*(am|pm)?/i);
+  if (monthDayMatch) {
+    const monthName = monthDayMatch[1];
+    const day = parseInt(monthDayMatch[2]);
+    let hour = parseInt(monthDayMatch[3]);
+    const minutes = monthDayMatch[4] ? parseInt(monthDayMatch[4]) : 0;
+    const ampm = monthDayMatch[5] ? monthDayMatch[5].toLowerCase() : null;
+    
+    console.log(`📝 Matched month/day: month=${monthName}, day=${day}, hour=${hour}, minutes=${minutes}, ampm=${ampm}`);
+    
+    // Convert month name to month number (0-indexed)
+    const monthMap: { [key: string]: number } = {
+      'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+      'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+    };
+    const month = monthMap[monthName.toLowerCase()];
+    
+    if (month === undefined) {
+      console.log(`❌ Invalid month name: ${monthName}`);
+      return null;
+    }
+    
+    // Convert to 24-hour format
+    if (ampm === 'pm' && hour !== 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    // If no AM/PM and hour >= 13, it's already in 24-hour format (13:00 = 1:00 PM)
+    // If no AM/PM and hour < 12, assume it's meant as-is unless it's clearly wrong
+    
+    console.log(`🕐 After 24h conversion: hour=${hour}`);
+    
+    // Get current year or next year if month has passed
+    const now = new Date();
+    let year = now.getFullYear();
+    if (month < now.getMonth() || (month === now.getMonth() && day < now.getDate())) {
+      year++;
+    }
+    
+    // Create date in user's local timezone
+    const scheduledDate = new Date(year, month, day, hour, minutes, 0, 0);
+    
+    console.log(`📅 Created date: ${scheduledDate.toString()}`);
+    
+    // Adjust for timezone if needed
+    if (effectiveTimezone !== 'UTC') {
+      const tzOffset = getTimezoneOffset(effectiveTimezone);
+      console.log(`⏰ Timezone offset for ${effectiveTimezone}: ${tzOffset} minutes`);
+      scheduledDate.setMinutes(scheduledDate.getMinutes() - tzOffset);
+    }
+    
+    const end = new Date(scheduledDate);
+    end.setHours(scheduledDate.getHours() + 1);
+    
+    console.log(`✅ Parsed ${monthName} ${day} ${hour}:${minutes} in ${effectiveTimezone} as ${scheduledDate.toISOString()}`);
+    return {
+      start: scheduledDate.toISOString(),
+      end: end.toISOString()
+    };
+  }
+  
   // Match patterns like "Schedule for October 22, 2025, 1:00 PM"
   // Format: "schedule for [Month] [Day], [Year], [Hour]:[Minute] [AM/PM]"
   const scheduleMatch = text.match(/schedule\s+for\s+(\w+)\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*(am|pm)?/i);
@@ -1746,6 +1818,11 @@ async function checkCalendarAvailability(userId: string, date?: string, duration
     // If period is provided but no date, calculate date from period
     let actualDate = date;
     if (!actualDate && period) {
+      // Check if period is already a date in YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(period)) {
+        console.log(`Period is already a date: ${period}`);
+        actualDate = period;
+      } else {
       const now = new Date();
       const periodLower = period.toLowerCase();
       
@@ -1788,6 +1865,7 @@ async function checkCalendarAvailability(userId: string, date?: string, duration
         actualDate = tomorrow.toISOString().split('T')[0];
       }
       console.log(`Calculated date from period "${period}": ${actualDate}`);
+      }
     }
     
     // If still no date, default to tomorrow
