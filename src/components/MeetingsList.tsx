@@ -55,7 +55,7 @@ const MeetingsList = ({ onEdit }: MeetingsListProps) => {
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      setMeetings(data || []);
+      setMeetings((data || []) as Meeting[]);
     } catch (error) {
       console.error('Error fetching meetings:', error);
       toast.error('Failed to load meetings');

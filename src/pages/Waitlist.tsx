@@ -165,7 +165,7 @@ const Waitlist = () => {
           </form>
           
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">AI-powered productivity is coming.</p>
+            <p className="font-medium mb-1">First 10,000 users - Free plan for life.</p>
             <p className="font-bold">Join the waiting list.</p>
           </div>
         </div>
