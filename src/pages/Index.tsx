@@ -722,7 +722,7 @@ const Index = () => {
                 </ul>
                 <div className="pt-4 border-t border-border">
                   <p className="text-xs text-muted-foreground font-body">
-                    Free plan for life for the first 1000 users.
+                    10,000 users under free plan.
                   </p>
                 </div>
                 <div className="pt-4">
