@@ -107,7 +107,7 @@ const SubscriptionUpgrade = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
             <img src={ayraIcon} alt="Ayra" className="w-16 h-16" />
           </div>
-          <h2 className="text-4xl font-heading font-bold mb-4">
+          <h2 className="text-4xl font-heading mb-4">
             Upgrade to Ayra Pro
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
