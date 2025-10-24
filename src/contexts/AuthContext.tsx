@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     // Force localhost redirect during development
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const redirectTo = isLocalhost ? `${window.location.origin}/auth/callback` : `${window.location.origin}/auth/callback`;
+    const redirectTo = isLocalhost ? `${window.location.origin}/` : `${window.location.origin}/`;
     console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
