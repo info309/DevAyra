@@ -185,8 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         redirectTo: redirectTo,
         queryParams: { 
           access_type: 'offline', 
-          prompt: 'consent',
-          redirect_uri: redirectTo  // Explicitly set redirect_uri parameter
+          prompt: 'consent'
         }
       }
     });
