@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionQuery } from './useSubscriptionQuery';
 
 interface SubscriptionStatus {
   plan_type: 'free' | 'pro';
@@ -14,48 +13,28 @@ interface SubscriptionStatus {
 
 export const useSubscription = () => {
   const { user } = useAuth();
-  const [subscription, setSubscription] = useState<SubscriptionStatus>({
+  const { data, isLoading, error } = useSubscriptionQuery(user?.id);
+
+  // Default free subscription for non-authenticated users
+  const defaultSubscription: SubscriptionStatus = {
     plan_type: 'free',
     status: 'active',
     isPro: false,
     features: [],
-    loading: true,
-  });
+    loading: false,
+  };
 
-  useEffect(() => {
-    if (!user) {
-      setSubscription({
-        plan_type: 'free',
-        status: 'active',
-        isPro: false,
-        features: [],
-        loading: false,
-      });
-      return;
-    }
-
-    const fetchSubscriptionStatus = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-subscription-status');
-
-        if (error) {
-          console.error('Error fetching subscription status:', error);
-          setSubscription((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-
-        setSubscription({
-          ...data,
-          loading: false,
-        });
-      } catch (error) {
-        console.error('Error:', error);
-        setSubscription((prev) => ({ ...prev, loading: false }));
+  const subscription: SubscriptionStatus = user
+    ? {
+        ...(data || {
+          plan_type: 'free',
+          status: 'active',
+          isPro: false,
+          features: [],
+        }),
+        loading: isLoading,
       }
-    };
-
-    fetchSubscriptionStatus();
-  }, [user]);
+    : defaultSubscription;
 
   const canAccessFeature = (featureName: string): boolean => {
     if (subscription.plan_type === 'free') {
