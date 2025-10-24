@@ -100,6 +100,38 @@ const Waitlist = () => {
     <div className="min-h-screen flex items-center justify-center p-4 pt-16" style={{ backgroundColor: '#fff4ed' }}>
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Join the world's
+          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
+            <span className="underline decoration-primary decoration-4">most integrated</span> workspace.
+          </h1>
+          
+          <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-6">
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="EMAIL ADDRESS"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-white/80 border-0 rounded-full px-6 py-3 text-sm uppercase tracking-wider placeholder:text-muted-foreground/60"
+                disabled={isSubmitting}
+              />
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-full px-6 py-3 bg-primary hover:bg-primary/90"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </form>
+          
+          <div className="text-sm text-muted-foreground mb-12">
+            <p className="font-medium mb-1">First 10,000 users - Free plan for life.</p>
+            <p className="font-bold">Join the waiting list.</p>
+          </div>
+
           <div className="relative mb-8">
             <div className="text-center mb-8">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-heading font-normal text-foreground mb-4">
@@ -135,38 +167,6 @@ const Waitlist = () => {
                 </div>
               </div>
             </div>
-          </div>
-          
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Join the world's
-          </h1>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
-            <span className="underline decoration-primary decoration-4">most integrated</span> workspace.
-          </h1>
-          
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-6">
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="EMAIL ADDRESS"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-white/80 border-0 rounded-full px-6 py-3 text-sm uppercase tracking-wider placeholder:text-muted-foreground/60"
-                disabled={isSubmitting}
-              />
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-full px-6 py-3 bg-primary hover:bg-primary/90"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </form>
-          
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">First 10,000 users - Free plan for life.</p>
-            <p className="font-bold">Join the waiting list.</p>
           </div>
         </div>
       </div>
