@@ -159,7 +159,7 @@ const SubscriptionUpgrade = () => {
               </span>
             </div>
             <CardHeader>
-              <CardTitle>Ayra Pro</CardTitle>
+              <CardTitle>Pro</CardTitle>
               <CardDescription>For professionals and businesses</CardDescription>
               <div className="mt-4">
                 <span className="text-3xl font-heading">£18</span>
