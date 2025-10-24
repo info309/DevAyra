@@ -173,24 +173,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    // Force localhost redirect during development
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    let redirectTo;
-
-    if (isLocalhost) {
-      // Use the specific localhost callback URI configured in Google Cloud Console
-      redirectTo = 'http://localhost:3001/auth/callback';
-    } else {
-      // Use the Supabase callback URI that's configured in Google Cloud Console
-      redirectTo = 'https://lmkpmnndrygjatnipfgd.supabase.co/auth/v1/callback';
-    }
-    
-    console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);
-    
+    // Let Supabase automatically handle the redirect based on Site URL configuration
+    // This will use the Site URL configured in Supabase Dashboard
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
+        redirectTo: `${window.location.origin}/`,
         queryParams: { access_type: 'offline', prompt: 'consent' }
       }
     });
