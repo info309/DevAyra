@@ -122,7 +122,7 @@ const SubscriptionUpgrade = () => {
               <CardTitle>Personal</CardTitle>
               <CardDescription>Perfect for personal use</CardDescription>
               <div className="mt-4">
-                <span className="text-3xl font-bold">Free</span>
+                <span className="text-3xl font-heading">Free</span>
               </div>
             </CardHeader>
             <CardContent>
@@ -162,7 +162,7 @@ const SubscriptionUpgrade = () => {
               <CardTitle>Ayra Pro</CardTitle>
               <CardDescription>For professionals and businesses</CardDescription>
               <div className="mt-4">
-                <span className="text-3xl font-bold">£18</span>
+                <span className="text-3xl font-heading">£18</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
             </CardHeader>
