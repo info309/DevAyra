@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { LogOut, Lock, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 // Icon imports - force refresh
 import mailIcon from '@/assets/mail-icon.png';
 import calendarIcon from '@/assets/calendar-icon.png';
@@ -22,6 +24,7 @@ const Dashboard = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string>('');
+  const { isPro, plan_type, loading: subscriptionLoading } = useSubscription();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -99,33 +102,46 @@ const Dashboard = () => {
       title: 'Invoices',
       description: 'Generate quotes and invoices',
       route: '/invoices',
-      image: invoicesIcon
+      image: invoicesIcon,
+      requiresPro: true
     },
     {
       title: 'Finances',
       description: 'View financial data and upload receipts',
       route: '/finances',
-      image: financesIcon
+      image: financesIcon,
+      requiresPro: true
     },
     {
       title: 'Documents',
       description: 'Store and organize your files',
       route: '/documents',
-      image: documentsIcon
+      image: documentsIcon,
+      requiresPro: true
     },
     {
       title: 'Email Cleanup',
       description: 'Analyze, unsubscribe, and organize your emails',
       route: '/email-cleanup',
-      image: emailCleanupIcon
+      image: emailCleanupIcon,
+      requiresPro: true
     },
     {
       title: 'Online meetings',
       description: 'Schedule online meetings with clients',
       route: '/meetings',
-      image: meetingsIcon
+      image: meetingsIcon,
+      requiresPro: true
     }
   ];
+
+  const handleProToolClick = (tool: typeof proTools[0]) => {
+    if (tool.requiresPro && !isPro) {
+      navigate('/subscription/upgrade');
+    } else {
+      navigate(tool.route);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,6 +150,23 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-heading font-bold">Ayra</h1>
           <div className="flex items-center gap-4">
+            {!subscriptionLoading && (
+              <Badge variant={isPro ? "default" : "secondary"} className="text-sm">
+                {isPro ? (
+                  <>
+                    <Crown className="w-3 h-3 mr-1" />
+                    Pro Plan
+                  </>
+                ) : (
+                  'Free Plan'
+                )}
+              </Badge>
+            )}
+            {!isPro && !subscriptionLoading && (
+              <Button variant="default" size="sm" onClick={() => navigate('/subscription/upgrade')}>
+                Upgrade to Pro
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
@@ -198,22 +231,39 @@ const Dashboard = () => {
         {/* Pro Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {proTools.map((tool) => {
+            const isLocked = tool.requiresPro && !isPro;
             return (
               <Card 
                 key={tool.title} 
-                className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                onClick={() => navigate(tool.route)}
+                className={`hover:shadow-lg transition-shadow cursor-pointer overflow-hidden relative ${
+                  isLocked ? 'opacity-90' : ''
+                }`}
+                onClick={() => handleProToolClick(tool)}
               >
+                {isLocked && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <Badge variant="secondary" className="gap-1">
+                      <Lock className="w-3 h-3" />
+                      Pro
+                    </Badge>
+                  </div>
+                )}
                 <div className="flex h-full">
                   <div className={`flex-1 flex flex-col ${tool.image ? 'pr-2' : ''}`}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{tool.title}</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {tool.title}
+                      </CardTitle>
                       <CardDescription className="text-sm mt-1">
                         {tool.description}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0 flex-1">
-                      {/* Content area - can be used for future additions */}
+                      {isLocked && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upgrade to Pro to unlock
+                        </p>
+                      )}
                     </CardContent>
                   </div>
                   {tool.image && (

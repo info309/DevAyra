@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ProtectedProRoute } from "@/components/ProtectedProRoute";
 import Index from "./pages/Index";
+import SubscriptionUpgrade from "./pages/SubscriptionUpgrade";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Mailbox from "./pages/Mailbox";
@@ -59,11 +62,6 @@ const App = () => (
                 <Mailbox />
               </ProtectedRoute>
             } />
-            <Route path="/documents" element={
-              <ProtectedRoute>
-                <Documents />
-              </ProtectedRoute>
-            } />
             <Route path="/calendar" element={
               <ProtectedRoute>
                 <Calendar />
@@ -86,17 +84,23 @@ const App = () => (
             } />
             <Route path="/invoices" element={
               <ProtectedRoute>
-                <Invoices />
+                <ProtectedProRoute>
+                  <Invoices />
+                </ProtectedProRoute>
               </ProtectedRoute>
             } />
             <Route path="/finances" element={
               <ProtectedRoute>
-                <Finances />
+                <ProtectedProRoute>
+                  <Finances />
+                </ProtectedProRoute>
               </ProtectedRoute>
             } />
             <Route path="/email-cleanup" element={
               <ProtectedRoute>
-                <EmailCleanup />
+                <ProtectedProRoute>
+                  <EmailCleanup />
+                </ProtectedProRoute>
               </ProtectedRoute>
             } />
             <Route path="/contacts" element={
@@ -106,7 +110,26 @@ const App = () => (
             } />
             <Route path="/meetings" element={
               <ProtectedRoute>
-                <Meetings />
+                <ProtectedProRoute>
+                  <Meetings />
+                </ProtectedProRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/documents" element={
+              <ProtectedRoute>
+                <ProtectedProRoute>
+                  <Documents />
+                </ProtectedProRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/subscription/upgrade" element={
+              <ProtectedRoute>
+                <SubscriptionUpgrade />
+              </ProtectedRoute>
+            } />
+            <Route path="/subscription/success" element={
+              <ProtectedRoute>
+                <SubscriptionSuccess />
               </ProtectedRoute>
             } />
             <Route path="/payment" element={<Payment />} />

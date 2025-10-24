@@ -3,13 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, User, LogOut, Clock } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Clock, Crown, ExternalLink } from 'lucide-react';
 import { useIsDrawerView } from '@/hooks/use-drawer-view';
 import GmailConnection from '@/components/GmailConnection';
 import StripeConnectionCard from '@/components/StripeConnectionCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const Account: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -19,6 +21,8 @@ const Account: React.FC = () => {
   const [timezone, setTimezone] = useState('GMT');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { isPro, plan_type, status, current_period_end, cancel_at_period_end, loading: subscriptionLoading } = useSubscription();
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const timezones = [
     { value: 'GMT', label: 'GMT (Greenwich Mean Time)', iana: 'GMT' },
@@ -85,6 +89,126 @@ const Account: React.FC = () => {
   const handleBackToDashboard = () => {
     navigate('/dashboard');
   };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-customer-portal-session');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open subscription management. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const SubscriptionCard = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Crown className="w-5 h-5" />
+          Subscription
+        </CardTitle>
+        <CardDescription>
+          Manage your Ayra subscription and billing
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Current Plan</label>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-base font-semibold">{isPro ? 'Ayra Pro' : 'Personal'}</p>
+                <Badge variant={isPro ? "default" : "secondary"}>
+                  {isPro ? 'Pro' : 'Free'}
+                </Badge>
+              </div>
+            </div>
+            {isPro && (
+              <p className="text-2xl font-bold">£18<span className="text-sm text-muted-foreground">/mo</span></p>
+            )}
+          </div>
+
+          {isPro && status && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <p className="text-base capitalize mt-1">{status}</p>
+              </div>
+              
+              {current_period_end && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {cancel_at_period_end ? 'Access Until' : 'Next Billing Date'}
+                  </label>
+                  <p className="text-base mt-1">
+                    {new Date(current_period_end).toLocaleDateString('en-GB', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              )}
+
+              {cancel_at_period_end && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Your subscription will end on {new Date(current_period_end!).toLocaleDateString('en-GB')}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!isPro && (
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <p className="text-sm font-medium">Upgrade to unlock:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Professional invoicing</li>
+                <li>• Financial management</li>
+                <li>• Document storage</li>
+                <li>• Email cleanup tools</li>
+                <li>• Online meeting scheduling</li>
+              </ul>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {isPro ? (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {portalLoading ? 'Loading...' : 'Manage Subscription'}
+              </Button>
+            ) : (
+              <Button 
+                className="w-full"
+                onClick={() => navigate('/subscription/upgrade')}
+              >
+                Upgrade to Pro - £18/month
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   const ProfileCard = () => (
     <Card>
@@ -201,6 +325,7 @@ const Account: React.FC = () => {
           </div>
 
           <ProfileCard />
+          <SubscriptionCard />
           <TimezoneCard />
           <StripeConnectionCard />
           <GmailConnection />
@@ -260,6 +385,7 @@ const Account: React.FC = () => {
 
         <div className="grid gap-6">
           <ProfileCard />
+          <SubscriptionCard />
           <TimezoneCard />
           <StripeConnectionCard />
           <GmailConnection />
