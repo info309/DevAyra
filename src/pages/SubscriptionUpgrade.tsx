@@ -111,7 +111,7 @@ const SubscriptionUpgrade = () => {
             Upgrade to Ayra Pro
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Unlock all professional tools to supercharge your productivity and business management
+            Unlock all professional tools to supercharge your daily productivity.
           </p>
         </div>
 
