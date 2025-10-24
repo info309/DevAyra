@@ -141,13 +141,43 @@ const Waitlist = () => {
                 Watch how Ayra seamlessly integrates all your productivity tools into one intelligent workspace.
               </p>
             </div>
-            <div className="w-80 mx-auto bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl mb-8">
+            
+            {/* Mobile: iPhone design */}
+            <div className="md:hidden w-80 mx-auto bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl mb-8">
               <div className="aspect-[9/19.5] bg-black rounded-[2rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
                 {/* iPhone notch */}
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full z-10"></div>
                 <video 
                   ref={videoRef}
                   className="w-full h-full object-cover rounded-[2rem]"
+                  preload="metadata"
+                  onPlay={() => setIsVideoPlaying(true)}
+                  onPause={() => setIsVideoPlaying(false)}
+                >
+                  <source src="/AYRA.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                {/* Play/Pause Button Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={`transition-opacity duration-300 ${isVideoPlaying ? 'opacity-0' : 'opacity-100'} bg-black/50 rounded-full p-4 hover:bg-black/70`}>
+                    {isVideoPlaying ? (
+                      <Pause className="w-12 h-12 text-white" />
+                    ) : (
+                      <Play className="w-12 h-12 text-white ml-1" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tablet and Desktop: iPad Landscape */}
+            <div className="hidden md:block w-full max-w-5xl mx-auto bg-gray-900 rounded-[2rem] p-4 shadow-2xl mb-8">
+              <div className="aspect-[4/3] bg-black rounded-[1.5rem] overflow-hidden relative cursor-pointer" onClick={handleVideoToggle}>
+                {/* iPad home indicator */}
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full z-10"></div>
+                <video 
+                  ref={videoRef}
+                  className="w-full h-full object-cover rounded-[1.5rem]"
                   preload="metadata"
                   onPlay={() => setIsVideoPlaying(true)}
                   onPause={() => setIsVideoPlaying(false)}
