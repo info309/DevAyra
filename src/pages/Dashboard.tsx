@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Lock, Crown } from 'lucide-react';
+import { LogOut, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -150,18 +150,6 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-heading font-bold">Ayra</h1>
           <div className="flex items-center gap-4">
-            {!subscriptionLoading && (
-              <Badge variant={isPro ? "default" : "secondary"} className="text-sm">
-                {isPro ? (
-                  <>
-                    <Crown className="w-3 h-3 mr-1" />
-                    Pro Plan
-                  </>
-                ) : (
-                  'Free Plan'
-                )}
-              </Badge>
-            )}
             {!isPro && !subscriptionLoading && (
               <Button variant="default" size="sm" onClick={() => navigate('/subscription/upgrade')}>
                 Upgrade to Pro
