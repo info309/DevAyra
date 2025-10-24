@@ -177,12 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const redirectTo = isLocalhost ? `${window.location.origin}/auth/callback` : 'https://ayra.app/auth/callback';
     console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);
+    console.log('Current window.location.origin:', window.location.origin);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
-        queryParams: { access_type: 'offline', prompt: 'consent' }
+        redirectTo: redirectTo,
+        queryParams: { 
+          access_type: 'offline', 
+          prompt: 'consent',
+          redirect_uri: redirectTo  // Explicitly set redirect_uri parameter
+        }
       }
     });
     if (error) {
