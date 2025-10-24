@@ -44,7 +44,7 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "https://ayra-unified-suite.lovable.app"
+site_url = "https://ayra.app"
 additional_redirect_urls = [
   "http://127.0.0.1:3001", 
   "http://localhost:3001", 
