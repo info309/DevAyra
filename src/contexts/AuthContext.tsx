@@ -181,8 +181,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Use the specific localhost callback URI configured in Google Cloud Console
       redirectTo = 'http://localhost:3001/auth/callback';
     } else {
-      // Use the production callback URI configured in Google Cloud Console
-      redirectTo = 'https://ayra-unified-suite.lovable.app/auth/callback';
+      // Use the Supabase callback URI that's configured in Google Cloud Console
+      redirectTo = 'https://lmkpmnndrygjatnipfgd.supabase.co/auth/v1/callback';
     }
     
     console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);

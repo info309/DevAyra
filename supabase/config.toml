@@ -54,7 +54,9 @@ additional_redirect_urls = [
   "http://localhost:8080",
   "https://ayra-unified-suite.lovable.app",
   "https://5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app",
-  "https://id-preview--5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app"
+  "https://id-preview--5eb95c88-7b91-431d-abcd-024a8536e78a.lovable.app",
+  "http://localhost:3001/auth/callback",
+  "https://ayra-unified-suite.lovable.app/auth/callback"
 ]
 jwt_expiry = 3600
 enable_signup = true
