@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Sparkles, ArrowLeft } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
+import ayraIcon from '@/assets/ayra-icon.png';
 
 const SubscriptionUpgrade = () => {
   const navigate = useNavigate();
@@ -103,8 +104,8 @@ const SubscriptionUpgrade = () => {
 
       <main className="max-w-4xl mx-auto p-6 py-12">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-            <Sparkles className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
+            <img src={ayraIcon} alt="Ayra" className="w-16 h-16" />
           </div>
           <h2 className="text-4xl font-heading font-bold mb-4">
             Upgrade to Ayra Pro
