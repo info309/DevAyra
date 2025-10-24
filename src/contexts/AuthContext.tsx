@@ -173,39 +173,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    // Explicitly set the production redirect URL to bypass Supabase client defaults
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const redirectTo = isLocalhost ? `${window.location.origin}/auth/callback` : 'https://ayra.app/auth/callback';
-    console.log('Google OAuth redirect will go to:', redirectTo, 'isLocalhost:', isLocalhost);
-    console.log('Current window.location.origin:', window.location.origin);
-    
-    // Try direct OAuth URL construction as fallback
-    if (!isLocalhost) {
-      console.log('Using direct OAuth URL construction for production');
-      const clientId = '727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com';
-      const directAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectTo)}&` +
-        `response_type=code&` +
-        `scope=openid email profile&` +
-        `access_type=offline&` +
-        `prompt=consent&` +
-        `state=${encodeURIComponent(JSON.stringify({ provider: 'google' }))}`;
-      
-      console.log('Direct OAuth URL:', directAuthUrl);
-      window.location.href = directAuthUrl;
-      return { error: null };
-    }
-    
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    console.log('Attempting Google sign-in...');
+    // This is the correct way. It uses a relative path, which Supabase
+    // will combine with your 'Site URL' (https://ayra.app).
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectTo,
-        queryParams: { 
-          access_type: 'offline', 
-          prompt: 'consent'
-        }
-      }
+        redirectTo: '/auth/callback',
+      },
     });
     if (error) {
       console.error('Google OAuth error:', error);
