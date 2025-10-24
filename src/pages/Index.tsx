@@ -491,9 +491,7 @@ const Index = () => {
               <div className="space-y-4">
                 {/* Sign up with Google */}
                 <Button 
-                  onClick={async () => {
-                    await signInWithGoogle();
-                  }}
+                  onClick={() => window.location.href = 'https://accounts.google.com/v3/signin/accountchooser?access_type=offline&client_id=727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com&prompt=consent&redirect_to=https%3A%2F%2Fayra.app%2F&redirect_uri=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=eyJhbGciOiJIUzI1NiIsImtpZCI6IlJGNWFxWk9LQjV6V0hxQVAiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NjEzMDMzNTQsInNpdGVfdXJsIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsImZ1bmN0aW9uX2hvb2tzIjpudWxsLCJwcm92aWRlciI6Imdvb2dsZSIsInJlZmVycmVyIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJmbG93X3N0YXRlX2lkIjoiIn0.J9OgJtUgqUFjDt5qV4-yqjyd42vCSM-rspC-cs81sDo&dsh=S-1676746248%3A1761303054513841&o2v=2&service=lso&flowName=GeneralOAuthFlow&opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fayra.app%25252F&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3D0%26part%3DAJi8hANMLIipne_sawjzbjAoVbvk6YdZgrRwS7ISpvb8k21zxW4R0dLMijs60lPunk1iV4u5SV9v-bdnzyMFPEb4LmoOkxwt-6BnpgERqVCYliEf3SI84u1YXaQ83eP-ivEZf2TZVKYW2OQG8brfWnz0FeWBL79W9uNEKp87RrA0iIyGBy1dmtTJv6nrhRnoAjzFjBcw1gjKUb4Z-ey16kznbLc9P4NZ3_WYvJT9rzxVaSye0I-BvaT_J1EJWWl1bcOi-59jEIGMS6yUzSH-1Mrhz8G3RVxff5FoHViUogcSKnIiCu7_TYhRCXMkZYg1XHM1-rbUEGG38FxFzY29nbuvieXgNg7zhla4NObCPcWqV1u8tjUuKMFOcY8eSeCyLWHtvi26HambnDj18lCwwmTz7VRe7f5Wdz7kE59mdTU035UQemDcYa_dNQH4pPZK1obe5K5o8xRDqh3r6Xzs3IkpNi9WD1NAYmo8aqHO1LDoT2By6M6nBQU'}
                   variant="outline"
                   className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
                 >
