@@ -428,20 +428,20 @@ const Index = () => {
             <div className="md:flex-1 lg:flex-1 md:flex md:justify-center lg:justify-center md:items-center lg:items-center">
               <div className="w-full max-w-sm md:bg-muted/20 lg:bg-muted/20 md:rounded-lg lg:rounded-lg md:p-6 lg:p-8 md:border md:border-border/50 lg:border lg:border-border/50">
                 <div className="space-y-4">
-                  {/* Sign up with Google */}
-                  <Button 
-                    onClick={() => navigate('/auth')}
-                    variant="outline"
-                    className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Sign up with Google
-                  </Button>
+                {/* Sign up with Google */}
+                <Button 
+                  onClick={() => window.location.href = 'https://accounts.google.com/v3/signin/accountchooser?access_type=offline&client_id=727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com&prompt=consent&redirect_to=https%3A%2F%2Fayra.app%2F&redirect_uri=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=eyJhbGciOiJIUzI1NiIsImtpZCI6IlJGNWFxWk9LQjV6V0hxQVAiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NjEzMDMzNTQsInNpdGVfdXJsIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsImZ1bmN0aW9uX2hvb2tzIjpudWxsLCJwcm92aWRlciI6Imdvb2dsZSIsInJlZmVycmVyIjoiaHR0cHM6Ly9heXJhLXVuaWZpZWQtc3VpdGUubG92YWJsZS5hcHAiLCJmbG93X3N0YXRlX2lkIjoiIn0.J9OgJtUgqUFjDt5qV4-yqjyd42vCSM-rspC-cs81sDo&dsh=S-1676746248%3A1761303054513841&o2v=2&service=lso&flowName=GeneralOAuthFlow&opparams=%253Fredirect_to%253Dhttps%25253A%25252F%25252Fayra.app%25252F&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hANMLIipne_sawjzbjAoVbvk6YdZgrRwS7ISpvb8k21zxW4R0dLMijs60lPunk1iV4u5SV9v-bdnzyMFPEb4LmoOkxwt-6BnpgERqVCYliEf3SI84u1YXaQ83eP-ivEZf2TZVKYW2OQG8brfWnz0FeWBL79W9uNEKp87RrA0iIyGBy1dmtTJv6nrhRnoAjzFjBcw1gjKUb4Z-ey16kznbLc9P4NZ3_WYvJT9rzxVaSye0I-BvaT_J1EJWWl1bcOi-59jEIGMS6yUzSH-1Mrhz8G3RVxff5FoHViUogcSKnIiCu7_TYhRCXMkZYg1XHM1-rbUEGG38FxFzY29nbuvieXgNg7zhla4NObCPcWqV1u8tjUuKMFOcY8eSeCyLWHtvi26HambnDj18lCwwmTz7VRe7f5Wdz7kE59mdTU035UQemDcYa_dNQH4pPZK1obe5K5o8xRDqh3r6Xzs3IkpNi9WD1NAYmo8aqHO1LDoT2By6M6nBQU%26flowName%3DGeneralOAuthFlow%26as%3DS-1676746248%253A1761303054513841%26client_id%3D727830807653-42ha4jskf1mjrsqb5t70hpe867191gm1.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Flmkpmnndrygjatnipfgd.supabase.co'}
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-3 py-2.5 h-auto text-base bg-background hover:bg-muted font-body font-medium"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Sign up with Google
+                </Button>
 
                   {/* OR Divider */}
                   <div className="flex items-center my-4">
@@ -606,7 +606,7 @@ const Index = () => {
                      onPlay={() => setIsVideoPlaying(true)}
                      onPause={() => setIsVideoPlaying(false)}
                    >
-                     <source src="/Ayra_in_action.mp4" type="video/mp4" />
+                     <source src="/AYRA-2.mp4" type="video/mp4" />
                      Your browser does not support the video tag.
                    </video>
                    {/* Play/Pause Button Overlay */}
@@ -724,7 +724,7 @@ const Index = () => {
                 </ul>
                 <div className="pt-4 border-t border-border">
                   <p className="text-xs text-muted-foreground font-body">
-                    Free plan for life for the first 1000 users.
+                    Free plan for life for the first 10,000 users.
                   </p>
                 </div>
                 <div className="pt-4">
